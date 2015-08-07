@@ -1,0 +1,25 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+if [ $(id -u) -ne 0 ]; then
+  printf "Script must be run as root\n"
+  exit 1
+fi
+
+mkdir -p qemu_downgrade
+cd qemu_downgrade
+MYARCH=$(dpkg --print-architecture)
+wget http://snapshot.debian.org/archive/debian/20120306T041809Z/pool/main/q/qemu/qemu_1.0.1%2Bdfsg-1_${MYARCH}.deb
+wget http://snapshot.debian.org/archive/debian-ports/20120310T114351Z/pool/main/q/qemu/qemu-keymaps_1.0.1%2Bdfsg-1_all.deb
+wget http://snapshot.debian.org/archive/debian/20120306T041809Z/pool/main/q/qemu/qemu-system_1.0.1%2Bdfsg-1_${MYARCH}.deb
+wget http://snapshot.debian.org/archive/debian/20120306T041809Z/pool/main/q/qemu/qemu-user_1.0.1%2Bdfsg-1_${MYARCH}.deb
+wget http://snapshot.debian.org/archive/debian/20120308T042544Z/pool/main/q/qemu/qemu-utils_1.0.1%2Bdfsg-1_${MYARCH}.deb
+wget http://snapshot.debian.org/archive/debian/20120303T221521Z/pool/main/c/ceph/librbd1_0.43-1_${MYARCH}.deb
+wget http://snapshot.debian.org/archive/debian/20120303T221521Z/pool/main/c/ceph/librados2_0.43-1_${MYARCH}.deb
+sudo dpkg -i *
+sudo apt-get install -f
+
+printf "Hopefully downgraded to qemu 1.0.1 successfully, take a look...\n"
+dpkg -l | grep qemu

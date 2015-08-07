@@ -1,0 +1,74 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+# TODO: this script is very rough and ready. Currently shrinks ext4 image to 
+# minimum size. Should really be refactored and merged with grow_image
+
+set -x
+
+if [ $(id -u) -ne 0 ]; then
+  printf "Script must be run as root\n"
+  exit 1
+fi
+
+if [ ! "$1" ]; then
+  printf "Usage: ./shrink_image IMAGEFILE\n"
+  exit 1
+fi
+IMAGEFILE="$1"
+
+# Partition resizing code same as in http://github.com/asb/raspi-config
+PART_START=$(parted "$IMAGEFILE" -ms unit s p | grep "^2" | cut -f 2 -d:)
+if [ ! "$PART_START" ]; then
+  printf "Failed to extract root partition offset\n"
+fi
+
+# Just use losetup to create a loopback device. fdisk will operate on files, 
+# but it complains about the number of cylinders not being set
+
+LOOP_DEV=$(losetup -f)
+
+# We know the offset anyway so let's just use losetup directly rather than 
+# bothering with kpartx
+PART_START_BYTES=$((${PART_START%s}*512))
+losetup --offset "$PART_START_BYTES" -v $LOOP_DEV "$IMAGEFILE"
+
+# Sanity check
+file -s $LOOP_DEV
+
+# Run resize2fs
+e2fsck -f $LOOP_DEV
+resize2fs -M $LOOP_DEV
+
+EXT4_BLCKCNT=$(sudo tune2fs -l /dev/loop0 | grep "^Block count" | cut -d ":" -f 2 | tr -d ' ')
+EXT4_BLKSIZE=$(sudo tune2fs -l /dev/loop0 | grep "^Block size" | cut -d ":" -f 2 | tr -d ' ')
+EXT4_FS_BYTES=$(($EXT4_BLCKCNT * $EXT4_BLKSIZE))
+
+# Unmount it all
+losetup -d $LOOP_DEV
+
+NEW_IMG_BYTES=$(($EXT4_FS_BYTES + $PART_START_BYTES + 4194304))
+
+# Shrink the image file
+dd if=/dev/null of="$IMAGEFILE" bs=$NEW_IMG_BYTES seek=1
+
+losetup -v $LOOP_DEV "$IMAGEFILE"
+
+fdisk -cu $LOOP_DEV <<EOF
+p
+d
+2
+n
+p
+2
+$PART_START
+
+p
+w
+EOF
+
+losetup -d $LOOP_DEV
+
+printf "Success! (hopefully)\n"

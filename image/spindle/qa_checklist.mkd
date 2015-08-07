@@ -1,0 +1,31 @@
+# QA checklist
+This document contains a list of things which should be tested before 
+releasing a distribution image as 'finished'.
+
+## Platform specific
+* The latest version of the 'firmware' is included
+* /dev/vchiq is owned by group 'video'
+
+## Basic configuration
+* ifplugd is installed and properly configured
+* A default user has been created
+* If a desktop environment is installed, it defaults to Raspberry Pi branding
+* sshd either starts at boot or is trivial to enable (and this mechanism has 
+been tested)
+* An NTP daemon is installed and configured
+* eth0 isn't renamed when the same SD card is put in a different Raspberry Pi
+* sudo is installed and configured
+* ssh host keys have been removed and will be generated on first boot or first 
+invocation of sshd
+* `apt-get clean` has been run to remove cached packages
+
+## Functionality tests for desktop images
+* When plugging in a USB memory stick, it is automatically mounted
+* Wireless dongles with free firmware work out of the box
+* The default browser works for GMail and other JavaScript-heavy sites
+* `/opt/vc/bin/tvservice` has been verified to work
+* Verify after installing gparted it can be launched from the graphical menu 
+and that in pcmanfm 'open folder as root' works (checks PolicyKit 
+configuration).
+* Run fsck on the root partition to ensure the image generation process 
+produced a clean filesystem

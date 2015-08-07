@@ -1,0 +1,24 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+# NOTE: this script is rather hacky, in that you probably want to run it 
+# outside of the schroot set up for spindle...Ideally we'd be booting with an 
+# nbd rootfs anyway, so this is just a stopgap
+set -ex
+
+. ./common
+
+[ "$1" ] || die "No image name given"
+[ -b "$NBD_DEV" ] || die "nbd device '%s' does not exist. Try sudo modprobe nbd max_part=16" "$NBD_DEV"
+dotask schroot -c spindle -- qemu-img create -f qed -b $1 nfs.qed
+mkdir -p nfs_export
+dotask sudo schroot -c spindle -- qemu-nbd --nocache -v -c /dev/nbd0 nfs.qed &
+sleep 5
+dotask sudo mount /dev/nbd0p2 nfs_export # have to do it outside of schroot!
+NFS_PATH=$(readlink -m nfs_export)
+dotask sudo exportfs -v -i -o async,rw,no_root_squash ":$NFS_PATH"
+while true; do
+  sleep 60
+done

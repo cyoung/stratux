@@ -1,0 +1,111 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+set -ex
+
+. ./common
+
+WORKDIR=work
+OUTDIR=out
+CURIMG=stage4-lxde-edu.$IMGFORMAT
+
+install_packages() {
+  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+apt-get update
+apt-get upgrade -y
+apt-get install -y python idle python3-pygame python-pygame python-tk
+apt-get install -y python3 idle3 python3-tk
+apt-get install -y python3-rpi.gpio
+apt-get install -y python-serial python3-serial
+apt-get install -y python-picamera python3-picamera
+apt-get install -y debian-reference-en dillo x2x
+apt-get install -y scratch nuscratch
+apt-get install -y raspberrypi-ui-mods
+apt-get install -y --no-install-recommends timidity # needed for some python game examples
+[ "$(dpkg --print-architecture)" = armhf ] && apt-get install -y smartsim penguinspuzzle
+[ "$(dpkg --print-architecture)" = armhf ] && apt-get install -y pistore
+[ "$(dpkg --print-architecture)" = armhf ] && apt-get install -y sonic-pi
+cat <<\EOF1 > /etc/udev/rules.d/40-scratch.rules
+ATTRS{idVendor}=="0694", ATTRS{idProduct}=="0003", SUBSYSTEMS=="usb", ACTION=="add", MODE="0666", GROUP="plugdev"
+EOF1
+# Requested for raspberry filling
+apt-get install -y python3-numpy
+
+# Install pypy
+if [ "$(dpkg --print-architecture)" = armhf ]; then
+  apt-get install -y pypy-upstream
+fi
+
+apt-get install -y python3-pifacecommon python3-pifacedigitalio \
+  python3-pifacedigital-scratch-handler python-pifacecommon python-pifacedigitalio
+
+
+if [ "$(dpkg --print-architecture)" = armhf ]; then
+  apt-get install -y java-common oracle-java8-jdk
+  apt-get install -y minecraft-pi python-minecraftpi
+fi
+
+EOF
+}
+
+install_wolfram() {
+  onvm_chroot sh -l -ex - <<\EOF
+apt-get update
+debconf-set-selections <<SELEOF
+wolfram-engine  shared/accepted-wolfram-eula  boolean true
+SELEOF
+
+apt-get install -y wolfram-engine
+EOF
+}
+
+setup_python_game_examples() {
+  onvm_chroot sh -l -e <<\EOF
+cd /home/pi
+wget "https://github.com/KenT2/python-games/tarball/master" -O python_games.tar.gz
+tar -xvf python_games.tar.gz
+mv KenT2-python-games* python_games
+chmod +x python_games/launcher.sh
+rm python_games.tar.gz
+chown -R pi:pi python_games
+EOF
+}
+
+# relies on the fact we made a Desktop directory in 
+# setup_python_game_examples
+setup_desktop_icons() {
+  onvm_chroot sh -l -e <<\EOF
+# We don't want desktop icons any more
+rm -rf /home/pi/Desktop
+EOF
+}
+
+# There are 2 menu entries for both of idle3 and idle2. Fix this
+hide_redundant_idle_menu_entries() {
+  onvm_chroot sh -l -e <<\EOF
+mkdir -p /usr/local/share/applications
+for ENTRY in /usr/share/applications/idle-python*.desktop; do
+  cp -a $ENTRY /usr/local/share/applications
+  printf "NoDisplay=true\n" >> "/usr/local/share/applications/$(basename $ENTRY)"
+done
+EOF
+}
+
+cd $WORKDIR
+dotask branch_image ../$OUTDIR/stage4-lxde.$IMGFORMAT $CURIMG
+dotask run_qemu $CURIMG
+dotask disable_starting_services
+dotask mount_apt_cache
+dotask install_packages
+[ -n "$RASPBIAN" ] && dotask install_wolfram
+dotask setup_python_game_examples
+dotask setup_desktop_icons
+dotask hide_redundant_idle_menu_entries
+dotask save_space_using_hardlink
+dotask allow_starting_services
+dotask fingerprint_debian
+dotask update_issue
+dotask shutdown_qemu
+dotask finish_image

@@ -1,0 +1,25 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+RASPBIAN=1
+
+if [ -n "$RASPBIAN" ]; then
+  TGT_ARCH=armhf
+  DEB_MIRROR=http://mirror.ox.ac.uk/sites/archive.raspbian.org/archive/raspbian/
+else
+  TGT_ARCH=armel
+  #DEB_MIRROR=http://ftp.uk.debian.org/debian
+  DEB_MIRROR=http://www-uxsup.csx.cam.ac.uk/pub/linux/debian
+fi
+NBD_DEV=/dev/nbd0
+BOOT_DEV="$NBD_DEV"p1
+ROOT_DEV="$NBD_DEV"p2
+
+IMGFORMAT=qed
+SDSIZE=3125M
+
+# Changing these isn't currently supported
+WORKDIR=work
+OUTDIR=out

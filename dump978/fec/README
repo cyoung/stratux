@@ -1,0 +1,8 @@
+This directory contains just the Reed-Solomon decoder parts
+of the fec-3.0.1 library by Phil Karn.
+
+The full version of the library may be found at
+http://www.ka9q.net/code/fec/
+
+See README.fec for the original library README and license
+information.

@@ -1,0 +1,73 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+# TODO: this script is very rough and ready.
+
+set -ex
+
+printf "NOTICE: this script is only intended to work in an unmodified form\n" 
+printf "a recent Arch Linux install (with 3.8.x kernel).\n"
+printf "You'll need to use grow_image to expand the rootfs above 2GiB\n"
+printf "To get all deps, you want to do:\n\n"
+# 1.1.0 f2fs-tools release is no good as we need commit 
+# http://git.kernel.org/cgit/linux/kernel/git/jaegeuk/f2fs-tools.git/commit/?id=07b815d39509135e35856cfd30b83930a0af8250
+cat <<"EOF"
+pacman -S wget unzip zip parted git
+git clone git://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs-tools.git 
+cd f2fs-tools
+autoreconf -fi
+./configure && make && make install
+curl https://aur.archlinux.org/packages/f2/f2fs-tools-git/f2fs-tools-git.tar.gz | tar xz
+cd f2fs-tools-git
+makepkg -si
+cd ..
+EOF
+sleep 5
+
+if [ $(id -u) -ne 0 ]; then
+  printf "Script must be run as root\n"
+  exit 1
+fi
+
+if [ ! "$1" ]; then
+  printf "Usage: ./f2fsify IMAGEFILE\n"
+  exit 1
+fi
+IMAGEFILE="$1"
+
+modprobe f2fs
+modprobe loop
+BOOT_START=$(parted "$IMAGEFILE" -ms unit s p | grep "^1" | cut -f 2 -d:)
+BOOT_START_BYTES=$((${BOOT_START%s}*512))
+ROOT_START=$(parted "$IMAGEFILE" -ms unit s p | grep "^2" | cut -f 2 -d:)
+ROOT_START_BYTES=$((${ROOT_START%s}*512))
+
+# Back up the rootfs content
+LOOP_DEV=$(losetup -f)
+losetup --offset "$ROOT_START_BYTES" -v $LOOP_DEV "$IMAGEFILE"
+mkdir -p rootfs
+mount $LOOP_DEV rootfs
+tar -cz rootfs > rootfs.tar.gz
+umount rootfs
+
+# Make the f2fs rootfs
+mkfs.f2fs $LOOP_DEV
+mount $LOOP_DEV rootfs
+tar -xvf rootfs.tar.gz
+sed -i rootfs/etc/fstab -e "s/ext4/f2fs/"
+cat rootfs/etc/fstab
+umount rootfs
+losetup -d $LOOP_DEV
+
+# Fix cmdline.txt on boot partition
+losetup --offset "$BOOT_START_BYTES" -v $LOOP_DEV "$IMAGEFILE"
+mkdir -p boot
+mount $LOOP_DEV boot
+sed -i boot/cmdline.txt -e "s/ext4/f2fs/"
+cat boot/cmdline.txt
+umount boot
+losetup -d $LOOP_DEV
+
+printf "Done!\n"

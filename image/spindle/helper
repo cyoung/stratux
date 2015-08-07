@@ -1,0 +1,13 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+set -e
+
+. ./common
+
+if [ $# -ne 0 ]; then
+  set -x
+  "$@"
+fi

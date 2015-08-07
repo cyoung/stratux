@@ -1,0 +1,359 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+set -ex
+
+. ./common
+
+CURIMG=stage2.$IMGFORMAT
+
+# Make changes to /etc/skel before we start adding new users
+modify_etc_skel() {
+  onvm_chroot sh -l -ex - <<\EOF
+# Essentially the same as the default debian one, but enable color by default
+# and slightly tweak PS1
+cat <<\EOF1 > /etc/skel/.bashrc
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+[ -z "$PS1" ] && return
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+#[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+  # We have color support; assume it's compliant with Ecma-48
+  # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+  # a case would tend to support setf rather than setaf.)
+  color_prompt=yes
+    else
+  color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\w \$\[\033[00m\] '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# some more ls aliases
+#alias ll='ls -l'
+#alias la='ls -A'
+#alias l='ls -CF'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+    . /etc/bash_completion
+fi
+EOF1
+EOF
+}
+
+# For now we add a root password (this is a totally minimal system). It should be 
+# disabled at a later stage
+configure_users() {
+  onvm_chroot sh -l -ex - <<EOF
+adduser --disabled-password --gecos "" pi
+echo "pi:raspberry" | chpasswd
+echo "root:root" | chpasswd
+EOF
+}
+
+configure_fstab() {
+  onvm_chroot sh -l -e - <<EOF1
+cat <<EOF2 > /etc/fstab
+proc            /proc           proc    defaults          0       0
+/dev/mmcblk0p1  /boot           vfat    defaults          0       2
+/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+EOF2
+# Automatically repair if fsck finds issues
+sed -i /etc/default/rcS -e "s/^#FSCKFIX=no/FSCKFIX=yes/"
+EOF1
+}
+
+configure_sources_list() {
+  SECTIONS="main contrib non-free"
+  if [ -n "$RASPBIAN" ]; then
+    SECTIONS="$SECTIONS rpi"
+  fi
+  onvm_chroot sh -l -e - <<EOF
+printf "deb $DEB_MIRROR wheezy $SECTIONS\n" > /etc/apt/sources.list
+printf "# Uncomment line below then 'apt-get update' to enable 'apt-get source'\n" >> /etc/apt/sources.list
+printf "#deb-src $DEB_MIRROR wheezy $SECTIONS\n" >> /etc/apt/sources.list
+EOF
+}
+
+configure_network_interfaces() {
+  onvm_chroot sh -l -e - <<\EOF1
+cat <<EOF2 > /etc/network/interfaces
+auto lo
+
+iface lo inet loopback
+iface eth0 inet dhcp
+EOF2
+# Use the qemu default nameserver
+printf "nameserver 10.0.2.3\n" > /etc/resolv.conf
+EOF1
+}
+
+configure_hostname() {
+  onvm_chroot sh -l -e - <<EOF
+echo raspberrypi > /etc/hostname
+printf "127.0.1.1\traspberrypi\n" >> /etc/hosts
+EOF
+}
+
+disable_eth_and_wlan_renaming() {
+  onvm_chroot sh -l -e - <<EOF
+sed -i -e 's/KERNEL\!="eth\*|ath\*|wlan\*\[0-9\]/KERNEL\!="ath\*/' /lib/udev/rules.d/75-persistent-net-generator.rules
+dpkg-divert --add --local /lib/udev/rules.d/75-persistent-net-generator.rules
+EOF
+}
+
+# Due to a change of behaviour in getty, we must pass --noclear to ensure our 
+# boot messages don't get cleared
+# Also, spawn a getty on the serial line
+configure_inittab() {
+  onvm_chroot sh -l -e - <<\EOF
+sed -i -e "s/^\(1:2345.*\)getty\(.*tty1\)$/\1getty --noclear\2/" /etc/inittab
+printf "\n#Spawn a getty on Raspberry Pi serial line\n" >> /etc/inittab
+printf "T0:23:respawn:/sbin/getty -L ttyAMA0 115200 vt100\n" >> /etc/inittab
+EOF
+}
+
+adjust_motd() {
+  onvm_chroot sh -l -e <<\EOF1
+cat <<EOF2 >> /etc/motd.tail
+
+Type 'startx' to launch a graphical session
+
+EOF2
+EOF1
+}
+
+install_firmware() {
+  onvm_chroot sh -l -e - <<EOF
+#echo "deb http://archive.raspberrypi.org/debian/ wheezy main" > /etc/apt/sources.list.d/raspi.list
+echo "deb http://archive.raspberrypi.org/debian/ wheezy main untested" > /etc/apt/sources.list.d/raspi.list
+apt-key add - <<EOF1
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+mQENBE/d7o8BCACrwqQacGJfn3tnMzGui6mv2lLxYbsOuy/+U4rqMmGEuo3h9m92
+30E2EtypsoWczkBretzLUCFv+VUOxaA6sV9+puTqYGhhQZFuKUWcG7orf7QbZRuu
+TxsEUepW5lg7MExmAu1JJzqM0kMQX8fVyWVDkjchZ/is4q3BPOUCJbUJOsE+kK/6
+8kW6nWdhwSAjfDh06bA5wvoXNjYoDdnSZyVdcYCPEJXEg5jfF/+nmiFKMZBraHwn
+eQsepr7rBXxNcEvDlSOPal11fg90KXpy7Umre1UcAZYJdQeWcHu7X5uoJx/MG5J8
+ic6CwYmDaShIFa92f8qmFcna05+lppk76fsnABEBAAG0IFJhc3BiZXJyeSBQaSBB
+cmNoaXZlIFNpZ25pbmcgS2V5iQE4BBMBAgAiBQJP3e6PAhsDBgsJCAcDAgYVCAIJ
+CgsEFgIDAQIeAQIXgAAKCRCCsSmSf6MwPk6vB/9pePB3IukU9WC9Bammh3mpQTvL
+OifbkzHkmAYxzjfK6D2I8pT0xMxy949+ThzJ7uL60p6T/32ED9DR3LHIMXZvKtuc
+mQnSiNDX03E2p7lIP/htoxW2hDP2n8cdlNdt0M9IjaWBppsbO7IrDppG2B1aRLni
+uD7v8bHRL2mKTtIDLX42Enl8aLAkJYgNWpZyPkDyOqamjijarIWjGEPCkaURF7g4
+d44HvYhpbLMOrz1m6N5Bzoa5+nq3lmifeiWKxioFXU+Hy5bhtAM6ljVb59hbD2ra
+X4+3LXC9oox2flmQnyqwoyfZqVgSQa0B41qEQo8t1bz6Q1Ti7fbMLThmbRHiuQEN
+BE/d7o8BCADNlVtBZU63fm79SjHh5AEKFs0C3kwa0mOhp9oas/haDggmhiXdzeD3
+49JWz9ZTx+vlTq0s+I+nIR1a+q+GL+hxYt4HhxoA6vlDMegVfvZKzqTX9Nr2VqQa
+S4Kz3W5ULv81tw3WowK6i0L7pqDmvDqgm73mMbbxfHD0SyTt8+fk7qX6Ag2pZ4a9
+ZdJGxvASkh0McGpbYJhk1WYD+eh4fqH3IaeJi6xtNoRdc5YXuzILnp+KaJyPE5CR
+qUY5JibOD3qR7zDjP0ueP93jLqmoKltCdN5+yYEExtSwz5lXniiYOJp8LWFCgv5h
+m8aYXkcJS1xVV9Ltno23YvX5edw9QY4hABEBAAGJAR8EGAECAAkFAk/d7o8CGwwA
+CgkQgrEpkn+jMD5Figf/dIC1qtDMTbu5IsI5uZPX63xydaExQNYf98cq5H2fWF6O
+yVR7ERzA2w33hI0yZQrqO6pU9SRnHRxCFvGv6y+mXXXMRcmjZG7GiD6tQWeN/3wb
+EbAn5cg6CJ/Lk/BI4iRRfBX07LbYULCohlGkwBOkRo10T+Ld4vCCnBftCh5x2OtZ
+TOWRULxP36y2PLGVNF+q9pho98qx+RIxvpofQM/842ZycjPJvzgVQsW4LT91KYAE
+4TVf6JjwUM6HZDoiNcX6d7zOhNfQihXTsniZZ6rky287htsWVDNkqOi5T3oTxWUo
+m++/7s3K3L0zWopdhMVcgg6Nt9gcjzqN1c0gy55L/g==
+=mNSj
+-----END PGP PUBLIC KEY BLOCK-----
+EOF1
+apt-get update
+apt-get install -y libraspberrypi-bin libraspberrypi0 raspberrypi-bootloader
+echo "deb http://archive.raspberrypi.org/debian/ wheezy main" > /etc/apt/sources.list.d/raspi.list
+apt-get update
+echo "dwc_otg.lpm_enable=0 console=ttyAMA0,115200 \
+console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline rootwait" > /boot/cmdline.txt
+cat <<EOF1 > /boot/config.txt
+# For more options and information see 
+# http://www.raspberrypi.org/documentation/configuration/config-txt.md
+# Some settings may impact device functionality. See link above for details
+
+# uncomment if you get no picture on HDMI for a default "safe" mode
+#hdmi_safe=1
+
+# uncomment this if your display has a black border of unused pixels visible
+# and your display can output without overscan
+#disable_overscan=1
+
+# uncomment the following to adjust overscan. Use positive numbers if console
+# goes off screen, and negative if there is too much border
+#overscan_left=16
+#overscan_right=16
+#overscan_top=16
+#overscan_bottom=16
+
+# uncomment to force a console size. By default it will be display's size minus
+# overscan.
+#framebuffer_width=1280
+#framebuffer_height=720
+
+# uncomment if hdmi display is not detected and composite is being output
+#hdmi_force_hotplug=1
+
+# uncomment to force a specific HDMI mode (this will force VGA)
+#hdmi_group=1
+#hdmi_mode=1
+
+# uncomment to force a HDMI mode rather than DVI. This can make audio work in
+# DMT (computer monitor) modes
+#hdmi_drive=2
+
+# uncomment to increase signal to HDMI, if you have interference, blanking, or
+# no display
+#config_hdmi_boost=4
+
+# uncomment for composite PAL
+#sdtv_mode=2
+
+#uncomment to overclock the arm. 700 MHz is the default.
+#arm_freq=800
+
+EOF1
+# cat <<EOF2 > /etc/modprobe.d/raspi-blacklist.conf
+# # blacklist spi and i2c by default (many users don't need them)
+
+# blacklist spi-bcm2708
+# blacklist i2c-bcm2708
+# blacklist snd-soc-pcm512x
+# blacklist snd-soc-wm8804
+# EOF2
+cat <<EOF3 > /etc/modprobe.d/ipv6.conf
+# Don't load ipv6 by default
+alias net-pf-10 off
+#alias ipv6 off
+EOF3
+EOF
+}
+
+# Relies on the fact my repo was already added in install_firmware
+install_raspi_config() {
+  onvm_chroot sh -l -e - <<\EOF
+apt-get install -y raspi-config
+# Automatically log in on tty1 until raspi-config configures it to do 
+# otherwise
+sed -i /etc/inittab -e "s|^\(1:2345.*getty.*tty1.*\)|\
+#\1 # RPICFG_TO_ENABLE\n1:2345:respawn:/bin/login -f root tty1 </dev/tty1 >/dev/tty1 2>\&1 # RPICFG_TO_DISABLE|"
+EOF
+}
+
+# Deprecated in favour of using the Debian packaging
+download_and_extract_firmware_if_necessary() {
+  if ! [ -d firmware ]; then
+    git clone git://github.com/raspberrypi/firmware.git
+  fi
+}
+
+cd $WORKDIR
+dotask branch_image ../$OUTDIR/stage1.$IMGFORMAT $CURIMG
+dotask run_qemu $CURIMG
+dotask mount_apt_cache
+dotask disable_starting_services
+dotask modify_etc_skel
+dotask configure_users
+dotask configure_fstab
+dotask configure_sources_list
+dotask configure_network_interfaces
+dotask configure_hostname
+dotask disable_eth_and_wlan_renaming
+dotask configure_inittab
+dotask adjust_motd
+dotask install_firmware
+dotask install_raspi_config
+dotask update_issue
+dotask allow_starting_services
+dotask shutdown_qemu
+#dotask download_and_extract_firmware_if_necessary
+sudo -v
+# We have to copy the /boot from root partition to boot partition. Temporary 
+# hack
+dotask attach_image_to_nbd $CURIMG $NBD_DEV
+mkdir -p boot
+dotask sudo mount $BOOT_DEV boot
+mkdir -p rootfs
+dotask sudo mount $ROOT_DEV rootfs
+dotask sudo mv rootfs/boot/* boot
+universal_cleanup
+dotask finish_image

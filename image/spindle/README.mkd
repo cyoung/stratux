@@ -1,0 +1,82 @@
+# spindle - a tool to help spin distribution images
+
+## Description
+spindle is a set of scripts to aid building and working on a distribution 
+image. I've been using this tool to generate Debian wheezy images for the 
+Raspberry Pi, with the aim of producing reproducible, unbooted, clean setups 
+that require no manual intervention. It works by producing a series of image 
+files in QEMU's QED format (I exploit the format's support for backing files 
+and copy on write).
+
+It's not massively user friendly yet, but hopefully that should soon change 
+(and of course, patches are welcome).
+
+## Project links
+* [Home](http://asbradbury.org/projects/spindle/)
+* [Source](https://github.com/asb/spindle)
+* [Issues](https://github.com/asb/spindle/issues)
+
+## Current scripts
+* `setup_spindle_environment`: Sets up an schroot using wheezy and installs 
+the pre-requisites needed for spindle (mainly QEMU, as it turns out I haven't 
+used augeas). If you don't use this, please make sure you have at least QEMU 
+1.0.1
+* `wheezy-stage0`: Create and partition an SD card image, perform the initial 
+debootstrap on the host and copy the files to the SD image.
+* `wheezy-stage1`: Complete second stage of debootstrap under QEMU after first 
+setting up a squashfs filesystem derived from Rob Landley's excellent 
+Aboriginal Linux. Setup dropbear.
+* `wheezy-stage2`: Add in Raspberry Pi 'firmware' and do misc config (e.g.  
+fstab, network interfaces, hostname). The resulting image is bootable.
+* `wheezy-stage3`: Install and configure a few useful packages (such as 
+ifplugd, sudo).
+* `wheezy-stage4-lxde`: Set up the lxde desktop.
+* `wheezy-stage4-lxde-edu`: Install MIT Scratch, Python development tools and 
+other packages.
+
+## Getting started
+The following describes how to start building SD card images using spindle.  
+The process isn't massively user friendly for people with no experience at 
+all, but if you're currently doing this by hand then hopefully you'll find it 
+helpful. Note that executing the `downgrade_qemu` script is necessary on most 
+Debian and Ubuntu versions right now.
+
+    sudo ./setup_spindle_environment  my_spindle_chroot
+    sudo modprobe nbd max_part=16
+    schroot -c spindle
+    sudo ./downgrade_qemu
+    ./wheezy-stage0
+    ./wheezy-stage1
+    ./wheezy-stage2
+    ./wheezy-stage3
+    ./wheezy-stage4-lxde
+    ./helper export_image_for_release out/stage4-lxde.qed stage4-lxde.img
+
+Now you can write stage4-lxde.img to SD card.
+
+Take a look at `wheezy-stage4-lxde` to see how to add your own stage if you 
+want further customisation.
+
+## HACKING
+If you want to contribute, please do file issues on the bug tracker or send in 
+patches/pull requests.
+
+spindle is written in POSIX shell script and tries to make use of QEMU where 
+possible for manipulating the filesystem of the target being generated. Look 
+at the current scripts for examples. Please do talk to me if you're thinking 
+of any large refactoring.
+
+Good resources for shell scripting include:
+
+* `man dash`
+* [The POSIX standard](http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html)
+* [Insufficiently known POSIX shell features](http://apenwarr.ca/log/?m=201102#28)
+* [Common shell scripting mistakes](http://www.pixelbeat.org/programming/shell_script_mistakes.html)
+
+## License
+MIT. See the LICENSE file.
+
+## Contact
+Author: Alex Bradbury  
+Email: <asb@asbradbury.org>  
+Homepage: <http://asbradbury.org/>

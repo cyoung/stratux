@@ -1,0 +1,117 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+set -e
+
+SCHROOT_SPINDLE_CONF=/etc/schroot/chroot.d/spindle
+ETC_SCHROOT_SPINDLE=/etc/schroot/spindle
+
+if [ $(id -u) -ne 0 ]; then
+  printf "Script must be run as root\n"
+  exit 1
+fi
+
+show_usage() {
+  printf "./setup_spindle_environment DIRNAME\n"
+}
+
+ensure_installed() {
+  for PKG in "$@"; do
+    dpkg --get-selections "$PKG" | grep -q "[[:space:]]install$" || apt-get install "$PKG" || die "Failed to install $PKG"
+  done
+}
+
+[ "$1" ] || show_usage
+TARGET_DIR=$(readlink -m "$1")
+
+. ./common
+
+ensure_installed schroot debootstrap debian-archive-keyring
+
+ask_yn y "About to set up chroot in '%s'. Ok?" "$TARGET_DIR" || die "You said no. Exiting"
+read_val USERS "${USERS-$SUDO_USER}" "What user should be able to schroot?"
+[ -z "$USERS" ] && die "You didn't list any users"
+
+if [ -e "$SCHROOT_SPINDLE_CONF" ]; then
+  ask_yn y "Overwrite existing config '$SCHROOT_SPINDLE_CONF'?" || die "You said no. Exiting"
+  rm -rf "$ETC_SCHROOT_SPINDLE"
+fi
+
+mkdir -p $(dirname "$SCHROOT_SPINDLE_CONF")
+cat << EOF > "$SCHROOT_SPINDLE_CONF" || die "Failed to configure schroot"
+[spindle]
+type=directory
+description=Debian wheezy for spindle
+directory=$TARGET_DIR
+preserve-environment=true
+script-config=spindle/config
+users=$USERS
+groups=$USERS
+root-groups=root
+EOF
+
+printf "\nCreated %s:\n\n" "$SCHROOT_SPINDLE_CONF"
+cat "$SCHROOT_SPINDLE_CONF"
+printf "\n"
+
+if [ ! -e $ETC_SCHROOT_SPINDLE ]; then
+  if [ -e /etc/schroot/default ]; then
+    cp -a /etc/schroot/default $ETC_SCHROOT_SPINDLE
+  else
+    ## Should work for schroot 1.4 as in Ubuntu 10.04
+    mkdir $ETC_SCHROOT_SPINDLE
+    for FN in copyfiles mount nssdatabases; do
+      cp -a /etc/schroot/${FN}-defaults $ETC_SCHROOT_SPINDLE/$FN
+    done
+    mv $ETC_SCHROOT_SPINDLE/mount $ETC_SCHROOT_SPINDLE/fstab
+  fi
+fi
+
+cat << EOF > $ETC_SCHROOT_SPINDLE/config
+# Filesystems to mount inside the chroot.
+FSTAB="$ETC_SCHROOT_SPINDLE/fstab"
+
+# Files to copy from the host system into the chroot.
+COPYFILES="$ETC_SCHROOT_SPINDLE/copyfiles"
+
+# System NSS databases to copy into the chroot.
+NSSDATABASES="$ETC_SCHROOT_SPINDLE/nssdatabases"
+EOF
+
+# We want rbind of /home for cases where /home is provided by autofs
+# See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=648459
+sed $ETC_SCHROOT_SPINDLE/fstab -e "s|^\(/home.*\),bind\(.*\)|\1,rbind\2|" > $ETC_SCHROOT_SPINDLE/fstab.new || true
+mv $ETC_SCHROOT_SPINDLE/fstab.new $ETC_SCHROOT_SPINDLE/fstab || true
+# Delete rather than comment out, as schroot 1.4 has no support for comments 
+# in nssdatabases
+sed -i $ETC_SCHROOT_SPINDLE/nssdatabases -e "/^passwd$/d"
+sed -i $ETC_SCHROOT_SPINDLE/nssdatabases -e "/^shadow$/d"
+sed -i $ETC_SCHROOT_SPINDLE/nssdatabases -e "/^group$/d"
+
+debootstrap \
+  --include="qemu,bash-completion,augeas-tools,debootstrap,less,\
+  sudo,parted,openssh-client,e2fsprogs,dosfstools,squashfs-tools,bzip2,git,zerofree" \
+  wheezy "$TARGET_DIR" http://http.debian.net/debian || die "Debootstrap failed"
+rm "$TARGET_DIR/dev/shm" # required on my 10.04 for schroot to work
+
+# Copy passwd/shadow/group databases
+getent passwd > "$TARGET_DIR/etc/passwd"
+getent shadow > "$TARGET_DIR/etc/shadow"
+getent group > "$TARGET_DIR/etc/group"
+
+# Disable launch of services in chroot
+printf '#!/bin/sh\nexit 101\n' > "$TARGET_DIR"/usr/sbin/policy-rc.d
+chmod 755 "$TARGET_DIR"/usr/sbin/policy-rc.d
+
+# Make sure sudo is enabled within chroot
+chmod +w "$TARGET_DIR"/etc/sudoers
+echo "%admin ALL=(ALL) ALL" >> "$TARGET_DIR"/etc/sudoers
+chmod -w "$TARGET_DIR"/etc/sudoers
+
+printf "Please enter the password you would like for your schroot user (needed for sudo)\n"
+schroot -c spindle --directory=/tmp passwd $USERS
+
+printf "\nchroot created at '%s'. Use \`schroot -c spindle\` to enter it\n" "$TARGET_DIR"
+FINISHED_SUCCESSFULLY=1
