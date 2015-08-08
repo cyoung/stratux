@@ -1,0 +1,64 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:		stratux
+# Required-Start:	$network
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
+# Default-Start:	5
+# Default-Stop:		6
+# Short-Description:	Stratux ADS-B Receiver
+# Description:		RTL-SDR ADS-B receiver
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON_SBIN=/usr/sbin/stratux
+DAEMON_DEFS=
+DAEMON_CONF=
+NAME=stratux
+DESC="Stratux ADS-B Receiver"
+PIDFILE=/var/run/stratux.pid
+
+[ -x "$DAEMON_SBIN" ] || exit 0
+
+DAEMON_OPTS="-B -P $PIDFILE $DAEMON_OPTS $DAEMON_CONF"
+
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+	start-stop-daemon --start --oknodo --quiet --exec "$DAEMON_SBIN" \
+		--pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null
+	log_end_msg "$?"
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	start-stop-daemon --stop --oknodo --quiet --exec "$DAEMON_SBIN" \
+		--pidfile "$PIDFILE"
+	log_end_msg "$?"
+	;;
+  reload)
+  	log_daemon_msg "Reloading $DESC" "$NAME"
+	start-stop-daemon --stop --signal HUP --exec "$DAEMON_SBIN" \
+		--pidfile "$PIDFILE"
+	log_end_msg "$?"
+	;;
+  restart|force-reload)
+  	$0 stop
+	sleep 8
+	$0 start
+	;;
+  status)
+	status_of_proc "$DAEMON_SBIN" "$NAME"
+	exit $?
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload|reload|status}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
