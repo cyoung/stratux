@@ -6,7 +6,7 @@
 # Required-Stop:
 # Should-Start:
 # Should-Stop:
-# Default-Start:	5
+# Default-Start:	2
 # Default-Stop:		6
 # Short-Description:	Stratux ADS-B Receiver
 # Description:		RTL-SDR ADS-B receiver
