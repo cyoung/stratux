@@ -1,31 +1,29 @@
 package main
 
 import (
-	"net"
-	"fmt"
 	"bufio"
+	"fmt"
+	"net"
 	"strconv"
 	"strings"
-	"time"
 	"sync"
-	"github.com/sevlyar/go-daemon"
+	"time"
 )
 
 const (
-	ipadAddr         = "192.168.10.255:49002"
-	dump1090Addr	 = "127.0.0.1:30003"
+	ipadAddr        = "192.168.10.255:49002"
+	dump1090Addr    = "127.0.0.1:30003"
 	maxDatagramSize = 8192
 )
 
-
 type PositionInfo struct {
-	lat string
-	lng string
-	alt string
-	hdg string
-	vel string
-	vr string
-	tail string
+	lat       string
+	lng       string
+	alt       string
+	hdg       string
+	vel       string
+	vr        string
+	tail      string
 	last_seen time.Time
 }
 

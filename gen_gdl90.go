@@ -1,37 +1,35 @@
 package main
 
-
 import (
-		"net"
-		"encoding/hex"
-		"time"
-		"strings"
-		"fmt"
-		"bufio"
-		"os"
+	"bufio"
+	"encoding/hex"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+	"time"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	ipadAddr         = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
-	maxDatagramSize = 8192
-	UPLINK_BLOCK_DATA_BITS = 576
-	UPLINK_BLOCK_BITS = (UPLINK_BLOCK_DATA_BITS+160)
-	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS/8)
-	UPLINK_BLOCK_BYTES = (UPLINK_BLOCK_BITS/8)
+	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	maxDatagramSize         = 8192
+	UPLINK_BLOCK_DATA_BITS  = 576
+	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
+	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS / 8)
+	UPLINK_BLOCK_BYTES      = (UPLINK_BLOCK_BITS / 8)
 
-	UPLINK_FRAME_BLOCKS = 6
-	UPLINK_FRAME_DATA_BITS = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_DATA_BITS)
-	UPLINK_FRAME_BITS = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_BITS)
-	UPLINK_FRAME_DATA_BYTES = (UPLINK_FRAME_DATA_BITS/8)
-	UPLINK_FRAME_BYTES = (UPLINK_FRAME_BITS/8)
+	UPLINK_FRAME_BLOCKS     = 6
+	UPLINK_FRAME_DATA_BITS  = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_DATA_BITS)
+	UPLINK_FRAME_BITS       = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_BITS)
+	UPLINK_FRAME_DATA_BYTES = (UPLINK_FRAME_DATA_BITS / 8)
+	UPLINK_FRAME_BYTES      = (UPLINK_FRAME_BITS / 8)
 
 	// assume 6 byte frames: 2 header bytes, 4 byte payload
 	// (TIS-B heartbeat with one address, or empty FIS-B APDU)
-	UPLINK_MAX_INFO_FRAMES = (424/6)
+	UPLINK_MAX_INFO_FRAMES = (424 / 6)
 )
-
 
 var Crc16Table [256]uint16
 var outConn *net.UDPConn
@@ -58,7 +56,7 @@ func crcInit() {
 func crcCompute(data []byte) uint16 {
 	ret := uint16(0)
 	for i := 0; i < len(data); i++ {
-		ret = Crc16Table[ret >> 8] ^ (ret << 8) ^ uint16(data[i])
+		ret = Crc16Table[ret>>8] ^ (ret << 8) ^ uint16(data[i])
 	}
 	return ret
 }
@@ -79,8 +77,8 @@ func prepareMessage(data []byte) []byte {
 	}
 
 	// Add the two CRC16 bytes.
-	tmp = append(tmp, byte(crc & 0xFF))
-	tmp = append(tmp, byte(crc >> 8))
+	tmp = append(tmp, byte(crc&0xFF))
+	tmp = append(tmp, byte(crc>>8))
 
 	tmp = append(tmp, 0x7E) // Flag end.
 
@@ -109,7 +107,7 @@ func makeHeartbeat() []byte {
 }
 
 func relayUplinkMessage(msg []byte) {
-	ret := make([]byte, len(msg) + 4)
+	ret := make([]byte, len(msg)+4)
 	// See p.15.
 	ret[0] = 0x07 // Uplink message ID.
 	ret[1] = 0x00 //TODO: Time.
@@ -130,10 +128,9 @@ func heartBeatSender() {
 	}
 }
 
-
 func parseInput(buf string) []byte {
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
-	x := strings.Split(buf, ";") // We want to discard everything before the first ';'.
+	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 	if len(x) == 0 {
 		return nil
 	}
@@ -147,13 +144,13 @@ func parseInput(buf string) []byte {
 
 	s = s[1:]
 
-	if len(s) % 2 != 0 { // Bad format.
+	if len(s)%2 != 0 { // Bad format.
 		return nil
 	}
 
 	if len(s)/2 != UPLINK_FRAME_DATA_BYTES {
 		fmt.Printf("UPLINK_FRAME_DATA_BYTES=%d, len(s)=%d\n", UPLINK_FRAME_DATA_BYTES, len(s))
-//		panic("Error")
+		//		panic("Error")
 		return nil
 	}
 
@@ -163,7 +160,6 @@ func parseInput(buf string) []byte {
 
 	return frame
 }
-
 
 func main() {
 	crcInit() // Initialize CRC16 table.
