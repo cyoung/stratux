@@ -1,0 +1,133 @@
+#!/bin/sh
+# Part of spindle http://asbradbury.org/projects/spindle
+#
+# See LICENSE file for copyright and license details
+
+set -ex
+
+. ./common
+
+WORKDIR=work
+OUTDIR=out
+CURIMG=stage4.$IMGFORMAT
+
+
+setup_stratux() {
+#HERE
+
+echo "**** STRATUX SETUP *****"
+
+#general
+  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+#general
+apt-get install -y screen
+#wifi
+apt-get install -y hostapd isc-dhcp-server
+#wifi startup
+update-rc.d hostapd enable
+update-rc.d isc-dhcp-server enable
+EOF
+
+scp_in_to_qemu /root/spindle/hostapd-edimax /tmp/hostapd.in
+scp_in_to_qemu /root/spindle/root /tmp/root.in
+scp_in_to_qemu /root/spindle/interfaces /tmp/interfaces.in
+scp_in_to_qemu /root/spindle/dhcpd.conf /tmp/dhcpd.conf.in
+scp_in_to_qemu /root/spindle/hostapd.conf /tmp/hostapd.conf.in
+scp_in_to_qemu /root/spindle/isc-dhcp-server /tmp/isc-dhcp-server.in
+scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
+
+ ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+mv -f /tmp/hostapd.in /usr/sbin/hostapd
+chown root.root /usr/sbin/hostapd
+chmod 755 /usr/sbin/hostapd
+
+mkdir -p /etc/ssh/authorized_keys
+mv -f /tmp/root.in /etc/ssh/authorized_keys/root
+chown root.root /etc/ssh/authorized_keys/root
+chmod 644 /etc/ssh/authorized_keys/root
+
+mv -f /tmp/interfaces.in /etc/network/interfaces
+mv -f /tmp/dhcpd.conf.in /etc/dhcp/dhcpd.conf
+mv -f /tmp/hostapd.conf.in /etc/hostapd/hostapd.conf
+mv -f /tmp/isc-dhcp-server.in /etc/default/isc-dhcp-server
+mv -f /tmp/sshd_config.in /etc/ssh/sshd_config
+rm -f /usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service
+
+echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" >/etc/default/hostapd
+
+echo blacklist dvb_usb_rtl28xxu >>/etc/modprobe.d/rtl-sdr-blacklist.conf
+echo blacklist e4000 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
+echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
+
+EOF
+
+echo "*** STRATUX COMPILE/PACKAGE INSTALL ***"
+echo " - RTL-SDR tools"
+  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+apt-get install -y git cmake libusb-1.0-0.dev build-essential
+
+
+cd /root
+git clone git://git.osmocom.org/rtl-sdr.git
+cd rtl-sdr
+mkdir build
+cd build
+cmake ../
+make
+make install
+ldconfig
+EOF
+
+echo " - dump1090"
+  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+cd /root
+rm -rf dump1090
+git clone https://github.com/antirez/dump1090
+cd dump1090
+make
+cp dump1090 /usr/bin/
+EOF
+
+echo " - Stratux"
+  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+apt-get install -y golang-go
+cd /root
+rm -rf stratux
+git clone https://github.com/cyoung/stratux
+cd stratux
+cd dump978
+make
+cp dump978 /usr/bin/
+cd ..
+go build gen_gdl90.go
+cp gen_gdl90 /usr/bin/
+cp start_uat.sh /usr/bin/start_uat
+cp init.d-stratux /etc/init.d/stratux
+cp start_stratux.sh /usr/sbin/stratux
+chmod 755 /usr/bin/start_uat
+chmod 755 /usr/sbin/stratux
+chmod 755 /etc/init.d/stratux
+ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
+ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
+update-rc.d stratux enable
+EOF
+
+echo "**** END STRATUX SETUP *****"
+#DONE HERE
+}
+
+
+
+
+cd $WORKDIR
+dotask branch_image ../$OUTDIR/stage3.$IMGFORMAT $CURIMG
+dotask run_qemu $CURIMG
+dotask mount_apt_cache
+dotask disable_starting_services
+dotask setup_stratux
+dotask save_space_using_hardlink
+dotask allow_starting_services
+dotask update_issue
+dotask fingerprint_debian
+dotask shutdown_qemu
+dotask finish_image
