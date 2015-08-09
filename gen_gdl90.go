@@ -30,9 +30,9 @@ const (
 	// (TIS-B heartbeat with one address, or empty FIS-B APDU)
 	UPLINK_MAX_INFO_FRAMES = (424 / 6)
 
-	MSGTYPE_UPLINK			= 0x07
-	MSGTYPE_BASIC_REPORT	= 0x1E
-	MSGTYPE_LONG_REPORT		= 0x1F
+	MSGTYPE_UPLINK       = 0x07
+	MSGTYPE_BASIC_REPORT = 0x1E
+	MSGTYPE_LONG_REPORT  = 0x1F
 )
 
 var Crc16Table [256]uint16
@@ -114,9 +114,9 @@ func relayMessage(msgtype uint16, msg []byte) {
 	ret := make([]byte, len(msg)+4)
 	// See p.15.
 	ret[0] = byte(msgtype) // Uplink message ID.
-	ret[1] = 0x00 //TODO: Time.
-	ret[2] = 0x00 //TODO: Time.
-	ret[3] = 0x00 //TODO: Time.
+	ret[1] = 0x00          //TODO: Time.
+	ret[2] = 0x00          //TODO: Time.
+	ret[3] = 0x00          //TODO: Time.
 
 	for i := 0; i < len(msg); i++ {
 		ret[i+4] = msg[i]
@@ -133,8 +133,7 @@ func heartBeatSender() {
 }
 
 func parseInput(buf string) ([]byte, uint16) {
-	buf = strings.Trim(buf, "\r\n") // Remove newlines.
-	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
+	x := strings.Split(buf, ";") // Discard everything after the first ';'.
 	if len(x) == 0 {
 		return nil, 0
 	}
@@ -145,7 +144,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	msgtype := uint16(0)
 
 	s = s[1:]
-	msglen := len(s)/2
+	msglen := len(s) / 2
 
 	if len(s)%2 != 0 { // Bad format.
 		return nil, 0
