@@ -13,7 +13,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	ipadAddr                = "192.168.1.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -29,6 +29,10 @@ const (
 	// assume 6 byte frames: 2 header bytes, 4 byte payload
 	// (TIS-B heartbeat with one address, or empty FIS-B APDU)
 	UPLINK_MAX_INFO_FRAMES = (424 / 6)
+
+	MSGTYPE_UPLINK			= 0x07
+	MSGTYPE_BASIC_REPORT	= 0x1E
+	MSGTYPE_LONG_REPORT		= 0x1F
 )
 
 var Crc16Table [256]uint16
@@ -106,10 +110,10 @@ func makeHeartbeat() []byte {
 	return prepareMessage(msg)
 }
 
-func relayUplinkMessage(msg []byte) {
+func relayMessage(msgtype uint16, msg []byte) {
 	ret := make([]byte, len(msg)+4)
 	// See p.15.
-	ret[0] = 0x07 // Uplink message ID.
+	ret[0] = byte(msgtype) // Uplink message ID.
 	ret[1] = 0x00 //TODO: Time.
 	ret[2] = 0x00 //TODO: Time.
 	ret[3] = 0x00 //TODO: Time.
@@ -128,37 +132,44 @@ func heartBeatSender() {
 	}
 }
 
-func parseInput(buf string) []byte {
+func parseInput(buf string) ([]byte, uint16) {
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
 	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 	if len(x) == 0 {
-		return nil
+		return nil, 0
 	}
 	s := x[0]
 	if len(s) == 0 {
-		return nil
+		return nil, 0
 	}
-	if s[0] != '+' {
-		return nil // Only want + ("Uplink") messages currently. - (Downlink) or messages that start with other are discarded.
-	}
+	msgtype := uint16(0)
 
 	s = s[1:]
+	msglen := len(s)/2
 
 	if len(s)%2 != 0 { // Bad format.
-		return nil
+		return nil, 0
 	}
 
-	if len(s)/2 != UPLINK_FRAME_DATA_BYTES {
-		fmt.Printf("UPLINK_FRAME_DATA_BYTES=%d, len(s)=%d\n", UPLINK_FRAME_DATA_BYTES, len(s))
-		//		panic("Error")
-		return nil
+	if msglen == UPLINK_FRAME_DATA_BYTES {
+		msgtype = MSGTYPE_UPLINK
+	} else if msglen == 34 {
+		msgtype = MSGTYPE_LONG_REPORT
+	} else if msglen == 18 {
+		msgtype = MSGTYPE_BASIC_REPORT
+	} else {
+		msgtype = 0
+	}
+
+	if msgtype == 0 {
+		fmt.Printf("UNKNOWN MESSAGE TYPE: %s - msglen=%d\n", s, msglen)
 	}
 
 	// Now, begin converting the string into a byte array.
 	frame := make([]byte, UPLINK_FRAME_DATA_BYTES)
 	hex.Decode(frame, []byte(s))
 
-	return frame
+	return frame, msgtype
 }
 
 func main() {
@@ -178,9 +189,9 @@ func main() {
 
 	for {
 		buf, _ := reader.ReadString('\n')
-		o := parseInput(buf)
-		if o != nil {
-			relayUplinkMessage(o)
+		o, msgtype := parseInput(buf)
+		if o != nil && msgtype != 0 {
+			relayMessage(msgtype, o)
 		}
 	}
 
