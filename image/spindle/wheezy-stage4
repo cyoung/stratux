@@ -17,7 +17,6 @@ setup_stratux() {
 
 echo "**** STRATUX SETUP *****"
 
-#general
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 #general
 apt-get install -y screen
@@ -59,15 +58,22 @@ echo blacklist dvb_usb_rtl28xxu >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 echo blacklist e4000 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 
+
+echo "# prevent power down of wireless when idle" >>/etc/modprobe.d/8192cu.conf
+echo "options 8192cu rtw_power_mgnt=0 rtw_enusbss=0" >>/etc/modprobe.d/8192cu.conf
+
+
 EOF
 
 echo "*** STRATUX COMPILE/PACKAGE INSTALL ***"
 echo " - RTL-SDR tools"
+
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 apt-get install -y git cmake libusb-1.0-0.dev build-essential
 
 
 cd /root
+rm -rf rtl-sdr
 git clone git://git.osmocom.org/rtl-sdr.git
 cd rtl-sdr
 mkdir build
@@ -92,6 +98,11 @@ echo " - Stratux"
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 apt-get install -y golang-go
 cd /root
+
+mkdir /root/go
+export GOPATH=/root/go
+
+
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
@@ -100,6 +111,10 @@ make
 cp dump978 /usr/bin/
 cd ..
 go build gen_gdl90.go
+
+go get github.com/sevlyar/go-daemon
+go build 1090es_relay.go
+
 cp gen_gdl90 /usr/bin/
 cp start_uat.sh /usr/bin/start_uat
 cp init.d-stratux /etc/init.d/stratux
