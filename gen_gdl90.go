@@ -13,7 +13,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	ipadAddr                = "255.255.255.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
