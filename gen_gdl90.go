@@ -8,12 +8,15 @@ import (
 	"os"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	ipadAddr                = "255.255.255.255:4000" // Port 4000 for FreeFlight RANGR.
+	stratuxVersion			= "v0.1"
+	configLocation			= "stratux.conf"
+	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -33,10 +36,21 @@ const (
 	MSGTYPE_UPLINK       = 0x07
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
+
+	MSGCLASS_UAT		 = 0
+	MSGCLASS_ES			 = 1
 )
 
 var Crc16Table [256]uint16
 var outConn *net.UDPConn
+
+type msg struct {
+	MessageClass	uint
+	TimeReceived	time.Time
+	Data			[]byte
+}
+
+var MsgLog []msg
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -132,6 +146,26 @@ func heartBeatSender() {
 	}
 }
 
+func updateStatus() {
+	t := make([]msg, 0)
+	m := len(MsgLog)
+	UAT_messages_last_minute := uint(0)
+	ES_messages_last_minute := uint(0)
+	for i := 0; i < m; i++ {
+		if time.Now().Sub(MsgLog[i].TimeReceived).Minutes() < 1 {
+			t = append(t, MsgLog[i])
+			if MsgLog[i].MessageClass == MSGCLASS_UAT {
+				UAT_messages_last_minute++
+			} else if MsgLog[i].MessageClass == MSGCLASS_ES {
+				ES_messages_last_minute++
+			}
+		}
+	}
+	MsgLog = t
+	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
+	globalStatus.ES_messages_last_minute = ES_messages_last_minute
+}
+
 func parseInput(buf string) ([]byte, uint16) {
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
 	if len(x) == 0 {
@@ -168,10 +202,136 @@ func parseInput(buf string) ([]byte, uint16) {
 	frame := make([]byte, UPLINK_FRAME_DATA_BYTES)
 	hex.Decode(frame, []byte(s))
 
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_UAT
+	thisMsg.TimeReceived = time.Now()
+	thisMsg.Data = frame
+	MsgLog = append(MsgLog, thisMsg)
+	updateStatus()
+
 	return frame, msgtype
 }
 
+type settings struct {
+	UAT_Enabled					bool
+	ES_Enabled					bool
+}
+
+type status struct {
+	Version						string
+	Devices						uint
+	UAT_messages_last_minute	uint
+	UAT_messages_max			uint
+	ES_messages_last_minute		uint
+	ES_messages_max				uint
+	GPS_satellites_locked		uint
+}
+
+var globalSettings settings
+var globalStatus status
+
+func handleManagementConnection(conn net.Conn) {
+	defer conn.Close()
+	rw := bufio.NewReader(conn)
+	for {
+		s, err := rw.ReadString('\n')
+		if err != nil {
+			break
+		}
+		s = strings.Trim(s, "\r\n")
+		if s == "STATUS" {
+			resp, _ := json.Marshal(&globalStatus)
+			conn.Write(resp)
+		} else if s == "SETTINGS" {
+			resp, _ := json.Marshal(&globalSettings)
+			conn.Write(resp)
+		} else if s == "QUIT" {
+			break
+		} else {
+			// Assume settings.
+			//TODO: Make this so that there is some positive way of doing this versus assuming that everything other than commands above are settings.
+			var newSettings settings
+			err := json.Unmarshal([]byte(s), &newSettings)
+			if err != nil {
+				fmt.Printf("%s - error: %s\n", s, err.Error())
+			} else {
+				fmt.Printf("new settings: %s\n", s)
+				globalSettings = newSettings
+				saveSettings()
+			}
+		}
+	}
+}
+
+func managementInterface() {
+	ln, err := net.Listen("tcp", "127.0.0.1:9110")
+	if err != nil { //TODO
+		fmt.Printf("couldn't open management port: %s\n", err.Error())
+		return
+	}
+	defer ln.Close()
+	for {
+		conn, err := ln.Accept()
+		if err != nil { //TODO
+			continue
+		}
+		go handleManagementConnection(conn)
+	}
+}
+
+
+func defaultSettings() {
+	globalSettings.UAT_Enabled = true //TODO
+	globalSettings.ES_Enabled = false //TODO
+}
+
+func readSettings() {
+	fd, err := os.Open(configLocation)
+	defer fd.Close()
+	if err != nil {
+		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		defaultSettings()
+		return
+	}
+	buf := make([]byte, 1024)
+	count, err := fd.Read(buf)
+	if err != nil {
+		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		defaultSettings()
+		return
+	}
+	var newSettings settings
+	err = json.Unmarshal(buf[0:count], &newSettings)
+	if err != nil {
+		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		defaultSettings()
+		return	
+	}
+	globalSettings = newSettings
+	fmt.Printf("read in settings.\n")
+}
+
+func saveSettings() {
+	fd, err := os.OpenFile(configLocation, os.O_CREATE | os.O_WRONLY, os.FileMode(0644))
+	defer fd.Close()
+	if err != nil {
+		fmt.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		return
+	}
+	jsonSettings, _ := json.Marshal(&globalSettings)
+	fd.Write(jsonSettings)
+	fmt.Printf("wrote settings.\n")
+}
+
 func main() {
+	MsgLog = make([]msg, 0)
+	globalStatus.Version = stratuxVersion
+	globalStatus.Devices = 123 //TODO
+	globalStatus.UAT_messages_last_minute = 567 //TODO
+	globalStatus.ES_messages_last_minute = 981 //TODO
+
+	readSettings()
+
 	crcInit() // Initialize CRC16 table.
 
 	// Open UDP port to send out the messages.
@@ -180,9 +340,14 @@ func main() {
 		panic(err)
 	}
 	outConn, err = net.DialUDP("udp", nil, addr)
+	if err != nil {
+		panic("error creating UDP socket: " + err.Error())
+	}
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
+	// Start the management interface.
+	go managementInterface()
 
 	reader := bufio.NewReader(os.Stdin)
 
