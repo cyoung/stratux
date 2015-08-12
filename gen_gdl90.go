@@ -80,9 +80,13 @@ func crcCompute(data []byte) uint16 {
 }
 
 func prepareMessage(data []byte) []byte {
-	tmp := []byte{0x7E} // Flag start.
 	// Compute CRC before modifying the message.
 	crc := crcCompute(data)
+	// Add the two CRC16 bytes before replacing control characters.
+	data = append(data, byte(crc&0xFF))
+	data = append(data, byte(crc>>8))
+
+	tmp := []byte{0x7E} // Flag start.
 
 	// Copy the message over, escaping 0x7E (Flag Byte) and 0x7D (Control-Escape).
 	for i := 0; i < len(data); i++ {
@@ -94,14 +98,11 @@ func prepareMessage(data []byte) []byte {
 		tmp = append(tmp, mv)
 	}
 
-	// Add the two CRC16 bytes.
-	tmp = append(tmp, byte(crc&0xFF))
-	tmp = append(tmp, byte(crc>>8))
-
 	tmp = append(tmp, 0x7E) // Flag end.
 
 	return tmp
 }
+
 
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
