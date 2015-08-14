@@ -22,6 +22,11 @@ echo "**** STRATUX SETUP *****"
 apt-get install -y screen
 #wifi
 apt-get install -y hostapd isc-dhcp-server
+#apache for web management scripts
+apt-get install -y apache2 php5 libapache2-mod-php5
+rm -rf /var/www/html/*
+service apache2 start
+update-rc.d apache2 enable
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
@@ -61,6 +66,9 @@ echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 
 echo "# prevent power down of wireless when idle" >>/etc/modprobe.d/8192cu.conf
 echo "options 8192cu rtw_power_mgnt=0 rtw_enusbss=0" >>/etc/modprobe.d/8192cu.conf
+
+#usb hub power
+echo "max_usb_current=1" >>/boot/config.txt
 
 
 EOF
