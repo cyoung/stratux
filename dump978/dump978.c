@@ -25,12 +25,12 @@
 #include "uat.h"
 #include "fec.h"
 
-#ifdef LIB_CREATE
+#ifdef BUILD_LIB
 #include "dump978.h"
 #endif
 
 static void make_atan2_table(void);
-#ifndef LIB_CREATE
+#ifndef BUILD_LIB
 static void read_from_stdin(void);
 #endif
 static int process_buffer(uint16_t *phi, int len, uint64_t offset);
@@ -61,7 +61,7 @@ inline int16_t phi_difference(uint16_t from, uint16_t to)
 }
 #endif
 
-#ifndef LIB_CREATE
+#ifndef BUILD_LIB
 int main(int argc, char **argv)
 {
     make_atan2_table();
@@ -70,7 +70,6 @@ int main(int argc, char **argv)
     return 0;
 }
 #else
-typedef void (*CallBack)(char updown, uint8_t *data, int len);
 static CallBack userCB = NULL;
 void init(CallBack cb)
 {
@@ -82,7 +81,7 @@ void init(CallBack cb)
 
 static void dump_raw_message(char updown, uint8_t *data, int len, int rs_errors)
 {
-#ifndef LIB_CREATE
+#ifndef BUILD_LIB
     int i;
 
     fprintf(stdout, "%c", updown);
@@ -142,7 +141,7 @@ static void convert_to_phi(uint16_t *buffer, int n)
         buffer[i] = iqphase[buffer[i]];
 }
 
-#ifndef LIB_CREATE
+#ifndef BUILD_LIB
 void read_from_stdin(void)
 {
     char buffer[65536*2];
