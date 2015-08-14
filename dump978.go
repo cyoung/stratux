@@ -29,10 +29,9 @@ var PackageVersion = "v0.1"
 
 type UserCbT func(C.char, *C.uint8_t, C.int)
 
-// SetCallback must be the first function called in this package;
-// it sets dump978's callback for demodulated data.
-func SetCallback(cb UserCbT, ch chan []byte) {
-	C.init((C.CallBack)(C.get_go_cb()))
+// Dump978Init must be the first function called in this package.
+func Dump978Init() {
+	C.Dump978Init((C.CallBack)(C.get_go_cb()))
 }
 
 // ProcessData passes buf (modulated data) to dump978 for demodulation.

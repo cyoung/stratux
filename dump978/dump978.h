@@ -6,7 +6,7 @@
 
 typedef void (*CallBack)(char updown, uint8_t *data, int len);
 
-extern void init(CallBack cb);
+extern void Dump978Init(CallBack cb);
 extern int process_data(char *data, int dlen);
 
 #endif /* DUMP978_H */

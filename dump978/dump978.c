@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 }
 #else
 static CallBack userCB = NULL;
-void init(CallBack cb)
+void Dump978Init(CallBack cb)
 {
     make_atan2_table();
     init_fec();
