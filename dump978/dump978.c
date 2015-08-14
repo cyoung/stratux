@@ -2,17 +2,17 @@
 // Copyright 2015, Oliver Jowett <oliver@mutability.co.uk>
 //
 
-// This file is free software: you may copy, redistribute and/or modify it  
+// This file is free software: you may copy, redistribute and/or modify it
 // under the terms of the GNU General Public License as published by the
-// Free Software Foundation, either version 2 of the License, or (at your  
-// option) any later version.  
+// Free Software Foundation, either version 2 of the License, or (at your
+// option) any later version.
 //
-// This file is distributed in the hope that it will be useful, but  
-// WITHOUT ANY WARRANTY; without even the implied warranty of  
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  
+// This file is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License  
+// You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
@@ -25,8 +25,14 @@
 #include "uat.h"
 #include "fec.h"
 
-static void make_atan2_table();
-static void read_from_stdin();
+#ifdef LIB_CREATE
+#include "dump978.h"
+#endif
+
+static void make_atan2_table(void);
+#ifndef LIB_CREATE
+static void read_from_stdin(void);
+#endif
 static int process_buffer(uint16_t *phi, int len, uint64_t offset);
 static int demod_adsb_frame(uint16_t *phi, uint8_t *to, int *rs_errors);
 static int demod_uplink_frame(uint16_t *phi, uint8_t *to, int *rs_errors);
@@ -55,6 +61,7 @@ inline int16_t phi_difference(uint16_t from, uint16_t to)
 }
 #endif
 
+#ifndef LIB_CREATE
 int main(int argc, char **argv)
 {
     make_atan2_table();
@@ -62,9 +69,20 @@ int main(int argc, char **argv)
     read_from_stdin();
     return 0;
 }
+#else
+typedef void (*CallBack)(char updown, uint8_t *data, int len);
+static CallBack userCB = NULL;
+void init(CallBack cb)
+{
+    make_atan2_table();
+    init_fec();
+    userCB = cb;
+}
+#endif
 
 static void dump_raw_message(char updown, uint8_t *data, int len, int rs_errors)
 {
+#ifndef LIB_CREATE
     int i;
 
     fprintf(stdout, "%c", updown);
@@ -75,6 +93,9 @@ static void dump_raw_message(char updown, uint8_t *data, int len, int rs_errors)
     if (rs_errors)
         fprintf(stdout, ";rs=%d", rs_errors);
     fprintf(stdout, ";\n");
+#else
+    userCB(updown, data, len);
+#endif
 }
 
 static void handle_adsb_frame(uint64_t timestamp, uint8_t *frame, int rs)
@@ -91,7 +112,7 @@ static void handle_uplink_frame(uint64_t timestamp, uint8_t *frame, int rs)
 
 uint16_t iqphase[65536]; // contains value [0..65536) -> [0, 2*pi)
 
-void make_atan2_table()
+void make_atan2_table(void)
 {
     unsigned i,q;
     union {
@@ -121,13 +142,14 @@ static void convert_to_phi(uint16_t *buffer, int n)
         buffer[i] = iqphase[buffer[i]];
 }
 
-void read_from_stdin()
+#ifndef LIB_CREATE
+void read_from_stdin(void)
 {
     char buffer[65536*2];
     int n;
     int used = 0;
     uint64_t offset = 0;
-    
+
     while ( (n = read(0, buffer+used, sizeof(buffer)-used)) > 0 ) {
         int processed;
 
@@ -142,6 +164,38 @@ void read_from_stdin()
         }
     }
 }
+#else
+// #define DEFAULT_SAMPLE_RATE       2048000
+// #define DEFAULT_BUF_LENGTH      (262144) 16*16384
+static char buffer[65536*2]; // 131072, max received should be 113120
+int process_data(char *data, int dlen)
+{
+    int n;
+    int processed;
+    int doffset = 0;
+    static int used = 0;
+    static uint64_t offset = 0;
+
+    while (dlen > 0) {
+        n = (sizeof(buffer)-used) >= dlen ? dlen : (sizeof(buffer)-used);
+        memcpy(buffer+used, data+doffset, n);
+
+        convert_to_phi((uint16_t*) (buffer+(used&~1)), ((used&1)+n)/2);
+
+        used += n;
+        processed = process_buffer((uint16_t*)buffer, used/2, offset);
+        used -= processed * 2;
+        offset += processed;
+        if (used > 0) {
+            memmove(buffer, buffer+processed*2, used);
+        }
+
+        doffset += n;
+        dlen -= n;
+    }
+    return dlen;
+}
+#endif
 
 
 // Return 1 if word is "equal enough" to expected
@@ -166,19 +220,19 @@ static inline int sync_word_fuzzy_compare(uint64_t word, uint64_t expected)
     //
     //    010101010101010000
     //                 ^
-    // Subtracting one, will flip the 
+    // Subtracting one, will flip the
     // bits starting at the last set bit:
     //
     //    010101010101001111
     //                 ^
-    // then we can use that as a bitwise-and 
+    // then we can use that as a bitwise-and
     // mask to clear the lowest set bit:
     //
     //    010101010101000000
     //                 ^
     // And repeat until the value is zero
     // or we have seen too many set bits.
-    
+
     // >= 1 bit
     diff &= (diff-1);   // clear lowest set bit
     if (!diff)
@@ -259,7 +313,7 @@ int check_sync_word(uint16_t *phi, uint64_t pattern, int16_t *center)
 
 #define SYNC_MASK ((((uint64_t)1)<<SYNC_BITS)-1)
 
-int process_buffer(uint16_t *phi, int len, uint64_t offset)    
+int process_buffer(uint16_t *phi, int len, uint64_t offset)
 {
     uint64_t sync0 = 0, sync1 = 0;
     int lenbits;
@@ -298,7 +352,7 @@ int process_buffer(uint16_t *phi, int len, uint64_t offset)
             continue; // haven't fully populated sync0/1 yet
 
         // see if we have (the start of) a valid sync word
-        // It would be nice to look at popcount(expected ^ sync) 
+        // It would be nice to look at popcount(expected ^ sync)
         // so we can tolerate some errors, but that turns out
         // to be very expensive to do on every sample
 
@@ -393,7 +447,7 @@ static int demod_adsb_frame(uint16_t *phi, uint8_t *to, int *rs_errors)
         return 0;
     }
 
-    demod_frame(phi + SYNC_BITS*2, to, LONG_FRAME_BYTES, center_dphi);    
+    demod_frame(phi + SYNC_BITS*2, to, LONG_FRAME_BYTES, center_dphi);
     frametype = correct_adsb_frame(to, rs_errors);
     if (frametype == 1)
         return (SYNC_BITS + SHORT_FRAME_BITS);
