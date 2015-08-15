@@ -471,7 +471,7 @@ func saveSettings() {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU()) // redundent with Go v1.5+ compiler
+	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
