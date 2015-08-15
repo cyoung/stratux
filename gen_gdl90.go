@@ -3,19 +3,20 @@ package main
 import (
 	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"time"
-	"encoding/json"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion			= "v0.1"
-	configLocation			= "/etc/stratux.conf"
+	stratuxVersion          = "v0.1"
+	configLocation          = "/etc/stratux.conf"
 	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
@@ -37,11 +38,11 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT		 = 0
-	MSGCLASS_ES			 = 1
+	MSGCLASS_UAT = 0
+	MSGCLASS_ES  = 1
 
-	LON_LAT_RESOLUTION	 = float32(180.0 / 8388608.0)
-	TRACK_RESOLUTION	 = float32(360.0 / 256.0)
+	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
+	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
 var Crc16Table [256]uint16
@@ -50,9 +51,9 @@ var outConn *net.UDPConn
 var myGPS GPSData
 
 type msg struct {
-	MessageClass	uint
-	TimeReceived	time.Time
-	Data			[]byte
+	MessageClass uint
+	TimeReceived time.Time
+	Data         []byte
 }
 
 var MsgLog []msg
@@ -150,16 +151,15 @@ func makeOwnshipReport() bool {
 	msg[7] = tmp[2] // Latitude.
 
 	tmp = makeLatLng(myGPS.lng)
-	msg[8] = tmp[0] // Longitude.
-	msg[9] = tmp[1] // Longitude.
+	msg[8] = tmp[0]  // Longitude.
+	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-
-//TODO: 0xFFF "invalid altitude."
-//FIXME: This is **PRESSURE ALTITUDE**
+	//TODO: 0xFFF "invalid altitude."
+	//FIXME: This is **PRESSURE ALTITUDE**
 
 	alt := uint16(myGPS.alt)
-	alt = (alt + 1000)/25
+	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
@@ -184,9 +184,8 @@ func makeOwnshipReport() bool {
 	verticalVelocity := int16(1000 / 64) // ft/min. 64 ft/min resolution.
 	//TODO: 0x800 = no information available.
 	verticalVelocity = verticalVelocity & 0x0FFF // Should fit in 12 bits.
-	msg[15] = msg[15] | byte((verticalVelocity & 0x0F00) >> 8)
+	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
 	msg[16] = byte(verticalVelocity & 0xFF)
-
 
 	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
 	groundTrack := uint16(0)
@@ -212,8 +211,8 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	// See p.28.
 	msg[0] = 0x0B // Message type "Ownship Geo Alt".
 	alt := int16(myGPS.alt)
-	alt = alt/5
-	msg[1] = byte(alt >> 8) // Altitude.
+	alt = alt / 5
+	msg[1] = byte(alt >> 8)     // Altitude.
 	msg[2] = byte(alt & 0x00FF) // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
@@ -273,7 +272,7 @@ func relayMessage(msgtype uint16, msg []byte) {
 func heartBeatSender() {
 	for {
 		outConn.Write(makeHeartbeat())
-//		outConn.Write(makeTrafficReport())
+		//		outConn.Write(makeTrafficReport())
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
 		outConn.Write(makeInitializationMessage())
@@ -306,7 +305,6 @@ func updateStatus() {
 		globalStatus.GPS_satellites_locked = myGPS.satellites
 	}
 }
-
 
 func parseInput(buf string) ([]byte, uint16) {
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
@@ -358,19 +356,19 @@ func parseInput(buf string) ([]byte, uint16) {
 }
 
 type settings struct {
-	UAT_Enabled					bool
-	ES_Enabled					bool
-	GPS_Enabled					bool
+	UAT_Enabled bool
+	ES_Enabled  bool
+	GPS_Enabled bool
 }
 
 type status struct {
-	Version						string
-	Devices						uint
-	UAT_messages_last_minute	uint
-	UAT_messages_max			uint
-	ES_messages_last_minute		uint
-	ES_messages_max				uint
-	GPS_satellites_locked		uint16
+	Version                  string
+	Devices                  uint
+	UAT_messages_last_minute uint
+	UAT_messages_max         uint
+	ES_messages_last_minute  uint
+	ES_messages_max          uint
+	GPS_satellites_locked    uint16
 }
 
 var globalSettings settings
@@ -428,10 +426,9 @@ func managementInterface() {
 	}
 }
 
-
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true //TODO
-	globalSettings.ES_Enabled = false //TODO
+	globalSettings.UAT_Enabled = true  //TODO
+	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
 }
 
@@ -455,14 +452,14 @@ func readSettings() {
 	if err != nil {
 		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
-		return	
+		return
 	}
 	globalSettings = newSettings
 	fmt.Printf("read in settings.\n")
 }
 
 func saveSettings() {
-	fd, err := os.OpenFile(configLocation, os.O_CREATE | os.O_WRONLY, os.FileMode(0644))
+	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
 	defer fd.Close()
 	if err != nil {
 		fmt.Printf("can't save settings %s: %s\n", configLocation, err.Error())
@@ -474,15 +471,16 @@ func saveSettings() {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
-	globalStatus.Devices = 123 //TODO
+	globalStatus.Devices = 123                  //TODO
 	globalStatus.UAT_messages_last_minute = 567 //TODO
-	globalStatus.ES_messages_last_minute = 981 //TODO
+	globalStatus.ES_messages_last_minute = 981  //TODO
 
 	readSettings()
 
