@@ -204,7 +204,7 @@ func makeOwnshipReport() bool {
 }
 
 //TODO
-func makeOwnshipGeometricAltitudeReport() false {
+func makeOwnshipGeometricAltitudeReport() bool {
 	if !isGPSValid() {
 		return false
 	}
@@ -277,6 +277,8 @@ func heartBeatSender() {
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
 		outConn.Write(makeInitializationMessage())
+		sendTrafficUpdates()
+		updateStatus()
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -299,6 +301,10 @@ func updateStatus() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
+
+	if isGPSValid() {
+		globalStatus.GPS_satellites_locked = myGPS.satellites
+	}
 }
 
 
@@ -347,7 +353,6 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.TimeReceived = time.Now()
 	thisMsg.Data = frame
 	MsgLog = append(MsgLog, thisMsg)
-	updateStatus()
 
 	return frame, msgtype
 }
@@ -365,7 +370,7 @@ type status struct {
 	UAT_messages_max			uint
 	ES_messages_last_minute		uint
 	ES_messages_max				uint
-	GPS_satellites_locked		uint
+	GPS_satellites_locked		uint16
 }
 
 var globalSettings settings
@@ -470,18 +475,20 @@ func saveSettings() {
 
 func main() {
 	MsgLog = make([]msg, 0)
+
+	crcInit() // Initialize CRC16 table.
+	initTraffic()
+
 	globalStatus.Version = stratuxVersion
 	globalStatus.Devices = 123 //TODO
 	globalStatus.UAT_messages_last_minute = 567 //TODO
 	globalStatus.ES_messages_last_minute = 981 //TODO
 
+	readSettings()
+
 	if globalSettings.GPS_Enabled {
 		go gpsReader()
 	}
-
-	readSettings()
-
-	crcInit() // Initialize CRC16 table.
 
 	// Open UDP port to send out the messages.
 	addr, err := net.ResolveUDPAddr("udp", ipadAddr)

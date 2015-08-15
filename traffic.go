@@ -66,6 +66,27 @@ type TrafficInfo struct {
 	last_seen		time.Time
 }
 
+var traffic map[uint32]TrafficInfo
+
+func cleanupOldEntries() {
+	for icao_addr, ti := range traffic {
+		if time.Since(ti.last_seen).Seconds() > float64(60) { //FIXME: 60 seconds with no update on this address - stop displaying.
+			delete(traffic, icao_addr)
+		}
+	}
+}
+
+func sendTrafficUpdates() {
+	cleanupOldEntries()
+	for _, ti := range traffic {
+		makeTrafficReport(ti)
+	}
+}
+
+func initTraffic() {
+	traffic = make(map[uint32]TrafficInfo)
+}
+
 func makeTrafficReport(ti TrafficInfo) {
 	msg := make([]byte, 28)
 	// See p.16.
@@ -259,6 +280,7 @@ func parseDownlinkReport(s string) {
 	//OK.
 //	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
-	makeTrafficReport(ti)
+	ti.last_seen = time.Now()
 
+	traffic[ti.icao_addr] = ti
 }
