@@ -16,7 +16,7 @@ import (
 const (
 	stratuxVersion			= "v0.1"
 	configLocation			= "stratux.conf"
-	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	ipadAddr                = "192.168.1.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -39,10 +39,15 @@ const (
 
 	MSGCLASS_UAT		 = 0
 	MSGCLASS_ES			 = 1
+
+	LON_LAT_RESOLUTION	 = float32(180.0 / 8388608.0)
+	TRACK_RESOLUTION	 = float32(360.0 / 256.0)
 )
 
 var Crc16Table [256]uint16
 var outConn *net.UDPConn
+
+var myGPS GPSData
 
 type msg struct {
 	MessageClass	uint
@@ -103,18 +108,184 @@ func prepareMessage(data []byte) []byte {
 	return tmp
 }
 
+func makeLatLng(v float32) []byte {
+	ret := make([]byte, 3)
+
+	v = v / LON_LAT_RESOLUTION
+	wk := int32(v)
+
+	ret[0] = byte((wk & 0xFF0000) >> 16)
+	ret[1] = byte((wk & 0x00FF00) >> 8)
+	ret[2] = byte((wk & 0x0000FF))
+
+	return ret
+}
+
+func makeTrafficReport() []byte {
+	msg := make([]byte, 28)
+	// See p.16.
+	msg[0] = 0x14 // Message type "Traffic Report".
+
+	msg[1] = 0x10 // Alert status, address type.
+
+	msg[2] = 1 // Address.
+	msg[3] = 1 // Address.
+	msg[4] = 1 // Address.
+
+	lat := float32(42.1949)
+	tmp := makeLatLng(lat)
+
+	msg[5] = tmp[0] // Latitude.
+	msg[6] = tmp[1] // Latitude.
+	msg[7] = tmp[2] // Latitude.
+
+	lng := float32(-85.6750)
+	tmp = makeLatLng(lng)
+
+	msg[8] = tmp[0] // Longitude.
+	msg[9] = tmp[1] // Longitude.
+	msg[10] = tmp[2] // Longitude.
+
+
+//Altitude: OK
+//TODO: 0xFFF "invalid altitude."
+	alt := uint16(5540)
+	alt = (alt + 1000)/25
+	alt = alt & 0xFFF // Should fit in 12 bits.
+
+	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
+	msg[12] = byte((alt & 0x00F) << 4)
+
+	msg[12] = byte(((alt & 0x00F) << 4) | 0x8) // "Airborne"
+
+	msg[13] = 0x11
+
+	msg[18] = 0x01 // "light"
+
+	return prepareMessage(msg)
+}
+
+func isGPSValid() bool {
+	return time.Since(myGPS.lastFixLocalTime).Seconds() < 15
+}
+
+func isGPSGroundTrackValid() bool {
+	return time.Since(myGPS.lastGroundTrackTime).Seconds() < 15
+}
+
+//TODO
+func makeOwnshipReport() bool {
+	fmt.Printf("%v\n", myGPS)
+	if !isGPSValid() {
+		return false
+	}
+	msg := make([]byte, 28)
+	// See p.16.
+	msg[0] = 0x0A // Message type "Ownship".
+
+	msg[1] = 0x01 // Alert status, address type.
+
+	msg[2] = 1 // Address.
+	msg[3] = 1 // Address.
+	msg[4] = 1 // Address.
+
+	tmp := makeLatLng(myGPS.lat)
+	msg[5] = tmp[0] // Latitude.
+	msg[6] = tmp[1] // Latitude.
+	msg[7] = tmp[2] // Latitude.
+
+	tmp = makeLatLng(myGPS.lng)
+	msg[8] = tmp[0] // Longitude.
+	msg[9] = tmp[1] // Longitude.
+	msg[10] = tmp[2] // Longitude.
+
+
+//TODO: 0xFFF "invalid altitude."
+//FIXME: This is **PRESSURE ALTITUDE**
+
+	alt := uint16(myGPS.alt)
+	alt = (alt + 1000)/25
+	alt = alt & 0xFFF // Should fit in 12 bits.
+
+	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
+	msg[12] = byte((alt & 0x00F) << 4)
+
+	if isGPSGroundTrackValid() {
+		msg[12] = byte(((alt & 0x00F) << 4) | 0xB) // "Airborne" + "True Heading"
+	} else {
+		msg[12] = byte((alt & 0x00F) << 4)
+	}
+	msg[13] = 0xBB // NIC and NACp.
+
+	gdSpeed := uint16(0) // 1kt resolution.
+	if isGPSGroundTrackValid() {
+		gdSpeed = myGPS.groundSpeed
+	}
+	gdSpeed = gdSpeed & 0x0FFF // Should fit in 12 bits.
+
+	msg[14] = byte((gdSpeed & 0xFF0) >> 4)
+	msg[15] = byte((gdSpeed & 0x00F) << 4)
+
+	verticalVelocity := int16(1000 / 64) // ft/min. 64 ft/min resolution.
+	//TODO: 0x800 = no information available.
+	verticalVelocity = verticalVelocity & 0x0FFF // Should fit in 12 bits.
+	msg[15] = msg[15] | byte((verticalVelocity & 0x0F00) >> 8)
+	msg[16] = byte(verticalVelocity & 0xFF)
+
+
+	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
+	groundTrack := uint16(0)
+	if isGPSGroundTrackValid() {
+		groundTrack = myGPS.trueCourse
+	}
+	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	msg[17] = byte(trk)
+
+	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
+
+	outConn.Write(prepareMessage(msg))
+	return true
+}
+
+//TODO
+func makeOwnshipGeometricAltitudeReport() []byte {
+	msg := make([]byte, 5)
+	// See p.28.
+	msg[0] = 0x0B // Message type "Ownship Geo Alt".
+	alt := int16(myGPS.alt)
+	alt = alt/5
+	msg[1] = byte(alt >> 8) // Altitude.
+	msg[2] = byte(alt & 0x00FF) // Altitude.
+
+	//TODO: "Figure of Merit". 0x7FFF "Not available".
+	msg[3] = 0x00
+	msg[4] = 0x0A
+
+	return prepareMessage(msg)
+}
+
+func makeInitializationMessage() []byte {
+	msg := make([]byte, 3)
+	// See p.13.
+	msg[0] = 0x02 // Message type "Initialization".
+	msg[1] = 0x00 //TODO
+	msg[2] = 0x00 //TODO
+	return prepareMessage(msg)
+}
 
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
 	msg[0] = 0x00 // Message type "Heartbeat".
-	msg[1] = 0x01 // "UAT Initialized".
+	msg[1] = 0x01 // "UAT Initialized". //FIXME
+	msg[1] = 0x91 //FIXME: GPS valid. Addr talkback.
 	nowUTC := time.Now().UTC()
 	// Seconds since 0000Z.
 	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
 	secondsSinceMidnightUTC := uint32(nowUTC.Sub(midnightUTC).Seconds())
 
-	msg[2] = byte((secondsSinceMidnightUTC >> 16) << 7)
+	msg[2] = byte(((secondsSinceMidnightUTC >> 16) << 7) | 0x1) // UTC OK.
 	msg[3] = byte((secondsSinceMidnightUTC & 0xFF))
 	msg[4] = byte((secondsSinceMidnightUTC & 0xFFFF) >> 8)
 
@@ -143,6 +314,10 @@ func relayMessage(msgtype uint16, msg []byte) {
 func heartBeatSender() {
 	for {
 		outConn.Write(makeHeartbeat())
+//		outConn.Write(makeTrafficReport())
+		makeOwnshipReport()
+		outConn.Write(makeOwnshipGeometricAltitudeReport())
+		outConn.Write(makeInitializationMessage())
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -330,6 +505,8 @@ func main() {
 	globalStatus.Devices = 123 //TODO
 	globalStatus.UAT_messages_last_minute = 567 //TODO
 	globalStatus.ES_messages_last_minute = 981 //TODO
+
+	go gpsReader()
 
 	readSettings()
 
