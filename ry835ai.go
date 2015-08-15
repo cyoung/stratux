@@ -2,11 +2,11 @@ package main
 
 
 import (
-		"fmt"
-		"github.com/tarm/serial"
-		"time"
-		"strings"
-		"strconv"
+	"fmt"
+	"github.com/tarm/serial"
+	"time"
+	"strings"
+	"strconv"
 )
 
 type GPSData struct {
@@ -160,6 +160,9 @@ func processNMEALine(l string) bool {
 func gpsSerialReader() {
 	defer serialPort.Close()
 	for {
+		if !globalSettings.GPS_Enabled { // GPS was turned off. Shut down.
+			break
+		}
 		buf := make([]byte, 1024)
 		n, err := serialPort.Read(buf)
 		if err != nil {
@@ -177,5 +180,7 @@ func gpsSerialReader() {
 func gpsReader() {
 	if initGPSSerialReader() {
 		gpsSerialReader()
+	} else {
+		globalSettings.GPS_Enabled = false
 	}
 }
