@@ -67,10 +67,6 @@ echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 echo "# prevent power down of wireless when idle" >>/etc/modprobe.d/8192cu.conf
 echo "options 8192cu rtw_power_mgnt=0 rtw_enusbss=0" >>/etc/modprobe.d/8192cu.conf
 
-#usb hub power
-echo "max_usb_current=1" >>/boot/config.txt
-
-
 EOF
 
 echo "*** STRATUX COMPILE/PACKAGE INSTALL ***"
@@ -103,13 +99,11 @@ cp dump1090 /usr/bin/
 EOF
 
 echo " - Stratux"
+
+scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
+
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
-apt-get install -y golang-go
 cd /root
-
-mkdir /root/go
-export GOPATH=/root/go
-
 
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
@@ -118,12 +112,9 @@ cd dump978
 make
 cp dump978 /usr/bin/
 cd ..
-go build gen_gdl90.go
 
-go get github.com/sevlyar/go-daemon
-go build 1090es_relay.go
-
-cp gen_gdl90 /usr/bin/
+mv /tmp/gen_gdl90 /usr/bin/gen_gdl90
+chmod +x /usr/bin/gen_gdl90
 cp start_uat.sh /usr/bin/start_uat
 cp init.d-stratux /etc/init.d/stratux
 cp start_stratux.sh /usr/sbin/stratux
@@ -132,7 +123,15 @@ chmod 755 /usr/sbin/stratux
 chmod 755 /etc/init.d/stratux
 ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
 ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
+
+echo -n '{"UAT_Enabled":false,"ES_Enabled":true,"GPS_Enabled":true}' >/etc/stratux.conf
+
 update-rc.d stratux enable
+
+#usb hub power
+echo "max_usb_current=1" >>/boot/config.txt
+
+
 EOF
 
 echo "**** END STRATUX SETUP *****"
