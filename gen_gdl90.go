@@ -15,8 +15,8 @@ import (
 
 const (
 	stratuxVersion			= "v0.1"
-	configLocation			= "stratux.conf"
-	ipadAddr                = "192.168.1.255:4000" // Port 4000 for FreeFlight RANGR.
+	configLocation			= "/etc/stratux.conf"
+	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
