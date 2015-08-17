@@ -1,40 +1,40 @@
 package main
 
-
 import (
-	"fmt"
-	"github.com/tarm/serial"
-	"time"
-	"strings"
+	"log"
 	"strconv"
+	"strings"
+	"time"
+
 	"github.com/kidoman/embd"
-	"github.com/kidoman/embd/sensor/bmp180"
 	_ "github.com/kidoman/embd/host/all"
+	"github.com/kidoman/embd/sensor/bmp180"
+	"github.com/tarm/serial"
 )
 
 type GPSData struct {
 	lastFixSinceMidnightUTC uint32
-	lat float32
-	lng float32
-	quality uint8
-	satellites uint16
-	accuracy float32 // Meters.
-	alt float32 // Feet.
-	alt_accuracy float32
-	lastFixLocalTime time.Time
-	trueCourse uint16
-	groundSpeed uint16
-	lastGroundTrackTime time.Time
+	lat                     float32
+	lng                     float32
+	quality                 uint8
+	satellites              uint16
+	accuracy                float32 // Meters.
+	alt                     float32 // Feet.
+	alt_accuracy            float32
+	lastFixLocalTime        time.Time
+	trueCourse              uint16
+	groundSpeed             uint16
+	lastGroundTrackTime     time.Time
 }
 
-var serialConfig	*serial.Config
-var serialPort		*serial.Port
+var serialConfig *serial.Config
+var serialPort *serial.Port
 
 func initGPSSerialReader() bool {
 	serialConfig = &serial.Config{Name: "/dev/ttyACM0", Baud: 9600}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
-		fmt.Printf("serial port err: %s\n", err.Error())
+		log.Printf("serial port err: %s\n", err.Error())
 		return false
 	}
 	serialPort = p
@@ -100,7 +100,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		fix.lat = float32(hr) + float32(minf / 60.0)
+		fix.lat = float32(hr) + float32(minf/60.0)
 		if x[3] == "S" { // South = negative.
 			fix.lat = -fix.lat
 		}
@@ -115,7 +115,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		fix.lng = float32(hr) + float32(minf / 60.0)
+		fix.lng = float32(hr) + float32(minf/60.0)
 		if x[5] == "W" { // West = negative.
 			fix.lng = -fix.lng
 		}
@@ -162,14 +162,14 @@ func processNMEALine(l string) bool {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
+	buf := make([]byte, 1024)
 	for {
 		if !globalSettings.GPS_Enabled { // GPS was turned off. Shut down.
 			break
 		}
-		buf := make([]byte, 1024)
 		n, err := serialPort.Read(buf)
 		if err != nil {
-			fmt.Printf("gps unit read error: %s\n", err.Error())
+			log.Printf("gps unit read error: %s\n", err.Error())
 			return
 		}
 		s := string(buf[:n])
@@ -187,7 +187,6 @@ func gpsReader() {
 		globalSettings.GPS_Enabled = false
 	}
 }
-
 
 var bus embd.I2CBus
 var i2csensor *bmp180.BMP180

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net"
 	"os"
 	"runtime"
@@ -339,7 +339,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	}
 
 	if msgtype == 0 {
-		fmt.Printf("UNKNOWN MESSAGE TYPE: %s - msglen=%d\n", s, msglen)
+		log.Printf("UNKNOWN MESSAGE TYPE: %s - msglen=%d\n", s, msglen)
 	}
 
 	// Now, begin converting the string into a byte array.
@@ -397,9 +397,9 @@ func handleManagementConnection(conn net.Conn) {
 			var newSettings settings
 			err := json.Unmarshal([]byte(s), &newSettings)
 			if err != nil {
-				fmt.Printf("%s - error: %s\n", s, err.Error())
+				log.Printf("%s - error: %s\n", s, err.Error())
 			} else {
-				fmt.Printf("new settings: %s\n", s)
+				log.Printf("new settings: %s\n", s)
 				if !globalSettings.GPS_Enabled && newSettings.GPS_Enabled { // GPS was enabled, restart the reader thread.
 					go gpsReader()
 				}
@@ -413,7 +413,7 @@ func handleManagementConnection(conn net.Conn) {
 func managementInterface() {
 	ln, err := net.Listen("tcp", "127.0.0.1:9110")
 	if err != nil { //TODO
-		fmt.Printf("couldn't open management port: %s\n", err.Error())
+		log.Printf("couldn't open management port: %s\n", err.Error())
 		return
 	}
 	defer ln.Close()
@@ -436,38 +436,38 @@ func readSettings() {
 	fd, err := os.Open(configLocation)
 	defer fd.Close()
 	if err != nil {
-		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
 		return
 	}
 	buf := make([]byte, 1024)
 	count, err := fd.Read(buf)
 	if err != nil {
-		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
 		return
 	}
 	var newSettings settings
 	err = json.Unmarshal(buf[0:count], &newSettings)
 	if err != nil {
-		fmt.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
 		return
 	}
 	globalSettings = newSettings
-	fmt.Printf("read in settings.\n")
+	log.Printf("read in settings.\n")
 }
 
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
 	defer fd.Close()
 	if err != nil {
-		fmt.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
 		return
 	}
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
-	fmt.Printf("wrote settings.\n")
+	log.Printf("wrote settings.\n")
 }
 
 func main() {
