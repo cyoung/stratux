@@ -7,6 +7,9 @@ import (
 	"time"
 	"strings"
 	"strconv"
+	"github.com/kidoman/embd"
+	"github.com/kidoman/embd/sensor/bmp180"
+	_ "github.com/kidoman/embd/host/all"
 )
 
 type GPSData struct {
@@ -183,4 +186,25 @@ func gpsReader() {
 	} else {
 		globalSettings.GPS_Enabled = false
 	}
+}
+
+
+var bus embd.I2CBus
+var i2csensor *bmp180.BMP180
+
+func readBMP180() (float64, float64, error) { // ºCelsius, Meters
+	temp, err := i2csensor.Temperature()
+	if err != nil {
+		return temp, 0.0, err
+	}
+	altitude, err := i2csensor.Altitude()
+	if err != nil {
+		return temp, altitude, err
+	}
+	return temp, altitude, nil
+}
+
+func initBMP180() {
+	bus = embd.NewI2CBus(1)
+	i2csensor = bmp180.New(bus)
 }
