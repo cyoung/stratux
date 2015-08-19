@@ -358,6 +358,7 @@ type settings struct {
 	UAT_Enabled bool
 	ES_Enabled  bool
 	GPS_Enabled bool
+	IpadAddr    string
 }
 
 type status struct {
@@ -429,7 +430,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true  //TODO
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
-	globalSettings.ipadAddr = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	globalSettings.IpadAddr = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 }
 
 func readSettings() {
@@ -489,7 +490,7 @@ func main() {
 	}
 
 	// Open UDP port to send out the messages.
-	addr, err := net.ResolveUDPAddr("udp", globalSettings.ipadAddr)
+	addr, err := net.ResolveUDPAddr("udp", globalSettings.IpadAddr)
 	if err != nil {
 		panic(err)
 	}
