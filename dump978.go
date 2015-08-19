@@ -16,9 +16,9 @@ package dump978
 #include <stdint.h>
 #include "dump978/dump978.h"
 
-extern void goCallback(char updown, uint8_t *data, int len);
-CallBack get_go_cb() {
-	return (CallBack)goCallback;
+extern void dump978Cb(char updown, uint8_t *data, int len);
+static inline CallBack GetGoCb() {
+	return (CallBack)dump978Cb;
 }
 */
 import "C"
@@ -31,7 +31,7 @@ type UserCbT func(C.char, *C.uint8_t, C.int)
 
 // Dump978Init must be the first function called in this package.
 func Dump978Init() {
-	C.Dump978Init((C.CallBack)(C.get_go_cb()))
+	C.Dump978Init((C.CallBack)(C.GetGoCb()))
 }
 
 // ProcessData passes buf (modulated data) to dump978 for demodulation.

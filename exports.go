@@ -20,8 +20,8 @@ import "C"
 // outChan is a buffered output channel for demodulated data.
 var OutChan = make(chan []byte, 100)
 
-//export goCallback
-func goCallback(updown C.char, data *C.uint8_t, length C.int) {
+//export dump978Cb
+func dump978Cb(updown C.char, data *C.uint8_t, length C.int) {
 	outData := make([]byte, length+1)
 	// c buffer to go slice without copying
 	var buf []byte
