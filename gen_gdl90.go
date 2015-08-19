@@ -17,7 +17,6 @@ import (
 const (
 	stratuxVersion          = "v0.1"
 	configLocation          = "/etc/stratux.conf"
-	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -359,6 +358,7 @@ type settings struct {
 	UAT_Enabled bool
 	ES_Enabled  bool
 	GPS_Enabled bool
+	IpadAddr    string
 }
 
 type status struct {
@@ -430,6 +430,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true  //TODO
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
+	globalSettings.IpadAddr = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 }
 
 func readSettings() {
@@ -489,7 +490,7 @@ func main() {
 	}
 
 	// Open UDP port to send out the messages.
-	addr, err := net.ResolveUDPAddr("udp", ipadAddr)
+	addr, err := net.ResolveUDPAddr("udp", globalSettings.IpadAddr)
 	if err != nil {
 		panic(err)
 	}
