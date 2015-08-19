@@ -31,7 +31,7 @@ func cleanupOldEntries() {
 	for icaoDec, pi := range blips {
 		s := time.Since(pi.last_seen)
 		if s.Seconds() >= float64(15) { // Timeout time.
-			//fmt.Printf("REMOVED %d\n", icaoDec)
+			//log.Printf("REMOVED %d\n", icaoDec)
 			delete(blips, icaoDec)
 		}
 	}
@@ -49,7 +49,7 @@ func ipadUpdate(mutex *sync.Mutex) {
 		cleanupOldEntries()
 		for icaoDec, pi := range blips {
 			msg := fmt.Sprintf("XTRAFFICMy Sim,%d,%s,%s,%s,%s,1,%s,%s,%s", icaoDec, pi.lat, pi.lng, pi.alt, pi.vr, pi.hdg, pi.vel, pi.tail)
-			//fmt.Println(msg)
+			//log.Println(msg)
 			outConn.Write([]byte(msg))
 		}
 		mutex.Unlock()
@@ -77,7 +77,7 @@ func main() {
 				break
 			}
 			buf = strings.Trim(buf, "\r\n")
-			//fmt.Printf("%s\n", buf)
+			//log.Printf("%s\n", buf)
 			x := strings.Split(buf, ",")
 			//TODO: Add more sophisticated stuff that combines heading/speed updates with the location.
 			if len(x) < 22 {
@@ -101,7 +101,7 @@ func main() {
 				lat := x[14]
 				lng := x[15]
 
-				//fmt.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
+				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
 				pi.alt = alt
 				pi.lat = lat
 				pi.lng = lng
@@ -112,7 +112,7 @@ func main() {
 				hdg := x[13]
 				vr := x[16]
 
-				//fmt.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
+				//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
 				pi.vel = vel
 				pi.hdg = hdg
 				pi.vr = vr
