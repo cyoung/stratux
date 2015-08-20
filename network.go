@@ -1,18 +1,17 @@
 package main
 
 import (
-	"log"
-	"time"
 	"io/ioutil"
-	"strings"
-	"strconv"
+	"log"
 	"net"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var messageQueue chan []byte
 var outSockets map[string]*net.UDPConn
 var dhcpLeases map[string]string
-
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
@@ -94,14 +93,14 @@ func messageQueueSender() {
 	dhcpRefresh := time.NewTicker(30 * time.Second)
 	for {
 		select {
-		case msg := <- messageQueue:
+		case msg := <-messageQueue:
 			sendToAllConnectedClients(msg)
 		case <-secondTimer.C:
 			getNetworkStats()
 		case <-dhcpRefresh.C:
 			refreshConnectedClients()
 		}
-		
+
 	}
 }
 

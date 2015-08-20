@@ -17,7 +17,6 @@ import (
 const (
 	stratuxVersion          = "v0.1"
 	configLocation          = "/etc/stratux.conf"
-	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
 	managementAddr          = "127.0.0.1:9110"
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
@@ -357,11 +356,10 @@ func parseInput(buf string) ([]byte, uint16) {
 }
 
 type settings struct {
-	UAT_Enabled		bool
-	ES_Enabled		bool
-	GPS_Enabled		bool
-	GDLOutputPorts	[]uint16
-	
+	UAT_Enabled    bool
+	ES_Enabled     bool
+	GPS_Enabled    bool
+	GDLOutputPorts []uint16
 }
 
 type status struct {
@@ -492,7 +490,7 @@ func main() {
 		go gpsReader()
 	}
 
-//TODO: network stuff
+	//TODO: network stuff
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
