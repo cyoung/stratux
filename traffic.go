@@ -143,7 +143,7 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	msg[18] = 0x01 // "light"
 
-	outConn.Write(prepareMessage(msg))
+	sendMsg(prepareMessage(msg))
 }
 
 

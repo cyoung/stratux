@@ -11,3 +11,7 @@ Supported WiFi adapters:
 
 Tested RTL-SDR:
 *NooElec NESDR Mini 2
+
+
+
+https://www.reddit.com/r/stratux
