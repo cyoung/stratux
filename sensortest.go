@@ -32,7 +32,7 @@ func main() {
 	outConn, err := net.DialUDP("udp", nil, addr)
 	for {
 		pitch, roll := readMPU6050()
-		s := fmt.Sprintf("XATTMy Sim,180.0,%f,%f", pitch, roll)
+		s := fmt.Sprintf("XATTMy Sim,%f,%f,%f", attSensor.Heading(), pitch, roll)
 		fmt.Printf("%f, %f\n", pitch, roll)
 		outConn.Write([]byte(s))
 		time.Sleep(50 * time.Millisecond)

@@ -43,6 +43,7 @@ type SituationData struct {
 	// From MPU6050 accel/gyro.
 	pitch            float64
 	roll             float64
+	gyro_heading     float64
 	lastAttitudeTime time.Time
 }
 
@@ -75,6 +76,10 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			trueCourse = uint16(tc)
+			//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
+			if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+				myMPU6050.ResetHeading(float64(tc))
+			}
 		} else {
 			// No movement.
 			mySituation.trueCourse = 0
@@ -207,6 +212,7 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 		return temp, 0.0, err
 	}
 	altitude, err := myBMP180.Altitude()
+	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
 	if err != nil {
 		return temp, altitude, err
 	}
@@ -269,12 +275,13 @@ func attitudeReaderSender() {
 		} else {
 			mySituation.pitch = pitch
 			mySituation.roll = roll
+			mySituation.gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
 			mySituation.lastAttitudeTime = time.Now()
 		}
 
 		// Send, if valid.
-		//		if isGPSGroundTrackValid()
-		s := fmt.Sprintf("XATTStratux,%d,%f,%f", mySituation.trueCourse, mySituation.pitch, mySituation.roll)
+		//		if isGPSGroundTrackValid(), etc.
+		s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.gyro_heading, mySituation.pitch, mySituation.roll)
 
 		sendMsg([]byte(s), NETWORK_AHRS)
 
@@ -296,7 +303,7 @@ func isAHRSValid() bool {
 }
 
 func isTempPressValid() bool {
-	return time.Since(mySituation.lastTempPressTime).Seconds < 15
+	return time.Since(mySituation.lastTempPressTime).Seconds() < 15
 }
 
 func initAHRS() error {

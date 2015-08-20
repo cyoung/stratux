@@ -146,10 +146,13 @@ func makeOwnshipReport() bool {
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-	//TODO: 0xFFF "invalid altitude."
-	//FIXME: This is **PRESSURE ALTITUDE**
 
-	alt := uint16(mySituation.alt)
+	// This is **PRESSURE ALTITUDE**
+	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
+
+	if isTempPressValid() {
+		alt = uint16(mySituation.pressure_alt)
+	}
 	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
@@ -201,7 +204,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg := make([]byte, 5)
 	// See p.28.
 	msg[0] = 0x0B                 // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.alt) //FIXME.
+	alt := int16(mySituation.alt) // GPS Altitude.
 	alt = alt / 5
 	msg[1] = byte(alt >> 8)     // Altitude.
 	msg[2] = byte(alt & 0x00FF) // Altitude.
