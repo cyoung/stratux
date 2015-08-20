@@ -18,6 +18,7 @@ const (
 	stratuxVersion          = "v0.1"
 	configLocation          = "/etc/stratux.conf"
 	ipadAddr                = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	managementAddr          = "127.0.0.1:9110"
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -412,7 +413,7 @@ func handleManagementConnection(conn net.Conn) {
 }
 
 func managementInterface() {
-	ln, err := net.Listen("tcp", "127.0.0.1:9110")
+	ln, err := net.Listen("tcp", managementAddr)
 	if err != nil { //TODO
 		log.Printf("couldn't open management port: %s\n", err.Error())
 		return
