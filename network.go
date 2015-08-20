@@ -6,12 +6,14 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var messageQueue chan []byte
 var outSockets map[string]*net.UDPConn
 var dhcpLeases map[string]string
+var netMutex *sync.Mutex
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
@@ -38,6 +40,8 @@ func getDHCPLeases() (map[string]string, error) {
 }
 
 func sendToAllConnectedClients(msg []byte) {
+	netMutex.Lock()
+	defer netMutex.Unlock()
 	for _, sock := range outSockets {
 		sock.Write(msg)
 	}
@@ -50,6 +54,8 @@ func getNetworkStats() int {
 
 // See who has a DHCP lease and make a UDP connection to each of them.
 func refreshConnectedClients() {
+	netMutex.Lock()
+	defer netMutex.Unlock()
 	validConnections := make(map[string]bool)
 	t, err := getDHCPLeases()
 	if err != nil {
@@ -111,6 +117,7 @@ func sendMsg(msg []byte) {
 func initNetwork() {
 	messageQueue = make(chan []byte, 1024) // Buffered channel, 1024 messages.
 	outSockets = make(map[string]*net.UDPConn)
+	netMutex = &sync.Mutex{}
 	refreshConnectedClients()
 	go messageQueueSender()
 }
