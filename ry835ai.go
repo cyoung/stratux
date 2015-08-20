@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
-	"time"
 	"sync"
-	"fmt"
+	"time"
 
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
@@ -17,7 +17,7 @@ import (
 )
 
 type SituationData struct {
-	mu_GPS					*sync.Mutex
+	mu_GPS *sync.Mutex
 
 	// From GPS.
 	lastFixSinceMidnightUTC uint32
@@ -33,17 +33,17 @@ type SituationData struct {
 	groundSpeed             uint16
 	lastGroundTrackTime     time.Time
 
-	mu_Attitude				*sync.Mutex
+	mu_Attitude *sync.Mutex
 
 	// From BMP180 pressure sensor.
-	temp					float64
-	pressure_alt			float64
-	lastTempPressTime		time.Time
+	temp              float64
+	pressure_alt      float64
+	lastTempPressTime time.Time
 
 	// From MPU6050 accel/gyro.
-	pitch					float64
-	roll					float64
-	lastAttitudeTime		time.Time
+	pitch            float64
+	roll             float64
+	lastAttitudeTime time.Time
 }
 
 var serialConfig *serial.Config
@@ -213,7 +213,7 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	return temp, altitude, nil
 }
 
-func readMPU6050() (float64, float64, error) {//TODO: error checking.
+func readMPU6050() (float64, float64, error) { //TODO: error checking.
 	pitch, roll := myMPU6050.PitchAndRoll()
 	return pitch, roll, nil
 }
@@ -248,7 +248,7 @@ func tempAndPressureReader() {
 			mySituation.temp = temp
 			mySituation.pressure_alt = alt
 			mySituation.lastTempPressTime = time.Now()
-		}		
+		}
 	}
 	globalStatus.RY835AI_connected = false
 }
@@ -273,7 +273,7 @@ func attitudeReaderSender() {
 		}
 
 		// Send, if valid.
-//		if isGPSGroundTrackValid()
+		//		if isGPSGroundTrackValid()
 		s := fmt.Sprintf("XATTStratux,%d,%f,%f", mySituation.trueCourse, mySituation.pitch, mySituation.roll)
 
 		sendMsg([]byte(s), NETWORK_AHRS)
@@ -293,6 +293,10 @@ func isGPSGroundTrackValid() bool {
 
 func isAHRSValid() bool {
 	return time.Since(mySituation.lastAttitudeTime).Seconds() < 1 // If attitude information gets to be over 1 second old, declare invalid.
+}
+
+func isTempPressValid() bool {
+	return time.Since(mySituation.lastTempPressTime).Seconds < 15
 }
 
 func initAHRS() error {
