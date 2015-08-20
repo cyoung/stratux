@@ -1,12 +1,12 @@
 package main
 
 import (
+	"./mpu6050"
 	"fmt"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
-	"./mpu6050"
-	"time"
 	"net"
+	"time"
 )
 
 var bus embd.I2CBus

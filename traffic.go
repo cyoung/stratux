@@ -70,8 +70,6 @@ var traffic map[uint32]TrafficInfo
 var trafficMutex *sync.Mutex
 
 func cleanupOldEntries() {
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
 	for icao_addr, ti := range traffic {
 		if time.Since(ti.last_seen).Seconds() > float64(60) { //FIXME: 60 seconds with no update on this address - stop displaying.
 			delete(traffic, icao_addr)
@@ -148,7 +146,7 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	msg[18] = 0x01 // "light"
 
-	sendMsg(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg))
 }
 
 func parseDownlinkReport(s string) {

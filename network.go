@@ -10,10 +10,27 @@ import (
 	"time"
 )
 
-var messageQueue chan []byte
-var outSockets map[string]*net.UDPConn
+type networkMessage struct {
+	msg     []byte
+	msgType uint8
+}
+
+type networkConnection struct {
+	conn       *net.UDPConn
+	ip         string
+	port       uint32
+	capability uint8
+}
+
+var messageQueue chan networkMessage
+var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
 var netMutex *sync.Mutex
+
+const (
+	NETWORK_GDL90 = 1
+	NETWORK_AHRS  = 2
+)
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
@@ -39,11 +56,13 @@ func getDHCPLeases() (map[string]string, error) {
 	return ret, nil
 }
 
-func sendToAllConnectedClients(msg []byte) {
+func sendToAllConnectedClients(msg networkMessage) {
 	netMutex.Lock()
 	defer netMutex.Unlock()
-	for _, sock := range outSockets {
-		sock.Write(msg)
+	for _, netconn := range outSockets {
+		if (netconn.capability & msg.msgType) != 0 { // Check if this port is able to accept the type of message we're sending.
+			netconn.conn.Write(msg.msg)
+		}
 	}
 }
 
@@ -65,10 +84,10 @@ func refreshConnectedClients() {
 	dhcpLeases = t
 	// Client connected that wasn't before.
 	for ip, hostname := range dhcpLeases {
-		for _, port := range globalSettings.GDLOutputPorts {
-			ipAndPort := ip + ":" + strconv.Itoa(int(port))
+		for _, networkOutput := range globalSettings.NetworkOutputs {
+			ipAndPort := ip + ":" + strconv.Itoa(int(networkOutput.port))
 			if _, ok := outSockets[ipAndPort]; !ok {
-				log.Printf("client connected: %s:%d (%s).\n", ip, port, hostname)
+				log.Printf("client connected: %s:%d (%s).\n", ip, networkOutput.port, hostname)
 				addr, err := net.ResolveUDPAddr("udp", ipAndPort)
 				if err != nil {
 					log.Printf("ResolveUDPAddr(%s): %s\n", ipAndPort, err.Error())
@@ -79,7 +98,7 @@ func refreshConnectedClients() {
 					log.Printf("DialUDP(%s): %s\n", ipAndPort, err.Error())
 					continue
 				}
-				outSockets[ipAndPort] = outConn
+				outSockets[ipAndPort] = networkConnection{outConn, ip, networkOutput.port, networkOutput.capability}
 			}
 			validConnections[ipAndPort] = true
 		}
@@ -88,7 +107,7 @@ func refreshConnectedClients() {
 	for ipAndPort, conn := range outSockets {
 		if _, ok := validConnections[ipAndPort]; !ok {
 			log.Printf("removed connection %s.\n", ipAndPort)
-			conn.Close()
+			conn.conn.Close()
 			delete(outSockets, ipAndPort)
 		}
 	}
@@ -106,17 +125,20 @@ func messageQueueSender() {
 		case <-dhcpRefresh.C:
 			refreshConnectedClients()
 		}
-
 	}
 }
 
-func sendMsg(msg []byte) {
-	messageQueue <- msg
+func sendMsg(msg []byte, msgType uint8) {
+	messageQueue <- networkMessage{msg, msgType}
+}
+
+func sendGDL90(msg []byte) {
+	sendMsg(msg, NETWORK_GDL90)
 }
 
 func initNetwork() {
-	messageQueue = make(chan []byte, 1024) // Buffered channel, 1024 messages.
-	outSockets = make(map[string]*net.UDPConn)
+	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
+	outSockets = make(map[string]networkConnection)
 	netMutex = &sync.Mutex{}
 	refreshConnectedClients()
 	go messageQueueSender()
