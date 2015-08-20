@@ -17,6 +17,7 @@ import (
 const (
 	stratuxVersion          = "v0.1"
 	configLocation          = "/etc/stratux.conf"
+	managementAddr          = "127.0.0.1:9110"
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -45,7 +46,6 @@ const (
 )
 
 var Crc16Table [256]uint16
-var outConn *net.UDPConn
 
 var myGPS GPSData
 
@@ -197,7 +197,7 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	outConn.Write(prepareMessage(msg))
+	sendMsg(prepareMessage(msg))
 	return true
 }
 
@@ -218,7 +218,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg[3] = 0x00
 	msg[4] = 0x0A
 
-	outConn.Write(prepareMessage(msg))
+	sendMsg(prepareMessage(msg))
 	return true
 }
 
@@ -265,19 +265,20 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	outConn.Write(prepareMessage(ret))
+	sendMsg(prepareMessage(ret))
 }
 
 func heartBeatSender() {
+	timer := time.Tick(1 * time.Second)
 	for {
-		outConn.Write(makeHeartbeat())
-		//		outConn.Write(makeTrafficReport())
+		<-timer
+		sendMsg(makeHeartbeat())
+		//		sendMsg(makeTrafficReport())
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
-		outConn.Write(makeInitializationMessage())
+		sendMsg(makeInitializationMessage())
 		sendTrafficUpdates()
 		updateStatus()
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -355,10 +356,10 @@ func parseInput(buf string) ([]byte, uint16) {
 }
 
 type settings struct {
-	UAT_Enabled bool
-	ES_Enabled  bool
-	GPS_Enabled bool
-	IpadAddr    string
+	UAT_Enabled    bool
+	ES_Enabled     bool
+	GPS_Enabled    bool
+	GDLOutputPorts []uint16
 }
 
 type status struct {
@@ -411,7 +412,7 @@ func handleManagementConnection(conn net.Conn) {
 }
 
 func managementInterface() {
-	ln, err := net.Listen("tcp", "127.0.0.1:9110")
+	ln, err := net.Listen("tcp", managementAddr)
 	if err != nil { //TODO
 		log.Printf("couldn't open management port: %s\n", err.Error())
 		return
@@ -430,7 +431,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true  //TODO
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
-	globalSettings.IpadAddr = "192.168.10.255:4000" // Port 4000 for FreeFlight RANGR.
+	globalSettings.GDLOutputPorts = []uint16{4000, 43211}
 }
 
 func readSettings() {
@@ -489,20 +490,15 @@ func main() {
 		go gpsReader()
 	}
 
-	// Open UDP port to send out the messages.
-	addr, err := net.ResolveUDPAddr("udp", globalSettings.IpadAddr)
-	if err != nil {
-		panic(err)
-	}
-	outConn, err = net.DialUDP("udp", nil, addr)
-	if err != nil {
-		panic("error creating UDP socket: " + err.Error())
-	}
+	//TODO: network stuff
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
 	// Start the management interface.
 	go managementInterface()
+
+	// Initialize the (out) network handler.
+	initNetwork()
 
 	reader := bufio.NewReader(os.Stdin)
 
