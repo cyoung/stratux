@@ -27,6 +27,9 @@ import "unsafe"
 // Current version.
 var PackageVersion = "v0.1"
 
+// InChan is a buffered input channel for raw data.
+var InChan = make(chan []byte, 100)
+
 type UserCbT func(C.char, *C.uint8_t, C.int)
 
 // Dump978Init must be the first function called in this package.
@@ -37,4 +40,11 @@ func Dump978Init() {
 // ProcessData passes buf (modulated data) to dump978 for demodulation.
 func ProcessData(buf []byte) {
 	C.process_data((*C.char)(unsafe.Pointer(&buf[0])), C.int(len(buf)))
+}
+
+func ProcessDataFromChannel() {
+	for {
+		inData := <-InChan
+		ProcessData(inData)
+	}
 }
