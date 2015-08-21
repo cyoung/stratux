@@ -1,6 +1,7 @@
 package main
 
 import (
+	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -10,6 +11,10 @@ import (
 	"time"
 )
 
+const (
+	dhcp_lease_file = "/var/lib/dhcp/dhcpd.leases"
+)
+
 var messageQueue chan []byte
 var outSockets map[string]*net.UDPConn
 var dhcpLeases map[string]string
@@ -17,7 +22,7 @@ var netMutex *sync.Mutex
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
-	dat, err := ioutil.ReadFile("/var/lib/dhcp/dhcpd.leases")
+	dat, err := ioutil.ReadFile(dhcp_lease_file)
 	ret := make(map[string]string)
 	if err != nil {
 		return ret, err
@@ -96,17 +101,34 @@ func refreshConnectedClients() {
 
 func messageQueueSender() {
 	secondTimer := time.NewTicker(1 * time.Second)
-	dhcpRefresh := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case msg := <-messageQueue:
 			sendToAllConnectedClients(msg)
 		case <-secondTimer.C:
 			getNetworkStats()
-		case <-dhcpRefresh.C:
-			refreshConnectedClients()
 		}
 
+	}
+}
+
+func monitorDHCPLeases() {
+	watcher, err := inotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_CLOSE_WRITE)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for {
+		select {
+		case <-watcher.Event:
+			log.Println("file modified, attempting to refresh DHCP")
+			refreshConnectedClients()
+		case err := <-watcher.Error:
+			log.Println("error with DHCP file system watcher:", err)
+		}
 	}
 }
 
@@ -119,5 +141,6 @@ func initNetwork() {
 	outSockets = make(map[string]*net.UDPConn)
 	netMutex = &sync.Mutex{}
 	refreshConnectedClients()
+	go monitorDHCPLeases()
 	go messageQueueSender()
 }
