@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -17,10 +16,10 @@ type networkMessage struct {
 }
 
 type networkConnection struct {
-	conn       *net.UDPConn
-	ip         string
-	port       uint32
-	capability uint8
+	Conn       *net.UDPConn
+	Ip         string
+	Port       uint32
+	Capability uint8
 }
 
 var messageQueue chan networkMessage
@@ -31,12 +30,11 @@ var netMutex *sync.Mutex
 const (
 	NETWORK_GDL90 = 1
 	NETWORK_AHRS  = 2
-	dhcp_lease_file = "/var/lib/dhcp/dhcpd.leases"
 )
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
-	dat, err := ioutil.ReadFile(dhcp_lease_file)
+	dat, err := ioutil.ReadFile("/var/lib/dhcp/dhcpd.leases")
 	ret := make(map[string]string)
 	if err != nil {
 		return ret, err
@@ -62,8 +60,8 @@ func sendToAllConnectedClients(msg networkMessage) {
 	netMutex.Lock()
 	defer netMutex.Unlock()
 	for _, netconn := range outSockets {
-		if (netconn.capability & msg.msgType) != 0 { // Check if this port is able to accept the type of message we're sending.
-			netconn.conn.Write(msg.msg)
+		if (netconn.Capability & msg.msgType) != 0 { // Check if this port is able to accept the type of message we're sending.
+			netconn.Conn.Write(msg.msg)
 		}
 	}
 }
@@ -87,9 +85,9 @@ func refreshConnectedClients() {
 	// Client connected that wasn't before.
 	for ip, hostname := range dhcpLeases {
 		for _, networkOutput := range globalSettings.NetworkOutputs {
-			ipAndPort := ip + ":" + strconv.Itoa(int(networkOutput.port))
+			ipAndPort := ip + ":" + strconv.Itoa(int(networkOutput.Port))
 			if _, ok := outSockets[ipAndPort]; !ok {
-				log.Printf("client connected: %s:%d (%s).\n", ip, networkOutput.port, hostname)
+				log.Printf("client connected: %s:%d (%s).\n", ip, networkOutput.Port, hostname)
 				addr, err := net.ResolveUDPAddr("udp", ipAndPort)
 				if err != nil {
 					log.Printf("ResolveUDPAddr(%s): %s\n", ipAndPort, err.Error())
@@ -100,7 +98,7 @@ func refreshConnectedClients() {
 					log.Printf("DialUDP(%s): %s\n", ipAndPort, err.Error())
 					continue
 				}
-				outSockets[ipAndPort] = networkConnection{outConn, ip, networkOutput.port, networkOutput.capability}
+				outSockets[ipAndPort] = networkConnection{outConn, ip, networkOutput.Port, networkOutput.Capability}
 			}
 			validConnections[ipAndPort] = true
 		}
@@ -109,7 +107,7 @@ func refreshConnectedClients() {
 	for ipAndPort, conn := range outSockets {
 		if _, ok := validConnections[ipAndPort]; !ok {
 			log.Printf("removed connection %s.\n", ipAndPort)
-			conn.conn.Close()
+			conn.Conn.Close()
 			delete(outSockets, ipAndPort)
 		}
 	}
@@ -117,12 +115,15 @@ func refreshConnectedClients() {
 
 func messageQueueSender() {
 	secondTimer := time.NewTicker(1 * time.Second)
+	dhcpRefresh := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case msg := <-messageQueue:
 			sendToAllConnectedClients(msg)
 		case <-secondTimer.C:
 			getNetworkStats()
+		case <-dhcpRefresh.C:
+			refreshConnectedClients()
 		}
 	}
 }
@@ -135,31 +136,10 @@ func sendGDL90(msg []byte) {
 	sendMsg(msg, NETWORK_GDL90)
 }
 
-func monitorDHCPLeases() {
-	watcher, err := inotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_CLOSE_WRITE)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for {
-		select {
-		case <-watcher.Event:
-			log.Println("file modified, attempting to refresh DHCP")
-			refreshConnectedClients()
-		case err := <-watcher.Error:
-			log.Println("error with DHCP file system watcher:", err)
-		}
-	}
-}
-
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
 	outSockets = make(map[string]networkConnection)
 	netMutex = &sync.Mutex{}
 	refreshConnectedClients()
-	go monitorDHCPLeases()
 	go messageQueueSender()
 }
