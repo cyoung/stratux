@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	rtl "./gortlsdr"
+	rtl "github.com/jpoirier/gortlsdr"
 	// "unsafe"
 	"fmt"
 )
