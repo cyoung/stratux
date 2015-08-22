@@ -146,6 +146,15 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	msg[18] = 0x01 // "light"
 
+	// msg[19] to msg[26] are "call sign" (tail).
+	for i := 0; (i < len(ti.tail) && i < 8); i++ {
+		c := byte(ti.tail[i])
+		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' {// See p.24, FAA ref.
+			c = byte(20)
+		}
+		msg[19 + i] = c
+	}
+
 	//TODO: text identifier (tail).
 
 	sendGDL90(prepareMessage(msg))
@@ -294,6 +303,11 @@ func parseDownlinkReport(s string) {
 
 	ti.last_seen = time.Now()
 
+	// This is a hack to show the source of the traffic in ForeFlight.
+	if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
+		ti.tail = "u" + ti.tail
+	}
+
 	traffic[ti.icao_addr] = ti
 }
 
@@ -425,7 +439,15 @@ func esListen() {
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.last_seen = time.Now()
 
-			ti.addr_type = 0 //FIXME: ADS-B with ICAO address.
+			ti.addr_type = 0 //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
+
+			// This is a hack to show the source of the traffic in ForeFlight.
+			ti.tail = strings.Trim(ti.tail, " ")
+			if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
+				ti.tail = "e" + ti.tail
+			}
+
+
 
 			traffic[icaoDec] = ti // Update information on this ICAO code.
 			trafficMutex.Unlock()
