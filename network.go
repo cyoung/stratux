@@ -69,8 +69,10 @@ func sendToAllConnectedClients(msg networkMessage) {
 }
 
 // Just returns the number of DHCP leases for now.
-func getNetworkStats() int {
-	return len(dhcpLeases)
+func getNetworkStats() uint {
+	ret := uint(len(dhcpLeases))
+	globalStatus.Connected_Users = ret
+	return ret
 }
 
 // See who has a DHCP lease and make a UDP connection to each of them.
@@ -116,7 +118,7 @@ func refreshConnectedClients() {
 }
 
 func messageQueueSender() {
-	secondTimer := time.NewTicker(1 * time.Second)
+	secondTimer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case msg := <-messageQueue:

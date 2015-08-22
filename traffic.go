@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
+	"log"
 	"math"
+	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -86,11 +91,6 @@ func sendTrafficUpdates() {
 	}
 }
 
-func initTraffic() {
-	traffic = make(map[uint32]TrafficInfo)
-	trafficMutex = &sync.Mutex{}
-}
-
 func makeTrafficReport(ti TrafficInfo) {
 	msg := make([]byte, 28)
 	// See p.16.
@@ -146,6 +146,8 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	msg[18] = 0x01 // "light"
 
+	//TODO: text identifier (tail).
+
 	sendGDL90(prepareMessage(msg))
 }
 
@@ -157,8 +159,16 @@ func parseDownlinkReport(s string) {
 
 	// Header.
 	//	msg_type := (uint8(frame[0]) >> 3) & 0x1f
+	icao_addr := (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
+
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	if curTi, ok := traffic[icao_addr]; ok { // Retrieve the current entry, as it may contain some useful information like "tail" from 1090ES.
+		ti = curTi
+	}
+	ti.icao_addr = icao_addr
+
 	ti.addr_type = uint8(frame[0]) & 0x07
-	ti.icao_addr = (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
 
 	// OK.
 	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.icao_addr)
@@ -284,75 +294,147 @@ func parseDownlinkReport(s string) {
 
 	ti.last_seen = time.Now()
 
-	trafficMutex.Lock()
 	traffic[ti.icao_addr] = ti
-	trafficMutex.Unlock()
 }
 
-//TODO
-/*
-//	dump1090Addr    = "127.0.0.1:30003"
-inConn, err := net.Dial("tcp", dump1090Addr)
-if err != nil {
-	time.Sleep(1 * time.Second)
-	continue
+func esListen() {
+	for {
+		if !globalSettings.ES_Enabled {
+			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
+			continue
+		}
+		dump1090Addr := "127.0.0.1:30003"
+		inConn, err := net.Dial("tcp", dump1090Addr)
+		if err != nil { // Local connection failed.
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		rdr := bufio.NewReader(inConn)
+		for {
+			buf, err := rdr.ReadString('\n')
+			if err != nil { // Must have disconnected?
+				break
+			}
+			buf = strings.Trim(buf, "\r\n")
+			//log.Printf("%s\n", buf)
+			x := strings.Split(buf, ",")
+			if len(x) < 22 {
+				continue
+			}
+			icao := x[4]
+			icaoDecf, err := strconv.ParseInt(icao, 16, 32)
+			if err != nil {
+				continue
+			}
+			icaoDec := uint32(icaoDecf)
+			trafficMutex.Lock()
+			// Retrieve previous information on this ICAO code.
+			var ti TrafficInfo
+			if val, ok := traffic[icaoDec]; ok {
+				ti = val
+			}
+
+			ti.icao_addr = icaoDec
+
+			//FIXME: Some stale information will be renewed.
+			valid_change := true
+			if x[1] == "3" {
+				//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
+				//MSG,3,111,11111,A5D007,111111,          ,            ,          ,            ,,35000,,,42.47454,-82.57433,,,0,0,0,0
+				alt := x[11]
+				lat := x[14]
+				lng := x[15]
+
+				if len(alt) == 0 || len(lat) == 0 || len(lng) == 0 { //FIXME.
+					valid_change = false
+				}
+
+				altFloat, err := strconv.ParseFloat(alt, 32)
+				if err != nil {
+					log.Printf("err parsing alt (%s): %s\n", alt, err.Error())
+					valid_change = false
+				}
+
+				latFloat, err := strconv.ParseFloat(lat, 32)
+				if err != nil {
+					log.Printf("err parsing lat (%s): %s\n", lat, err.Error())
+					valid_change = false
+				}
+				lngFloat, err := strconv.ParseFloat(lng, 32)
+				if err != nil {
+					log.Printf("err parsing lng (%s): %s\n", lng, err.Error())
+					valid_change = false
+				}
+
+				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
+				if valid_change {
+					ti.alt = uint32(altFloat)
+					ti.lat = float32(latFloat)
+					ti.lng = float32(lngFloat)
+					ti.position_valid = true
+				}
+			}
+			if x[1] == "4" {
+				// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
+				speed := x[12]
+				track := x[13]
+				vvel := x[16]
+
+				if len(speed) == 0 || len(track) == 0 || len(vvel) == 0 {
+					valid_change = false
+				}
+
+				speedFloat, err := strconv.ParseFloat(speed, 32)
+				if err != nil {
+					log.Printf("err parsing speed (%s): %s\n", speed, err.Error())
+					valid_change = false
+				}
+
+				trackFloat, err := strconv.ParseFloat(track, 32)
+				if err != nil {
+					log.Printf("err parsing track (%s): %s\n", track, err.Error())
+					valid_change = false
+				}
+				vvelFloat, err := strconv.ParseFloat(vvel, 32)
+				if err != nil {
+					log.Printf("err parsing vvel (%s): %s\n", vvel, err.Error())
+					valid_change = false
+				}
+
+				//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
+				if valid_change {
+					ti.speed = uint16(speedFloat)
+					ti.track = uint16(trackFloat)
+					ti.vvel = int16(vvelFloat)
+					ti.speed_valid = true
+				}
+			}
+			if x[1] == "1" {
+				// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
+				tail := x[10]
+
+				if len(tail) == 0 {
+					valid_change = false
+				}
+
+				if valid_change {
+					ti.tail = tail
+				}
+			}
+
+			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
+			ti.last_seen = time.Now()
+
+			ti.addr_type = 0 //FIXME: ADS-B with ICAO address.
+
+			traffic[icaoDec] = ti // Update information on this ICAO code.
+			trafficMutex.Unlock()
+		}
+	}
 }
-rdr := bufio.NewReader(inConn)
-for {
-	buf, err := rdr.ReadString('\n')
-	if err != nil { // Must have disconnected?
-		break
-	}
-	buf = strings.Trim(buf, "\r\n")
-	//log.Printf("%s\n", buf)
-	x := strings.Split(buf, ",")
-	//TODO: Add more sophisticated stuff that combines heading/speed updates with the location.
-	if len(x) < 22 {
-		continue
-	}
-	icao := x[4]
-	icaoDec, err := strconv.ParseInt(icao, 16, 32)
-	if err != nil {
-		continue
-	}
-	mutex.Lock()
-	// Retrieve previous information on this ICAO code.
-	var pi PositionInfo
-	if _, ok := blips[icaoDec]; ok {
-		pi = blips[icaoDec]
-	}
 
-	if x[1] == "3" {
-		//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
-		alt := x[11]
-		lat := x[14]
-		lng := x[15]
-
-		//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
-		pi.alt = alt
-		pi.lat = lat
-		pi.lng = lng
-	}
-	if x[1] == "4" {
-		// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
-		vel := x[12]
-		hdg := x[13]
-		vr := x[16]
-
-		//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
-		pi.vel = vel
-		pi.hdg = hdg
-		pi.vr = vr
-	}
-	if x[1] == "1" {
-		// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
-		tail := x[10]
-		pi.tail = tail
-	}
-
-	// Update "last seen" (any type of message).
-	pi.last_seen = time.Now()
-
-	blips[icaoDec] = pi // Update information on this ICAO code.
-	mutex.Unlock()
-*/
+func initTraffic() {
+	traffic = make(map[uint32]TrafficInfo)
+	trafficMutex = &sync.Mutex{}
+	go esListen()
+}

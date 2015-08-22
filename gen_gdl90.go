@@ -146,7 +146,6 @@ func makeOwnshipReport() bool {
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-
 	// This is **PRESSURE ALTITUDE**
 	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
 
@@ -365,6 +364,7 @@ type settings struct {
 type status struct {
 	Version                  string
 	Devices                  uint
+	Connected_Users          uint
 	UAT_messages_last_minute uint
 	UAT_messages_max         uint
 	ES_messages_last_minute  uint
@@ -428,7 +428,7 @@ func managementInterface() {
 
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true //TODO
-	globalSettings.ES_Enabled = false //TODO
+	globalSettings.ES_Enabled = true  //TODO
 	globalSettings.GPS_Enabled = true //TODO
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90}, {nil, "", 43211, NETWORK_GDL90}, {nil, "", 49002, NETWORK_AHRS}}
 	globalSettings.AHRS_Enabled = true
