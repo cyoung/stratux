@@ -88,7 +88,9 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	for _, ti := range traffic {
-		makeTrafficReport(ti)
+		if ti.position_valid {
+			makeTrafficReport(ti)
+		}
 	}
 }
 
