@@ -76,7 +76,7 @@ var trafficMutex *sync.Mutex
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if time.Since(ti.last_seen).Seconds() > float64(60) { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if time.Since(ti.last_seen).Seconds() > float64(60.0) { //FIXME: 60 seconds with no update on this address - stop displaying.
 			delete(traffic, icao_addr)
 		}
 	}
@@ -275,8 +275,18 @@ func parseDownlinkReport(s string) {
 			}
 		}
 	} else if airground_state == 2 { // Ground vehicle.
-		//TODO.
-		return
+		raw_gs := ((uint16(frame[12]) & 0x1f) << 6) | ((uint16(frame[13]) & 0xfc) >> 2)
+		if raw_gs != 0 {
+			speed_valid = true
+			speed = ((raw_gs & 0x3ff) - 1)
+		}
+
+		raw_track := ((uint16(frame[13]) & 0x03) << 9) | (uint16(frame[14]) << 1) | ((uint16(frame[15]) & 0x80) >> 7)
+		//tt := ((raw_track & 0x0600) >> 9)
+		//FIXME: tt == 1 TT_TRACK. tt == 2 TT_MAG_HEADING. tt == 3 TT_TRUE_HEADING.
+		track = uint16((raw_track & 0x1ff) * 360 / 512)
+
+		// Dimensions of vehicle - skip.
 	}
 
 	ti.track = track
