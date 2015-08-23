@@ -50,8 +50,9 @@ AUXSV:
 */
 
 type TrafficInfo struct {
-	icao_addr uint32
-	addr_type uint8
+	icao_addr        uint32
+	addr_type        uint8
+	emitter_category uint8
 
 	lat float32
 	lng float32
@@ -144,15 +145,15 @@ func makeTrafficReport(ti TrafficInfo) {
 	trk := uint8(float32(ti.track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 	msg[17] = byte(trk)
 
-	msg[18] = 0x01 // "light"
+	msg[18] = ti.emitter_category
 
 	// msg[19] to msg[26] are "call sign" (tail).
-	for i := 0; (i < len(ti.tail) && i < 8); i++ {
+	for i := 0; i < len(ti.tail) && i < 8; i++ {
 		c := byte(ti.tail[i])
-		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' {// See p.24, FAA ref.
+		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' { // See p.24, FAA ref.
 			c = byte(20)
 		}
-		msg[19 + i] = c
+		msg[19+i] = c
 	}
 
 	//TODO: text identifier (tail).
@@ -167,7 +168,14 @@ func parseDownlinkReport(s string) {
 	hex.Decode(frame, []byte(s))
 
 	// Header.
-	//	msg_type := (uint8(frame[0]) >> 3) & 0x1f
+	msg_type := (uint8(frame[0]) >> 3) & 0x1f
+
+	// Extract emitter category.
+	if msg_type == 1 || msg_type == 3 {
+		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
+		ti.emitter_category = uint8((v / 1600) % 40)
+	}
+
 	icao_addr := (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
 
 	trafficMutex.Lock()
@@ -449,15 +457,14 @@ func esListen() {
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.last_seen = time.Now()
 
-			ti.addr_type = 0 //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
+			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
+			ti.emitter_category = 0x01 //FIXME. "Light"
 
 			// This is a hack to show the source of the traffic in ForeFlight.
 			ti.tail = strings.Trim(ti.tail, " ")
 			if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
 				ti.tail = "e" + ti.tail
 			}
-
-
 
 			traffic[icaoDec] = ti // Update information on this ICAO code.
 			trafficMutex.Unlock()
