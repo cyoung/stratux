@@ -124,8 +124,6 @@ chmod 755 /etc/init.d/stratux
 ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
 ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
 
-echo -n '{"UAT_Enabled":false,"ES_Enabled":true,"GPS_Enabled":true}' >/etc/stratux.conf
-
 update-rc.d stratux enable
 
 #usb hub power

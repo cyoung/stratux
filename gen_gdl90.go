@@ -47,7 +47,7 @@ const (
 
 var Crc16Table [256]uint16
 
-var myGPS GPSData
+var mySituation SituationData
 
 type msg struct {
 	MessageClass uint
@@ -121,14 +121,6 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
-func isGPSValid() bool {
-	return time.Since(myGPS.lastFixLocalTime).Seconds() < 15
-}
-
-func isGPSGroundTrackValid() bool {
-	return time.Since(myGPS.lastGroundTrackTime).Seconds() < 15
-}
-
 //TODO
 func makeOwnshipReport() bool {
 	if !isGPSValid() {
@@ -144,20 +136,22 @@ func makeOwnshipReport() bool {
 	msg[3] = 1 // Address.
 	msg[4] = 1 // Address.
 
-	tmp := makeLatLng(myGPS.lat)
+	tmp := makeLatLng(mySituation.lat)
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
 	msg[7] = tmp[2] // Latitude.
 
-	tmp = makeLatLng(myGPS.lng)
+	tmp = makeLatLng(mySituation.lng)
 	msg[8] = tmp[0]  // Longitude.
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-	//TODO: 0xFFF "invalid altitude."
-	//FIXME: This is **PRESSURE ALTITUDE**
+	// This is **PRESSURE ALTITUDE**
+	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
 
-	alt := uint16(myGPS.alt)
+	if isTempPressValid() {
+		alt = uint16(mySituation.pressure_alt)
+	}
 	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
@@ -173,7 +167,7 @@ func makeOwnshipReport() bool {
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
-		gdSpeed = myGPS.groundSpeed
+		gdSpeed = mySituation.groundSpeed
 	}
 	gdSpeed = gdSpeed & 0x0FFF // Should fit in 12 bits.
 
@@ -189,7 +183,7 @@ func makeOwnshipReport() bool {
 	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
 	groundTrack := uint16(0)
 	if isGPSGroundTrackValid() {
-		groundTrack = myGPS.trueCourse
+		groundTrack = mySituation.trueCourse
 	}
 	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 
@@ -197,7 +191,7 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	sendMsg(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg))
 	return true
 }
 
@@ -208,8 +202,8 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B // Message type "Ownship Geo Alt".
-	alt := int16(myGPS.alt)
+	msg[0] = 0x0B                 // Message type "Ownship Geo Alt".
+	alt := int16(mySituation.alt) // GPS Altitude.
 	alt = alt / 5
 	msg[1] = byte(alt >> 8)     // Altitude.
 	msg[2] = byte(alt & 0x00FF) // Altitude.
@@ -218,7 +212,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg[3] = 0x00
 	msg[4] = 0x0A
 
-	sendMsg(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg))
 	return true
 }
 
@@ -235,8 +229,12 @@ func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
 	msg[0] = 0x00 // Message type "Heartbeat".
-	msg[1] = 0x01 // "UAT Initialized". //FIXME
-	msg[1] = 0x91 //FIXME: GPS valid. Addr talkback.
+	msg[1] = 0x01 // "UAT Initialized".
+	if isGPSValid() {
+		msg[1] = msg[1] | 0x80
+	}
+	msg[1] = msg[1] | 0x10 //FIXME: Addr talkback.
+
 	nowUTC := time.Now().UTC()
 	// Seconds since 0000Z.
 	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
@@ -265,18 +263,18 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendMsg(prepareMessage(ret))
+	sendGDL90(prepareMessage(ret))
 }
 
 func heartBeatSender() {
-	timer := time.Tick(1 * time.Second)
+	timer := time.NewTicker(1 * time.Second)
 	for {
-		<-timer
-		sendMsg(makeHeartbeat())
-		//		sendMsg(makeTrafficReport())
+		<-timer.C
+		sendGDL90(makeHeartbeat())
+		//		sendGDL90(makeTrafficReport())
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
-		sendMsg(makeInitializationMessage())
+		sendGDL90(makeInitializationMessage())
 		sendTrafficUpdates()
 		updateStatus()
 	}
@@ -302,7 +300,7 @@ func updateStatus() {
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
 
 	if isGPSValid() {
-		globalStatus.GPS_satellites_locked = myGPS.satellites
+		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}
 }
 
@@ -359,17 +357,21 @@ type settings struct {
 	UAT_Enabled    bool
 	ES_Enabled     bool
 	GPS_Enabled    bool
-	GDLOutputPorts []uint16
+	NetworkOutputs []networkConnection
+	AHRS_Enabled   bool
 }
 
 type status struct {
 	Version                  string
 	Devices                  uint
+	Connected_Users          uint
 	UAT_messages_last_minute uint
 	UAT_messages_max         uint
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
+	GPS_connected            bool
+	RY835AI_connected        bool
 }
 
 var globalSettings settings
@@ -401,9 +403,6 @@ func handleManagementConnection(conn net.Conn) {
 				log.Printf("%s - error: %s\n", s, err.Error())
 			} else {
 				log.Printf("new settings: %s\n", s)
-				if !globalSettings.GPS_Enabled && newSettings.GPS_Enabled { // GPS was enabled, restart the reader thread.
-					go gpsReader()
-				}
 				globalSettings = newSettings
 				saveSettings()
 			}
@@ -428,10 +427,11 @@ func managementInterface() {
 }
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true  //TODO
-	globalSettings.ES_Enabled = false  //TODO
-	globalSettings.GPS_Enabled = false //TODO
-	globalSettings.GDLOutputPorts = []uint16{4000, 43211}
+	globalSettings.UAT_Enabled = true //TODO
+	globalSettings.ES_Enabled = true  //TODO
+	globalSettings.GPS_Enabled = true //TODO
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90}, {nil, "", 43211, NETWORK_GDL90}, {nil, "", 49002, NETWORK_AHRS}}
+	globalSettings.AHRS_Enabled = true
 }
 
 func readSettings() {
@@ -486,9 +486,7 @@ func main() {
 
 	readSettings()
 
-	if globalSettings.GPS_Enabled {
-		go gpsReader()
-	}
+	initRY835AI()
 
 	//TODO: network stuff
 

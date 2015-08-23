@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
+	"log"
 	"math"
+	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -45,8 +50,9 @@ AUXSV:
 */
 
 type TrafficInfo struct {
-	icao_addr uint32
-	addr_type uint8
+	icao_addr        uint32
+	addr_type        uint8
+	emitter_category uint8
 
 	lat float32
 	lng float32
@@ -70,10 +76,8 @@ var traffic map[uint32]TrafficInfo
 var trafficMutex *sync.Mutex
 
 func cleanupOldEntries() {
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
 	for icao_addr, ti := range traffic {
-		if time.Since(ti.last_seen).Seconds() > float64(60) { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if time.Since(ti.last_seen).Seconds() > float64(60.0) { //FIXME: 60 seconds with no update on this address - stop displaying.
 			delete(traffic, icao_addr)
 		}
 	}
@@ -84,13 +88,10 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	for _, ti := range traffic {
-		makeTrafficReport(ti)
+		if ti.position_valid {
+			makeTrafficReport(ti)
+		}
 	}
-}
-
-func initTraffic() {
-	traffic = make(map[uint32]TrafficInfo)
-	trafficMutex = &sync.Mutex{}
 }
 
 func makeTrafficReport(ti TrafficInfo) {
@@ -146,9 +147,20 @@ func makeTrafficReport(ti TrafficInfo) {
 	trk := uint8(float32(ti.track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 	msg[17] = byte(trk)
 
-	msg[18] = 0x01 // "light"
+	msg[18] = ti.emitter_category
 
-	sendMsg(prepareMessage(msg))
+	// msg[19] to msg[26] are "call sign" (tail).
+	for i := 0; i < len(ti.tail) && i < 8; i++ {
+		c := byte(ti.tail[i])
+		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' { // See p.24, FAA ref.
+			c = byte(20)
+		}
+		msg[19+i] = c
+	}
+
+	//TODO: text identifier (tail).
+
+	sendGDL90(prepareMessage(msg))
 }
 
 func parseDownlinkReport(s string) {
@@ -158,9 +170,24 @@ func parseDownlinkReport(s string) {
 	hex.Decode(frame, []byte(s))
 
 	// Header.
-	//	msg_type := (uint8(frame[0]) >> 3) & 0x1f
+	msg_type := (uint8(frame[0]) >> 3) & 0x1f
+
+	// Extract emitter category.
+	if msg_type == 1 || msg_type == 3 {
+		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
+		ti.emitter_category = uint8((v / 1600) % 40)
+	}
+
+	icao_addr := (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
+
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	if curTi, ok := traffic[icao_addr]; ok { // Retrieve the current entry, as it may contain some useful information like "tail" from 1090ES.
+		ti = curTi
+	}
+	ti.icao_addr = icao_addr
+
 	ti.addr_type = uint8(frame[0]) & 0x07
-	ti.icao_addr = (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
 
 	// OK.
 	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.icao_addr)
@@ -235,14 +262,14 @@ func parseDownlinkReport(s string) {
 			if (raw_ew & 0x400) != 0 {
 				ew_vel = 0 - ew_vel
 			}
-			if airground_state == 1 { // Supersonic
+			if airground_state == 1 { // Supersonic.
 				ew_vel = ew_vel * 4
 			}
 		}
 		if ns_vel_valid && ew_vel_valid {
 			if ns_vel != 0 && ew_vel != 0 {
 				//TODO: Track type
-				track = (360 + 90 - uint16(math.Atan2(float64(ns_vel), float64(ew_vel))*180/math.Pi)) % 360
+				track = (360 + 90 - (uint16(math.Atan2(float64(ns_vel), float64(ew_vel)) * 180 / math.Pi))) % 360
 			}
 			speed_valid = true
 			speed = uint16(math.Sqrt(float64((ns_vel * ns_vel) + (ew_vel * ew_vel))))
@@ -258,8 +285,18 @@ func parseDownlinkReport(s string) {
 			}
 		}
 	} else if airground_state == 2 { // Ground vehicle.
-		//TODO.
-		return
+		raw_gs := ((uint16(frame[12]) & 0x1f) << 6) | ((uint16(frame[13]) & 0xfc) >> 2)
+		if raw_gs != 0 {
+			speed_valid = true
+			speed = ((raw_gs & 0x3ff) - 1)
+		}
+
+		raw_track := ((uint16(frame[13]) & 0x03) << 9) | (uint16(frame[14]) << 1) | ((uint16(frame[15]) & 0x80) >> 7)
+		//tt := ((raw_track & 0x0600) >> 9)
+		//FIXME: tt == 1 TT_TRACK. tt == 2 TT_MAG_HEADING. tt == 3 TT_TRUE_HEADING.
+		track = uint16((raw_track & 0x1ff) * 360 / 512)
+
+		// Dimensions of vehicle - skip.
 	}
 
 	ti.track = track
@@ -286,75 +323,159 @@ func parseDownlinkReport(s string) {
 
 	ti.last_seen = time.Now()
 
-	trafficMutex.Lock()
+	// This is a hack to show the source of the traffic in ForeFlight.
+	if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
+		ti.tail = "u" + ti.tail
+	}
+
 	traffic[ti.icao_addr] = ti
-	trafficMutex.Unlock()
 }
 
-//TODO
-/*
-//	dump1090Addr    = "127.0.0.1:30003"
-inConn, err := net.Dial("tcp", dump1090Addr)
-if err != nil {
-	time.Sleep(1 * time.Second)
-	continue
+func esListen() {
+	for {
+		if !globalSettings.ES_Enabled {
+			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
+			continue
+		}
+		dump1090Addr := "127.0.0.1:30003"
+		inConn, err := net.Dial("tcp", dump1090Addr)
+		if err != nil { // Local connection failed.
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		rdr := bufio.NewReader(inConn)
+		for {
+			buf, err := rdr.ReadString('\n')
+			if err != nil { // Must have disconnected?
+				break
+			}
+			buf = strings.Trim(buf, "\r\n")
+			//log.Printf("%s\n", buf)
+			x := strings.Split(buf, ",")
+			if len(x) < 22 {
+				continue
+			}
+			icao := x[4]
+			icaoDecf, err := strconv.ParseInt(icao, 16, 32)
+			if err != nil {
+				continue
+			}
+			icaoDec := uint32(icaoDecf)
+			trafficMutex.Lock()
+			// Retrieve previous information on this ICAO code.
+			var ti TrafficInfo
+			if val, ok := traffic[icaoDec]; ok {
+				ti = val
+			}
+
+			ti.icao_addr = icaoDec
+
+			//FIXME: Some stale information will be renewed.
+			valid_change := true
+			if x[1] == "3" {
+				//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
+				//MSG,3,111,11111,A5D007,111111,          ,            ,          ,            ,,35000,,,42.47454,-82.57433,,,0,0,0,0
+				alt := x[11]
+				lat := x[14]
+				lng := x[15]
+
+				if len(alt) == 0 || len(lat) == 0 || len(lng) == 0 { //FIXME.
+					valid_change = false
+				}
+
+				altFloat, err := strconv.ParseFloat(alt, 32)
+				if err != nil {
+					log.Printf("err parsing alt (%s): %s\n", alt, err.Error())
+					valid_change = false
+				}
+
+				latFloat, err := strconv.ParseFloat(lat, 32)
+				if err != nil {
+					log.Printf("err parsing lat (%s): %s\n", lat, err.Error())
+					valid_change = false
+				}
+				lngFloat, err := strconv.ParseFloat(lng, 32)
+				if err != nil {
+					log.Printf("err parsing lng (%s): %s\n", lng, err.Error())
+					valid_change = false
+				}
+
+				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
+				if valid_change {
+					ti.alt = uint32(altFloat)
+					ti.lat = float32(latFloat)
+					ti.lng = float32(lngFloat)
+					ti.position_valid = true
+				}
+			}
+			if x[1] == "4" {
+				// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
+				speed := x[12]
+				track := x[13]
+				vvel := x[16]
+
+				if len(speed) == 0 || len(track) == 0 || len(vvel) == 0 {
+					valid_change = false
+				}
+
+				speedFloat, err := strconv.ParseFloat(speed, 32)
+				if err != nil {
+					log.Printf("err parsing speed (%s): %s\n", speed, err.Error())
+					valid_change = false
+				}
+
+				trackFloat, err := strconv.ParseFloat(track, 32)
+				if err != nil {
+					log.Printf("err parsing track (%s): %s\n", track, err.Error())
+					valid_change = false
+				}
+				vvelFloat, err := strconv.ParseFloat(vvel, 32)
+				if err != nil {
+					log.Printf("err parsing vvel (%s): %s\n", vvel, err.Error())
+					valid_change = false
+				}
+
+				//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
+				if valid_change {
+					ti.speed = uint16(speedFloat)
+					ti.track = uint16(trackFloat)
+					ti.vvel = int16(vvelFloat)
+					ti.speed_valid = true
+				}
+			}
+			if x[1] == "1" {
+				// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
+				tail := x[10]
+
+				if len(tail) == 0 {
+					valid_change = false
+				}
+
+				if valid_change {
+					ti.tail = tail
+				}
+			}
+
+			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
+			ti.last_seen = time.Now()
+
+			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
+			ti.emitter_category = 0x01 //FIXME. "Light"
+
+			// This is a hack to show the source of the traffic in ForeFlight.
+			ti.tail = strings.Trim(ti.tail, " ")
+			if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
+				ti.tail = "e" + ti.tail
+			}
+
+			traffic[icaoDec] = ti // Update information on this ICAO code.
+			trafficMutex.Unlock()
+		}
+	}
 }
-rdr := bufio.NewReader(inConn)
-for {
-	buf, err := rdr.ReadString('\n')
-	if err != nil { // Must have disconnected?
-		break
-	}
-	buf = strings.Trim(buf, "\r\n")
-	//log.Printf("%s\n", buf)
-	x := strings.Split(buf, ",")
-	//TODO: Add more sophisticated stuff that combines heading/speed updates with the location.
-	if len(x) < 22 {
-		continue
-	}
-	icao := x[4]
-	icaoDec, err := strconv.ParseInt(icao, 16, 32)
-	if err != nil {
-		continue
-	}
-	mutex.Lock()
-	// Retrieve previous information on this ICAO code.
-	var pi PositionInfo
-	if _, ok := blips[icaoDec]; ok {
-		pi = blips[icaoDec]
-	}
 
-	if x[1] == "3" {
-		//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
-		alt := x[11]
-		lat := x[14]
-		lng := x[15]
-
-		//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
-		pi.alt = alt
-		pi.lat = lat
-		pi.lng = lng
-	}
-	if x[1] == "4" {
-		// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
-		vel := x[12]
-		hdg := x[13]
-		vr := x[16]
-
-		//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
-		pi.vel = vel
-		pi.hdg = hdg
-		pi.vr = vr
-	}
-	if x[1] == "1" {
-		// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
-		tail := x[10]
-		pi.tail = tail
-	}
-
-	// Update "last seen" (any type of message).
-	pi.last_seen = time.Now()
-
-	blips[icaoDec] = pi // Update information on this ICAO code.
-	mutex.Unlock()
-*/
+func initTraffic() {
+	traffic = make(map[uint32]TrafficInfo)
+	trafficMutex = &sync.Mutex{}
+	go esListen()
+}
