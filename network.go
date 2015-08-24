@@ -143,7 +143,7 @@ func monitorDHCPLeases() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_CLOSE_WRITE)
+	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_MODIFY)
 	if err != nil {
 		log.Fatal(err)
 	}
