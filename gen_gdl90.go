@@ -430,7 +430,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true //TODO
 	globalSettings.ES_Enabled = true  //TODO
 	globalSettings.GPS_Enabled = true //TODO
-	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90}, {nil, "", 43211, NETWORK_GDL90}, {nil, "", 49002, NETWORK_AHRS}}
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90}, {nil, "", 49002, NETWORK_AHRS_FFSIM}}
 	globalSettings.AHRS_Enabled = true
 }
 

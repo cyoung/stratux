@@ -29,8 +29,9 @@ var dhcpLeases map[string]string
 var netMutex *sync.Mutex
 
 const (
-	NETWORK_GDL90   = 1
-	NETWORK_AHRS    = 2
+	NETWORK_GDL90_STANDARD   = 1
+	NETWORK_AHRS_FFSIM    = 2
+	NETWORK_AHRS_GDL90    = 4
 	dhcp_lease_file = "/var/lib/dhcp/dhcpd.leases"
 )
 
@@ -134,7 +135,7 @@ func sendMsg(msg []byte, msgType uint8) {
 }
 
 func sendGDL90(msg []byte) {
-	sendMsg(msg, NETWORK_GDL90)
+	sendMsg(msg, NETWORK_GDL90_STANDARD)
 }
 
 func monitorDHCPLeases() {
