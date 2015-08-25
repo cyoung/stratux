@@ -15,7 +15,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion          = "v0.1"
+	stratuxVersion          = "v0.2"
 	configLocation          = "/etc/stratux.conf"
 	managementAddr          = "127.0.0.1:9110"
 	maxDatagramSize         = 8192
@@ -299,6 +299,14 @@ func updateStatus() {
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
 
+	// Update "max messages/min" counters.
+	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
+		globalStatus.UAT_messages_max = UAT_messages_last_minute
+	}
+	if globalStatus.ES_messages_max < ES_messages_last_minute {
+		globalStatus.ES_messages_max = ES_messages_last_minute
+	}
+
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}
@@ -480,9 +488,7 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
-	globalStatus.Devices = 123                  //TODO
-	globalStatus.UAT_messages_last_minute = 567 //TODO
-	globalStatus.ES_messages_last_minute = 981  //TODO
+	globalStatus.Devices = 0                  //TODO
 
 	readSettings()
 
