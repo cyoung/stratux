@@ -11,7 +11,14 @@ Supported WiFi adapters:
 
 Tested RTL-SDR:
 *NooElec NESDR Mini 2
+*Generic R820T (degraded performance)
 
+Tested weather/traffic displays:
+*ForeFlight 7.2 (Jul 13, 2015) - weather, traffic, AHRS.
+*Naviator - weather, traffic, AHRS.
+*WingX - weather & traffic.
+*Avare
+*iFly 740 - weather & traffic.
 
 
 https://www.reddit.com/r/stratux
