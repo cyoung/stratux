@@ -56,6 +56,7 @@ type msg struct {
 }
 
 var MsgLog []msg
+var timeStarted time.Time
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -310,6 +311,9 @@ func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}
+
+	// Update Uptime.
+	globalStatus.Uptime = time.Since(timeStarted)
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -380,6 +384,7 @@ type status struct {
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
 	RY835AI_connected        bool
+	Uptime					time.Duration
 }
 
 var globalSettings settings
@@ -481,6 +486,7 @@ func saveSettings() {
 }
 
 func main() {
+	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 	MsgLog = make([]msg, 0)
 
