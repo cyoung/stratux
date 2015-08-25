@@ -313,7 +313,7 @@ func updateStatus() {
 	}
 
 	// Update Uptime.
-	globalStatus.Uptime = time.Since(timeStarted)
+	globalStatus.Uptime = time.Since(timeStarted).String()
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -384,7 +384,7 @@ type status struct {
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
 	RY835AI_connected        bool
-	Uptime					time.Duration
+	Uptime                   string
 }
 
 var globalSettings settings
@@ -440,7 +440,7 @@ func managementInterface() {
 }
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true //TODO
+	globalSettings.UAT_Enabled = true  //TODO
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90}, {nil, "", 49002, NETWORK_AHRS_FFSIM}}
@@ -494,7 +494,7 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
-	globalStatus.Devices = 0                  //TODO
+	globalStatus.Devices = 0 //TODO
 
 	readSettings()
 
