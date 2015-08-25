@@ -5,3 +5,7 @@ dump978/uat2text
 gen_gdl90
 
 *.mp4
+
+*.img
+
+*.zip
