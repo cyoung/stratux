@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -139,21 +138,12 @@ func sendGDL90(msg []byte) {
 }
 
 func monitorDHCPLeases() {
-	watcher, err := inotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_MODIFY)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//TODO: inotify or dhcp event hook.
+	timer := time.NewTicker(30 * time.Second)
 	for {
 		select {
-		case <-watcher.Event:
-			log.Println("file modified, attempting to refresh DHCP")
+		case <-timer.C:
 			refreshConnectedClients()
-		case err := <-watcher.Error:
-			log.Println("error with DHCP file system watcher:", err)
 		}
 	}
 }
