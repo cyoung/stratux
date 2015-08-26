@@ -474,7 +474,7 @@ func readSettings() {
 }
 
 func saveSettings() {
-	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	defer fd.Close()
 	if err != nil {
 		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
