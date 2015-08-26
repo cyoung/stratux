@@ -15,7 +15,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion          = "v0.1"
+	stratuxVersion          = "v0.2"
 	configLocation          = "/etc/stratux.conf"
 	managementAddr          = "127.0.0.1:9110"
 	maxDatagramSize         = 8192
@@ -56,6 +56,7 @@ type msg struct {
 }
 
 var MsgLog []msg
+var timeStarted time.Time
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -299,9 +300,20 @@ func updateStatus() {
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
 
+	// Update "max messages/min" counters.
+	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
+		globalStatus.UAT_messages_max = UAT_messages_last_minute
+	}
+	if globalStatus.ES_messages_max < ES_messages_last_minute {
+		globalStatus.ES_messages_max = ES_messages_last_minute
+	}
+
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}
+
+	// Update Uptime.
+	globalStatus.Uptime = time.Since(timeStarted).String()
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -372,6 +384,7 @@ type status struct {
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
 	RY835AI_connected        bool
+	Uptime                   string
 }
 
 var globalSettings settings
@@ -427,11 +440,11 @@ func managementInterface() {
 }
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true //TODO
-	globalSettings.ES_Enabled = true  //TODO
-	globalSettings.GPS_Enabled = true //TODO
-	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90}, {nil, "", 43211, NETWORK_GDL90}, {nil, "", 49002, NETWORK_AHRS}}
-	globalSettings.AHRS_Enabled = true
+	globalSettings.UAT_Enabled = true  //TODO
+	globalSettings.ES_Enabled = false  //TODO
+	globalSettings.GPS_Enabled = false //TODO
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90}, {nil, "", 49002, NETWORK_AHRS_FFSIM}}
+	globalSettings.AHRS_Enabled = false
 }
 
 func readSettings() {
@@ -473,6 +486,7 @@ func saveSettings() {
 }
 
 func main() {
+	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 	MsgLog = make([]msg, 0)
 
@@ -480,9 +494,7 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
-	globalStatus.Devices = 123                  //TODO
-	globalStatus.UAT_messages_last_minute = 567 //TODO
-	globalStatus.ES_messages_last_minute = 981  //TODO
+	globalStatus.Devices = 0 //TODO
 
 	readSettings()
 

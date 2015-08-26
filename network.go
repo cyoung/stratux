@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/exp/inotify"
 	"io/ioutil"
 	"log"
 	"net"
@@ -29,8 +28,9 @@ var dhcpLeases map[string]string
 var netMutex *sync.Mutex
 
 const (
-	NETWORK_GDL90   = 1
-	NETWORK_AHRS    = 2
+	NETWORK_GDL90_STANDARD   = 1
+	NETWORK_AHRS_FFSIM    = 2
+	NETWORK_AHRS_GDL90    = 4
 	dhcp_lease_file = "/var/lib/dhcp/dhcpd.leases"
 )
 
@@ -134,25 +134,16 @@ func sendMsg(msg []byte, msgType uint8) {
 }
 
 func sendGDL90(msg []byte) {
-	sendMsg(msg, NETWORK_GDL90)
+	sendMsg(msg, NETWORK_GDL90_STANDARD)
 }
 
 func monitorDHCPLeases() {
-	watcher, err := inotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = watcher.AddWatch(dhcp_lease_file, inotify.IN_CLOSE_WRITE)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//TODO: inotify or dhcp event hook.
+	timer := time.NewTicker(30 * time.Second)
 	for {
 		select {
-		case <-watcher.Event:
-			log.Println("file modified, attempting to refresh DHCP")
+		case <-timer.C:
 			refreshConnectedClients()
-		case err := <-watcher.Error:
-			log.Println("error with DHCP file system watcher:", err)
 		}
 	}
 }

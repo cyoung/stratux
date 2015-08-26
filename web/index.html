@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+		<title>
+			Stratux
+		</title>
+		<script src="js/jquery-2.1.4.min.js" type="text/javascript"></script>
+		<script src="js/jquery.form.min.js" type="text/javascript"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+$(document).ready(function() { 
+	$('input[name=UAT_Enabled]').change(function(){
+		$('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
+	});
+	$('input[name=ES_Enabled]').change(function(){
+		$('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
+	});
+	$('input[name=GPS_Enabled]').change(function(){
+		$('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
+	});
+	$('input[name=AHRS_Enabled]').change(function(){
+		$('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
+	});
+});
+(function worker() {
+	$.ajax({
+		url: 'control.php', 
+		success: function(data) {
+			obj = $.parseJSON(data);
+			$.each(obj, function(k, v) {
+				// Radio values.
+				if ((k == "UAT_Enabled") || (k == "ES_Enabled") || (k == "GPS_Enabled") || (k == "AHRS_Enabled")) {
+					$('[name=' + k + ']').val([v.toString()]);
+				}
+				$('#' + k).text(v);
+			});
+
+		},
+		complete: function() {
+			// Schedule the next request when the current one is complete.
+			setTimeout(worker, 1000);
+		}
+	});
+})();
+
+		</script>
+		Status:<br>
+		RTL-SDR devices: <span id="Devices">1</span><br>
+		Clients connected: <span id="Connected_Users">2</span><br>
+		Current firmware: <span id="Version">v0.1</span><br>
+		UAT msgs: <span id="UAT_messages_last_minute"></span> / <span id="UAT_messages_max"></span><br>
+		1090ES msgs: <span id="ES_messages_last_minute"></span> / <span id="ES_messages_max"></span><br>
+		GPS satellites: <span id="GPS_satellites_locked"></span><br>
+		AHRS: <span id="RY835AI_connected"></span><br>
+		Uptime: <span id="Uptime"></span><br>
+		<br>
+		<form id="settings">
+			Set:<br>
+			978MHz <input type="radio" name="UAT_Enabled" value="true">On
+				<input type="radio" name="UAT_Enabled" value="false">Off<br>
+			1090MHz  <input type="radio" name="ES_Enabled" value="true">On
+				<input type="radio" name="ES_Enabled" value="false">Off<br>
+			GPS  <input type="radio" name="GPS_Enabled" value="true">On
+				<input type="radio" name="GPS_Enabled" value="false">Off<br>
+			AHRS  <input type="radio" name="AHRS_Enabled" value="true">On
+				<input type="radio" name="AHRS_Enabled" value="false">Off<br>
+		</form>
+	</body>
+</html>

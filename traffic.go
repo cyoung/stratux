@@ -360,6 +360,15 @@ func esListen() {
 			if err != nil {
 				continue
 			}
+
+			// Log the message after we've determined that it at least meets some requirements on the fields.
+			var thisMsg msg
+			thisMsg.MessageClass = MSGCLASS_ES
+			thisMsg.TimeReceived = time.Now()
+			thisMsg.Data = []byte(buf)
+			MsgLog = append(MsgLog, thisMsg)
+
+			// Begin to parse the message.
 			icaoDec := uint32(icaoDecf)
 			trafficMutex.Lock()
 			// Retrieve previous information on this ICAO code.

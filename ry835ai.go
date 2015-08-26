@@ -259,6 +259,53 @@ func tempAndPressureReader() {
 	globalStatus.RY835AI_connected = false
 }
 
+func makeFFAHRSSimReport() {
+	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.gyro_heading, mySituation.pitch, mySituation.roll)
+
+	sendMsg([]byte(s), NETWORK_AHRS_FFSIM)
+}
+
+func makeAHRSGDL90Report() {
+	msg := make([]byte, 16)
+	msg[0] = 0x4c
+	msg[1] = 0x45
+	msg[2] = 0x01
+	msg[3] = 0x00
+
+	pitch := int16(float64(mySituation.pitch) * float64(10.0))
+	roll := int16(float64(mySituation.roll) * float64(10.0))
+	hdg := uint16(float64(mySituation.gyro_heading) * float64(10.0)) //TODO.
+	slip_skid := int16(float64(0) * float64(10.0)) //TODO.
+	yaw_rate := int16(float64(0) * float64(10.0)) //TODO.
+	g := int16(float64(1.0) * float64(10.0)) //TODO.
+
+	// Roll.
+	msg[4] = byte((roll >> 8) & 0xFF)
+	msg[5] = byte(roll & 0xFF)
+
+	// Pitch.
+	msg[6] = byte((pitch >> 8) & 0xFF)
+	msg[7] = byte(pitch & 0xFF)
+
+	// Heading.
+	msg[8] = byte((hdg >> 8) & 0xFF)
+	msg[9] = byte(hdg & 0xFF)
+
+	// Slip/skid.
+	msg[10] = byte((slip_skid >> 8) & 0xFF)
+	msg[11] = byte(slip_skid & 0xFF)
+
+	// Yaw rate.
+	msg[12] = byte((yaw_rate >> 8) & 0xFF)
+	msg[13] = byte(yaw_rate & 0xFF)
+
+	// "G".
+	msg[14] = byte((g >> 8) & 0xFF)
+	msg[15] = byte(g & 0xFF)
+
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90)
+}
+
 func attitudeReaderSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
@@ -281,9 +328,9 @@ func attitudeReaderSender() {
 
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
-		s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.gyro_heading, mySituation.pitch, mySituation.roll)
 
-		sendMsg([]byte(s), NETWORK_AHRS)
+		makeFFAHRSSimReport()
+		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()
 	}
