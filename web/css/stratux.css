@@ -1,6 +1,11 @@
 @import url(bootstrap.min.css);
 @import url(onoff.css);
 
+body
+{
+  background-color: #ddd;
+}
+
 #stratux-main
 {
   margin-right: 0;
