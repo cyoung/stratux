@@ -126,7 +126,13 @@ ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
 
 update-rc.d stratux enable
 
-#usb hub power
+
+#i2c
+echo "i2c-bcm2708" >>/etc/modules
+echo "i2c-dev" >>/etc/modules
+echo "dtparam=i2c1=on" >>/boot/config.txt
+
+#usb power
 echo "max_usb_current=1" >>/boot/config.txt
 
 
@@ -144,6 +150,9 @@ dotask branch_image ../$OUTDIR/stage3.$IMGFORMAT $CURIMG
 dotask run_qemu $CURIMG
 dotask mount_apt_cache
 dotask disable_starting_services
+dotask attach_image_to_nbd $CURIMG $NBD_DEV
+dotask sudo mkdir -p /boot
+dotask sudo mount $BOOT_DEV /boot
 dotask setup_stratux
 dotask save_space_using_hardlink
 dotask allow_starting_services
