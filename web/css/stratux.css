@@ -1,0 +1,25 @@
+@import url(bootstrap.min.css);
+@import url(onoff.css);
+
+#stratux-main
+{
+  margin-right: 0;
+  margin-left: 0;
+  background-color: #fff;
+  border-color: #ddd;
+  border-width: 1px;
+  border-radius: 4px 4px 0 0;
+  box-shadow: none;
+  margin: auto;
+  max-width: 400px;
+}
+
+.setting
+{
+  display: block;
+}
+
+.setting-element
+{
+  display: inline-block;
+}
