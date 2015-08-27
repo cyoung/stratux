@@ -1,4 +1,3 @@
-// socket.io specific code
 var socket = io.connect('http://192.168.10.1:9110');
 
 function setConnectedClass (cssClass) {
@@ -18,58 +17,47 @@ socket.on('connect', function () {
 });
 
 socket.on('reconnect', function () {
-  message('System', 'Reconnected to the server');
+  console.log('System', 'Reconnected to the server');
   setConnectedClass('label-success');
 });
 
 socket.on('reconnecting', function () {
-  message('System', 'Attempting to re-connect to the server');
+  console.log('System', 'Attempting to re-connect to the server');
   setConnectedClass('label-danger');
 });
 
 socket.on('error', function (e) {
-  message('System', e ? e : 'A unknown error occurred');
+  console.log('System', e ? e : 'A unknown error occurred');
   setConnectedClass('label-danger');
 });
 
-function message (from, msg) {
-  $('#lines').append($('<p>').append($('<b>').text(from), msg));
-}
+socket.on('status', function (msg) {
+  console.log('Received status update.')
+});
 
-
-// dom manipulation
+socket.on('configuration', function (msg) {
+  console.log('Received configuration update.')
+});
 
 $(document).ready(function() { 
-  $('input[name=UAT_Enabled]').change(function(){
-    $('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
+  $('input[name=UAT_Enabled]').click(function () {
+    console.log('UAT_Enabled clicked');
+    socket.emit('UATconfigurationChange', $('input[name=UAT_Enabled]').val());
   });
-  $('input[name=ES_Enabled]').change(function(){
-    $('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
-  });
-  $('input[name=GPS_Enabled]').change(function(){
-    $('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
-  });
-  $('input[name=AHRS_Enabled]').change(function(){
-    $('#settings').ajaxSubmit({url: 'control.php', type: 'post'})
-  });
-});
-(function worker() {
-  $.ajax({
-    url: 'control.php', 
-    success: function(data) {
-      obj = $.parseJSON(data);
-      $.each(obj, function(k, v) {
-        // Radio values.
-        if ((k == "UAT_Enabled") || (k == "ES_Enabled") || (k == "GPS_Enabled") || (k == "AHRS_Enabled")) {
-          $('[name=' + k + ']').val([v.toString()]);
-        }
-        $('#' + k).text(v);
-      });
 
-    },
-    complete: function() {
-      // Schedule the next request when the current one is complete.
-      setTimeout(worker, 1000);
-    }
+  $('input[name=ES_Enabled]').click(function () {
+    console.log('ES_Enabled clicked');
+    socket.emit('ESconfigurationChange', $('input[name=ES_Enabled]').val());
   });
-})();
+
+  $('input[name=GPS_Enabled]').click(function () {
+    console.log('GPS_Enabled clicked');
+    socket.emit('GPSconfigurationChange', $('input[name=GPS_Enabled]').val());
+  });
+
+  $('input[name=AHRS_Enabled]').click(function () {
+    console.log('AHRS_Enabled clicked');
+    socket.emit('AHRSconfigurationChange', $('input[name=AHRS_Enabled]').val());
+  });
+
+});
