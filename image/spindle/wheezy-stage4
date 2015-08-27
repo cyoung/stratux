@@ -118,6 +118,7 @@ cd /root
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
+cp -r web/* /var/www/
 cd dump978
 make
 cp dump978 /usr/bin/
