@@ -129,7 +129,7 @@ func makeTrafficReport(ti TrafficInfo) {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 
-	msg[12] = byte(((alt & 0x00F) << 4) | 0x8) //FIXME. "Airborne".
+	msg[12] = byte(((alt & 0x00F) << 4) | 0xB) //FIXME. "Airborne".
 
 	msg[13] = 0x11 //FIXME.
 
