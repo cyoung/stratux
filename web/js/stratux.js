@@ -40,8 +40,8 @@ function connect() {
     $('#Connected_Users').text(status.Connected_Users);
     $('#UAT_messages_last_minute').text(status.UAT_messages_last_minute);
     $('#UAT_messages_max').text(status.UAT_messages_max);
-    $('#ES_messages_last_minute').text(status.UAT_messages_last_minute);
-    $('#ES_messages_max').text(status.UAT_messages_max);
+    $('#ES_messages_last_minute').text(status.ES_messages_last_minute);
+    $('#ES_messages_max').text(status.ES_messages_max);
     $('#GPS_satellites_locked').text(status.GPS_satellites_locked);
     $('#RY835AI_connected').text(status.RY835AI_connected);
     $('#Uptime').text(status.Uptime);
