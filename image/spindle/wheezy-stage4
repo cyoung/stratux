@@ -32,6 +32,8 @@ echo "**** STRATUX SETUP *****"
 apt-get install -y screen
 #wifi
 apt-get install -y hostapd isc-dhcp-server
+#troubleshooting
+apt-get install -y tcpdump
 #apache for web management scripts
 apt-get install -y apache2 php5 libapache2-mod-php5
 rm -rf /var/www/html/*
