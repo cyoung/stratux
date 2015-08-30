@@ -1,5 +1,16 @@
 var socket;
 
+function setLEDstatus (ledElement, status) {
+  if(status) {
+    ledElement.removeClass('led-green');
+    ledElement.addClass('led-red');
+  }
+  else {
+    ledElement.removeClass('led-green');
+    ledElement.addClass('led-red');
+  }
+}
+
 function setConnectedClass (cssClass) {
   $('#connectedLabel').removeClass('label-success');
   $('#connectedLabel').removeClass('label-warning');
@@ -43,7 +54,7 @@ function connect() {
     $('#ES_messages_last_minute').text(status.ES_messages_last_minute);
     $('#ES_messages_max').text(status.ES_messages_max);
     $('#GPS_satellites_locked').text(status.GPS_satellites_locked);
-    $('#RY835AI_connected').text(status.RY835AI_connected);
+    setLEDstatus($('#RY835AI_connected'), status.RY835AI_connected);
     $('#Uptime').text(status.Uptime);
   };
 }
