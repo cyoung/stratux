@@ -11,7 +11,7 @@ import (
 
 type SettingMessage struct {
   Setting string `json:"setting"`
-  Value   string `json:"state"`
+  Value   bool `json:"state"`
 }
 
 func statusSender(conn *websocket.Conn) {
@@ -19,8 +19,11 @@ func statusSender(conn *websocket.Conn) {
   for {
     <-timer.C
 
-    resp, _ := json.Marshal(&globalStatus)
-    _, err := conn.Write(resp)
+    statResp, _ := json.Marshal(&globalStatus)
+    conn.Write(statResp)
+
+    settingResp, _ := json.Marshal(&globalSettings)
+    _, err := conn.Write(settingResp)
 
     if err != nil {
       log.Printf("Web client disconnected.\n")
@@ -40,9 +43,20 @@ func handleManagementConnection(conn *websocket.Conn) {
     } else if err != nil {
       log.Printf("handleManagementConnection: %s\n", err.Error())
     } else {
-      // TODO: Update specified setting
+      if msg.Setting == "UAT_Enabled" {
+        globalSettings.UAT_Enabled = msg.Value
+      }
+      if msg.Setting == "ES_Enabled" {
+        globalSettings.ES_Enabled = msg.Value
+      }
+      if msg.Setting == "GPS_Enabled" {
+        globalSettings.GPS_Enabled = msg.Value
+      }
+      if msg.Setting == "AHRS_Enabled" {
+        globalSettings.AHRS_Enabled = msg.Value
+      }
 
-      // TODO: Send new setting to all the other clients
+      saveSettings()
     }
   }
 }
