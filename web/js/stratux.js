@@ -36,7 +36,6 @@ function connect() {
   };
 
   socket.onerror = function(msg)  {
-    console.log('System', e ? e : 'A unknown error occurred');
     setConnectedClass('label-danger');
     setTimeout(connect,1000);
   };
@@ -46,6 +45,7 @@ function connect() {
 
     var status = JSON.parse(msg.data)
 
+    // Update Status
     $('#Version').text(status.Version);
     $('#Devices').text(status.Devices);
     $('#Connected_Users').text(status.Connected_Users);
@@ -56,6 +56,12 @@ function connect() {
     $('#GPS_satellites_locked').text(status.GPS_satellites_locked);
     setLEDstatus($('#RY835AI_connected'), status.RY835AI_connected);
     $('#Uptime').text(status.Uptime);
+
+    // Update Settings
+    $('input[name=UAT_Enabled]').prop('checked', status.UAT_Enabled);
+    $('input[name=ES_Enabled]').prop('checked', status.ES_Enabled);
+    $('input[name=GPS_Enabled]').prop('checked', status.GPS_Enabled);
+    $('input[name=AHRS_Enabled]').prop('checked', status.AHRS_Enabled);
   };
 }
 
@@ -65,28 +71,28 @@ $(document).ready(function() {
   $('input[name=UAT_Enabled]').click(function () {
     console.log('UAT_Enabled clicked');
 
-    msg = {setting: 'UAT_Enabled', state: $('input[name=UAT_Enabled]').checked };
+    msg = {setting: 'UAT_Enabled', state: $('input[name=UAT_Enabled]').prop('checked') };
     socket.send(JSON.stringify(msg));
   });
 
   $('input[name=ES_Enabled]').click(function () {
     console.log('ES_Enabled clicked');
 
-    msg = {setting: 'ES_Enabled', state: $('input[name=ES_Enabled]').checked };
+    msg = {setting: 'ES_Enabled', state: $('input[name=ES_Enabled]').prop('checked') };
     socket.send(JSON.stringify(msg));
   });
 
   $('input[name=GPS_Enabled]').click(function () {
     console.log('GPS_Enabled clicked');
 
-    msg = {setting: 'GPS_Enabled', state: $('input[name=GPS_Enabled]').checked };
+    msg = {setting: 'GPS_Enabled', state: $('input[name=GPS_Enabled]').prop('checked') };
     socket.send(JSON.stringify(msg));
   });
 
   $('input[name=AHRS_Enabled]').click(function () {
     console.log('AHRS_Enabled clicked');
 
-    msg = {setting: 'AHRS_Enabled', state: $('input[name=AHRS_Enabled]').checked };
+    msg = {setting: 'AHRS_Enabled', state: $('input[name=AHRS_Enabled]').prop('checked') };
     socket.send(JSON.stringify(msg));
   });
 
