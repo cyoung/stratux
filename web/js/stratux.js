@@ -2,8 +2,8 @@ var socket;
 
 function setLEDstatus (ledElement, status) {
   if(status) {
-    ledElement.removeClass('led-green');
-    ledElement.addClass('led-red');
+    ledElement.removeClass('led-red');
+    ledElement.addClass('led-green');
   }
   else {
     ledElement.removeClass('led-green');
