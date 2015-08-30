@@ -37,7 +37,6 @@ function connect() {
 
   socket.onerror = function(msg)  {
     setConnectedClass('label-danger');
-    setTimeout(connect,1000);
   };
 
   socket.onmessage = function(msg) {
