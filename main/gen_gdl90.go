@@ -16,7 +16,7 @@ import (
 const (
 	stratuxVersion          = "v0.2"
 	configLocation          = "/etc/stratux.conf"
-	managementAddr          = ":9110"
+	managementAddr          = ":80"
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -430,6 +430,8 @@ func saveSettings() {
 		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
 		return
 	}
+	jsonSettings, _ := json.Marshal(&globalSettings)
+	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
 }
 

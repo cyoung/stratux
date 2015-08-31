@@ -24,7 +24,7 @@ function setConnectedClass (cssClass) {
 }
 
 function connect() {
-  socket = new WebSocket('ws://' + window.location.hostname + ':9110/');
+  socket = new WebSocket('ws://' + window.location.hostname + '/control');
 
   socket.onopen = function(msg) {
     setConnectedClass('label-success');

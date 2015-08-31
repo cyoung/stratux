@@ -62,7 +62,8 @@ func handleManagementConnection(conn *websocket.Conn) {
 }
 
 func managementInterface() {
-	http.HandleFunc("/",
+	http.Handle("/", http.FileServer(http.Dir("/var/www")))
+	http.HandleFunc("/control",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleManagementConnection)}
