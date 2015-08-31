@@ -3,4 +3,4 @@ dependencies:
     - make
 test:
   override:
-    - true
+    - make test
