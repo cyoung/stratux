@@ -12,6 +12,16 @@ OUTDIR=out
 CURIMG=stage4.$IMGFORMAT
 
 
+setup_stratux_bootconfig() {
+	dotask attach_image_to_nbd $CURIMG $NBD_DEV
+	dotask sudo mkdir -p boot
+	dotask sudo mount $BOOT_DEV boot
+	#usb power
+	dotask sudo sh -c 'echo "max_usb_current=1" >>boot/config.txt'
+	#i2c
+	dotask sudo sh -c 'echo "dtparam=i2c1=on" >>boot/config.txt'
+}
+
 setup_stratux() {
 #HERE
 
@@ -22,6 +32,8 @@ echo "**** STRATUX SETUP *****"
 apt-get install -y screen
 #wifi
 apt-get install -y hostapd isc-dhcp-server
+#troubleshooting
+apt-get install -y tcpdump
 #apache for web management scripts
 apt-get install -y apache2 php5 libapache2-mod-php5
 rm -rf /var/www/html/*
@@ -108,6 +120,7 @@ cd /root
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
+cp -r web/* /var/www/
 cd dump978
 make
 cp dump978 /usr/bin/
@@ -126,8 +139,10 @@ ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
 
 update-rc.d stratux enable
 
-#usb hub power
-echo "max_usb_current=1" >>/boot/config.txt
+
+#i2c
+echo "i2c-bcm2708" >>/etc/modules
+echo "i2c-dev" >>/etc/modules
 
 
 EOF
@@ -141,10 +156,19 @@ echo "**** END STRATUX SETUP *****"
 
 cd $WORKDIR
 dotask branch_image ../$OUTDIR/stage3.$IMGFORMAT $CURIMG
+
+#needs to be done before qemu is started.
+
+dotask setup_stratux_bootconfig
+
 dotask run_qemu $CURIMG
 dotask mount_apt_cache
 dotask disable_starting_services
+
+
 dotask setup_stratux
+
+
 dotask save_space_using_hardlink
 dotask allow_starting_services
 dotask update_issue

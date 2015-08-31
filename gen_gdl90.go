@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -425,8 +424,8 @@ func readSettings() {
 }
 
 func saveSettings() {
-	jsonSettings, _ := json.Marshal(&globalSettings)
-	err := ioutil.WriteFile(configLocation, jsonSettings, 0644)
+	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+	defer fd.Close()
 	if err != nil {
 		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
 		return
