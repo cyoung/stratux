@@ -344,7 +344,7 @@ func esListen() {
 			continue
 		}
 		rdr := bufio.NewReader(inConn)
-		for {
+		for globalSettings.ES_Enabled {
 			buf, err := rdr.ReadString('\n')
 			if err != nil { // Must have disconnected?
 				break
