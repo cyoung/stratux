@@ -34,11 +34,6 @@ apt-get install -y screen
 apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
 apt-get install -y tcpdump
-#apache for web management scripts
-apt-get install -y apache2 php5 libapache2-mod-php5
-rm -rf /var/www/html/*
-service apache2 start
-update-rc.d apache2 enable
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
