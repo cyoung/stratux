@@ -3,7 +3,8 @@ GOARCH ?= arm
 GOARM  ?= 7
 
 all:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go build gen_gdl90.go traffic.go ry835ai.go network.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go get -t -d -v ./...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go build main/{gen_gdl90,traffic,ry835ai,network}.go
 
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
