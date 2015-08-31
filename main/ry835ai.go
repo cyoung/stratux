@@ -13,7 +13,7 @@ import (
 	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
-	"./mpu6050"
+	"../mpu6050"
 )
 
 type SituationData struct {

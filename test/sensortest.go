@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./mpu6050"
+	"../mpu6050"
 	"fmt"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
