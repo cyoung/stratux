@@ -14,10 +14,12 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion          = "v0.2"
-	configLocation          = "/etc/stratux.conf"
-	managementAddr          = ":80"
-	maxDatagramSize         = 8192
+	stratuxVersion      = "v0.2"
+	configLocation      = "/etc/stratux.conf"
+	managementAddr      = ":80"
+	maxDatagramSize     = 8192
+	maxUserMsgQueueSize = 2500 // About 1MB per port per connected client.
+
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
 	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS / 8)
@@ -191,7 +193,7 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	sendGDL90(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg), false)
 	return true
 }
 
@@ -212,7 +214,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg[3] = 0x00
 	msg[4] = 0x0A
 
-	sendGDL90(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg), false)
 	return true
 }
 
@@ -263,18 +265,18 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret))
+	sendGDL90(prepareMessage(ret), true)
 }
 
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
-		sendGDL90(makeHeartbeat())
+		sendGDL90(makeHeartbeat(), false)
 		//		sendGDL90(makeTrafficReport())
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
-		sendGDL90(makeInitializationMessage())
+		sendGDL90(makeInitializationMessage(), false)
 		sendTrafficUpdates()
 		updateStatus()
 	}
@@ -393,7 +395,8 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true  //TODO
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
-	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90}, {nil, "", 49002, NETWORK_AHRS_FFSIM}}
+	//FIXME: Need to change format below.
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD, false, nil}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, false, nil}, {nil, "", 49002, NETWORK_AHRS_FFSIM, false, nil}}
 	globalSettings.AHRS_Enabled = false
 }
 

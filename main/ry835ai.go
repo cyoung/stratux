@@ -262,7 +262,7 @@ func tempAndPressureReader() {
 func makeFFAHRSSimReport() {
 	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.gyro_heading, mySituation.pitch, mySituation.roll)
 
-	sendMsg([]byte(s), NETWORK_AHRS_FFSIM)
+	sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
 }
 
 func makeAHRSGDL90Report() {
@@ -303,7 +303,7 @@ func makeAHRSGDL90Report() {
 	msg[14] = byte((g >> 8) & 0xFF)
 	msg[15] = byte(g & 0xFF)
 
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90)
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
 
 func attitudeReaderSender() {
