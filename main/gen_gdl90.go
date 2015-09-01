@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
-	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -17,7 +16,7 @@ import (
 const (
 	stratuxVersion          = "v0.2"
 	configLocation          = "/etc/stratux.conf"
-	managementAddr          = "127.0.0.1:9110"
+	managementAddr          = ":80"
 	maxDatagramSize         = 8192
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -389,55 +388,6 @@ type status struct {
 
 var globalSettings settings
 var globalStatus status
-
-func handleManagementConnection(conn net.Conn) {
-	defer conn.Close()
-	rw := bufio.NewReader(conn)
-	for {
-		s, err := rw.ReadString('\n')
-		if err != nil {
-			break
-		}
-		s = strings.Trim(s, "\r\n")
-		if s == "STATUS" {
-			resp, _ := json.Marshal(&globalStatus)
-			conn.Write(resp)
-		} else if s == "SETTINGS" {
-			resp, _ := json.Marshal(&globalSettings)
-			conn.Write(resp)
-		} else if s == "QUIT" {
-			break
-		} else {
-			// Assume settings.
-			//TODO: Make this so that there is some positive way of doing this versus assuming that everything other than commands above are settings.
-			var newSettings settings
-			err := json.Unmarshal([]byte(s), &newSettings)
-			if err != nil {
-				log.Printf("%s - error: %s\n", s, err.Error())
-			} else {
-				log.Printf("new settings: %s\n", s)
-				globalSettings = newSettings
-				saveSettings()
-			}
-		}
-	}
-}
-
-func managementInterface() {
-	ln, err := net.Listen("tcp", managementAddr)
-	if err != nil { //TODO
-		log.Printf("couldn't open management port: %s\n", err.Error())
-		return
-	}
-	defer ln.Close()
-	for {
-		conn, err := ln.Accept()
-		if err != nil { //TODO
-			continue
-		}
-		go handleManagementConnection(conn)
-	}
-}
 
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true  //TODO

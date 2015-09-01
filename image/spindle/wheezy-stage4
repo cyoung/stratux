@@ -14,12 +14,12 @@ CURIMG=stage4.$IMGFORMAT
 
 setup_stratux_bootconfig() {
 	dotask attach_image_to_nbd $CURIMG $NBD_DEV
-	dotask sudo mkdir -p boot
+	mkdir boot
 	dotask sudo mount $BOOT_DEV boot
 	#usb power
-	dotask sudo sh -c 'echo "max_usb_current=1" >>boot/config.txt'
+	echo "max_usb_current=1" >>boot/config.txt
 	#i2c
-	dotask sudo sh -c 'echo "dtparam=i2c1=on" >>boot/config.txt'
+	echo "dtparam=i2c1=on" >>boot/config.txt
 }
 
 setup_stratux() {
@@ -32,11 +32,8 @@ echo "**** STRATUX SETUP *****"
 apt-get install -y screen
 #wifi
 apt-get install -y hostapd isc-dhcp-server
-#apache for web management scripts
-apt-get install -y apache2 php5 libapache2-mod-php5
-rm -rf /var/www/html/*
-service apache2 start
-update-rc.d apache2 enable
+#troubleshooting
+apt-get install -y tcpdump
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
@@ -118,6 +115,7 @@ cd /root
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
+mkdir -p /var/www
 cp -r web/* /var/www/
 cd dump978
 make
@@ -155,9 +153,6 @@ echo "**** END STRATUX SETUP *****"
 cd $WORKDIR
 dotask branch_image ../$OUTDIR/stage3.$IMGFORMAT $CURIMG
 
-#needs to be done before qemu is started.
-
-dotask setup_stratux_bootconfig
 
 dotask run_qemu $CURIMG
 dotask mount_apt_cache
@@ -172,4 +167,10 @@ dotask allow_starting_services
 dotask update_issue
 dotask fingerprint_debian
 dotask shutdown_qemu
+
+
+dotask setup_stratux_bootconfig
+universal_cleanup
+
+
 dotask finish_image

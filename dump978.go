@@ -3,6 +3,18 @@
 // that can be found in the LICENSE file.
 
 // Package dump978 wraps libdump978, a 978MHz UAT demodulator.
+//
+// Build example
+//
+// dump978.so:
+//   $ gcc -c -O2 -g -Wall -Werror -Ifec -fpic -DBUILD_LIB=1 dump978.c fec.c fec/decode_rs_char.c fec/init_rs_char.c
+//   $ gcc -shared -lm -o ../libdump978.so dump978.o fec.o decode_rs_char.o init_rs_char.o
+//
+// dump978 go wrapper:
+//   $ go build -o dump978.a dump978.go dump978_exports.go
+//
+// uat_read executable:
+//   $ go build uat_read.go
 
 package dump978
 

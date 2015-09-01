@@ -13,7 +13,7 @@ import (
 	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
-	"./mpu6050"
+	"../mpu6050"
 )
 
 type SituationData struct {
@@ -275,9 +275,9 @@ func makeAHRSGDL90Report() {
 	pitch := int16(float64(mySituation.pitch) * float64(10.0))
 	roll := int16(float64(mySituation.roll) * float64(10.0))
 	hdg := uint16(float64(mySituation.gyro_heading) * float64(10.0)) //TODO.
-	slip_skid := int16(float64(0) * float64(10.0)) //TODO.
-	yaw_rate := int16(float64(0) * float64(10.0)) //TODO.
-	g := int16(float64(1.0) * float64(10.0)) //TODO.
+	slip_skid := int16(float64(0) * float64(10.0))                   //TODO.
+	yaw_rate := int16(float64(0) * float64(10.0))                    //TODO.
+	g := int16(float64(1.0) * float64(10.0))                         //TODO.
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
