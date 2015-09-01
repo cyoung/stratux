@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -315,6 +317,17 @@ func updateStatus() {
 
 	// Update Uptime.
 	globalStatus.Uptime = time.Since(timeStarted).String()
+
+	// Update CPUTemp.
+	temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
+	tempStr := strings.Trim(string(temp), "\n")
+	globalStatus.CPUTemp = float32(-99.0)
+	if err == nil {
+		tInt, err := strconv.Atoi(tempStr)
+		if err == nil {
+			globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+		}
+	}
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -386,6 +399,7 @@ type status struct {
 	GPS_connected            bool
 	RY835AI_connected        bool
 	Uptime                   string
+	CPUTemp                  float32
 }
 
 var globalSettings settings
