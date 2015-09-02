@@ -57,6 +57,9 @@ func getDHCPLeases() (map[string]string, error) {
 			hostname := strings.TrimRight(strings.TrimLeft(strings.Join(spaced[3:], " "), "\""), "\";")
 			ret[block_ip] = hostname
 			open_block = false
+		} else if open_block && strings.HasPrefix(spaced[0], "}") { // No hostname.
+			open_block = false
+			ret[block_ip] = ""
 		}
 	}
 	return ret, nil
