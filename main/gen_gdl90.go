@@ -16,7 +16,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion      = "v0.2"
+	stratuxVersion      = "v0.2pre+"
 	configLocation      = "/etc/stratux.conf"
 	managementAddr      = ":80"
 	maxDatagramSize     = 8192
@@ -315,8 +315,8 @@ func updateStatus() {
 		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}
 
-	// Update Uptime.
-	globalStatus.Uptime = time.Since(timeStarted).String()
+	// Update Uptime value
+	globalStatus.Uptime = uint(time.Since(timeStarted)/time.Millisecond)
 
 	// Update CPUTemp.
 	temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
@@ -398,7 +398,7 @@ type status struct {
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
 	RY835AI_connected        bool
-	Uptime                   string
+	Uptime                   uint
 	CPUTemp                  float32
 }
 

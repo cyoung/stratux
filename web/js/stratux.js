@@ -57,11 +57,20 @@ function connect() {
         /* the formatting code could move to the other end of the socket */
         var uptime = status.Uptime;
         if (uptime != undefined) {
-            var time_parts = uptime.match(/([0-9]*)h([0-9]*)m([0-9\.]*)s/);
-            $('#Uptime').text(time_parts[1] + "h" + time_parts[2] + "m" + Math.round(parseFloat(time_parts[3])) + "s");
+            var up_s = parseInt((uptime/1000)%60), 
+                up_m = parseInt((uptime/(1000*60))%60),
+                up_h = parseInt((uptime/(1000*60*60))%24);
+            $('#Uptime').text(((up_h<10)?"0"+up_h:up_h) + "h" + ((up_m<10)?"0"+up_m:up_m) + "m" + ((up_s<10)?"0"+up_s:up_s) + "s");
+        } else {
+            // $('#Uptime').text('unavailable');
         }
-        // not yet implemented - showing the raspberry pi board temperature will be helpful when Stratux is contained in a case
-        /* $('#PI_Temperature').text(status.Pi_Temperature); */
+        var boardtemp = status.CPUTemp;
+        if (boardtemp != undefined) {
+            /* boardtemp is celcius to tenths */
+            $('#CPUTemp').text(boardtemp.toFixed(1) + 'C / ' + ((boardtemp*9/5)+32.0).toFixed(1) + 'F');
+        } else {
+            // $('#CPUTemp').text('unavailable');
+        }
 
         // Update Settings
         $('input[name=UAT_Enabled]').prop('checked', status.UAT_Enabled);
