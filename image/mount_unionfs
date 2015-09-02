@@ -1,0 +1,13 @@
+#!/bin/sh
+
+[ -z "$1" ] && exit 1 || DIR=${1}
+
+ROOT_MOUNT="$(grep -v "^#" /etc/fstab | awk '$2=="/" {print substr($4,1,2)}')"
+
+if [ "$ROOT_MOUNT" != "ro" ]
+then
+	/bin/mount --bind ${DIR}_org ${DIR}
+else
+	/bin/mount -t tmpfs ramdisk ${DIR}_rw
+	/usr/bin/unionfs-fuse -o cow,allow_other,suid,dev,nonempty ${DIR}_rw=RW:${DIR}_org=RO ${DIR}
+fi
