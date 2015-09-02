@@ -1,0 +1,10 @@
+Not queueable:
+	makeOwnshipReport()						[each second]
+	makeOwnshipGeometricAltitudeReport()	[each second]
+	makeHeartbeat()							[each second]
+	makeInitializationMessage()				[each second]
+	makeTrafficReport()						[re-generated each second depending on target status]
+	makeFFAHRSSimReport()					[short useful life]
+	makeAHRSGDL90Report()					[short useful life]
+Queueable:
+	relayMessage()							[all uplink messages]

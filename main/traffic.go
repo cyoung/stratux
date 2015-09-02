@@ -160,7 +160,7 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	//TODO: text identifier (tail).
 
-	sendGDL90(prepareMessage(msg))
+	sendGDL90(prepareMessage(msg), false)
 }
 
 func parseDownlinkReport(s string) {
