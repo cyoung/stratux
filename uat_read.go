@@ -27,8 +27,8 @@ func sigAbort(dev *rtl.Context) {
 
 func printUAT() {
 	for {
-		uat := <-dump978.OutChan
-		log.Printf("dump978: %s\n", string(uat))
+		uat := <-godump978.OutChan
+		log.Printf("godump978: %s\n", string(uat))
 
 		fmt.Printf("%s;\n", uat)
 	}
@@ -194,9 +194,9 @@ func main() {
 	*/
 
 	//---------- Get/Set misc. streaming ----------
-	dump978.Dump978Init()
+	godump978.Dump978Init()
 	go printUAT()
-	go dump978.ProcessDataFromChannel()
+	go godump978.ProcessDataFromChannel()
 
 	if err = dev.ResetBuffer(); err == nil {
 		log.Printf("\tResetBuffer Successful\n")
@@ -212,7 +212,7 @@ func main() {
 		} else {
 			log.Printf("\tReadSync %d\n", nRead)
 			//			buf := buffer[:nRead]
-			//			dump978.InChan <- buf
+			//			godump978.InChan <- buf
 		}
 	}
 }

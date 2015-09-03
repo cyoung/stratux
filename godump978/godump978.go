@@ -2,7 +2,7 @@
 // Distributable under the terms of The New BSD License
 // that can be found in the LICENSE file.
 
-// Package dump978 wraps libdump978, a 978MHz UAT demodulator.
+// Package godump978 wraps libdump978, a 978MHz UAT demodulator.
 //
 // Build example
 //
@@ -16,7 +16,7 @@
 // uat_read executable:
 //   $ go build uat_read.go
 
-package dump978
+package godump978
 
 /*
 #cgo linux LDFLAGS: -L. -ldump978
@@ -26,7 +26,7 @@ package dump978
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "dump978/dump978.h"
+#include "../dump978/dump978.h"
 
 extern void dump978Cb(char updown, uint8_t *data, int len);
 static inline CallBack GetGoCb() {

@@ -2,9 +2,9 @@
 // Distributable under the terms of The New BSD License
 // that can be found in the LICENSE file.
 
-// Package dump978 wraps libdump978, a 978MHz UAT demodulator.
+// Package godump978 wraps libdump978, a 978MHz UAT demodulator.
 
-package dump978
+package godump978
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 
 /*
 #include <stdint.h>
-#include "dump978/dump978.h"
+#include "../dump978/dump978.h"
 */
 import "C"
 
