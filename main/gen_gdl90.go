@@ -316,7 +316,7 @@ func updateStatus() {
 	}
 
 	// Update Uptime value
-	globalStatus.Uptime = uint(time.Since(timeStarted)/time.Millisecond)
+	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000
 
 	// Update CPUTemp.
 	temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
@@ -399,7 +399,7 @@ type status struct {
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
 	RY835AI_connected        bool
-	Uptime                   uint
+	Uptime                   int64
 	CPUTemp                  float32
 }
 
