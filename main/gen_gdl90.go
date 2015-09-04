@@ -385,6 +385,7 @@ type settings struct {
 	GPS_Enabled    bool
 	NetworkOutputs []networkConnection
 	AHRS_Enabled   bool
+	DEBUG          bool
 }
 
 type status struct {
@@ -412,6 +413,7 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD, false, nil}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, false, nil}, {nil, "", 49002, NETWORK_AHRS_FFSIM, false, nil}}
 	globalSettings.AHRS_Enabled = false
+	globalSettings.DEBUG = false
 }
 
 func readSettings() {

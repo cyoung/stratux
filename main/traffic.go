@@ -344,9 +344,11 @@ func parseDownlinkReport(s string) {
 		ti.tail = tail
 	}
 
-	// This is a hack to show the source of the traffic in ForeFlight.
-	if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
-		ti.tail = "u" + ti.tail
+	if globalSettings.DEBUG {
+		// This is a hack to show the source of the traffic in ForeFlight.
+		if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
+			ti.tail = "u" + ti.tail
+		}
 	}
 
 	traffic[ti.icao_addr] = ti
@@ -494,8 +496,10 @@ func esListen() {
 
 			// This is a hack to show the source of the traffic in ForeFlight.
 			ti.tail = strings.Trim(ti.tail, " ")
-			if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
-				ti.tail = "e" + ti.tail
+			if globalSettings.DEBUG {
+				if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
+					ti.tail = "e" + ti.tail
+				}
 			}
 
 			traffic[icaoDec] = ti // Update information on this ICAO code.
