@@ -26,13 +26,14 @@ func statusSender(conn *websocket.Conn) {
 		_, err := conn.Write(settingResp)
 
 		if err != nil {
-			log.Printf("Web client disconnected.\n")
+//			log.Printf("Web client disconnected.\n")
 			break
 		}
 	}
 }
 
 func handleManagementConnection(conn *websocket.Conn) {
+//	log.Printf("Web client connected.\n")
 	go statusSender(conn)
 
 	for {
