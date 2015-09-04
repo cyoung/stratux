@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"io"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -19,6 +20,7 @@ const (
 	stratuxVersion      = "v0.2pre+"
 	configLocation      = "/etc/stratux.conf"
 	managementAddr      = ":80"
+	debugLog			= "/var/www/debug.log"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 2500 // About 1MB per port per connected client.
 
@@ -457,6 +459,16 @@ func saveSettings() {
 func main() {
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
+
+
+	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	defer fp.Close()
+	if err != nil {
+		log.Printf("Failed to open log file '%s': %s\n", debugLog, err.Error())
+	}
+	mfp := io.MultiWriter(fp, os.Stdout)
+	log.SetOutput(mfp)
+
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
