@@ -56,6 +56,9 @@ func handleManagementConnection(conn *websocket.Conn) {
 			if msg.Setting == "AHRS_Enabled" {
 				globalSettings.AHRS_Enabled = msg.Value
 			}
+			if msg.Setting == "DEBUG" {
+				globalSettings.DEBUG = msg.Value
+			}
 
 			saveSettings()
 		}
