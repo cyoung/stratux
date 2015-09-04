@@ -77,6 +77,7 @@ function connect() {
         $('input[name=ES_Enabled]').prop('checked', status.ES_Enabled);
         $('input[name=GPS_Enabled]').prop('checked', status.GPS_Enabled);
         $('input[name=AHRS_Enabled]').prop('checked', status.AHRS_Enabled);
+        $('input[name=DspTrafficSrc]').prop('checked', status.DEBUG);
     };
 }
 
@@ -119,6 +120,16 @@ $(document).ready(function () {
         msg = {
             setting: 'AHRS_Enabled',
             state: $('input[name=AHRS_Enabled]').prop('checked')
+        };
+        socket.send(JSON.stringify(msg));
+    });
+
+    $('input[name=DspTrafficSrc]').click(function () {
+        console.log('DspTrafficSrc clicked');
+
+        msg = {
+            setting: 'DEBUG',
+            state: $('input[name=DspTrafficSrc]').prop('checked')
         };
         socket.send(JSON.stringify(msg));
     });
