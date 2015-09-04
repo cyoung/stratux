@@ -323,6 +323,27 @@ func parseDownlinkReport(s string) {
 
 	ti.last_seen = time.Now()
 
+	// Parse tail number, if available.
+	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
+		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRTSUVWXYZ  ..")
+		tail := ""
+
+		v := (uint16(frame[17]) << 8) | uint16(frame[18])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+		v = (uint16(frame[19]) << 8) | uint16(frame[20])
+		tail += string(base40_alphabet[(v/1600)%40])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+		v = (uint16(frame[21]) << 8) | uint16(frame[22])
+		tail += string(base40_alphabet[(v/1600)%40])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+
+		tail = strings.Trim(tail, " ")
+		ti.tail = tail
+	}
+
 	// This is a hack to show the source of the traffic in ForeFlight.
 	if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
 		ti.tail = "u" + ti.tail
