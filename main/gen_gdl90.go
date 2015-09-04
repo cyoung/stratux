@@ -318,7 +318,7 @@ func updateStatus() {
 	}
 
 	// Update Uptime value
-	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000
+	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000000
 
 	// Update CPUTemp.
 	temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
