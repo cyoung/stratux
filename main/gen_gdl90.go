@@ -20,7 +20,7 @@ const (
 	stratuxVersion      = "v0.2pre+"
 	configLocation      = "/etc/stratux.conf"
 	managementAddr      = ":80"
-	debugLog            = "/var/www/debug.log"
+	debugLog            = "/var/log/stratux.log"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 2500 // About 1MB per port per connected client.
 
