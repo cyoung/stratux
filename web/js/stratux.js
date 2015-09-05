@@ -48,11 +48,26 @@ function connect() {
         $('#Devices').text(status.Devices);
         $('#Connected_Users').text(status.Connected_Users);
         $('#UAT_messages_last_minute').text(status.UAT_messages_last_minute);
+        $('#UAT_products_last_minute').text(JSON.stringify(status.UAT_products_last_minute));
         $('#UAT_messages_max').text(status.UAT_messages_max);
         $('#ES_messages_last_minute').text(status.ES_messages_last_minute);
         $('#ES_messages_max').text(status.ES_messages_max);
         $('#GPS_satellites_locked').text(status.GPS_satellites_locked);
         setLEDstatus($('#RY835AI_connected'), status.RY835AI_connected);
+
+        //process products
+        var products = status.UAT_products_last_minute;
+        for (var product_name in products) {
+            if (products.hasOwnProperty(product_name)) {
+                var row_for_product = $('#product_rows div.row[product="' + product_name + '"]');
+                if (row_for_product.length == 0) {
+                    $('#product_rows').append('<div class="row" product="' + product_name + '"><span class="col-xs-1"></span><label class="col-xs-5">' + product_name + '</label><span class="col-xs-3 text-right product-count"></span><span class="col-xs-3"></span></div>')
+                    row_for_product = $('#product_rows div.row[product="' + product_name + '"]');
+                } 
+                $(row_for_product).find('.product-count').html(products[product_name]);
+                $('#uat_products').show();
+            }
+        }
         
         /* the formatting code could move to the other end of the socket */
         var uptime = status.Uptime;
