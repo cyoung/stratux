@@ -24,6 +24,8 @@ const (
 	debugLog            = "/var/log/stratux.log"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 2500 // About 1MB per port per connected client.
+	uatReplayLog        = "/var/log/stratux-uat.log"
+	esReplayLog         = "/var/log/stratux-es.log"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -51,9 +53,15 @@ const (
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
+// CRC16 table generated to use to work with GDL90 messages.
 var Crc16Table [256]uint16
 
+// Current AHRS, pressure altitude, etc.
 var mySituation SituationData
+
+// File handles for replay logging.
+var uatReplayfp *os.File
+var esReplayfp *os.File
 
 type msg struct {
 	MessageClass uint
@@ -62,7 +70,10 @@ type msg struct {
 	Product      uint32
 }
 
+// Raw inputs.
 var MsgLog []msg
+
+// Time gen_gdl90 was started.
 var timeStarted time.Time
 
 // Construct the CRC table. Adapted from FAA ref above.
@@ -337,7 +348,20 @@ func updateStatus() {
 	}
 }
 
+func replayLog(msg string, msgclass int) {
+	if !globalSettings.ReplayLog { // Logging disabled.
+		return
+	}
+	if msgclass == MSGCLASS_UAT {
+		fmt.Fprintf(uatReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+	} else if msgclass == MSGCLASS_ES {
+		fmt.Fprintf(esReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+	}
+}
+
 func parseInput(buf string) ([]byte, uint16) {
+	replayLog(buf, MSGCLASS_UAT) // Log the raw message.
+
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
 	if len(x) == 0 {
 		return nil, 0
@@ -474,6 +498,7 @@ type settings struct {
 	NetworkOutputs []networkConnection
 	AHRS_Enabled   bool
 	DEBUG          bool
+	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
 }
 
 type status struct {
@@ -503,6 +528,7 @@ func defaultSettings() {
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD, false, nil}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, false, nil}, {nil, "", 49002, NETWORK_AHRS_FFSIM, false, nil}}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
+	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 }
 
 func readSettings() {
@@ -547,6 +573,7 @@ func main() {
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 
+	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	defer fp.Close()
 	if err != nil {
@@ -564,6 +591,29 @@ func main() {
 	globalStatus.Devices = 0 //TODO
 
 	readSettings()
+
+	// Log inputs.
+	if globalSettings.ReplayLog {
+		uatfp, err := os.OpenFile(uatReplayLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Printf("Failed to open log file '%s': %s\n", uatReplayLog, err.Error())
+			globalSettings.ReplayLog = false
+		} else {
+			uatReplayfp = uatfp
+			fmt.Fprintf(uatReplayfp, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
+			defer uatReplayfp.Close()
+		}
+		esfp, err := os.OpenFile(esReplayLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Printf("Failed to open log file '%s': %s\n", esReplayLog, err.Error())
+			globalSettings.ReplayLog = false
+		} else {
+			esReplayfp = esfp
+			fmt.Fprintf(esReplayfp, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
+			defer esReplayfp.Close()
+		}
+	}
+
 
 	initRY835AI()
 

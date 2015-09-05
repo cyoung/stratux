@@ -374,6 +374,7 @@ func esListen() {
 			}
 			buf = strings.Trim(buf, "\r\n")
 			//log.Printf("%s\n", buf)
+			replayLog(buf, MSGCLASS_ES) // Log the raw message.
 			x := strings.Split(buf, ",")
 			if len(x) < 22 {
 				continue
