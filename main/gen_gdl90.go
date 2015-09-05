@@ -390,20 +390,28 @@ func parseInput(buf string) ([]byte, uint16) {
 }
 
 var product_name_map = map[int]string{
-	0: "METAR", 20: "METAR", //"METAR and SPECI";
-	1: "TAG", 21: "TAF", //"TAF and Amended TAF";
-	2: "SIGMET", 22: "SIGMET", //"SIGMET";
-	3: "Conv SIGMET", 23: "Conv SIGMET", //"Convective SIGMET";
-	4: "AIRMET", 24: "AIRMET", //"AIRMET";
-	5: "PIREP", 25: "PIREP", //"PIREP";
-	6: "Severe Wx", 26: "Severe Wx", //"AWW";
-	7: "Winds Aloft", 27: "Winds Aloft", //"Winds and Temperatures Aloft";
+	0:   "METAR", 
+	1:   "TAF", 
+	2:   "SIGMET", 
+	3:   "Conv SIGMET", 
+	4:   "AIRMET", 
+	5:   "PIREP", 
+	6:   "Severe Wx", 
+	7:   "Winds Aloft", 
 	8:   "NOTAM",             //"NOTAM (Including TFRs) and Service Status";
 	9:   "D-ATIS",            //"Aerodrome and Airspace – D-ATIS";
 	10:  "Terminal Wx",       //"Aerodrome and Airspace - TWIP";
 	11:  "AIRMET",            //"Aerodrome and Airspace - AIRMET";
 	12:  "SIGMET",            //"Aerodrome and Airspace - SIGMET/Convective SIGMET";
 	13:  "SUA",               //"Aerodrome and Airspace - SUA Status";
+	20:  "METAR",             //"METAR and SPECI";
+	21:  "TAF",               //"TAF and Amended TAF";
+	22:  "SIGMET",            //"SIGMET";
+	23:  "Conv SIGMET",       //"Convective SIGMET";
+	24:  "AIRMET",            //"AIRMET";
+	25:  "PIREP",             //"PIREP";
+	26:  "Severe Wx",         //"AWW";
+	27:  "Winds Aloft",       //"Winds and Temperatures Aloft";
 	51:  "NEXRAD",            //"National NEXRAD, Type 0 - 4 level";
 	52:  "NEXRAD",            //"National NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
 	53:  "NEXRAD",            //"National NEXRAD, Type 2 - 8 level";
@@ -431,10 +439,13 @@ var product_name_map = map[int]string{
 	352: "Status",            //"Operational Status";
 	353: "Status",            //"Ground Station Status";
 	401: "Imagery",           //"Generic Raster Scan Data Product APDU Payload Format Type 1";
-	402: "Text", 411: "Text", //"Generic Textual Data Product APDU Payload Format Type 1";
-	403: "Vector Imagery",          //"Generic Vector Data Product APDU Payload Format Type 1";
-	404: "Symbols", 412: "Symbols", //"Generic Symbolic Product APDU Payload Format Type 1";
-	405: "Text", 413: "Text", //"Generic Textual Data Product APDU Payload Format Type 2";
+	402: "Text", 
+	403: "Vector Imagery",    //"Generic Vector Data Product APDU Payload Format Type 1";
+	404: "Symbols", 
+	405: "Text", 
+	411: "Text",              //"Generic Textual Data Product APDU Payload Format Type 1";
+	412: "Symbols",           //"Generic Symbolic Product APDU Payload Format Type 1";
+	413: "Text",              //"Generic Textual Data Product APDU Payload Format Type 2";
 }
 
 func getProductNameFromId(product_id int) string {
