@@ -347,6 +347,11 @@ func parseInput(buf string) ([]byte, uint16) {
 		return nil, 0
 	}
 	msgtype := uint16(0)
+	isUplink := false
+
+	if s[0] == '+' {
+		isUplink = true
+	}
 
 	if s[0] == '-' {
 		parseDownlinkReport(s)
@@ -377,13 +382,14 @@ func parseInput(buf string) ([]byte, uint16) {
 	frame := make([]byte, UPLINK_FRAME_DATA_BYTES)
 	hex.Decode(frame, []byte(s))
 
-	pos := 10
-
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = time.Now()
 	thisMsg.Data = frame
-	thisMsg.Product = ((uint32(frame[pos]) & 0x1f) << 6) | (uint32(frame[pos+1]) >> 2)
+	thisMsg.Product = 9999
+	if isUplink && msgtype == MSGTYPE_UPLINK && len(x) > 11 { //FIXME: Need to pull out FIS-B frames from within the uplink packet.
+		thisMsg.Product = ((uint32(frame[10]) & 0x1f) << 6) | (uint32(frame[11]) >> 2)
+	}
 	MsgLog = append(MsgLog, thisMsg)
 
 	return frame, msgtype
