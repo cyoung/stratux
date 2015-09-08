@@ -93,6 +93,7 @@ function connect() {
         $('input[name=GPS_Enabled]').prop('checked', status.GPS_Enabled);
         $('input[name=AHRS_Enabled]').prop('checked', status.AHRS_Enabled);
         $('input[name=DspTrafficSrc]').prop('checked', status.DEBUG);
+        $('input[name=ForeFlightOnly]').prop('checked', status.ForeFlightOnly);
     };
 }
 
@@ -148,5 +149,14 @@ $(document).ready(function () {
         };
         socket.send(JSON.stringify(msg));
     });
+    
+    $('input[name=ForeFlightOnly]').click(function () {
+        console.log('ForeFlightOnly clicked');
 
+        msg = {
+            setting: 'ForeFlightOnly',
+            state: $('input[name=ForeFlightOnly]').prop('checked')
+        };
+        socket.send(JSON.stringify(msg));
+    });
 });

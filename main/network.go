@@ -121,10 +121,10 @@ func refreshConnectedClients() {
 				}
 				newq := make([][]byte, 0)
 				sleepMode := false
-/*				if networkOutput.Port == 4000 { // Start off FF in sleep mode until something is received.
+				if globalSettings.ForeFlightOnly && networkOutput.Port == 4000 { // Start off FF in sleep mode until something is received.
 					sleepMode = true
 				}
-*/
+
 				outSockets[ipAndPort] = networkConnection{Conn: outConn, Ip: ip, Port: networkOutput.Port, Capability: networkOutput.Capability, sleepMode: sleepMode, sleepQueue: newq}
 			}
 			validConnections[ipAndPort] = true

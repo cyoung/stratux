@@ -499,6 +499,7 @@ type settings struct {
 	AHRS_Enabled   bool
 	DEBUG          bool
 	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
+	ForeFlightOnly bool
 }
 
 type status struct {
@@ -529,6 +530,7 @@ func defaultSettings() {
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
+	globalSettings.ForeFlightOnly = false
 }
 
 func readSettings() {
