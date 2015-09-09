@@ -5,7 +5,7 @@ package main
 import (
 	"errors"
 	//	"fmt"
-	"./godump978"
+	"../godump978"
 	"log"
 	"os"
 	"os/signal"
