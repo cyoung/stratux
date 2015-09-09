@@ -28,7 +28,9 @@ TARGET_DIR=$(readlink -m "$1")
 
 . ./common
 
-ensure_installed schroot debootstrap debian-archive-keyring
+sudo ./downgrade_qemu
+
+ensure_installed schroot debootstrap debian-archive-keyring zerofree
 
 ask_yn y "About to set up chroot in '%s'. Ok?" "$TARGET_DIR" || die "You said no. Exiting"
 read_val USERS "${USERS-$SUDO_USER}" "What user should be able to schroot?"

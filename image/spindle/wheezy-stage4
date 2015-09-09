@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 # Part of spindle http://asbradbury.org/projects/spindle
 #
 # See LICENSE file for copyright and license details
@@ -37,32 +37,40 @@ apt-get install -y tcpdump
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
+#read-only stuff
+apt-get install -y unionfs-fuse
 EOF
 
-scp_in_to_qemu /root/spindle/hostapd-edimax /tmp/hostapd.in
-scp_in_to_qemu /root/spindle/root /tmp/root.in
-scp_in_to_qemu /root/spindle/interfaces /tmp/interfaces.in
-scp_in_to_qemu /root/spindle/dhcpd.conf /tmp/dhcpd.conf.in
-scp_in_to_qemu /root/spindle/hostapd.conf /tmp/hostapd.conf.in
-scp_in_to_qemu /root/spindle/isc-dhcp-server /tmp/isc-dhcp-server.in
-scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
+curl -L -o /tmp/hostapd-edimax http://dl.dropbox.com/u/1663660/hostapd/hostapd?dl=1
+scp_in_to_qemu /tmp/hostapd-edimax /tmp/hostapd.in
+scp_in_to_qemu ../../interfaces /tmp/interfaces.in
+scp_in_to_qemu ../../dhcpd.conf /tmp/dhcpd.conf.in
+scp_in_to_qemu ../../hostapd.conf /tmp/hostapd.conf.in
+scp_in_to_qemu ../../isc-dhcp-server /tmp/isc-dhcp-server.in
+scp_in_to_qemu ../../sshd_config /tmp/sshd_config.in
+scp_in_to_qemu ../../mount_unionfs /tmp/mount_unionfs.in
 
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 mv -f /tmp/hostapd.in /usr/sbin/hostapd
 chown root.root /usr/sbin/hostapd
 chmod 755 /usr/sbin/hostapd
 
-mkdir -p /etc/ssh/authorized_keys
-mv -f /tmp/root.in /etc/ssh/authorized_keys/root
-chown root.root /etc/ssh/authorized_keys/root
-chmod 644 /etc/ssh/authorized_keys/root
-
 mv -f /tmp/interfaces.in /etc/network/interfaces
 mv -f /tmp/dhcpd.conf.in /etc/dhcp/dhcpd.conf
 mv -f /tmp/hostapd.conf.in /etc/hostapd/hostapd.conf
 mv -f /tmp/isc-dhcp-server.in /etc/default/isc-dhcp-server
 mv -f /tmp/sshd_config.in /etc/ssh/sshd_config
+mv -f /tmp/mount_unionfs.in /usr/local/bin/mount_unionfs
 rm -f /usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service
+
+chmod 755 /usr/local/bin/mount_unionfs
+
+sed -r 's/(\/dev\/mmcblk[[:alnum:]]+([[:space:]]+[[:graph:]]+){2}[[:space:]]+)([[:graph:]]+)([[:space:]]+.*)/\1ro,\3\4/g' -i /etc/fstab
+
+echo "
+mount_unionfs   /etc            fuse    defaults          0       0
+mount_unionfs   /var            fuse    defaults          0       0
+none            /tmp            tmpfs   defaults          0       0" >> /etc/fstab
 
 echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" >/etc/default/hostapd
 
@@ -107,7 +115,7 @@ EOF
 
 echo " - Stratux"
 
-scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
+scp_in_to_qemu ../../../gen_gdl90 /tmp/gen_gdl90
 
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 cd /root
@@ -140,6 +148,10 @@ update-rc.d stratux enable
 echo "i2c-bcm2708" >>/etc/modules
 echo "i2c-dev" >>/etc/modules
 
+cp -al /etc /etc_org
+cp -a /var /var_org
+mkdir -p /etc_rw
+mkdir -p /var /var_rw
 
 EOF
 

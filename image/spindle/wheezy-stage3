@@ -313,14 +313,6 @@ usermod --pass='*' root # don't need root password any more
 EOF
 }
 
-# We use a swap file rather than a swap partition for greater flexibility
-setup_swap() {
-  onvm_chroot sh -l -e - <<EOF
-apt-get -y install dphys-swapfile
-echo "CONF_SWAPSIZE=100" > /etc/dphys-swapfile
-EOF
-}
-
 setup_console_setup() {
   onvm_chroot sh -l -e - <<\EOF1
 cat <<\EOF2 > /etc/default/console-setup
@@ -384,7 +376,7 @@ EOF
 
 adjust_sysctl() {
   onvm_chroot sh -l -e <<\EOF
-  printf "\n# rpi tweaks\nvm.swappiness=1\n" >> /etc/sysctl.conf
+  printf "\n# rpi tweaks\nvm.swappiness=0\n" >> /etc/sysctl.conf
   printf "vm.min_free_kbytes = 8192\n" >> /etc/sysctl.conf
   # Only print important messages to console
   sed /etc/sysctl.conf -i -e "s/\#kernel\.printk/kernel.printk/"
@@ -432,7 +424,6 @@ dotask make_udev_input_rule
 dotask configure_wifi
 #dotask add_opt_vc_lib_to_ld_so
 dotask setup_sudoers
-dotask setup_swap
 dotask setup_console_setup
 dotask cache_keymap
 dotask tweak_inputrc
