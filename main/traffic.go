@@ -323,9 +323,32 @@ func parseDownlinkReport(s string) {
 
 	ti.last_seen = time.Now()
 
-	// This is a hack to show the source of the traffic in ForeFlight.
-	if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
-		ti.tail = "u" + ti.tail
+	// Parse tail number, if available.
+	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
+		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRTSUVWXYZ  ..")
+		tail := ""
+
+		v := (uint16(frame[17]) << 8) | uint16(frame[18])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+		v = (uint16(frame[19]) << 8) | uint16(frame[20])
+		tail += string(base40_alphabet[(v/1600)%40])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+		v = (uint16(frame[21]) << 8) | uint16(frame[22])
+		tail += string(base40_alphabet[(v/1600)%40])
+		tail += string(base40_alphabet[(v/40)%40])
+		tail += string(base40_alphabet[v%40])
+
+		tail = strings.Trim(tail, " ")
+		ti.tail = tail
+	}
+
+	if globalSettings.DEBUG {
+		// This is a hack to show the source of the traffic in ForeFlight.
+		if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
+			ti.tail = "u" + ti.tail
+		}
 	}
 
 	traffic[ti.icao_addr] = ti
@@ -351,6 +374,7 @@ func esListen() {
 			}
 			buf = strings.Trim(buf, "\r\n")
 			//log.Printf("%s\n", buf)
+			replayLog(buf, MSGCLASS_ES) // Log the raw message.
 			x := strings.Split(buf, ",")
 			if len(x) < 22 {
 				continue
@@ -473,8 +497,10 @@ func esListen() {
 
 			// This is a hack to show the source of the traffic in ForeFlight.
 			ti.tail = strings.Trim(ti.tail, " ")
-			if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
-				ti.tail = "e" + ti.tail
+			if globalSettings.DEBUG {
+				if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
+					ti.tail = "e" + ti.tail
+				}
 			}
 
 			traffic[icaoDec] = ti // Update information on this ICAO code.

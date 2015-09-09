@@ -1,5 +1,9 @@
 @import url(bootstrap.cust.min.css);
 @import url(onoff.css);
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
 body {
     background-color: #ddd;
 }
@@ -20,7 +24,7 @@ body {
 /* this media query matches custom bootstrap build */
 @media screen and (min-width: 640px) {
     #stratux-main .panel {
-        min-height: 280px;
+        min-height: 320px;
     }
 }
 

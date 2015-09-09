@@ -30,7 +30,7 @@ case "$1" in
   start)
 	log_daemon_msg "Starting $DESC" "$NAME"
 	start-stop-daemon --start --oknodo --quiet --exec "$DAEMON_SBIN" \
-		--pidfile "$PIDFILE" -- $DAEMON_OPTS >/dev/null
+		--pidfile "$PIDFILE" --make-pidfile -- $DAEMON_OPTS >/dev/null
 	log_end_msg "$?"
 	;;
   stop)

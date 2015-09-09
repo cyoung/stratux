@@ -26,13 +26,14 @@ func statusSender(conn *websocket.Conn) {
 		_, err := conn.Write(settingResp)
 
 		if err != nil {
-			log.Printf("Web client disconnected.\n")
+//			log.Printf("Web client disconnected.\n")
 			break
 		}
 	}
 }
 
 func handleManagementConnection(conn *websocket.Conn) {
+//	log.Printf("Web client connected.\n")
 	go statusSender(conn)
 
 	for {
@@ -55,6 +56,9 @@ func handleManagementConnection(conn *websocket.Conn) {
 			if msg.Setting == "AHRS_Enabled" {
 				globalSettings.AHRS_Enabled = msg.Value
 			}
+			if msg.Setting == "DEBUG" {
+				globalSettings.DEBUG = msg.Value
+			}
 
 			saveSettings()
 		}
@@ -63,6 +67,7 @@ func handleManagementConnection(conn *websocket.Conn) {
 
 func managementInterface() {
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
+	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/control",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
