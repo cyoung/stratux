@@ -59,6 +59,9 @@ func handleManagementConnection(conn *websocket.Conn) {
 			if msg.Setting == "DEBUG" {
 				globalSettings.DEBUG = msg.Value
 			}
+			if msg.Setting == "ForeFlightOnly" {
+				globalSettings.ForeFlightOnly = msg.Value
+			}
 
 			saveSettings()
 		}
