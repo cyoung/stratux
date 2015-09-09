@@ -20,7 +20,6 @@ func sigAbort(dev *rtl.Context) {
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT)
 	<-ch
-	_ = dev.CancelAsync()
 	dev.Close()
 	os.Exit(0)
 }
