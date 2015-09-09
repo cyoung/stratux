@@ -199,12 +199,12 @@ func sleepMonitor() {
 	// FF sleep mode.
 	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
-	defer conn.Close()
 	if err != nil {
 		log.Printf("err: %s\n", err.Error())
 		log.Printf("error listening on port 50113 (FF comm) - assuming FF is always awake (if connected).\n")
 		return
 	}
+	defer conn.Close()
 	for {
 		buf := make([]byte, 1024)
 		n, addr, err := conn.ReadFrom(buf)
