@@ -589,7 +589,6 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
-	globalStatus.Devices = 0 //TODO
 
 	readSettings()
 
