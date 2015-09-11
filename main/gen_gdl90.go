@@ -585,6 +585,7 @@ func main() {
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
+	sdrInit()
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
