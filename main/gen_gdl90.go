@@ -18,7 +18,7 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion      = "v0.2r1"
+	stratuxVersion      = "v0.3b1"
 	configLocation      = "/etc/stratux.conf"
 	managementAddr      = ":80"
 	debugLog            = "/var/log/stratux.log"
