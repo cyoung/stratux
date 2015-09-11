@@ -624,7 +624,11 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		buf, _ := reader.ReadString('\n')
+		buf, err := reader.ReadString('\n')
+		if err != nil {
+			log.Printf("lost stdin.\n")
+			break
+		}
 		o, msgtype := parseInput(buf)
 		if o != nil && msgtype != 0 {
 			relayMessage(msgtype, o)
