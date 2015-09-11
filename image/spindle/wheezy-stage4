@@ -46,8 +46,10 @@ scp_in_to_qemu /root/spindle/dhcpd.conf /tmp/dhcpd.conf.in
 scp_in_to_qemu /root/spindle/hostapd.conf /tmp/hostapd.conf.in
 scp_in_to_qemu /root/spindle/isc-dhcp-server /tmp/isc-dhcp-server.in
 scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
+scp_in_to_qemu /root/spindle/libdump978.so /tmp/libdump978.so.in
 
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+mv /tmp/libdump978.so.in /usr/lib/libdump978.so
 mv -f /tmp/hostapd.in /usr/sbin/hostapd
 chown root.root /usr/sbin/hostapd
 chmod 755 /usr/sbin/hostapd
