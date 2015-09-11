@@ -352,6 +352,10 @@ func replayLog(msg string, msgclass int) {
 	if !globalSettings.ReplayLog { // Logging disabled.
 		return
 	}
+	msg = strings.Trim(msg, " \r\n")
+	if len(msg) == 0 { // Blank message.
+		return
+	}
 	if msgclass == MSGCLASS_UAT {
 		fmt.Fprintf(uatReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
 	} else if msgclass == MSGCLASS_ES {
