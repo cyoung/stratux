@@ -6,11 +6,6 @@ all:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go get -t -d -v ./...
 	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go build main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go
 
-
-ultimate:
-        GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go get -t -d -v ./...
-        GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) go build main/gen_gdl90.go main/traffic.go main/ultimategps.go main/network.go main/managementinterface.go main/sdr.go
-
 test:
 	sh -c true
 
