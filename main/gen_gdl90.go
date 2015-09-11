@@ -235,15 +235,6 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	return true
 }
 
-func makeInitializationMessage() []byte {
-	msg := make([]byte, 3)
-	// See p.13.
-	msg[0] = 0x02 // Message type "Initialization".
-	msg[1] = 0x00 //TODO
-	msg[2] = 0x00 //TODO
-	return prepareMessage(msg)
-}
-
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
@@ -293,7 +284,6 @@ func heartBeatSender() {
 		//		sendGDL90(makeTrafficReport())
 		makeOwnshipReport()
 		makeOwnshipGeometricAltitudeReport()
-		sendGDL90(makeInitializationMessage(), false)
 		sendTrafficUpdates()
 		updateStatus()
 	}
