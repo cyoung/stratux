@@ -4,11 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 	"strconv"
 	"strings"
+	"time"
 )
-
 
 func main() {
 	if len(os.Args) < 2 {
@@ -41,7 +40,7 @@ func main() {
 			}
 			thisWait := i - curTick
 			time.Sleep(time.Duration(thisWait) * time.Nanosecond) // Just in case the units change.
-			fmt.Printf("%s\n", linesplit[1])
+			fmt.Printf("%s", linesplit[1])
 			curTick = i
 		}
 	}
