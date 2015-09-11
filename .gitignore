@@ -9,3 +9,5 @@ gen_gdl90
 *.img
 
 *.zip
+
+*.log
