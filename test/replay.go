@@ -30,7 +30,7 @@ func uatReplay(f *os.File) {
 		} else { // If it's not "START", then it's a tick count.
 			i, err := strconv.ParseInt(linesplit[0], 10, 64)
 			if err != nil {
-				fmt.Printf("invalid tick: '%s'\n", linesplit[0])
+				fmt.Fprintf(os.Stderr, "invalid tick: '%s'\n", linesplit[0])
 				continue
 			}
 			thisWait := i - curTick
@@ -103,7 +103,7 @@ func esReplay(f *os.File) {
 		} else { // If it's not "START", then it's a tick count.
 			i, err := strconv.ParseInt(linesplit[0], 10, 64)
 			if err != nil {
-				fmt.Printf("invalid tick: '%s'\n", linesplit[0])
+				fmt.Fprintf(os.Stderr, "invalid tick: '%s'\n", linesplit[0])
 				continue
 			}
 			thisWait := i - curTick
@@ -127,7 +127,7 @@ func esReplay(f *os.File) {
 func openFile(fn string) *os.File {
 	f, err := os.Open(fn)
 	if err != nil {
-		fmt.Printf("error opening '%s': %s\n", fn, err.Error())
+		fmt.Fprintf(os.Stderr, "error opening '%s': %s\n", fn, err.Error())
 		os.Exit(1)
 		return nil
 	}
@@ -136,7 +136,7 @@ func openFile(fn string) *os.File {
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Printf("%s <uat replay log> <es replay log>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s <uat replay log> <es replay log>\n", os.Args[0])
 		return
 	}
 	f := openFile(os.Args[1])
