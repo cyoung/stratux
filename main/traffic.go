@@ -418,18 +418,18 @@ func esListen() {
 
 				altFloat, err := strconv.ParseFloat(alt, 32)
 				if err != nil {
-					log.Printf("err parsing alt (%s): %s\n", alt, err.Error())
+//					log.Printf("err parsing alt (%s): %s\n", alt, err.Error())
 					valid_change = false
 				}
 
 				latFloat, err := strconv.ParseFloat(lat, 32)
 				if err != nil {
-					log.Printf("err parsing lat (%s): %s\n", lat, err.Error())
+//					log.Printf("err parsing lat (%s): %s\n", lat, err.Error())
 					valid_change = false
 				}
 				lngFloat, err := strconv.ParseFloat(lng, 32)
 				if err != nil {
-					log.Printf("err parsing lng (%s): %s\n", lng, err.Error())
+//					log.Printf("err parsing lng (%s): %s\n", lng, err.Error())
 					valid_change = false
 				}
 
@@ -453,18 +453,18 @@ func esListen() {
 
 				speedFloat, err := strconv.ParseFloat(speed, 32)
 				if err != nil {
-					log.Printf("err parsing speed (%s): %s\n", speed, err.Error())
+//					log.Printf("err parsing speed (%s): %s\n", speed, err.Error())
 					valid_change = false
 				}
 
 				trackFloat, err := strconv.ParseFloat(track, 32)
 				if err != nil {
-					log.Printf("err parsing track (%s): %s\n", track, err.Error())
+//					log.Printf("err parsing track (%s): %s\n", track, err.Error())
 					valid_change = false
 				}
 				vvelFloat, err := strconv.ParseFloat(vvel, 32)
 				if err != nil {
-					log.Printf("err parsing vvel (%s): %s\n", vvel, err.Error())
+//					log.Printf("err parsing vvel (%s): %s\n", vvel, err.Error())
 					valid_change = false
 				}
 
