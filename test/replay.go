@@ -145,12 +145,6 @@ func main() {
 	go esReplay(f2)
 	for {
 		time.Sleep(1 * time.Second)
-		if uatDone {
-			fmt.Fprintf(os.Stderr, "uat done.\n")
-		}
-		if esDone {
-			fmt.Fprintf(os.Stderr, "es done.\n")
-		}
 		if uatDone && esDone {
 			return
 		}
