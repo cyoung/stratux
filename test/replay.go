@@ -41,7 +41,6 @@ func uatReplay(f *os.File) {
 				time.Sleep(time.Duration(thisWait) * time.Nanosecond) // Just in case the units change.
 			}
 
-			time.Sleep(time.Duration(thisWait) * time.Nanosecond) // Just in case the units change.
 			p := strings.Trim(linesplit[1], " ;\r\n")
 			fmt.Printf("%s;\n", p)
 			curTick = i
