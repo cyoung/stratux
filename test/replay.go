@@ -40,7 +40,8 @@ func main() {
 			}
 			thisWait := i - curTick
 			time.Sleep(time.Duration(thisWait) * time.Nanosecond) // Just in case the units change.
-			fmt.Printf("%s", linesplit[1])
+			p := strings.Trim(linesplit[1], " ;\r\n")
+			fmt.Printf("%s;\n", p)
 			curTick = i
 		}
 	}
