@@ -278,18 +278,24 @@ func relayMessage(msgtype uint16, msg []byte) {
 
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
+	timerMessageStats := time.NewTicker(5 * time.Second)
 	for {
-		<-timer.C
-		sendGDL90(makeHeartbeat(), false)
-		//		sendGDL90(makeTrafficReport())
-		makeOwnshipReport()
-		makeOwnshipGeometricAltitudeReport()
-		sendTrafficUpdates()
-		updateStatus()
+		select {
+		case <-timer.C:
+			sendGDL90(makeHeartbeat(), false)
+			//		sendGDL90(makeTrafficReport())
+			makeOwnshipReport()
+			makeOwnshipGeometricAltitudeReport()
+			sendTrafficUpdates()
+			updateStatus()
+		case <-timerMessageStats.C:
+			// Save a bit of CPU by not pruning the message log every 1 second.
+			updateMessageStats()
+		}
 	}
 }
 
-func updateStatus() {
+func updateMessageStats() {
 	t := make([]msg, 0)
 	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
@@ -319,6 +325,9 @@ func updateStatus() {
 		globalStatus.ES_messages_max = ES_messages_last_minute
 	}
 
+}
+
+func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.satellites
 	}

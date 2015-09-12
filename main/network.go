@@ -152,7 +152,7 @@ func checkMessageQueues() {
 				time.Sleep(5 * time.Second) // Give it time to start listening, some apps send the "woke up" message too quickly.
 				for _, msg := range tmpQueue {
 					tmpConn.Write(msg)
-					time.Sleep(50 * time.Millisecond) // Slow down the sending, 20/sec.
+					time.Sleep(5 * time.Millisecond) // Slow down the sending, 200/sec.
 				}
 			}()
 			netconn.sleepQueue = make([][]byte, 0)
