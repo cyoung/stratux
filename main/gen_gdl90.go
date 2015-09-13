@@ -491,7 +491,8 @@ func getProductNameFromId(product_id int) string {
 		return "Custom/Test"
 	}
 
-	return fmt.Sprintf("Unknown (%d)", product_id)
+	//not classifying unknown messages due to high variability
+	return "Unknown"
 }
 
 type settings struct {
