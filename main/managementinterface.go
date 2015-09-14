@@ -14,16 +14,18 @@ type SettingMessage struct {
 	Value   bool   `json:"state"`
 }
 
+type InfoMessage struct {
+	*status
+	*settings
+}
+
 func statusSender(conn *websocket.Conn) {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
 
-		statResp, _ := json.Marshal(&globalStatus)
-		conn.Write(statResp)
-
-		settingResp, _ := json.Marshal(&globalSettings)
-		_, err := conn.Write(settingResp)
+		update, _ := json.Marshal(InfoMessage{status:&globalStatus, settings:&globalSettings})
+		_, err := conn.Write(update)
 
 		if err != nil {
 //			log.Printf("Web client disconnected.\n")
