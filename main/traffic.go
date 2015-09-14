@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/hex"
-	"log"
 	"math"
 	"net"
 	"strconv"
