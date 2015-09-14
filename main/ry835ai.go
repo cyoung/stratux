@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"bufio"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
 	"github.com/kidoman/embd/sensor/bmp180"
@@ -185,22 +186,16 @@ func processNMEALine(l string) bool {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	tmpBuf := string("")
 	for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
-		buf := make([]byte, 1024)
-		n, err := serialPort.Read(buf)
-		if err != nil {
-			log.Printf("gps serial read error: %s\n", err.Error())
-			globalStatus.GPS_connected = false
-			break
+
+		scanner := bufio.NewScanner(serialPort)
+		for scanner.Scan() {
+			s := scanner.Text()
+			// log.Printf("Output: %s\n", s)
+			processNMEALine(s)
 		}
-		s := string(buf[:n])
-		tmpBuf = tmpBuf + s
-		for strings.Index(tmpBuf, "\n") != -1 {
-			idx := strings.Index(tmpBuf, "\n")
-			thisNMEA := tmpBuf[:idx]
-			tmpBuf = tmpBuf[idx+1:]
-			processNMEALine(thisNMEA)
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 		}
 	}
 	globalStatus.GPS_connected = false
