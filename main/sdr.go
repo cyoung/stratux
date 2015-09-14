@@ -1,15 +1,14 @@
 package main
 
-
 import (
 	"../godump978"
+	rtl "github.com/jpoirier/gortlsdr"
 	"log"
 	"time"
-	rtl "github.com/jpoirier/gortlsdr"
 )
 
 var uatSDR int // Index.
-var esSDR int // Index.
+var esSDR int  // Index.
 
 // Read 978MHz from SDR.
 func sdrReader() {
@@ -100,6 +99,16 @@ func sdrReader() {
 	} else {
 		log.Printf("\tResetBuffer Failed - error: %s\n", err)
 	}
+	//---------- Get/Set Freq Correction ----------
+	myPPM := 0
+	freqCorr := dev.GetFreqCorrection()
+	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
+	err = dev.SetFreqCorrection(myPPM) // 10ppm
+	if err != nil {
+		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", myPPM, err)
+	} else {
+		log.Printf("\tSetFreqCorrection %d Successful\n", myPPM)
+	}
 
 	for uatSDR != -1 {
 		var buffer = make([]uint8, rtl.DefaultBufLength)
@@ -109,7 +118,7 @@ func sdrReader() {
 			uatSDR = -1
 			break
 		} else {
-//			log.Printf("\tReadSync %d\n", nRead)
+			//			log.Printf("\tReadSync %d\n", nRead)
 			buf := buffer[:nRead]
 			godump978.InChan <- buf
 		}
