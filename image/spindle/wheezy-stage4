@@ -143,6 +143,18 @@ echo "i2c-bcm2708" >>/etc/modules
 echo "i2c-dev" >>/etc/modules
 
 
+
+#kalibrate-rl
+cd /root
+git clone https://github.com/steve-m/kalibrate-rtl
+cd kalibrate-rtl
+apt-get install -y autoconf fftw3 fftw3-dev
+
+./bootstrap
+./configure
+make
+make install
+
 EOF
 
 echo "**** END STRATUX SETUP *****"
