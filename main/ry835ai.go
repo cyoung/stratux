@@ -51,7 +51,7 @@ var serialConfig *serial.Config
 var serialPort *serial.Port
 
 func initGPSSerial() bool {
-	serialConfig = &serial.Config{Name: "/dev/ttyACM0", Baud: 9600}
+	serialConfig = &serial.Config{Name: "/dev/ttyAMA0", Baud: 9600}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -185,6 +185,7 @@ func processNMEALine(l string) bool {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
+	tmpBuf := string("")
 	for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
 		buf := make([]byte, 1024)
 		n, err := serialPort.Read(buf)
@@ -194,9 +195,12 @@ func gpsSerialReader() {
 			break
 		}
 		s := string(buf[:n])
-		x := strings.Split(s, "\n")
-		for _, l := range x {
-			processNMEALine(l)
+		tmpBuf = tmpBuf + s
+		for strings.Index(tmpBuf, "\n") != -1 {
+			idx := strings.Index(tmpBuf, "\n")
+			thisNMEA := tmpBuf[:idx]
+			tmpBuf = tmpBuf[idx+1:]
+			processNMEALine(thisNMEA)
 		}
 	}
 	globalStatus.GPS_connected = false

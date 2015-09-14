@@ -20,6 +20,8 @@ setup_stratux_bootconfig() {
 	echo "max_usb_current=1" >>boot/config.txt
 	#i2c
 	echo "dtparam=i2c1=on" >>boot/config.txt
+	#disable serial console
+    sed -i boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 }
 
 setup_stratux() {
@@ -154,6 +156,9 @@ apt-get install -y autoconf fftw3 fftw3-dev
 ./configure
 make
 make install
+
+#disable serial console
+sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 
 EOF
 
