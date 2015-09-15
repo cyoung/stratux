@@ -108,8 +108,6 @@ func sendToAllConnectedClients(msg networkMessage) {
 		if !msg.queueable {
 			if !isSleeping(k) {
 				netconn.Conn.Write(msg.msg) // Write immediately.
-			} else {
-				log.Printf("sleepy %s\n", k)
 			}
 		} else {
 			// Queue the message if the message is "queueable".
