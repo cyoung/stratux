@@ -53,7 +53,14 @@ var serialConfig *serial.Config
 var serialPort *serial.Port
 
 func initGPSSerial() bool {
-	serialConfig = &serial.Config{Name: "/dev/ttyAMA0", Baud: 9600}
+	var device string
+	if _, err := os.Stat("/dev/ttyACM0"); err == nil {
+		device = "/dev/ttyACM0"
+	} else {
+		device = "/dev/ttyAMA0"
+	}
+	log.Printf("Using %s for GPS\n", device)
+	serialConfig = &serial.Config{Name: device, Baud: 9600}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
