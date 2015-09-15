@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -203,7 +202,7 @@ func gpsSerialReader() {
 			processNMEALine(s)
 		}
 		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+			log.Printf("reading standard input: %s\n", err.Error())
 		}
 	}
 	globalStatus.GPS_connected = false
