@@ -54,12 +54,12 @@ Winds Aloft										12 hours												10 minutes
 func append_metars(rawUplinkMessage string, curMetars []string)  []string {
 	ret := curMetars
 
-	buf, err := uatparse.ParseInput(rawUplinkMessage)
+	uatMsg, err := uatparse.New(rawUplinkMessage)
 	if err != nil {
 		return ret
 	}
 //fmt.Printf("*************************\n")
-	metars := uatparse.DecodeUplink(buf)
+	metars, _ := uatMsg.GetTextReports()
 	for _, v := range metars {
 //fmt.Printf("EE: %s\n", v)
 		vSplit := strings.Split(v, " ")
