@@ -2,7 +2,7 @@
 RTL-SDR UAT tools
 
 
-Use Pi 2 and ForeFlight 7.2 (Jul 13, 2015).
+Use Pi 2 and ForeFlight 7.3 (Sep 14, 2015).
 
 
 Supported WiFi adapters:
