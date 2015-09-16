@@ -103,7 +103,7 @@ func sdrReader() {
 	myPPM := 0
 	freqCorr := dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = dev.SetFreqCorrection(myPPM) // 10ppm
+	err = dev.SetFreqCorrection(myPPM)
 	if err != nil {
 		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", myPPM, err)
 	} else {
