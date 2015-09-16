@@ -15,6 +15,7 @@ import (
 	"github.com/tarm/serial"
 
 	"../mpu6050"
+	"os"
 )
 
 type SituationData struct {
