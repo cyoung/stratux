@@ -100,14 +100,13 @@ func sdrReader() {
 		log.Printf("\tResetBuffer Failed - error: %s\n", err)
 	}
 	//---------- Get/Set Freq Correction ----------
-	myPPM := 0
 	freqCorr := dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = dev.SetFreqCorrection(myPPM)
+	err = dev.SetFreqCorrection(globalSettings.PPM)
 	if err != nil {
-		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", myPPM, err)
+		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
 	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", myPPM)
+		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
 	}
 
 	for uatSDR != -1 {

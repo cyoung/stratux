@@ -502,6 +502,7 @@ type settings struct {
 	AHRS_Enabled   bool
 	DEBUG          bool
 	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
+	PPM            uint16
 }
 
 type status struct {
@@ -616,7 +617,6 @@ func main() {
 			defer esReplayfp.Close()
 		}
 	}
-
 
 	initRY835AI()
 
