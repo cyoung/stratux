@@ -23,7 +23,7 @@ const (
 	managementAddr      = ":80"
 	debugLog            = "/var/log/stratux.log"
 	maxDatagramSize     = 8192
-	maxUserMsgQueueSize = 2500 // About 1MB per port per connected client.
+	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 	uatReplayLog        = "/var/log/stratux-uat.log"
 	esReplayLog         = "/var/log/stratux-es.log"
 
