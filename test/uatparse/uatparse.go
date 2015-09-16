@@ -30,20 +30,20 @@ type UATFrame struct {
 	raw_data []byte
 
 	frame_length uint32
-	frame_type uint32
+	Frame_type   uint32
 
-	product_id uint32
+	Product_id uint32
 	// Text data, if applicable.
-	text_data []string
+	Text_data []string
 }
 
 type UATMsg struct {
-	msg []byte
+	msg     []byte
 	decoded bool
 	// Station location for uplink frames, aircraft position for downlink frames.
-	lat float64
-	lon float64
-	frames []*UATFrame
+	Lat    float64
+	Lon    float64
+	Frames []*UATFrame
 }
 
 func dlac_decode(data []byte, data_len uint32) string {
@@ -81,7 +81,13 @@ func dlac_decode(data []byte, data_len uint32) string {
 
 func (f *UATFrame) decodeInfoFrame() {
 
-	if f.frame_type != 0 {
+	f.Product_id = ((uint32(f.raw_data[0]) & 0x1f) << 6) | (uint32(f.raw_data[1]) >> 2)
+
+	if f.Product_id != 413 { // FIXME.
+		return
+	}
+
+	if f.Frame_type != 0 {
 		return // Not FIS-B.
 	}
 	if f.frame_length < 4 {
@@ -89,11 +95,6 @@ func (f *UATFrame) decodeInfoFrame() {
 	}
 
 	t_opt := ((uint32(f.raw_data[1]) & 0x01) << 1) | (uint32(f.raw_data[2]) >> 7)
-	f.product_id = ((uint32(f.raw_data[0]) & 0x1f) << 6) | (uint32(f.raw_data[1]) >> 2)
-
-	if f.product_id != 413 { // FIXME.
-		return
-	}
 
 	if t_opt != 0 { //FIXME.
 		//		fmt.Printf("don't know time format %d\n", t_opt)
@@ -101,9 +102,9 @@ func (f *UATFrame) decodeInfoFrame() {
 		return
 	}
 
-/*	fisb_hours := (uint32(data[2]) & 0x7c) >> 2
-	fisb_minutes := ((uint32(data[2]) & 0x03) << 4) | (uint32(data[3]) >> 4)
-*/
+	/*	fisb_hours := (uint32(data[2]) & 0x7c) >> 2
+		fisb_minutes := ((uint32(data[2]) & 0x03) << 4) | (uint32(data[3]) >> 4)
+	*/
 	fisb_length := f.frame_length - 4
 	fisb_data := f.raw_data[4:]
 
@@ -122,13 +123,13 @@ func (f *UATFrame) decodeInfoFrame() {
 		p = p[pos+1:]
 	}
 
-	f.text_data = ret
+	f.Text_data = ret
 
 	//	logger.Printf("pos=%d,len=%d,t_opt=%d,product_id=%d, time=%d:%d\n", frame_start, frame_len, t_opt, product_id, fisb_hours, fisb_minutes)
 }
 
 func (u *UATMsg) DecodeUplink() error {
-//	position_valid := (uint32(frame[5]) & 0x01) != 0
+	//	position_valid := (uint32(frame[5]) & 0x01) != 0
 	frame := u.msg
 
 	raw_lat := (uint32(frame[0]) << 15) | (uint32(frame[1]) << 7) | (uint32(frame[2]) >> 1)
@@ -144,13 +145,13 @@ func (u *UATMsg) DecodeUplink() error {
 		lon = lon - 360
 	}
 
-	u.lat = lat
-	u.lon = lon
+	u.Lat = lat
+	u.Lon = lon
 
-//	utc_coupled := (uint32(frame[6]) & 0x80) != 0
+	//	utc_coupled := (uint32(frame[6]) & 0x80) != 0
 	app_data_valid := (uint32(frame[6]) & 0x20) != 0
-//	slot_id := uint32(frame[6]) & 0x1f
-//	tisb_site_id := uint32(frame[7]) >> 4
+	//	slot_id := uint32(frame[6]) & 0x1f
+	//	tisb_site_id := uint32(frame[7]) >> 4
 
 	//	logger.Printf("position_valid=%t, %.04f, %.04f, %t, %t, %d, %d\n", position_valid, lat, lon, utc_coupled, app_data_valid, slot_id, tisb_site_id)
 
@@ -174,17 +175,17 @@ func (u *UATMsg) DecodeUplink() error {
 		}
 		pos = pos + 2
 
-		data = data[2:frame_length+2]
+		data = data[2 : frame_length+2]
 
 		thisFrame := new(UATFrame)
 		thisFrame.raw_data = data
 		thisFrame.frame_length = frame_length
-		thisFrame.frame_type = frame_type
+		thisFrame.Frame_type = frame_type
 
 		thisFrame.decodeInfoFrame()
 
 		// Save the decoded frame.
-		u.frames = append(u.frames, thisFrame)
+		u.Frames = append(u.Frames, thisFrame)
 
 		pos = pos + int(frame_length)
 	}
@@ -192,7 +193,6 @@ func (u *UATMsg) DecodeUplink() error {
 	u.decoded = true
 	return nil
 }
-
 
 /*
 	Aggregate all of the text rates across the frames in the message and return as an array.
@@ -207,8 +207,8 @@ func (u *UATMsg) GetTextReports() ([]string, error) {
 		}
 	}
 
-	for _, f := range u.frames {
-		for _, m := range f.text_data {
+	for _, f := range u.Frames {
+		for _, m := range f.Text_data {
 			if len(m) > 0 {
 				ret = append(ret, m)
 			}
@@ -224,14 +224,14 @@ func (u *UATMsg) GetTextReports() ([]string, error) {
 
 func New(buf string) (*UATMsg, error) {
 	ret := new(UATMsg)
-	
+
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
 	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 
 	s := x[0]
 
 	// Only want "long" uplink messages.
-	if (len(s) - 1)%2 != 0 || (len(s)-1)/2 != UPLINK_FRAME_DATA_BYTES {
+	if (len(s)-1)%2 != 0 || (len(s)-1)/2 != UPLINK_FRAME_DATA_BYTES {
 		return ret, errors.New(fmt.Sprintf("New UATMsg: short read (%d).", len(s)))
 	}
 
