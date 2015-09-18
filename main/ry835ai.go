@@ -72,7 +72,7 @@ func initGPSSerial() bool {
 
 func processNMEALine(l string) bool {
 	x := strings.Split(l, ",")
-	if x[0] == "$GNVTG" { // Ground track information.
+	if (x[0] == "$GNVTG") || (x[0] == "$GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
 		if len(x) < 10 {
@@ -105,7 +105,7 @@ func processNMEALine(l string) bool {
 		mySituation.groundSpeed = uint16(groundSpeed)
 		mySituation.lastGroundTrackTime = time.Now()
 
-	} else if x[0] == "$GNGGA" { // GPS fix.
+	} else if (x[0] == "$GNGGA") || (x[0] == "$GPGGA") { // GPS fix.
 		if len(x) < 15 {
 			return false
 		}
@@ -128,6 +128,7 @@ func processNMEALine(l string) bool {
 		if len(x[2]) < 10 {
 			return false
 		}
+		
 		hr, err1 = strconv.Atoi(x[2][0:2])
 		minf, err2 := strconv.ParseFloat(x[2][2:10], 32)
 		if err1 != nil || err2 != nil {
@@ -180,7 +181,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.alt = float32(alt * 3.28084) // Covnert to feet.
+		mySituation.alt = float32(alt * 3.28084) // Convert to feet.
 
 		//TODO: Altitude accuracy.
 		mySituation.alt_accuracy = 0
