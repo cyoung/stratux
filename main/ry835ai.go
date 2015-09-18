@@ -52,6 +52,55 @@ type SituationData struct {
 var serialConfig *serial.Config
 var serialPort *serial.Port
 
+/*
+file:///Users/c/Downloads/u-blox5_Referenzmanual.pdf
+
+Platform settings
+Airborne <2g Recommended for typical airborne environment. No 2D position fixes supported.
+
+
+p.91 - CFG-MSG
+Navigation/Measurement Rate Settings
+Header 0xB5 0x62
+ID 0x06 0x08
+0x0064 (100 ms)
+0x0001
+0x0001 (GPS time)
+
+{0xB5, 0x62, 0x06, 0x08, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01}
+
+
+
+p.109 CFG-NAV5 (0x06 0x24)
+Poll Navigation Engine Settings
+
+*/
+
+func chksumUBX(msg []byte) []byte {
+	ret := make([]byte, 2)
+	for i := 0; i < len(msg); i++ {
+		ret[0] = ret[0] + msg[i]
+		ret[1] = ret[1] + ret[0]
+	}
+	return ret
+}
+
+// p.62
+func makeUBXCFG(class, id byte, msglen uint16, msg []byte) []byte {
+	ret := make([]byte, 6)
+	ret[0] = 0xB5
+	ret[1] = 0x62
+	ret[2] = class
+	ret[3] = id
+	ret[4] = byte(msglen & 0xFF)
+	ret[5] = byte((msglen & 0xFF00) << 8)
+	ret = append(ret, msg...)
+	chk := chksumUBX(ret[2:])
+	ret = append(ret, chk[0])
+	ret = append(ret, chk[1])
+	return ret
+}
+
 func initGPSSerial() bool {
 	var device string
 	if _, err := os.Stat("/dev/ttyACM0"); err == nil {
@@ -60,13 +109,75 @@ func initGPSSerial() bool {
 		device = "/dev/ttyAMA0"
 	}
 	log.Printf("Using %s for GPS\n", device)
-	serialConfig = &serial.Config{Name: device, Baud: 9600}
+	serialConfig = &serial.Config{Name: device, Baud: 115200}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
 		return false
 	}
+
 	serialPort = p
+	// Open port at 9600 baud for config.
+	serialConfig = &serial.Config{Name: device, Baud: 9600}
+	p, err = serial.OpenPort(serialConfig)
+	if err != nil {
+		log.Printf("serial port err: %s\n", err.Error())
+		return false
+	}
+
+	// Set 10Hz update.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x00, 0x01, 0x00, 0x01}))
+
+	// Set navigation settings.
+	nav := make([]byte, 36)
+	nav[0] = 0x05 // Set dyn and fixMode only.
+	nav[1] = 0x00
+	// dyn.
+	nav[2] = 0x07 // "Airborne with >2g Acceleration".
+	nav[3] = 0x02 // 3D only.
+
+	p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
+
+	// Reconfigure serial port.
+	cfg := make([]byte, 20)
+	cfg[0] = 0x01 // portID.
+	cfg[1] = 0x00 // res0.
+	cfg[2] = 0x00 // res1.
+	cfg[3] = 0x00 // res1.
+
+	//	0000 0000 0000 0010 0011 0000 0000 0000 
+	// UART mode. 0 stop bits, no parity, 8 data bits.
+	cfg[4] = 0x00
+	cfg[5] = 0x20
+	cfg[6] = 0x30
+	cfg[7] = 0x00
+
+	// Baud rate.
+	bdrt := uint32(115200)
+	cfg[8] = byte((bdrt & 0xFF000000) << 24)
+	cfg[9] = byte((bdrt & 0xFF0000) << 16)
+	cfg[10] = byte((bdrt & 0xFF00) << 8)
+	cfg[11] = byte(bdrt & 0xFF)
+
+	// inProtoMask. NMEA and UBX.
+	cfg[12] = 0x00
+	cfg[13] = 0x03
+
+	// outProtoMask. NMEA.
+	cfg[14] = 0x00
+	cfg[15] = 0x02
+
+	cfg[16] = 0x00 // flags.
+	cfg[17] = 0x00 // flags.
+
+	cfg[18] = 0x00 //pad.
+	cfg[19] = 0x00 //pad.
+
+
+	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+
+	p.Close()
+
 	return true
 }
 
