@@ -18,7 +18,6 @@ import (
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
 const (
-	stratuxVersion      = "v0.3b2"
 	configLocation      = "/etc/stratux.conf"
 	managementAddr      = ":80"
 	debugLog            = "/var/log/stratux.log"
@@ -54,6 +53,7 @@ const (
 )
 
 var stratuxBuild string
+var stratuxVersion string
 
 // CRC16 table generated to use to work with GDL90 messages.
 var Crc16Table [256]uint16
