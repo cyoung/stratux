@@ -504,7 +504,7 @@ type settings struct {
 	AHRS_Enabled   bool
 	DEBUG          bool
 	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
-	PPM            uint16
+	PPM            int
 }
 
 type status struct {
