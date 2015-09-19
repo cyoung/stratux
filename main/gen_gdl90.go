@@ -53,6 +53,8 @@ const (
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
+var stratuxBuild string
+
 // CRC16 table generated to use to work with GDL90 messages.
 var Crc16Table [256]uint16
 
@@ -586,6 +588,8 @@ func main() {
 	mfp := io.MultiWriter(fp, os.Stdout)
 	log.SetOutput(mfp)
 
+	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
+
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
@@ -619,8 +623,6 @@ func main() {
 	}
 
 	initRY835AI()
-
-	//TODO: network stuff
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
