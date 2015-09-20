@@ -161,6 +161,10 @@ make install
 #disable serial console
 sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 
+#Set the keyboard layout to US.
+sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+
+
 EOF
 
 echo "**** END STRATUX SETUP *****"
