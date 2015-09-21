@@ -182,6 +182,7 @@ func initGPSSerial() bool {
 }
 
 func processNMEALine(l string) bool {
+	replayLog(l, MSGCLASS_GPS)
 	x := strings.Split(l, ",")
 	if (x[0] == "$GNVTG") || (x[0] == "$GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
@@ -300,6 +301,9 @@ func processNMEALine(l string) bool {
 		// Timestamp.
 		mySituation.lastFixLocalTime = time.Now()
 
+	} else if (x[0] == "$GNRMC") || (x[0] == "$GPRMC") {
+		//$GNRMC,141228.00,A,x,N,y,W,0.289,,160915,,,A*7C
+		//TODO.
 	}
 	return true
 }

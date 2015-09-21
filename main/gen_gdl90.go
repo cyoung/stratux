@@ -25,6 +25,7 @@ const (
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 	uatReplayLog        = "/var/log/stratux-uat.log"
 	esReplayLog         = "/var/log/stratux-es.log"
+	gpsReplayLog        = "/var/log/stratux-gps.log"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -47,6 +48,7 @@ const (
 
 	MSGCLASS_UAT = 0
 	MSGCLASS_ES  = 1
+	MSGCLASS_GPS = 3
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -64,6 +66,7 @@ var mySituation SituationData
 // File handles for replay logging.
 var uatReplayfp *os.File
 var esReplayfp *os.File
+var gpsReplayfp *os.File
 
 type msg struct {
 	MessageClass uint
@@ -361,6 +364,8 @@ func replayLog(msg string, msgclass int) {
 		fmt.Fprintf(uatReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
 	} else if msgclass == MSGCLASS_ES {
 		fmt.Fprintf(esReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+	} else if msgclass == MSGCLASS_GPS {
+		fmt.Fprintf(gpsReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
 	}
 }
 
@@ -575,6 +580,16 @@ func saveSettings() {
 	log.Printf("wrote settings.\n")
 }
 
+func openReplay(fn string) (*os.File, error) {
+	ret, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Printf("Failed to open log file '%s': %s\n", fn, err.Error())
+	} else {
+		fmt.Fprintf(ret, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006")) // Start time marker.
+	}
+	return ret, err
+}
+
 func main() {
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
@@ -602,24 +617,28 @@ func main() {
 
 	// Log inputs.
 	if globalSettings.ReplayLog {
-		uatfp, err := os.OpenFile(uatReplayLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Printf("Failed to open log file '%s': %s\n", uatReplayLog, err.Error())
+		// UAT replay log.
+		if uatfp, err := openReplay(uatReplayLog); err != nil {
 			globalSettings.ReplayLog = false
 		} else {
 			uatReplayfp = uatfp
-			fmt.Fprintf(uatReplayfp, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
 			defer uatReplayfp.Close()
 		}
-		esfp, err := os.OpenFile(esReplayLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Printf("Failed to open log file '%s': %s\n", esReplayLog, err.Error())
+		// 1090ES replay log.
+		if esfp, err := openReplay(esReplayLog); err != nil {
 			globalSettings.ReplayLog = false
 		} else {
 			esReplayfp = esfp
-			fmt.Fprintf(esReplayfp, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006"))
 			defer esReplayfp.Close()
 		}
+		// GPS replay log.
+		if gpsfp, err := openReplay(gpsReplayLog); err != nil {
+			globalSettings.ReplayLog = false
+		} else {
+			gpsReplayfp = gpsfp
+			defer gpsReplayfp.Close()
+		}
+
 	}
 
 	initRY835AI()
