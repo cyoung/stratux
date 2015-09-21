@@ -33,7 +33,8 @@ static void make_atan2_table(void);
 #ifndef BUILD_LIB
 static void read_from_stdin(void);
 #endif
-static int process_buffer(uint16_t *phi, int len, uint64_t offset);
+static int process_buffer(uint16_t *phi, uint16_t *raw, int len,
+                          uint64_t offset);
 static int demod_adsb_frame(uint16_t *phi, uint8_t *to, int *rs_errors);
 static int demod_uplink_frame(uint16_t *phi, uint8_t *to, int *rs_errors);
 static void demod_frame(uint16_t *phi, uint8_t *frame, int bytes,
@@ -77,6 +78,8 @@ void Dump978Init(CallBack cb) {
 }
 #endif
 
+static int signal_strength = 0;
+
 static void dump_raw_message(char updown, uint8_t *data, int len,
                              int rs_errors) {
 #ifndef BUILD_LIB
@@ -89,6 +92,7 @@ static void dump_raw_message(char updown, uint8_t *data, int len,
 
   if (rs_errors)
     fprintf(stdout, ";rs=%d", rs_errors);
+  fprintf(stdout, ";ss=%d", signal_strength);
   fprintf(stdout, ";\n");
 #else
   userCB(updown, data, len);
@@ -109,6 +113,8 @@ static void handle_uplink_frame(uint64_t timestamp, uint8_t *frame, int rs) {
 
 uint16_t iqphase[65536]; // contains value [0..65536) -> [0, 2*pi)
 
+uint16_t iqamplitude[65536]; // contains value [0..65536) -> [0, 1000*sqrt(2))
+
 void make_atan2_table(void) {
   unsigned i, q;
   union {
@@ -124,25 +130,40 @@ void make_atan2_table(void) {
                    M_PI; // atan2 returns [-pi..pi], normalize to [0..2*pi]
       double scaled_ang = round(32768 * ang / M_PI);
 
+      double amp = sqrt(d_i * d_i + d_q * d_q);
+      uint16_t scaled_amp = amp * 1000.0 / 127.5 + .5;
+
       u.iq[0] = i;
       u.iq[1] = q;
       iqphase[u.iq16] =
           (scaled_ang < 0 ? 0 : scaled_ang > 65535 ? 65535
                                                    : (uint16_t)scaled_ang);
+      iqamplitude[u.iq16] = scaled_amp;
     }
   }
 }
 
-static void convert_to_phi(uint16_t *buffer, int n) {
+static void convert_to_phi(uint16_t *dest, uint16_t *src, int n) {
   int i;
 
   for (i = 0; i < n; ++i)
-    buffer[i] = iqphase[buffer[i]];
+    dest[i] = iqphase[src[i]];
+}
+
+static void calc_power(uint16_t *samples, int len) {
+  long avg = 0;
+  int n = len;
+  while (n--) {
+    avg += iqamplitude[*samples++];
+  }
+  signal_strength = (avg + len / 2) / len;
 }
 
 #ifndef BUILD_LIB
 void read_from_stdin(void) {
   char buffer[65536 * 2];
+  uint16_t phi[65536];
+
   int n;
   int used = 0;
   uint64_t offset = 0;
@@ -150,14 +171,16 @@ void read_from_stdin(void) {
   while ((n = read(0, buffer + used, sizeof(buffer) - used)) > 0) {
     int processed;
 
-    convert_to_phi((uint16_t *)(buffer + (used & ~1)), ((used & 1) + n) / 2);
+    convert_to_phi(phi + used / 2, (uint16_t *)(buffer + (used & ~1)),
+                   ((used & 1) + n) / 2);
 
     used += n;
-    processed = process_buffer((uint16_t *)buffer, used / 2, offset);
+    processed = process_buffer(phi, (uint16_t *)buffer, used / 2, offset);
     used -= processed * 2;
     offset += processed;
     if (used > 0) {
       memmove(buffer, buffer + processed * 2, used);
+      memmove(phi, phi + processed, used);
     }
   }
 }
@@ -176,10 +199,13 @@ int process_data(char *data, int dlen) {
     n = (sizeof(buffer) - used) >= dlen ? dlen : (sizeof(buffer) - used);
     memcpy(buffer + used, data + doffset, n);
 
-    convert_to_phi((uint16_t *)(buffer + (used & ~1)), ((used & 1) + n) / 2);
+    // convert in place for lib
+    convert_to_phi((uint16_t *)(buffer + (used & ~1)),
+                   (uint16_t *)(buffer + (used & ~1)), ((used & 1) + n) / 2);
 
     used += n;
-    processed = process_buffer((uint16_t *)buffer, used / 2, offset);
+    processed = process_buffer((uint16_t *)buffer, (uint16_t *)buffer, used / 2,
+                               offset);
     used -= processed * 2;
     offset += processed;
     if (used > 0) {
@@ -307,7 +333,7 @@ int check_sync_word(uint16_t *phi, uint64_t pattern, int16_t *center) {
 
 #define SYNC_MASK ((((uint64_t)1) << SYNC_BITS) - 1)
 
-int process_buffer(uint16_t *phi, int len, uint64_t offset) {
+int process_buffer(uint16_t *phi, uint16_t *raw, int len, uint64_t offset) {
   uint64_t sync0 = 0, sync1 = 0;
   int lenbits;
   int bit;
@@ -366,10 +392,12 @@ int process_buffer(uint16_t *phi, int len, uint64_t offset) {
       skip_0 = demod_adsb_frame(phi + index, demod_buf_a, &rs_0);
       skip_1 = demod_adsb_frame(phi + index + 1, demod_buf_b, &rs_1);
       if (skip_0 && rs_0 <= rs_1) {
+        calc_power(raw + index, skip_0 * 2);
         handle_adsb_frame(offset + index, demod_buf_a, rs_0);
         bit = startbit + skip_0;
         continue;
       } else if (skip_1 && rs_1 <= rs_0) {
+        calc_power(raw + index + 1, skip_1 * 2);
         handle_adsb_frame(offset + index + 1, demod_buf_b, rs_1);
         bit = startbit + skip_1;
         continue;
@@ -391,10 +419,12 @@ int process_buffer(uint16_t *phi, int len, uint64_t offset) {
       skip_0 = demod_uplink_frame(phi + index, demod_buf_a, &rs_0);
       skip_1 = demod_uplink_frame(phi + index + 1, demod_buf_b, &rs_1);
       if (skip_0 && rs_0 <= rs_1) {
+        calc_power(raw + index, skip_0 * 2);
         handle_uplink_frame(offset + index, demod_buf_a, rs_0);
         bit = startbit + skip_0;
         continue;
       } else if (skip_1 && rs_1 <= rs_0) {
+        calc_power(raw + index, skip_1 * 2);
         handle_uplink_frame(offset + index + 1, demod_buf_b, rs_1);
         bit = startbit + skip_1;
         continue;
