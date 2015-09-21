@@ -2,7 +2,6 @@ package main
 
 import (
 	"golang.org/x/net/icmp"
-	"golang.org/x/net/internal/iana"
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
 	"log"
@@ -262,7 +261,7 @@ func sleepMonitor() {
 			log.Printf("%s\n", err.Error())
 			continue
 		}
-		msg, err := icmp.ParseMessage(iana.ProtocolICMP, buf[:n])
+		msg, err := icmp.ParseMessage(1, buf[:n])
 		if err != nil {
 			continue
 		}
@@ -280,7 +279,7 @@ func sleepMonitor() {
 			continue
 		}
 		// Packet parsing.
-		mb, err := msg.Body.Marshal(iana.ProtocolICMP)
+		mb, err := msg.Body.Marshal(1)
 		if err != nil {
 			continue
 		}
