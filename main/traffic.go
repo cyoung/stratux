@@ -513,6 +513,7 @@ func esListen() {
 
 func initTraffic() {
 	traffic = make(map[uint32]TrafficInfo)
+	seenTraffic = make(map[uint32]bool)
 	trafficMutex = &sync.Mutex{}
 	go esListen()
 }
