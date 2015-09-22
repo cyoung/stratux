@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/dustin/go-humanize"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -391,6 +392,19 @@ func parseInput(buf string) ([]byte, uint16) {
 		parseDownlinkReport(s)
 	}
 
+	if isUplink && len(x) >= 3 {
+		// See if we can parse out the signal strength.
+		ss := x[2]
+		if strings.HasPrefix(ss, "ss=") {
+			ssStr := ss[3:]
+			if ssInt, err := strconv.Atoi(ssStr); err == nil {
+				if ssInt > maxSignalStrength {
+					maxSignalStrength = ssInt
+				}
+			}
+		}
+	}
+
 	s = s[1:]
 	msglen := len(s) / 2
 
@@ -536,7 +550,7 @@ func defaultSettings() {
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
 	//FIXME: Need to change format below.
-	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD, nil, time.Time{}, time.Time{}}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}}}
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD, nil, time.Time{}, time.Time{}, 0}, {nil, "", 43211, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}, 0}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}, 0}}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
@@ -588,6 +602,19 @@ func openReplay(fn string) (*os.File, error) {
 		fmt.Fprintf(ret, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006")) // Start time marker.
 	}
 	return ret, err
+}
+
+func printStats() {
+	statTimer := time.NewTicker(30 * time.Second)
+	for {
+		<-statTimer.C
+		var memstats runtime.MemStats
+		runtime.ReadMemStats(&memstats)
+		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
+		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
+		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength) / 10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
+		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.lastFixLocalTime))
+	}
 }
 
 func main() {
@@ -650,6 +677,9 @@ func main() {
 
 	// Initialize the (out) network handler.
 	initNetwork()
+
+	// Start printing stats periodically to the logfiles.
+	go printStats()
 
 	reader := bufio.NewReader(os.Stdin)
 

@@ -10,6 +10,8 @@ import (
 var uatSDR int // Index.
 var esSDR int  // Index.
 
+var maxSignalStrength int
+
 // Read 978MHz from SDR.
 func sdrReader() {
 	var err error

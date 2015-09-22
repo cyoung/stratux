@@ -41,6 +41,8 @@ var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
 var netMutex *sync.Mutex
 
+var totalNetworkMessagesSent uint32
+
 var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
 
 const (
@@ -108,6 +110,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 		if !msg.queueable {
 			if !isSleeping(k) {
 				netconn.Conn.Write(msg.msg) // Write immediately.
+				totalNetworkMessagesSent++
 			}
 		} else {
 			if !isSleeping(k) {
@@ -118,7 +121,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 				log.Printf("%s:%d - message queue overflow.\n", netconn.Ip, netconn.Port)
 				netconn.numOverflows++
 				s := 2 * netconn.numOverflows // Double the amount we chop off on each overflow.
-				if s >= len(netconn.messageQueue) {
+				if int(s) >= len(netconn.messageQueue) {
 					netconn.messageQueue = make([][]byte, 0)
 				} else {
 					netconn.messageQueue = netconn.messageQueue[s:]
@@ -193,6 +196,7 @@ func messageQueueSender() {
 				if len(netconn.messageQueue) > 0 && !isSleeping(k) && !isThrottled(k) {
 					tmpConn := netconn
 					tmpConn.Conn.Write(tmpConn.messageQueue[0])
+					totalNetworkMessagesSent++
 					tmpConn.messageQueue = tmpConn.messageQueue[1:]
 					outSockets[k] = tmpConn
 				}
@@ -251,6 +255,7 @@ func icmpEchoSender(c *icmp.PacketConn) {
 				log.Printf("couldn't send ICMP Echo: %s\n", err.Error())
 				continue
 			}
+			totalNetworkMessagesSent++
 		}
 	}
 }
