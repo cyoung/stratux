@@ -209,7 +209,7 @@ int process_data(char *data, int dlen) {
     offset += processed;
     if (used > 0) {
       memmove(buffer, buffer + processed * 2, used);
-	  memmove(phi, phi + processed, used)
+      memmove(phi, phi + processed, used)
     }
 
     doffset += n;
