@@ -22,7 +22,7 @@ import "C"
 var OutChan = make(chan string, 100)
 
 //export dump978Cb
-func dump978Cb(updown C.char, data *C.uint8_t, length C.int) {
+func dump978Cb(updown C.char, data *C.uint8_t, length C.int, rs_errors C.int, signal_strength C.int) {
 	// c buffer to go slice without copying
 	var buf []byte
 

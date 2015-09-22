@@ -95,7 +95,7 @@ static void dump_raw_message(char updown, uint8_t *data, int len,
   fprintf(stdout, ";ss=%d", signal_strength);
   fprintf(stdout, ";\n");
 #else
-  userCB(updown, data, len);
+  userCB(updown, data, len, rs_errors, signal_strength);
 #endif
 }
 
@@ -188,6 +188,7 @@ void read_from_stdin(void) {
 // #define DEFAULT_SAMPLE_RATE       2048000
 // #define DEFAULT_BUF_LENGTH      (262144) 16*16384
 static char buffer[65536 * 2]; // 131072, max received should be 113120
+static uint16_t phi[65536];
 int process_data(char *data, int dlen) {
   int n;
   int processed;
@@ -199,17 +200,16 @@ int process_data(char *data, int dlen) {
     n = (sizeof(buffer) - used) >= dlen ? dlen : (sizeof(buffer) - used);
     memcpy(buffer + used, data + doffset, n);
 
-    // convert in place for lib
-    convert_to_phi((uint16_t *)(buffer + (used & ~1)),
-                   (uint16_t *)(buffer + (used & ~1)), ((used & 1) + n) / 2);
+    convert_to_phi(phi + used / 2, (uint16_t *)(buffer + (used & ~1)),
+                   ((used & 1) + n) / 2);
 
     used += n;
-    processed = process_buffer((uint16_t *)buffer, (uint16_t *)buffer, used / 2,
-                               offset);
+    processed = process_buffer(phi, (uint16_t *)buffer, used / 2, offset);
     used -= processed * 2;
     offset += processed;
     if (used > 0) {
       memmove(buffer, buffer + processed * 2, used);
+	  memmove(phi, phi + processed, used)
     }
 
     doffset += n;
