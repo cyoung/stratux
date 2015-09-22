@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+	"strconv"
 )
 
 /*
@@ -36,6 +37,8 @@ func dump978Cb(updown C.char, data *C.uint8_t, length C.int, rs_errors C.int, si
 	for i := 0; i < int(length); i++ {
 		outData += fmt.Sprintf("%02x", buf[i])
 	}
+
+	outData += ";rs=" + strconv.Itoa(int(rs_errors)) + ";ss=" + strconv.Itoa(int(signal_strength)) + ";"
 
 	OutChan <- outData
 }
