@@ -20,6 +20,8 @@ setup_stratux_bootconfig() {
 	echo "max_usb_current=1" >>boot/config.txt
 	#i2c
 	echo "dtparam=i2c1=on" >>boot/config.txt
+	echo "dtparam=i2c1_baudrate=400000" >>boot/config.txt
+	echo "dtparam=i2c_arm_baudrate=400000" >>boot/config.txt
 	#disable serial console
     sed -i boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 }
@@ -49,6 +51,8 @@ scp_in_to_qemu /root/spindle/hostapd.conf /tmp/hostapd.conf.in
 scp_in_to_qemu /root/spindle/isc-dhcp-server /tmp/isc-dhcp-server.in
 scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
 scp_in_to_qemu /root/spindle/libdump978.so /tmp/libdump978.so.in
+scp_in_to_qemu /root/spindle/go.tgz /mnt/root/go.tgz
+
 
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 mv /tmp/libdump978.so.in /usr/lib/libdump978.so
@@ -77,6 +81,20 @@ echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 
 echo "# prevent power down of wireless when idle" >>/etc/modprobe.d/8192cu.conf
 echo "options 8192cu rtw_power_mgnt=0 rtw_enusbss=0" >>/etc/modprobe.d/8192cu.conf
+
+#Set up Go1.5.1.
+echo export PATH=/root/go/bin:\$\{PATH\} >>/root/.bashrc
+echo export GOROOT=/root/go >>/root/.bashrc
+echo export GOPATH=/root/go_path >>/root/.bashrc
+
+
+cd /root
+tar -zxvf go.tgz
+rm -f go.tgz
+
+#ifndef DEBUG
+#rm -rf go
+#endif
 
 EOF
 
@@ -116,6 +134,8 @@ scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 cd /root
 
+apt-get install -y mercurial
+
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
@@ -139,7 +159,15 @@ ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
 
 update-rc.d stratux enable
 
+mkdir -p /root/go_path
+#FIXME
+#export PATH=/root/go/bin:${PATH}
+#export GOROOT=/root/go
+#export GOPATH=/root/go_path
+#make
+EOF
 
+ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 #i2c
 echo "i2c-bcm2708" >>/etc/modules
 echo "i2c-dev" >>/etc/modules
@@ -163,6 +191,9 @@ sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+
+
+
 
 
 EOF
