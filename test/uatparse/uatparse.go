@@ -27,7 +27,10 @@ const (
 )
 
 type UATFrame struct {
-	raw_data []byte
+	Raw_data     []byte
+	FISB_data    []byte
+	FISB_hours   uint32
+	FISB_minutes uint32
 
 	frame_length uint32
 	Frame_type   uint32
@@ -81,11 +84,7 @@ func dlac_decode(data []byte, data_len uint32) string {
 
 func (f *UATFrame) decodeInfoFrame() {
 
-	f.Product_id = ((uint32(f.raw_data[0]) & 0x1f) << 6) | (uint32(f.raw_data[1]) >> 2)
-
-	if f.Product_id != 413 { // FIXME.
-		return
-	}
+	f.Product_id = ((uint32(f.Raw_data[0]) & 0x1f) << 6) | (uint32(f.Raw_data[1]) >> 2)
 
 	if f.Frame_type != 0 {
 		return // Not FIS-B.
@@ -94,7 +93,7 @@ func (f *UATFrame) decodeInfoFrame() {
 		return // Too short for FIS-B.
 	}
 
-	t_opt := ((uint32(f.raw_data[1]) & 0x01) << 1) | (uint32(f.raw_data[2]) >> 7)
+	t_opt := ((uint32(f.Raw_data[1]) & 0x01) << 1) | (uint32(f.Raw_data[2]) >> 7)
 
 	if t_opt != 0 { //FIXME.
 		//		fmt.Printf("don't know time format %d\n", t_opt)
@@ -102,11 +101,16 @@ func (f *UATFrame) decodeInfoFrame() {
 		return
 	}
 
-	/*	fisb_hours := (uint32(data[2]) & 0x7c) >> 2
-		fisb_minutes := ((uint32(data[2]) & 0x03) << 4) | (uint32(data[3]) >> 4)
-	*/
+	f.FISB_hours = (uint32(f.Raw_data[2]) & 0x7c) >> 2
+	f.FISB_minutes = ((uint32(f.Raw_data[2]) & 0x03) << 4) | (uint32(f.Raw_data[3]) >> 4)
+
 	fisb_length := f.frame_length - 4
-	fisb_data := f.raw_data[4:]
+	fisb_data := f.Raw_data[4:]
+	f.FISB_data = fisb_data
+
+	if f.Product_id != 413 { // Doesn't have text data that we'd be interested in, so we're done.
+		return
+	}
 
 	p := dlac_decode(fisb_data, fisb_length)
 	ret := make([]string, 0)
@@ -178,7 +182,7 @@ func (u *UATMsg) DecodeUplink() error {
 		data = data[2 : frame_length+2]
 
 		thisFrame := new(UATFrame)
-		thisFrame.raw_data = data
+		thisFrame.Raw_data = data
 		thisFrame.frame_length = frame_length
 		thisFrame.Frame_type = frame_type
 
