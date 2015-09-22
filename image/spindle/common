@@ -10,7 +10,7 @@ set -e
 run_qemu() {
   rm fifo.out fifo.in || true
   mkfifo fifo.out fifo.in
-  qemu-system-arm -M versatilepb -cpu arm1136-r2 -m 256 -nographic -no-reboot \
+  qemu-system-arm -M versatilepb -cpu arm1136-r2 -m 256 -display none -no-reboot \
         -kernel zImage -hda qemu_rootfs.sqf -drive file=$1,index=1,media=disk,cache=unsafe \
         -drive file=wheezy_apt_cache.$IMGFORMAT,index=2,media=disk,cache=unsafe \
         -append "root=/dev/sda rw init=/sbin/init.sh panic=1 PATH=/bin:/sbin console=ttyAMA0 HOST=armv6l"\
