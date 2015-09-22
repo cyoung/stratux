@@ -33,6 +33,7 @@ type networkConnection struct {
 	*/
 	lastUnreachable time.Time // Last time the device sent an ICMP Unreachable packet.
 	nextMessageTime time.Time // The next time that the device is "able" to receive a message.
+	numOverflows    uint32    // Number of times the queue has overflowed - for calculating the amount to chop off from the queue.
 }
 
 var messageQueue chan networkMessage
@@ -109,10 +110,19 @@ func sendToAllConnectedClients(msg networkMessage) {
 				netconn.Conn.Write(msg.msg) // Write immediately.
 			}
 		} else {
+			if !isSleeping(k) {
+				netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
+			}
 			// Queue the message if the message is "queueable".
 			if len(netconn.messageQueue) >= maxUserMsgQueueSize { // Too many messages queued? Drop the oldest.
 				log.Printf("%s:%d - message queue overflow.\n", netconn.Ip, netconn.Port)
-				netconn.messageQueue = netconn.messageQueue[1 : maxUserMsgQueueSize-1]
+				netconn.numOverflows++
+				s := 2 * netconn.numOverflows // Double the amount we chop off on each overflow.
+				if s >= len(netconn.messageQueue) {
+					netconn.messageQueue = make([][]byte, 0)
+				} else {
+					netconn.messageQueue = netconn.messageQueue[s:]
+				}
 			}
 			netconn.messageQueue = append(netconn.messageQueue, msg.msg)
 			outSockets[k] = netconn
