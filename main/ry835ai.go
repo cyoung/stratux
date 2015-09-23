@@ -16,6 +16,7 @@ import (
 
 	"../mpu6050"
 	"os"
+	"os/exec"
 )
 
 type SituationData struct {
@@ -54,11 +55,8 @@ var serialPort *serial.Port
 
 /*
 file:///Users/c/Downloads/u-blox5_Referenzmanual.pdf
-
 Platform settings
 Airborne <2g Recommended for typical airborne environment. No 2D position fixes supported.
-
-
 p.91 - CFG-MSG
 Navigation/Measurement Rate Settings
 Header 0xB5 0x62
@@ -66,14 +64,9 @@ ID 0x06 0x08
 0x0064 (100 ms)
 0x0001
 0x0001 (GPS time)
-
 {0xB5, 0x62, 0x06, 0x08, 0x00, 0x64, 0x00, 0x01, 0x00, 0x01}
-
-
-
 p.109 CFG-NAV5 (0x06 0x24)
 Poll Navigation Engine Settings
-
 */
 
 func chksumUBX(msg []byte) []byte {
@@ -145,7 +138,7 @@ func initGPSSerial() bool {
 	cfg[2] = 0x00 // res1.
 	cfg[3] = 0x00 // res1.
 
-	//	0000 0000 0000 0010 0011 0000 0000 0000 
+	//	0000 0000 0000 0010 0011 0000 0000 0000
 	// UART mode. 0 stop bits, no parity, 8 data bits.
 	cfg[4] = 0x00
 	cfg[5] = 0x20
@@ -172,7 +165,6 @@ func initGPSSerial() bool {
 
 	cfg[18] = 0x00 //pad.
 	cfg[19] = 0x00 //pad.
-
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 
@@ -240,7 +232,7 @@ func processNMEALine(l string) bool {
 		if len(x[2]) < 10 {
 			return false
 		}
-		
+
 		hr, err1 = strconv.Atoi(x[2][0:2])
 		minf, err2 := strconv.ParseFloat(x[2][2:10], 32)
 		if err1 != nil || err2 != nil {
@@ -302,8 +294,90 @@ func processNMEALine(l string) bool {
 		mySituation.lastFixLocalTime = time.Now()
 
 	} else if (x[0] == "$GNRMC") || (x[0] == "$GPRMC") {
-		//$GNRMC,141228.00,A,x,N,y,W,0.289,,160915,,,A*7C
-		//TODO.
+		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+		/*						check RY835 man for NMEA version, if >2.2, add mode field
+				Where:
+		     RMC          Recommended Minimum sentence C
+		     123519       Fix taken at 12:35:19 UTC
+		     A            Status A=active or V=Void.
+		     4807.038,N   Latitude 48 deg 07.038' N
+		     01131.000,E  Longitude 11 deg 31.000' E
+		     022.4        Speed over the ground in knots
+		     084.4        Track angle in degrees True
+		     230394       Date - 23rd of March 1994
+		     003.1,W      Magnetic Variation
+		     D				mode field (nmea 2.3 and higher)
+		     *6A          The checksum data, always begins with *
+		*/
+		if len(x) < 12 {
+			return false
+		}
+		mySituation.mu_GPS.Lock()
+		defer mySituation.mu_GPS.Unlock()
+		if x[2] != "A" { // invalid fix
+			return false
+		}
+		// Timestamp.
+		if len(x[1]) < 9 {
+			return false
+		}
+		hr, err1 := strconv.Atoi(x[1][0:2])
+		min, err2 := strconv.Atoi(x[1][2:4])
+		sec, err3 := strconv.Atoi(x[1][4:6])
+		if err1 != nil || err2 != nil || err3 != nil {
+			return false
+		}
+		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+		// Latitude.
+		if len(x[3]) < 10 {
+			return false
+		}
+		hr, err1 = strconv.Atoi(x[3][0:2])
+		minf, err2 := strconv.ParseFloat(x[3][2:10], 32)
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		mySituation.lat = float32(hr) + float32(minf/60.0)
+		if x[4] == "S" { // South = negative.
+			mySituation.lat = -mySituation.lat
+		}
+		// Longitude.
+		if len(x[5]) < 11 {
+			return false
+		}
+		hr, err1 = strconv.Atoi(x[5][0:3])
+		minf, err2 = strconv.ParseFloat(x[5][3:11], 32)
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		mySituation.lng = float32(hr) + float32(minf/60.0)
+		if x[6] == "W" { // West = negative.
+			mySituation.lng = -mySituation.lng
+		}
+		// ground speed in kts (field 7)
+		groundspeed, err := strconv.ParseFloat(x[7], 32)
+		if err != nil {
+			return false
+		}
+		mySituation.groundSpeed = uint16(groundspeed)
+		// ground track "True" field 8
+		tc, err := strconv.ParseFloat(x[8], 32)
+		if err != nil {
+			return false
+		}
+		mySituation.trueCourse = uint16(tc)
+		// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
+		gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[8], hr, min, sec)
+		gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+		if err == nil {
+			if time.Since(gpsTime) > 10 * time.Minute {
+				log.Printf("setting system time to: %s\n", gpsTime)
+				setStr := gpsTime.Format("20060102 15:04:05")
+				if err := exec.Command("date", "-s", setStr).Run(); err != nil {
+					log.Printf("Set Date failure: %s error\n", err)
+				}
+			}
+		}
 	}
 	return true
 }
