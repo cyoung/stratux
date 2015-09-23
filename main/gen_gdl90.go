@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/dustin/go-humanize"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -27,6 +27,7 @@ const (
 	uatReplayLog        = "/var/log/stratux-uat.log"
 	esReplayLog         = "/var/log/stratux-es.log"
 	gpsReplayLog        = "/var/log/stratux-gps.log"
+	ahrsReplayLog       = "/var/log/stratux-ahrs.log"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -47,9 +48,10 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT = 0
-	MSGCLASS_ES  = 1
-	MSGCLASS_GPS = 3
+	MSGCLASS_UAT  = 0
+	MSGCLASS_ES   = 1
+	MSGCLASS_GPS  = 3
+	MSGCLASS_AHRS = 4
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -68,6 +70,7 @@ var mySituation SituationData
 var uatReplayfp *os.File
 var esReplayfp *os.File
 var gpsReplayfp *os.File
+var ahrsReplayfp *os.File
 
 type msg struct {
 	MessageClass uint
@@ -361,12 +364,19 @@ func replayLog(msg string, msgclass int) {
 	if len(msg) == 0 { // Blank message.
 		return
 	}
-	if msgclass == MSGCLASS_UAT {
-		fmt.Fprintf(uatReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
-	} else if msgclass == MSGCLASS_ES {
-		fmt.Fprintf(esReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
-	} else if msgclass == MSGCLASS_GPS {
-		fmt.Fprintf(gpsReplayfp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+	var fp *os.File
+	switch msgclass {
+	case MSGCLASS_UAT:
+		fp = uatReplayfp
+	case MSGCLASS_ES:
+		fp = esReplayfp
+	case MSGCLASS_GPS:
+		fp = gpsReplayfp
+	case MSGCLASS_AHRS:
+		fp = ahrsReplayfp
+	}
+	if fp != nil {
+		fmt.Fprintf(fp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
 	}
 }
 
@@ -612,7 +622,7 @@ func printStats() {
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
-		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength) / 10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
+		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
 		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.lastFixLocalTime))
 	}
 }
@@ -665,7 +675,13 @@ func main() {
 			gpsReplayfp = gpsfp
 			defer gpsReplayfp.Close()
 		}
-
+		// AHRS replay log.
+		if ahrsfp, err := openReplay(ahrsReplayLog); err != nil {
+			globalSettings.ReplayLog = false
+		} else {
+			ahrsReplayfp = ahrsfp
+			defer ahrsReplayfp.Close()
+		}
 	}
 
 	initRY835AI()
