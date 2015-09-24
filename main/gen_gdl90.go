@@ -77,7 +77,7 @@ type msg struct {
 	MessageClass    uint
 	TimeReceived    time.Time
 	Data            []byte
-	Product         uint32
+	Products        []uint32
 	Signal_strength int
 	ADSBTowerID     string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
 }
@@ -343,7 +343,9 @@ func updateMessageStats() {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				products_last_minute[getProductNameFromId(int(MsgLog[i].Product))]++
+				for _, p := range MsgLog[i].Products {
+					products_last_minute[getProductNameFromId(int(p))]++
+				}
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
 					twr := ADSBTowers[tid]
@@ -495,8 +497,8 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = time.Now()
 	thisMsg.Data = frame
-	thisMsg.Product = 9999 //FIXME.
 	thisMsg.Signal_strength = thisSignalStrength
+	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
 		uatMsg, err := uatparse.New(buf)
@@ -513,11 +515,13 @@ func parseInput(buf string) ([]byte, uint16) {
 			twr := ADSBTowers[towerid]
 			twr.Messages_total++
 			ADSBTowers[towerid] = twr
+			// Get all of the "product ids".
+			for _, f := range uatMsg.Frames {
+				thisMsg.Products = append(thisMsg.Products, f.Product_id)
+			}
 		}
 	}
-	if isUplink && msgtype == MSGTYPE_UPLINK && len(x) > 11 { //FIXME: Need to pull out FIS-B frames from within the uplink packet.
-		thisMsg.Product = ((uint32(frame[10]) & 0x1f) << 6) | (uint32(frame[11]) >> 2)
-	}
+
 	MsgLog = append(MsgLog, thisMsg)
 
 	return frame, msgtype
