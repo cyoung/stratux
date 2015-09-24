@@ -179,8 +179,8 @@ func makeOwnshipReport() bool {
 
 	if isTempPressValid() {
 		alt = uint16(mySituation.pressure_alt)
+		alt = (alt + 1000) / 25
 	}
-	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
