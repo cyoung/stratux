@@ -26,30 +26,30 @@ type SituationData struct {
 
 	// From GPS.
 	lastFixSinceMidnightUTC uint32
-	lat                     float32
-	lng                     float32
+	Lat                     float32
+	Lng                     float32
 	quality                 uint8
-	satellites              uint16
-	accuracy                float32 // Meters.
-	alt                     float32 // Feet.
+	Satellites              uint16
+	Accuracy                float32 // Meters.
+	Alt                     float32 // Feet.
 	alt_accuracy            float32
-	lastFixLocalTime        time.Time
-	trueCourse              uint16
-	groundSpeed             uint16
-	lastGroundTrackTime     time.Time
+	LastFixLocalTime        time.Time
+	TrueCourse              uint16
+	GroundSpeed             uint16
+	LastGroundTrackTime     time.Time
 
 	mu_Attitude *sync.Mutex
 
 	// From BMP180 pressure sensor.
-	temp              float64
-	pressure_alt      float64
+	Temp              float64
+	Pressure_alt      float64
 	lastTempPressTime time.Time
 
 	// From MPU6050 accel/gyro.
-	pitch            float64
-	roll             float64
-	gyro_heading     float64
-	lastAttitudeTime time.Time
+	Pitch            float64
+	Roll             float64
+	Gyro_heading     float64
+	LastAttitudeTime time.Time
 }
 
 var serialConfig *serial.Config
@@ -197,9 +197,9 @@ func processNMEALine(l string) bool {
 			}
 		} else {
 			// No movement.
-			mySituation.trueCourse = 0
-			mySituation.groundSpeed = 0
-			mySituation.lastGroundTrackTime = time.Time{}
+			mySituation.TrueCourse = 0
+			mySituation.GroundSpeed = 0
+			mySituation.LastGroundTrackTime = time.Time{}
 			return true
 		}
 		groundSpeed, err := strconv.ParseFloat(x[5], 32) // Knots.
@@ -207,9 +207,9 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.trueCourse = uint16(trueCourse)
-		mySituation.groundSpeed = uint16(groundSpeed)
-		mySituation.lastGroundTrackTime = time.Now()
+		mySituation.TrueCourse = uint16(trueCourse)
+		mySituation.GroundSpeed = uint16(groundSpeed)
+		mySituation.LastGroundTrackTime = time.Now()
 
 	} else if (x[0] == "$GNGGA") || (x[0] == "$GPGGA") { // GPS fix.
 		if len(x) < 15 {
@@ -241,9 +241,9 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.lat = float32(hr) + float32(minf/60.0)
+		mySituation.Lat = float32(hr) + float32(minf/60.0)
 		if x[3] == "S" { // South = negative.
-			mySituation.lat = -mySituation.lat
+			mySituation.Lat = -mySituation.Lat
 		}
 
 		// Longitude.
@@ -256,9 +256,9 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.lng = float32(hr) + float32(minf/60.0)
+		mySituation.Lng = float32(hr) + float32(minf/60.0)
 		if x[5] == "W" { // West = negative.
-			mySituation.lng = -mySituation.lng
+			mySituation.Lng = -mySituation.Lng
 		}
 
 		// Quality indicator.
@@ -273,27 +273,27 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.satellites = uint16(sat)
+		mySituation.Satellites = uint16(sat)
 
 		// Accuracy.
 		hdop, err1 := strconv.ParseFloat(x[8], 32)
 		if err1 != nil {
 			return false
 		}
-		mySituation.accuracy = float32(hdop * 5.0) //FIXME: 5 meters ~ 1.0 HDOP?
+		mySituation.Accuracy = float32(hdop * 5.0) //FIXME: 5 meters ~ 1.0 HDOP?
 
 		// Altitude.
 		alt, err1 := strconv.ParseFloat(x[9], 32)
 		if err1 != nil {
 			return false
 		}
-		mySituation.alt = float32(alt * 3.28084) // Convert to feet.
+		mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
 
 		//TODO: Altitude accuracy.
 		mySituation.alt_accuracy = 0
 
 		// Timestamp.
-		mySituation.lastFixLocalTime = time.Now()
+		mySituation.LastFixLocalTime = time.Now()
 
 	} else if (x[0] == "$GNRMC") || (x[0] == "$GPRMC") {
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
@@ -339,9 +339,9 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil {
 			return false
 		}
-		mySituation.lat = float32(hr) + float32(minf/60.0)
+		mySituation.Lat = float32(hr) + float32(minf/60.0)
 		if x[4] == "S" { // South = negative.
-			mySituation.lat = -mySituation.lat
+			mySituation.Lat = -mySituation.Lat
 		}
 		// Longitude.
 		if len(x[5]) < 11 {
@@ -352,22 +352,22 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil {
 			return false
 		}
-		mySituation.lng = float32(hr) + float32(minf/60.0)
+		mySituation.Lng = float32(hr) + float32(minf/60.0)
 		if x[6] == "W" { // West = negative.
-			mySituation.lng = -mySituation.lng
+			mySituation.Lng = -mySituation.Lng
 		}
 		// ground speed in kts (field 7)
 		groundspeed, err := strconv.ParseFloat(x[7], 32)
 		if err != nil {
 			return false
 		}
-		mySituation.groundSpeed = uint16(groundspeed)
+		mySituation.GroundSpeed = uint16(groundspeed)
 		// ground track "True" field 8
 		tc, err := strconv.ParseFloat(x[8], 32)
 		if err != nil {
 			return false
 		}
-		mySituation.trueCourse = uint16(tc)
+		mySituation.TrueCourse = uint16(tc)
 		// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 		gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[8], hr, min, sec)
 		gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
@@ -450,8 +450,8 @@ func tempAndPressureReader() {
 			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
 			globalStatus.RY835AI_connected = false
 		} else {
-			mySituation.temp = temp
-			mySituation.pressure_alt = alt
+			mySituation.Temp = temp
+			mySituation.Pressure_alt = alt
 			mySituation.lastTempPressTime = time.Now()
 		}
 	}
@@ -459,7 +459,7 @@ func tempAndPressureReader() {
 }
 
 func makeFFAHRSSimReport() {
-	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.gyro_heading, mySituation.pitch, mySituation.roll)
+	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.Gyro_heading, mySituation.Pitch, mySituation.Roll)
 
 	sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
 }
@@ -471,9 +471,9 @@ func makeAHRSGDL90Report() {
 	msg[2] = 0x01
 	msg[3] = 0x00
 
-	pitch := int16(float64(mySituation.pitch) * float64(10.0))
-	roll := int16(float64(mySituation.roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.gyro_heading) * float64(10.0)) //TODO.
+	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
+	roll := int16(float64(mySituation.Roll) * float64(10.0))
+	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0)) //TODO.
 	slip_skid := int16(float64(0) * float64(10.0))                   //TODO.
 	yaw_rate := int16(float64(0) * float64(10.0))                    //TODO.
 	g := int16(float64(1.0) * float64(10.0))                         //TODO.
@@ -519,10 +519,10 @@ func attitudeReaderSender() {
 			globalStatus.RY835AI_connected = false
 			break
 		} else {
-			mySituation.pitch = pitch
-			mySituation.roll = roll
-			mySituation.gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-			mySituation.lastAttitudeTime = time.Now()
+			mySituation.Pitch = pitch
+			mySituation.Roll = roll
+			mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
+			mySituation.LastAttitudeTime = time.Now()
 		}
 
 		// Send, if valid.
@@ -537,15 +537,15 @@ func attitudeReaderSender() {
 }
 
 func isGPSValid() bool {
-	return time.Since(mySituation.lastFixLocalTime).Seconds() < 15
+	return time.Since(mySituation.LastFixLocalTime).Seconds() < 15
 }
 
 func isGPSGroundTrackValid() bool {
-	return time.Since(mySituation.lastGroundTrackTime).Seconds() < 15
+	return time.Since(mySituation.LastGroundTrackTime).Seconds() < 15
 }
 
 func isAHRSValid() bool {
-	return time.Since(mySituation.lastAttitudeTime).Seconds() < 1 // If attitude information gets to be over 1 second old, declare invalid.
+	return time.Since(mySituation.LastAttitudeTime).Seconds() < 1 // If attitude information gets to be over 1 second old, declare invalid.
 }
 
 func isTempPressValid() bool {

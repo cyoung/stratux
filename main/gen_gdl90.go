@@ -164,25 +164,25 @@ func makeOwnshipReport() bool {
 	msg[3] = 1 // Address.
 	msg[4] = 1 // Address.
 
-	tmp := makeLatLng(mySituation.lat)
+	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
 	msg[7] = tmp[2] // Latitude.
 
-	tmp = makeLatLng(mySituation.lng)
+	tmp = makeLatLng(mySituation.Lng)
 	msg[8] = tmp[0]  // Longitude.
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
 	// This is **PRESSURE ALTITUDE**
 	//FIXME: Temporarily removing "invalid altitude" when pressure altitude not available - using GPS altitude instead.
-//	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
+	//	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
 
 	var alt uint16
 	if isTempPressValid() {
-		alt = uint16(mySituation.pressure_alt)
+		alt = uint16(mySituation.Pressure_alt)
 	} else {
-		alt = uint16(mySituation.alt) //FIXME: This should not be here.
+		alt = uint16(mySituation.Alt) //FIXME: This should not be here.
 	}
 	alt = (alt + 1000) / 25
 
@@ -200,7 +200,7 @@ func makeOwnshipReport() bool {
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
-		gdSpeed = mySituation.groundSpeed
+		gdSpeed = mySituation.GroundSpeed
 	}
 	gdSpeed = gdSpeed & 0x0FFF // Should fit in 12 bits.
 
@@ -216,7 +216,7 @@ func makeOwnshipReport() bool {
 	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
 	groundTrack := uint16(0)
 	if isGPSGroundTrackValid() {
-		groundTrack = mySituation.trueCourse
+		groundTrack = mySituation.TrueCourse
 	}
 	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 
@@ -236,7 +236,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg := make([]byte, 5)
 	// See p.28.
 	msg[0] = 0x0B                 // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.alt) // GPS Altitude.
+	alt := int16(mySituation.Alt) // GPS Altitude.
 	alt = alt / 5
 	msg[1] = byte(alt >> 8)     // Altitude.
 	msg[2] = byte(alt & 0x00FF) // Altitude.
@@ -343,7 +343,7 @@ func updateMessageStats() {
 
 func updateStatus() {
 	if isGPSValid() {
-		globalStatus.GPS_satellites_locked = mySituation.satellites
+		globalStatus.GPS_satellites_locked = mySituation.Satellites
 	}
 
 	// Update Uptime value
@@ -628,7 +628,7 @@ func printStats() {
 		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
-		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.lastFixLocalTime))
+		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.LastFixLocalTime))
 	}
 }
 

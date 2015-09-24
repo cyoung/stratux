@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"golang.org/x/net/websocket"
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -24,18 +26,18 @@ func statusSender(conn *websocket.Conn) {
 	for {
 		<-timer.C
 
-		update, _ := json.Marshal(InfoMessage{status:&globalStatus, settings:&globalSettings})
+		update, _ := json.Marshal(InfoMessage{status: &globalStatus, settings: &globalSettings})
 		_, err := conn.Write(update)
 
 		if err != nil {
-//			log.Printf("Web client disconnected.\n")
+			//			log.Printf("Web client disconnected.\n")
 			break
 		}
 	}
 }
 
 func handleManagementConnection(conn *websocket.Conn) {
-//	log.Printf("Web client connected.\n")
+	//	log.Printf("Web client connected.\n")
 	go statusSender(conn)
 
 	for {
@@ -67,6 +69,29 @@ func handleManagementConnection(conn *websocket.Conn) {
 	}
 }
 
+// AJAX call - /getTraffic. Responds with currently tracked traffic targets.
+
+func handleTrafficRequest(w http.ResponseWriter, r *http.Request) {
+	/* From JSON package docs:
+	"JSON objects only support strings as keys; to encode a Go map type it must be of the form map[string]T (where T is any Go type supported by the json package)."
+	*/
+	t := make(map[string]TrafficInfo)
+	trafficMutex.Lock()
+	for icao, traf := range traffic {
+		icaoStr := strconv.FormatInt(int64(icao), 16) // Convert to hex.
+		t[icaoStr] = traf
+	}
+	trafficJSON, _ := json.Marshal(&t)
+	trafficMutex.Unlock()
+	fmt.Fprintf(w, "%s\n", trafficJSON)
+}
+
+// AJAX call - /getSituation. Responds with current situation (lat/lon/gdspeed/track/pitch/roll/heading/etc.)
+func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
+	situationJSON, _ := json.Marshal(&mySituation)
+	fmt.Fprintf(w, "%s\n", situationJSON)
+}
+
 func managementInterface() {
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -76,6 +101,9 @@ func managementInterface() {
 				Handler: websocket.Handler(handleManagementConnection)}
 			s.ServeHTTP(w, req)
 		})
+
+	http.HandleFunc("/getTraffic", handleTrafficRequest)
+	http.HandleFunc("/getSituation", handleSituationRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

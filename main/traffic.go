@@ -49,26 +49,26 @@ AUXSV:
 */
 
 type TrafficInfo struct {
-	icao_addr        uint32
+	Icao_addr        uint32
 	addr_type        uint8
 	emitter_category uint8
 
-	lat float32
-	lng float32
+	Lat float32
+	Lng float32
 
-	position_valid bool
+	Position_valid bool
 
-	alt uint32
+	Alt uint32
 
-	track       uint16
-	speed       uint16
-	speed_valid bool
+	Track       uint16
+	Speed       uint16
+	Speed_valid bool
 
-	vvel int16
+	Vvel int16
 
-	tail string
+	Tail string
 
-	last_seen time.Time
+	Last_seen time.Time
 }
 
 var traffic map[uint32]TrafficInfo
@@ -77,7 +77,7 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if time.Since(ti.last_seen).Seconds() > float64(60.0) { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if time.Since(ti.Last_seen).Seconds() > float64(60.0) { //FIXME: 60 seconds with no update on this address - stop displaying.
 			delete(traffic, icao_addr)
 		}
 	}
@@ -88,7 +88,7 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	for _, ti := range traffic {
-		if ti.position_valid {
+		if ti.Position_valid {
 			makeTrafficReport(ti)
 		}
 	}
@@ -102,18 +102,18 @@ func makeTrafficReport(ti TrafficInfo) {
 	msg[1] = 0x10 | ti.addr_type // Alert status, address type.
 
 	// ICAO Address.
-	msg[2] = byte((ti.icao_addr & 0x00FF0000) >> 16)
-	msg[3] = byte((ti.icao_addr & 0x0000FF00) >> 8)
-	msg[4] = byte((ti.icao_addr & 0x000000FF))
+	msg[2] = byte((ti.Icao_addr & 0x00FF0000) >> 16)
+	msg[3] = byte((ti.Icao_addr & 0x0000FF00) >> 8)
+	msg[4] = byte((ti.Icao_addr & 0x000000FF))
 
-	lat := float32(ti.lat)
+	lat := float32(ti.Lat)
 	tmp := makeLatLng(lat)
 
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
 	msg[7] = tmp[2] // Latitude.
 
-	lng := float32(ti.lng)
+	lng := float32(ti.Lng)
 	tmp = makeLatLng(lng)
 
 	msg[8] = tmp[0]  // Longitude.
@@ -122,7 +122,7 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	//Altitude: OK
 	//TODO: 0xFFF "invalid altitude."
-	alt := uint16(ti.alt)
+	alt := uint16(ti.Alt)
 	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
@@ -135,23 +135,23 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	// Horizontal velocity (speed).
 
-	msg[14] = byte((ti.speed & 0x0FF0) >> 4)
-	msg[15] = byte((ti.speed & 0x000F) << 4)
+	msg[14] = byte((ti.Speed & 0x0FF0) >> 4)
+	msg[15] = byte((ti.Speed & 0x000F) << 4)
 
 	// Vertical velocity.
-	vvel := ti.vvel / 64 // 64fpm resolution.
+	vvel := ti.Vvel / 64 // 64fpm resolution.
 	msg[15] = msg[15] | byte((vvel&0x0F00)>>8)
 	msg[16] = byte(vvel & 0x00FF)
 
 	// Track.
-	trk := uint8(float32(ti.track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+	trk := uint8(float32(ti.Track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 	msg[17] = byte(trk)
 
 	msg[18] = ti.emitter_category
 
 	// msg[19] to msg[26] are "call sign" (tail).
-	for i := 0; i < len(ti.tail) && i < 8; i++ {
-		c := byte(ti.tail[i])
+	for i := 0; i < len(ti.Tail) && i < 8; i++ {
+		c := byte(ti.Tail[i])
 		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' { // See p.24, FAA ref.
 			c = byte(20)
 		}
@@ -185,12 +185,12 @@ func parseDownlinkReport(s string) {
 	if curTi, ok := traffic[icao_addr]; ok { // Retrieve the current entry, as it may contain some useful information like "tail" from 1090ES.
 		ti = curTi
 	}
-	ti.icao_addr = icao_addr
+	ti.Icao_addr = icao_addr
 
 	ti.addr_type = uint8(frame[0]) & 0x07
 
 	// OK.
-	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.icao_addr)
+	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.Icao_addr)
 
 	nic := uint8(frame[11]) & 15 //TODO: Meaning?
 
@@ -212,9 +212,9 @@ func parseDownlinkReport(s string) {
 			lng = lng - 360
 		}
 	}
-	ti.lat = lat
-	ti.lng = lng
-	ti.position_valid = position_valid
+	ti.Lat = lat
+	ti.Lng = lng
+	ti.Position_valid = position_valid
 
 	raw_alt := (uint32(frame[10]) << 4) | ((uint32(frame[11]) & 0xf0) >> 4)
 	//	alt_geo := false // Barometric if not geometric.
@@ -223,7 +223,7 @@ func parseDownlinkReport(s string) {
 		//		alt_geo = (uint8(frame[9]) & 1) != 0
 		alt = ((raw_alt - 1) * 25) - 1000
 	}
-	ti.alt = alt
+	ti.Alt = alt
 
 	//OK.
 	//	fmt.Printf("%d, %t, %f, %f, %t, %d\n", nic, position_valid, lat, lng, alt_geo, alt)
@@ -299,10 +299,10 @@ func parseDownlinkReport(s string) {
 		// Dimensions of vehicle - skip.
 	}
 
-	ti.track = track
-	ti.speed = speed
-	ti.vvel = vvel
-	ti.speed_valid = speed_valid
+	ti.Track = track
+	ti.Speed = speed
+	ti.Vvel = vvel
+	ti.Speed_valid = speed_valid
 
 	//OK.
 	//	fmt.Printf("ns_vel %d, ew_vel %d, track %d, speed_valid %t, speed %d, vvel_geo %t, vvel %d\n", ns_vel, ew_vel, track, speed_valid, speed, vvel_geo, vvel)
@@ -321,7 +321,7 @@ func parseDownlinkReport(s string) {
 	//OK.
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
-	ti.last_seen = time.Now()
+	ti.Last_seen = time.Now()
 
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
@@ -341,18 +341,18 @@ func parseDownlinkReport(s string) {
 		tail += string(base40_alphabet[v%40])
 
 		tail = strings.Trim(tail, " ")
-		ti.tail = tail
+		ti.Tail = tail
 	}
 
 	if globalSettings.DEBUG {
 		// This is a hack to show the source of the traffic in ForeFlight.
-		if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'U') {
-			ti.tail = "u" + ti.tail
+		if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'U') {
+			ti.Tail = "u" + ti.Tail
 		}
 	}
 
-	traffic[ti.icao_addr] = ti
-	seenTraffic[ti.icao_addr] = true // Mark as seen.
+	traffic[ti.Icao_addr] = ti
+	seenTraffic[ti.Icao_addr] = true // Mark as seen.
 }
 
 func esListen() {
@@ -402,7 +402,7 @@ func esListen() {
 				ti = val
 			}
 
-			ti.icao_addr = icaoDec
+			ti.Icao_addr = icaoDec
 
 			//FIXME: Some stale information will be renewed.
 			valid_change := true
@@ -436,10 +436,10 @@ func esListen() {
 
 				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
 				if valid_change {
-					ti.alt = uint32(altFloat)
-					ti.lat = float32(latFloat)
-					ti.lng = float32(lngFloat)
-					ti.position_valid = true
+					ti.Alt = uint32(altFloat)
+					ti.Lat = float32(latFloat)
+					ti.Lng = float32(lngFloat)
+					ti.Position_valid = true
 				}
 			}
 			if x[1] == "4" {
@@ -471,10 +471,10 @@ func esListen() {
 
 				//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
 				if valid_change {
-					ti.speed = uint16(speedFloat)
-					ti.track = uint16(trackFloat)
-					ti.vvel = int16(vvelFloat)
-					ti.speed_valid = true
+					ti.Speed = uint16(speedFloat)
+					ti.Track = uint16(trackFloat)
+					ti.Vvel = int16(vvelFloat)
+					ti.Speed_valid = true
 				}
 			}
 			if x[1] == "1" {
@@ -486,21 +486,21 @@ func esListen() {
 				}
 
 				if valid_change {
-					ti.tail = tail
+					ti.Tail = tail
 				}
 			}
 
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
-			ti.last_seen = time.Now()
+			ti.Last_seen = time.Now()
 
 			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
 			ti.emitter_category = 0x01 //FIXME. "Light"
 
 			// This is a hack to show the source of the traffic in ForeFlight.
-			ti.tail = strings.Trim(ti.tail, " ")
+			ti.Tail = strings.Trim(ti.Tail, " ")
 			if globalSettings.DEBUG {
-				if len(ti.tail) == 0 || (len(ti.tail) != 0 && len(ti.tail) < 8 && ti.tail[0] != 'E') {
-					ti.tail = "e" + ti.tail
+				if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
+					ti.Tail = "e" + ti.Tail
 				}
 			}
 
