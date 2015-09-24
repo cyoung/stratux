@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"./uatparse"
+	"../uatparse"
 	"strconv"
 	"os"
 	"bufio"

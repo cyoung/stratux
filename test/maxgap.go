@@ -4,7 +4,7 @@ package main
 import (
 	"fmt"
 //	"time"
-	"./uatparse"
+	"../uatparse"
 	"os"
 	"bufio"
 	"strings"
