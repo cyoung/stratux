@@ -1,6 +1,7 @@
 package main
 
 import (
+	"../uatparse"
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
@@ -73,10 +74,12 @@ var gpsReplayfp *os.File
 var ahrsReplayfp *os.File
 
 type msg struct {
-	MessageClass uint
-	TimeReceived time.Time
-	Data         []byte
-	Product      uint32
+	MessageClass    uint
+	TimeReceived    time.Time
+	Data            []byte
+	Product         uint32
+	Signal_strength int
+	ADSBTowerID     string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
 }
 
 // Raw inputs.
@@ -84,6 +87,18 @@ var MsgLog []msg
 
 // Time gen_gdl90 was started.
 var timeStarted time.Time
+
+type ADSBTower struct {
+	Lat                         float64
+	Lng                         float64
+	Signal_strength_last_minute int
+	signal_power_last_minute    int64 // Over total messages.
+	Signal_strength_max         int
+	Messages_last_minute        uint64
+	Messages_total              uint64
+}
+
+var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -315,12 +330,30 @@ func updateMessageStats() {
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
 	products_last_minute := make(map[string]uint32)
+
+	// Clear out ADSBTowers stats.
+	for t, tinf := range ADSBTowers {
+		tinf.Messages_last_minute = 0
+		tinf.Signal_strength_last_minute = 0
+		ADSBTowers[t] = tinf
+	}
+
 	for i := 0; i < m; i++ {
 		if time.Now().Sub(MsgLog[i].TimeReceived).Minutes() < 1 {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
 				products_last_minute[getProductNameFromId(int(MsgLog[i].Product))]++
+				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
+					tid := MsgLog[i].ADSBTowerID
+					twr := ADSBTowers[tid]
+					twr.Messages_last_minute++
+					twr.signal_power_last_minute += int64(MsgLog[i].Signal_strength)
+					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
+						twr.Signal_strength_max = MsgLog[i].Signal_strength
+					}
+					ADSBTowers[tid] = twr
+				}
 			} else if MsgLog[i].MessageClass == MSGCLASS_ES {
 				ES_messages_last_minute++
 			}
@@ -337,6 +370,16 @@ func updateMessageStats() {
 	}
 	if globalStatus.ES_messages_max < ES_messages_last_minute {
 		globalStatus.ES_messages_max = ES_messages_last_minute
+	}
+
+	// Update average signal strength over last minute for all ADSB towers.
+	for t, tinf := range ADSBTowers {
+		if tinf.Messages_last_minute == 0 {
+			tinf.Signal_strength_last_minute = 0
+		} else {
+			tinf.Signal_strength_last_minute = int(tinf.signal_power_last_minute / int64(tinf.Messages_last_minute))
+		}
+		ADSBTowers[t] = tinf
 	}
 
 }
@@ -407,12 +450,15 @@ func parseInput(buf string) ([]byte, uint16) {
 		parseDownlinkReport(s)
 	}
 
+	var thisSignalStrength int
+
 	if isUplink && len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
 		if strings.HasPrefix(ss, "ss=") {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
+				thisSignalStrength = ssInt
 				if ssInt > maxSignalStrength {
 					maxSignalStrength = ssInt
 				}
@@ -427,7 +473,7 @@ func parseInput(buf string) ([]byte, uint16) {
 		return nil, 0
 	}
 
-	if msglen == UPLINK_FRAME_DATA_BYTES {
+	if isUplink && msglen == UPLINK_FRAME_DATA_BYTES {
 		msgtype = MSGTYPE_UPLINK
 	} else if msglen == 34 {
 		msgtype = MSGTYPE_LONG_REPORT
@@ -449,7 +495,26 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = time.Now()
 	thisMsg.Data = frame
-	thisMsg.Product = 9999
+	thisMsg.Product = 9999 //FIXME.
+	thisMsg.Signal_strength = thisSignalStrength
+	if msgtype == MSGTYPE_UPLINK {
+		// Parse the UAT message.
+		uatMsg, err := uatparse.New(buf)
+		if err == nil {
+			uatMsg.DecodeUplink()
+			towerid := fmt.Sprintf("(%f,%f)", uatMsg.Lat, uatMsg.Lon)
+			thisMsg.ADSBTowerID = towerid
+			if _, ok := ADSBTowers[towerid]; !ok { // First time we've seen the tower. Start tracking.
+				var newTower ADSBTower
+				newTower.Lat = uatMsg.Lat
+				newTower.Lng = uatMsg.Lon
+				ADSBTowers[towerid] = newTower
+			}
+			twr := ADSBTowers[towerid]
+			twr.Messages_total++
+			ADSBTowers[towerid] = twr
+		}
+	}
 	if isUplink && msgtype == MSGTYPE_UPLINK && len(x) > 11 { //FIXME: Need to pull out FIS-B frames from within the uplink packet.
 		thisMsg.Product = ((uint32(frame[10]) & 0x1f) << 6) | (uint32(frame[11]) >> 2)
 	}
@@ -647,6 +712,7 @@ func main() {
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
 
+	ADSBTowers = make(map[string]ADSBTower)
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.

@@ -92,6 +92,12 @@ func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", situationJSON)
 }
 
+// AJAX call - /getTowers. Responds with all ADS-B ground towers that have sent messages that we were able to parse, along with its stats.
+func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
+	towersJSON, _ := json.Marshal(&ADSBTowers)
+	fmt.Fprintf(w, "%s\n", towersJSON)
+}
+
 func managementInterface() {
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -104,6 +110,7 @@ func managementInterface() {
 
 	http.HandleFunc("/getTraffic", handleTrafficRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
+	http.HandleFunc("/getTowers", handleTowersRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
