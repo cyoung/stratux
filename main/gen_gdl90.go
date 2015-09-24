@@ -175,12 +175,17 @@ func makeOwnshipReport() bool {
 	msg[10] = tmp[2] // Longitude.
 
 	// This is **PRESSURE ALTITUDE**
-	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
+	//FIXME: Temporarily removing "invalid altitude" when pressure altitude not available - using GPS altitude instead.
+//	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
 
+	var alt uint16
 	if isTempPressValid() {
 		alt = uint16(mySituation.pressure_alt)
-		alt = (alt + 1000) / 25
+	} else {
+		alt = uint16(mySituation.alt) //FIXME: This should not be here.
 	}
+	alt = (alt + 1000) / 25
+
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
