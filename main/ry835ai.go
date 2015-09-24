@@ -9,14 +9,16 @@ import (
 	"time"
 
 	"bufio"
+
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
 	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
-	"../mpu6050"
 	"os"
 	"os/exec"
+
+	"../mpu6050"
 )
 
 type SituationData struct {
@@ -86,7 +88,7 @@ func makeUBXCFG(class, id byte, msglen uint16, msg []byte) []byte {
 	ret[2] = class
 	ret[3] = id
 	ret[4] = byte(msglen & 0xFF)
-	ret[5] = byte((msglen & 0xFF00) << 8)
+	ret[5] = byte((msglen >> 8) & 0xFF)
 	ret = append(ret, msg...)
 	chk := chksumUBX(ret[2:])
 	ret = append(ret, chk[0])
@@ -147,9 +149,9 @@ func initGPSSerial() bool {
 
 	// Baud rate.
 	bdrt := uint32(115200)
-	cfg[8] = byte((bdrt & 0xFF000000) << 24)
-	cfg[9] = byte((bdrt & 0xFF0000) << 16)
-	cfg[10] = byte((bdrt & 0xFF00) << 8)
+	cfg[8] = byte((bdrt >> 24) & 0xFF)
+	cfg[9] = byte((bdrt >> 16) & 0xFF)
+	cfg[10] = byte((bdrt >> 8) & 0xFF)
 	cfg[11] = byte(bdrt & 0xFF)
 
 	// inProtoMask. NMEA and UBX.
@@ -370,7 +372,7 @@ func processNMEALine(l string) bool {
 		gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[8], hr, min, sec)
 		gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
 		if err == nil {
-			if time.Since(gpsTime) > 10 * time.Minute {
+			if time.Since(gpsTime) > 10*time.Minute {
 				log.Printf("setting system time to: %s\n", gpsTime)
 				setStr := gpsTime.Format("20060102 15:04:05")
 				if err := exec.Command("date", "-s", setStr).Run(); err != nil {
