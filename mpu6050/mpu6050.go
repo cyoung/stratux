@@ -62,6 +62,8 @@ type MPU6050 struct {
 	//	gyro		chan XYZ
 	//	accel		chan XYZ
 
+	calibrated bool
+
 	quit chan struct{}
 }
 
@@ -105,6 +107,7 @@ func (d *MPU6050) calibrate() {
 	roll_adjust = roll_adjust / float64(len(d.roll_history))
 	d.roll_resting = roll_adjust
 	log.Printf("calibrate: pitch %f, roll %f\n", pitch_adjust, roll_adjust)
+	d.calibrated = true
 }
 
 func (d *MPU6050) readGyro() (XYZ, error) {
@@ -176,8 +179,10 @@ func (d *MPU6050) calculatePitchAndRoll() {
 	d.pitch = float64(ft*(sample_period*p2+d.pitch) + (1-ft)*p1_deg)
 	d.roll = float64((ft*(sample_period*r2+d.roll) + (1-ft)*r1_deg))
 
-	d.pitch_history = append(d.pitch_history, d.pitch)
-	d.roll_history = append(d.roll_history, d.roll)
+	if !d.calibrated {
+		d.pitch_history = append(d.pitch_history, d.pitch)
+		d.roll_history = append(d.roll_history, d.roll)
+	}
 
 	//FIXME: Experimental (heading).
 
