@@ -1,12 +1,10 @@
 package main
 
 import (
-	"../uatparse"
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,6 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	humanize "github.com/dustin/go-humanize"
+
+	"../uatparse"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -205,26 +207,24 @@ func makeOwnshipReport() bool {
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
-
 	if isGPSGroundTrackValid() {
-		msg[12] = byte(((alt & 0x00F) << 4) | 0xB) // "Airborne" + "True Heading"
-	} else {
-		msg[12] = byte((alt & 0x00F) << 4)
+		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
 	}
+
 	msg[13] = 0xBB // NIC and NACp.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
 		gdSpeed = mySituation.GroundSpeed
 	}
-	gdSpeed = gdSpeed & 0x0FFF // Should fit in 12 bits.
 
+	// gdSpeed should fit in 12 bits.
 	msg[14] = byte((gdSpeed & 0xFF0) >> 4)
 	msg[15] = byte((gdSpeed & 0x00F) << 4)
 
 	verticalVelocity := int16(1000 / 64) // ft/min. 64 ft/min resolution.
 	//TODO: 0x800 = no information available.
-	verticalVelocity = verticalVelocity & 0x0FFF // Should fit in 12 bits.
+	// verticalVelocity should fit in 12 bits.
 	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
 	msg[16] = byte(verticalVelocity & 0xFF)
 
@@ -434,9 +434,6 @@ func parseInput(buf string) ([]byte, uint16) {
 	replayLog(buf, MSGCLASS_UAT) // Log the raw message.
 
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
-	if len(x) == 0 {
-		return nil, 0
-	}
 	s := x[0]
 	if len(s) == 0 {
 		return nil, 0
@@ -642,12 +639,12 @@ func defaultSettings() {
 
 func readSettings() {
 	fd, err := os.Open(configLocation)
-	defer fd.Close()
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
 		return
 	}
+	defer fd.Close()
 	buf := make([]byte, 1024)
 	count, err := fd.Read(buf)
 	if err != nil {
@@ -668,11 +665,11 @@ func readSettings() {
 
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
-	defer fd.Close()
 	if err != nil {
 		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
 		return
 	}
+	defer fd.Close()
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
@@ -707,12 +704,13 @@ func main() {
 
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	defer fp.Close()
 	if err != nil {
-		log.Printf("Failed to open log file '%s': %s\n", debugLog, err.Error())
+		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
+	} else {
+		defer fp.Close()
+		mfp := io.MultiWriter(fp, os.Stdout)
+		log.SetOutput(mfp)
 	}
-	mfp := io.MultiWriter(fp, os.Stdout)
-	log.SetOutput(mfp)
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
 
