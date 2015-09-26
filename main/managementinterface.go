@@ -72,6 +72,7 @@ func handleManagementConnection(conn *websocket.Conn) {
 // AJAX call - /getTraffic. Responds with currently tracked traffic targets.
 
 func handleTrafficRequest(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	/* From JSON package docs:
 	"JSON objects only support strings as keys; to encode a Go map type it must be of the form map[string]T (where T is any Go type supported by the json package)."
 	*/
@@ -88,14 +89,28 @@ func handleTrafficRequest(w http.ResponseWriter, r *http.Request) {
 
 // AJAX call - /getSituation. Responds with current situation (lat/lon/gdspeed/track/pitch/roll/heading/etc.)
 func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	situationJSON, _ := json.Marshal(&mySituation)
 	fmt.Fprintf(w, "%s\n", situationJSON)
 }
 
 // AJAX call - /getTowers. Responds with all ADS-B ground towers that have sent messages that we were able to parse, along with its stats.
 func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
 	towersJSON, _ := json.Marshal(&ADSBTowers)
 	fmt.Fprintf(w, "%s\n", towersJSON)
+}
+
+// AJAX call - /getSettings. Responds with all stratux.conf data.
+func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+	settingsJSON, _ := json.Marshal(&globalSettings)
+	fmt.Fprintf(w, "%s\n", settingsJSON)
+}
+
+// AJAX call - /setSettings. receives via POST command, any/all stratux.conf data.
+func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
+	//TODO need this setter function implemented
 }
 
 func managementInterface() {
@@ -111,6 +126,8 @@ func managementInterface() {
 	http.HandleFunc("/getTraffic", handleTrafficRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
+	http.HandleFunc("/getSettings", handleSettingsGetRequest)
+	http.HandleFunc("/setSettings", handleSettingsSetRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
