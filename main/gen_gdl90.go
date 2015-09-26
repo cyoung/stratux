@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	humanize "github.com/dustin/go-humanize"
+
 	"../uatparse"
 )
 
