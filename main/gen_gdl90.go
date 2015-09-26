@@ -639,12 +639,12 @@ func defaultSettings() {
 
 func readSettings() {
 	fd, err := os.Open(configLocation)
-	defer fd.Close()
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		defaultSettings()
 		return
 	}
+	defer fd.Close()
 	buf := make([]byte, 1024)
 	count, err := fd.Read(buf)
 	if err != nil {
@@ -665,11 +665,11 @@ func readSettings() {
 
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
-	defer fd.Close()
 	if err != nil {
 		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
 		return
 	}
+	defer fd.Close()
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
