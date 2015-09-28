@@ -7,15 +7,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httputil"    // used for debugging
-    "reflect"              // used for debugging
 	"strconv"
 	"time"
 )
 
 type SettingMessage struct {
-	Setting  string `json:"setting"`
-	Value    bool   `json:"state"`
+	Setting string `json:"setting"`
+	Value   bool   `json:"state"`
 }
 
 type InfoMessage struct {
@@ -28,8 +26,9 @@ func statusSender(conn *websocket.Conn) {
 	for {
 		<-timer.C
 
-		// update, _ := json.Marshal(InfoMessage{status: &globalStatus, settings: &globalSettings})
-		update, _ := json.Marshal(&globalStatus)
+		update, _ := json.Marshal(InfoMessage{status: &globalStatus, settings: &globalSettings})
+        // TODO: once we switch to hte new WebUI, we will not send settings via websocket
+		// update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
 		if err != nil {
@@ -140,7 +139,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
                 log.Printf("handleSettingsSetRequest:error: %s\n", err.Error())
             } else {
                 for key, val := range msg {
-                    log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
+                    // log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
                     switch key {
                         case "UAT_Enabled":     globalSettings.UAT_Enabled = val.(bool)
                         case "ES_Enabled":      globalSettings.ES_Enabled = val.(bool)
