@@ -125,8 +125,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
     // for an OPTION method request, we return header without processing.
     // this insures we are recognized as supporting cross-domain AJAX REST calls
     if (r.Method == "POST") {
-        raw, _ := httputil.DumpRequest(r, true)
-        log.Printf("handleSettingsSetRequest:raw: %s\n", raw)
+        // raw, _ := httputil.DumpRequest(r, true)
+        // log.Printf("handleSettingsSetRequest:raw: %s\n", raw)
 
         decoder := json.NewDecoder(r.Body);
         for {
