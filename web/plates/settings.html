@@ -1,0 +1,52 @@
+<div class="col-sm-6">
+    <div class="panel panel-default">
+        <div class="panel-heading">Settings</div>
+        <div class="panel-body form-horizontal">
+            <div class="form-group">
+                <label class="control-label col-xs-6">978MHz</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">1090MHz</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">GPS</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">AHRS</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">Traffic Source</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='DEBUG' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">Replay Log</label>
+                <div class="col-xs-6">
+                    <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-xs-6">PPM Correction</label>
+                <form name="ppmForm" ng-submit="updateppm()" novalidate>
+                    <input class="col-xs-3" type="number" required ng-model="PPM" placeholder="integer" />
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-sm-6"> <pre>{{rawSettings}}</pre> </div>
+<!--
+-->
