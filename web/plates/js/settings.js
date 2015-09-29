@@ -3,9 +3,9 @@ SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$http']; // Inject my
 
 // create our controller function with all necessary logic
 function SettingsCtrl($rootScope, $scope, $state, $http) {
-    var getterURL = "http://192.168.6.104/getSettings";
-    var setterURL = "http://192.168.6.104/setSettings";
 
+    $scope.$parent.helppage = 'plates/settings-help.html';
+    
     var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DEBUG', 'ReplayLog']; // DEBUG is 'DspTrafficSrc'
     var settings = {};
     for (i = 0; i < toggles.length; i++) {
@@ -14,10 +14,10 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 
     function getSettings() {
         // Simple GET request example (note: responce is asynchronous)
-        $http.get(getterURL).
+        $http.get(URL_SETTINGS_GET).
         then(function (response) {
             //process
-            $scope.rawSettings = response.data;
+            $scope.rawSettings = response.data; // angular.toJson(response.data, true);
             settings = angular.fromJson(response.data);
             $scope.UAT_Enabled = settings.UAT_Enabled;
             $scope.ES_Enabled = settings.ES_Enabled;
@@ -38,10 +38,10 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 
     function setSettings(msg) {
         // Simple POST request example (note: responce is asynchronous)
-        $http.post(setterURL, msg).
+        $http.post(URL_SETTINGS_SET, msg).
         then(function (response) {
             //process
-            $scope.rawSettings = response.data;
+            $scope.rawSettings = response.data; // angular.toJson(response.data, true);
             settings = angular.fromJson(response.data);
             $scope.UAT_Enabled = settings.UAT_Enabled;
             $scope.ES_Enabled = settings.ES_Enabled;
@@ -49,7 +49,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
             $scope.AHRS_Enabled = settings.AHRS_Enabled;
             $scope.DEBUG = settings.DEBUG;
             $scope.ReplayLog = settings.ReplayLog;
-            $scope.PPM = settings.PPM;
+            $scope.PPM = parseInt(settings.PPM);
             // $scope.$apply();
         }, function (response) {
             $scope.rawSettings = "error setting settings";

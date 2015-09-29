@@ -1,5 +1,70 @@
+.help-page {
+    font-size: 0.85em;
+}
+
+.section_invisible {
+    display: none;
+}
+
+.ahrs_connected {
+    content:
+}
+
+.ahrs_disconnected {}
+
+.separator {
+    height: 1px;
+    border-bottom: 1px solid #cccccc;
+    margin-bottom: 4px;
+}
+
+
+/* ***************************************************************************
+everything below this comment represents tweeks to the mobile-angular-uis CSS
+*************************************************************************** */
+
+.label_adj {
+    margin-left: -15px;
+    margin-right: -15px;
+ }
+input[type="number_format"] {
+    text-align: end;
+}
+
+.sidebar .scrollable-header,
+.panel-title {
+    border-bottom: 1px solid #cccccc;
+}
+
+.app-body,
+.panel-default,
+.scrollable-content,
+.form-group {
+    background-color: #ffffff;
+}
+
 .app-content {
     margin-top: 4px;
+}
+
+.sidebar-header,
+.app-name {
+    line-height: 50px;
+    color: #000;
+    background-color: #f7f7f7;
+}
+
+.panel-heading {
+    padding: 4px 4px 4px 4px;
+    border-bottom: 1px solid transparent;
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
+    border-bottom: 1px solid #cccccc;
+    font-weight: bold;
+}
+
+.panel-group .panel-heading {
+    border-bottom: inherit;
 }
 
 .panel_label {
@@ -11,72 +76,47 @@
     padding-bottom: 2px;
 }
 
-.feature-icon {
-  font-size: 44px;
-  padding: 0;
-  line-height: 68px;
-  width: 72px;
-  text-align: center;
-  opacity: .8;
-  border: 3px solid;
-  border-radius: 200px;
-  height: 72px;
-  margin-bottom: 20px;
+.panel-body {
+    padding: 8px 4px 4px 4px;
 }
 
-.feature-icon.fa-gamepad {
-  line-height: 60px;
+.control-label {
+    line-height: 28px;
+    margin-bottom: 4px;
 }
 
-.feature-icon.fa-tachometer {
-  line-height: 60px;
+.switch {
+    cursor: pointer;
+    position: relative;
+    display: block;
+    width: 52px;
+    height: 28px;
+    margin-bottom: 4px;
 }
 
-.app-content-loading {
-  text-align: center;
-  height: 100%;
-  width: 100%;
-  background: #fff;
-  position: relative;
+.switch .switch-handle {
+    width: 26px;
+    height: 28px;
 }
 
-.loading-spinner {
-  position: absolute;
-  font-size: 50px;
-  left: 50%;
-  top: 50%;
-  margin-left: -25px;
-  margin-top: -25px;
-}
-
-.notices-container {
-  overflow-x: hidden;
-}
-
-.dismiss {
-  -webkit-transition: opacity 300ms, -webkit-transform 300ms;
-  -moz-transition: opacity 300ms, -moz-transform 300ms;
-  transition: opacity 300ms, transform 300ms;
-  opacity: 0.5;
-}
-
-.dismitted {
-  -webkit-transition: opacity 300ms, -webkit-transform 300ms;
-  -moz-transition: opacity 300ms, -moz-transform 300ms;
-  transition: opacity 300ms, transform 300ms;
-  opacity: 0;
-}
-
-.list-group-item-home {
-  padding: 20px; 
+.switch.active .switch-handle {
+    border-color: #007aff;
+    -webkit-transform: translate(26px, 0);
+    -ms-transform: translate(26px, 0);
+    -o-transform: translate(26px, 0);
+    transform: translate(26px, 0);
 }
 
 pre {
-  text-align: left !important;
+    display: block;
+    padding: 0;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.42857143;
+    word-break: break-all;
+    word-wrap: break-word;
+    color: #333333;
+    background-color: inherit;
+    border: 0px;
+    border-radius: 0px;
 }
-
-input.scrollable-header {
-  border-bottom: 3px solid #ccc;
-}
-
-.toucharea {width: 100%; height: 100%;}

@@ -68,7 +68,7 @@
 
 <body ng-app="stratux" ng-controller="MainCtrl" ui-prevent-touchmove-defaults>
 
-    <!-- Define Sidebar Navigation -->
+    <!-- Define Left (Menu) Sidebar Navigation -->
     <div ui-track-as-search-param='true' class="sidebar sidebar-left">
         <div class="scrollable">
             <h3 class="scrollable-header app-name">Menu</h3>
@@ -86,8 +86,19 @@
             </div>
         </div>
     </div>
+    <!-- Define Right (Help) Sidebar -->
+    <div class="sidebar sidebar-right">
+        <div class="scrollable">
+            <h3 class="scrollable-header app-name">Help</h3>
+            <div class="scrollable-content">
+                <div class="list-group" ui-toggle="uiSidebarRight">
+                    <div ng-include="helppage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div ng-include="'plates/help.html'" class="sidebar sidebar-right"></div>
+
 
     <div class="app" ui-swipe-right='Ui.turnOn("uiSidebarLeft")' ui-swipe-left='Ui.turnOff("uiSidebarLeft")'>
 
@@ -105,7 +116,7 @@
             </div>
             <div class="btn-group pull-right" ui-yield-to="navbarAction">
                 <div ui-toggle="uiSidebarRight" class="btn">
-                    <i class="fa fa-info-circle"></i>
+                    <i class="fa fa-info-circle"></i> Help
                 </div>
             </div>
         </div>

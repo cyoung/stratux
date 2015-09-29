@@ -8413,7 +8413,7 @@ a.list-group-item .icon.pull-right {
   position: relative;
   z-index: 2;
   width: 100%;
-  background: #ffffff; /* 777777 */
+  background: #777777;
   overflow: hidden;
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
@@ -8531,7 +8531,7 @@ a.list-group-item .icon.pull-right {
 }
 
 .sidebar-left {
-  background: #f5f5f5;
+  background: #555555;
   width: 300px;
   left: 0;
   right: auto;
@@ -8541,7 +8541,7 @@ a.list-group-item .icon.pull-right {
 }
 
 .sidebar-right {
-  background: #f5f5f5;
+  background: #555555;
   width: 300px;
   left: auto;
   right: 0;
@@ -8588,10 +8588,10 @@ a.list-group-item .icon.pull-right {
 .app-name {
   position: relative;
   width: 100%;
-  line-height: 51px;
+  line-height: 70px;
   padding: 0 10px;
-  font-size: 20px;
-  color: #000; /* #ffffff #007aff */
+  font-size: 23px;
+  color: #ffffff;
   margin: 0;
   z-index: 10;
 }

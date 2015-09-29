@@ -1,4 +1,4 @@
-<div class="col-sm-6">
+<div class="col-sm-12">
     <div class="text-center">
         <p><strong>Version: <span>{{Version}}</span></strong></p>
     </div>
@@ -8,34 +8,35 @@
         </div>
         <div class="panel-body">
             <div class="form-horizontal">
-                <!--
-                        <div class="row">
-                            <label class="col-xs-6">RTL-SDR devices:</label>
-                            <span class="col-xs-2">{{Devices}}</span>
-                        </div>
-                        -->
                 <div class="row">
-                    <label class="col-xs-6">Recent Clients:</label>
-                    <span class="col-xs-6">{{Connected_Users}}</span>
+                    <div class="col-sm-6 label_adj">
+                        <strong class="col-xs-6">Recent Clients:</strong>
+                        <span class="col-xs-2 text-right">{{Connected_Users}}</span>
+                    </div>
+                    <div class="col-sm-6 label_adj">
+                        <strong class="col-xs-6">RTL-SDR devices:</strong>
+                        <span class="col-xs-2 text-right">{{Devices}}</span>
+                    </div>
                 </div>
-
+                <div class="separator"></div>
                 <div class="row">
                     <label class="col-xs-5">Messages</label>
                     <label class="col-xs-3 text-right">Minute</label>
                     <label class="col-xs-3 text-right">Peak</label>
                 </div>
-                <div class="row">
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
                     <span class="col-xs-1"></span>
                     <label class="col-xs-4">UAT:</label>
                     <span class="col-xs-3 text-right">{{UAT_messages_last_minute}}</span>
                     <span class="col-xs-3 text-right">{{UAT_messages_max}}</span>
                 </div>
-                <div class="row">
+                <div class="row" ng-class="{'section_invisible': !visible_es}">
                     <span class="col-xs-1"></span>
                     <label class="col-xs-4">1090ES:</label>
                     <span class="col-xs-3 text-right">{{ES_messages_last_minute}}</span>
                     <span class="col-xs-3 text-right">{{ES_messages_max}}</span>
                 </div>
+                <!--
                 <div id="uat_products" style="display: none;">
                     <div class="row"><span class="col-xs-1">&nbsp;</span></div>
                     <div class="row">
@@ -45,25 +46,31 @@
                     </div>
                     <div>{{product_rows}}</div>
                 </div>
-                <div class="row"><span class="col-xs-1">&nbsp;</span></div>
-                <div class="row">
+-->
+                <div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs)}">
+                    <span class="col-xs-1">&nbsp;</span>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_gps}">
                     <label class="col-xs-6">GPS satellites:</label>
                     <span class="col-xs-6">{{GPS_satellites_locked}}</span>
                 </div>
-                <div class="row">
+                <div class="row" ng-class="{'section_invisible': !visible_ahrs}">
                     <label class="col-xs-6">AHRS:</label>
                     <div id="RY835AI_connected-container" class="col-xs-6">
-                        <div class="led-red">{{RY835AI_connected}}</div>
+                        <div ng-class="RY835AI_connected ? 'fa fa-check-circle text-success' : 'fa fa-times-circle text-danger'"></div>
                     </div>
                 </div>
                 <div class="row"><span class="col-xs-1">&nbsp;</span></div>
+                <div class="separator"></div>
                 <div class="row">
-                    <label class="col-xs-6">Uptime:</label>
-                    <span class="col-xs-6">{{Uptime}}</span>
-                </div>
-                <div class="row">
-                    <label class="col-xs-6">CPU Temp:</label>
-                    <span class="col-xs-6">{{CPUTemp}}</span>
+                    <div class="col-sm-6 label_adj">
+                        <strong class="col-xs-6">Uptime:</strong>
+                        <span class="col-xs-6">{{Uptime}}</span>
+                    </div>
+                    <div class="col-sm-6 label_adj">
+                        <strong class="col-xs-6">CPU Temp:</strong>
+                        <span class="col-xs-6">{{CPUTemp}}</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,3 +1,8 @@
+// application constants
+var URL_SETTINGS_GET = "http://192.168.6.104/getSettings";
+var URL_SETTINGS_SET = "http://192.168.6.104/setSettings";
+
+
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
 var app = angular.module('stratux', ['ui.router', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);

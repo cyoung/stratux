@@ -4,6 +4,8 @@ StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http']; // Inject my d
 // create our controller function with all necessary logic
 function StatusCtrl($rootScope, $scope, $state, $http) {
 
+    $scope.$parent.helppage = 'plates/status-help.html';
+
     function connect($scope) {
         if (($scope === undefined) || ($scope === null))
             return; // we are getting called once after clicking away from the status page
@@ -69,8 +71,24 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
         };
     }
 
+    function setHardwareVisibility() {
+        $scope.visible_uat = true;
+        $scope.visible_es = true;
+        $scope.visible_gps = true;
+        $scope.visible_ahrs = true;
 
-
+        // Simple GET request example (note: responce is asynchronous)
+        $http.get(URL_SETTINGS_GET).
+        then(function (response) {
+            settings = angular.fromJson(response.data);
+            $scope.visible_uat = settings.UAT_Enabled;
+            $scope.visible_es = settings.ES_Enabled;
+            $scope.visible_gps = settings.GPS_Enabled;
+            $scope.visible_ahrs = settings.AHRS_Enabled;
+        }, function (response) {
+            // nop
+        });
+    };
 
     $state.get('home').onEnter = function () {
         // everything gets handled correctly by the controller
@@ -82,6 +100,8 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
         }
     };
 
+
     // Status Controller tasks
+    setHardwareVisibility();
     connect($scope); // connect - opens a socket and listens for messages
 };

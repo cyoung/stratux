@@ -1,52 +1,84 @@
-<div class="col-sm-6">
-    <div class="panel panel-default">
-        <div class="panel-heading">Settings</div>
-        <div class="panel-body form-horizontal">
-            <div class="form-group">
-                <label class="control-label col-xs-6">978MHz</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
+<div class="col-sm-12">
+    <div class="panel-group col-sm-6">
+
+        <div class="panel panel-default">
+            <div class="panel-heading">Hardware</div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="control-label col-xs-7">978MHz</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-xs-7">1090MHz</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-xs-7">GPS</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-xs-7">AHRS</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">1090MHz</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
+        </div>
+    </div>
+
+    <div class="panel-group col-sm-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">Diagnostics</div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="control-label col-xs-7">Traffic Markings</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='DEBUG' settings-change></ui-switch>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-xs-7">Record Logs</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">GPS</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+        </div>
+
+
+        <div class="panel panel-default">
+            <div class="panel-heading">Configuration</div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="control-label col-xs-8">PPM Correction</label>
+                    <form name="ppmForm" ng-submit="updateppm()" novalidate>
+                        <!-- type="number" not supported except on mobile -->
+                        <input class="col-xs-4" type="number_format" required ng-model="PPM" placeholder="integer" />
+                    </form>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">AHRS</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">Traffic Source</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='DEBUG' settings-change></ui-switch>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">Replay Log</label>
-                <div class="col-xs-6">
-                    <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="control-label col-xs-6">PPM Correction</label>
-                <form name="ppmForm" ng-submit="updateppm()" novalidate>
-                    <input class="col-xs-3" type="number" required ng-model="PPM" placeholder="integer" />
-                </form>
+
             </div>
         </div>
     </div>
 </div>
-<div class="col-sm-6"> <pre>{{rawSettings}}</pre> </div>
+<div class="col-sm-12">
+
+    <div class="panel panel-default" xui-set="{'settingsAccordion' : 4}">
+        <div class="panel-heading">Raw Configuration</div>
+        <div xui-if="settingsAccordion == 4">
+            <div class="panel-body">
+                <p>stratux.conf:</p>
+                <pre>{{rawSettings}}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!--
 -->
