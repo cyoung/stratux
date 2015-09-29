@@ -1,6 +1,8 @@
 // application constants
-var URL_SETTINGS_GET = "http://192.168.6.104/getSettings";
-var URL_SETTINGS_SET = "http://192.168.6.104/setSettings";
+var URL_HOST_BASE = window.location.hostname;
+var URL_SETTINGS_GET = "http://" + URL_HOST_BASE + "/getSettings";
+var URL_SETTINGS_SET = "http://" + URL_HOST_BASE + "/setSettings";
+
 
 
 // define the module with dependency on mobile-angular-ui

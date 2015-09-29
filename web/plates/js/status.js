@@ -12,7 +12,7 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
 
         if (($scope.socket === undefined) || ($scope.socket === null)) {
             // socket = new WebSocket('ws://' + window.location.hostname + '/control');
-            socket = new WebSocket('ws://192.168.6.104/control');
+            socket = new WebSocket('ws://' + URL_HOST_BASE + '/control');
             $scope.socket = socket; // store socket in scope for enter/exit usage
         }
 
