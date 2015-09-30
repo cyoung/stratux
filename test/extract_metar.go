@@ -33,7 +33,7 @@ var logger *log.Logger
 var buf bytes.Buffer
 
 func dlac_decode(data []byte, data_len uint32) string {
-	fmt.Printf("dlac on %s\n", hex.Dump(data))
+	//	fmt.Printf("dlac on %s\n", hex.Dump(data))
 	step := 0
 	tab := false
 	ret := ""
@@ -78,7 +78,7 @@ func decodeInfoFrame(frame []byte, frame_start int, frame_len uint32, frame_type
 
 	t_opt := ((uint32(data[1]) & 0x01) << 1) | (uint32(data[2]) >> 7)
 	product_id := ((uint32(data[0]) & 0x1f) << 6) | (uint32(data[1]) >> 2)
-	fmt.Printf("%d %d\n", data[0], data[1])
+	//	fmt.Printf("%d %d\n", data[0], data[1])
 	if product_id != 413 { // FIXME.
 		return
 	}
