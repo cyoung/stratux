@@ -364,7 +364,7 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.UAT_products_last_minute = products_last_minute
+	globalStatus.uat_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -612,7 +612,7 @@ type status struct {
 	Devices                  uint
 	Connected_Users          uint
 	UAT_messages_last_minute uint
-	UAT_products_last_minute map[string]uint32
+	uat_products_last_minute map[string]uint32
 	UAT_messages_max         uint
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
