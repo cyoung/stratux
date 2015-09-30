@@ -16,11 +16,25 @@ type SettingMessage struct {
 	Value   bool   `json:"state"`
 }
 
-func statusSender(conn *websocket.Conn) {
+func handleManagementConnection(conn *websocket.Conn) {
+	//	log.Printf("Web client connected.\n")
+
 	timer := time.NewTicker(1 * time.Second)
 	for {
-		<-timer.C
+		// The below is not used, but should be if something needs to be streamed from the web client ever in the future.
+/*		var msg SettingMessage
+		err := websocket.JSON.Receive(conn, &msg)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Printf("handleManagementConnection: %s\n", err.Error())
+		} else {
+			// Use 'msg'.
+		}
+*/
 
+		// Send status.
+		<-timer.C
 		update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
@@ -29,13 +43,6 @@ func statusSender(conn *websocket.Conn) {
 			break
 		}
 	}
-}
-
-func handleManagementConnection(conn *websocket.Conn) {
-	//	log.Printf("Web client connected.\n")
-	go statusSender(conn)
-
-	// Used to have websocket "receive" functions here, but nothing is used sent back from the client over websocket anymore.
 }
 
 // AJAX call - /getTraffic. Responds with currently tracked traffic targets.
