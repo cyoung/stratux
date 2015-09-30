@@ -94,6 +94,11 @@ func sendTrafficUpdates() {
 	}
 }
 
+// Send update to attached client.
+func registerTrafficUpdate(ti TrafficInfo) {
+	trafficUpdate <- ti
+}
+
 func makeTrafficReport(ti TrafficInfo) {
 	msg := make([]byte, 28)
 	// See p.16.
@@ -352,6 +357,7 @@ func parseDownlinkReport(s string) {
 	}
 
 	traffic[ti.Icao_addr] = ti
+	registerTrafficUpdate(ti)
 	seenTraffic[ti.Icao_addr] = true // Mark as seen.
 }
 
@@ -505,6 +511,7 @@ func esListen() {
 			}
 
 			traffic[icaoDec] = ti // Update information on this ICAO code.
+			registerTrafficUpdate(ti)
 			seenTraffic[icaoDec] = true // Mark as seen.
 			trafficMutex.Unlock()
 		}

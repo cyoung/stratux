@@ -18,7 +18,7 @@ type SettingMessage struct {
 
 // Weather updates channel.
 var weatherUpdate chan WeatherMessage
-
+var trafficUpdate chan TrafficInfo
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
@@ -35,6 +35,22 @@ func handleWeatherWS(conn *websocket.Conn) {
 		lastUpdate := <-weatherUpdate
 		weatherJSON, _ := json.Marshal(&lastUpdate)
 		conn.Write(weatherJSON)
+	}
+}
+
+// Works just as weather updates do.
+
+func handleTrafficWS(conn *websocket.Conn) {
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	trafficMutex.Unlock()
+	for {
+		lastUpdate := <-trafficUpdate
+		trafficJSON, _ := json.Marshal(&lastUpdate)
+		conn.Write(trafficJSON)
 	}
 }
 
@@ -65,24 +81,6 @@ func handleStatusWS(conn *websocket.Conn) {
 			break
 		}
 	}
-}
-
-// AJAX call - /getTraffic. Responds with currently tracked traffic targets.
-func handleTrafficRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
-	/* From JSON package docs:
-	"JSON objects only support strings as keys; to encode a Go map type it must be of the form map[string]T (where T is any Go type supported by the json package)."
-	*/
-	t := make(map[string]TrafficInfo)
-	trafficMutex.Lock()
-	for icao, traf := range traffic {
-		icaoStr := strconv.FormatInt(int64(icao), 16) // Convert to hex.
-		t[icaoStr] = traf
-	}
-	trafficJSON, _ := json.Marshal(&t)
-	trafficMutex.Unlock()
-	fmt.Fprintf(w, "%s\n", trafficJSON)
 }
 
 // AJAX call - /getSituation. Responds with current situation (lat/lon/gdspeed/track/pitch/roll/heading/etc.)
@@ -177,6 +175,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 
 func managementInterface() {
 	weatherUpdate = make(chan WeatherMessage, 1024)
+	trafficUpdate = make(chan TrafficInfo, 1024)
 
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -192,8 +191,14 @@ func managementInterface() {
 				Handler: websocket.Handler(handleWeatherWS)}
 			s.ServeHTTP(w, req)
 		})
+	http.HandleFunc("/traffic",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleTrafficWS)}
+			s.ServeHTTP(w, req)
+		})
 
-	http.HandleFunc("/getTraffic", handleTrafficRequest)
+
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)

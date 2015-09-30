@@ -440,7 +440,7 @@ type WeatherMessage struct {
 
 var weatherMessages []WeatherMessage
 
-//TODO: Will likely hook into stream on management interface.
+// Send update to attached client.
 func registerADSBTextMessageReceived(msg string) {
 	x := strings.Split(msg, " ")
 	if len(x) < 5 {
