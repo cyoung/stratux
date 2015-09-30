@@ -156,7 +156,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
-	http.HandleFunc("/control",
+	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleManagementConnection)}
