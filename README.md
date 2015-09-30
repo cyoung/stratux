@@ -14,7 +14,7 @@ Tested RTL-SDR:
 * Generic R820T (degraded performance)
 
 Tested weather/traffic displays:
-* ForeFlight 7.2 (Jul 13, 2015) - weather, traffic, AHRS.
+* ForeFlight 7.3.2 (Sep 23, 2015) - weather, traffic, AHRS.
 * Naviator - weather, traffic, AHRS.
 * WingX - weather & traffic.
 * Avare
