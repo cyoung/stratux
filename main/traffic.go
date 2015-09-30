@@ -96,7 +96,9 @@ func sendTrafficUpdates() {
 
 // Send update to attached client.
 func registerTrafficUpdate(ti TrafficInfo) {
-	trafficUpdate <- ti
+	if ti.Position_valid { // Don't send unless a valid position exists.
+		trafficUpdate <- ti
+	}
 }
 
 func makeTrafficReport(ti TrafficInfo) {

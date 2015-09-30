@@ -43,6 +43,9 @@ func handleWeatherWS(conn *websocket.Conn) {
 func handleTrafficWS(conn *websocket.Conn) {
 	trafficMutex.Lock()
 	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
 		trafficJSON, _ := json.Marshal(&traf)
 		conn.Write(trafficJSON)
 	}
