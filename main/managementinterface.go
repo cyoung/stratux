@@ -16,19 +16,12 @@ type SettingMessage struct {
 	Value   bool   `json:"state"`
 }
 
-type InfoMessage struct {
-	*status
-	*settings
-}
-
 func statusSender(conn *websocket.Conn) {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
 
-		update, _ := json.Marshal(InfoMessage{status: &globalStatus, settings: &globalSettings})
-		// TODO: once we switch to hte new WebUI, we will not send settings via websocket
-		// update, _ := json.Marshal(&globalStatus)
+		update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
 		if err != nil {
@@ -42,34 +35,7 @@ func handleManagementConnection(conn *websocket.Conn) {
 	//	log.Printf("Web client connected.\n")
 	go statusSender(conn)
 
-	// TODO: once we have the new WebUI established, the websocket will nolonger receive settings changes
-	for {
-		var msg SettingMessage
-		err := websocket.JSON.Receive(conn, &msg)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Printf("handleManagementConnection: %s\n", err.Error())
-		} else {
-			if msg.Setting == "UAT_Enabled" {
-				globalSettings.UAT_Enabled = msg.Value
-			}
-			if msg.Setting == "ES_Enabled" {
-				globalSettings.ES_Enabled = msg.Value
-			}
-			if msg.Setting == "GPS_Enabled" {
-				globalSettings.GPS_Enabled = msg.Value
-			}
-			if msg.Setting == "AHRS_Enabled" {
-				globalSettings.AHRS_Enabled = msg.Value
-			}
-			if msg.Setting == "DEBUG" {
-				globalSettings.DEBUG = msg.Value
-			}
-
-			saveSettings()
-		}
-	}
+	// Used to have websocket "receive" functions here, but nothing is used sent back from the client over websocket anymore.
 }
 
 // AJAX call - /getTraffic. Responds with currently tracked traffic targets.
