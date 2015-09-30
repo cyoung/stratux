@@ -16,7 +16,29 @@ type SettingMessage struct {
 	Value   bool   `json:"state"`
 }
 
-func handleManagementConnection(conn *websocket.Conn) {
+// Weather updates channel.
+var weatherUpdate chan WeatherMessage
+
+
+/*
+	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
+*/
+
+func handleWeatherWS(conn *websocket.Conn) {
+	// Send current buffer.
+	for _, w := range weatherMessages {
+		weatherJSON, _ := json.Marshal(&w)
+		conn.Write(weatherJSON)
+	}
+	// Wait for updates and send as they are received.
+	for {
+		lastUpdate := <-weatherUpdate
+		weatherJSON, _ := json.Marshal(&lastUpdate)
+		conn.Write(weatherJSON)
+	}
+}
+
+func handleStatusWS(conn *websocket.Conn) {
 	//	log.Printf("Web client connected.\n")
 
 	timer := time.NewTicker(1 * time.Second)
@@ -27,7 +49,7 @@ func handleManagementConnection(conn *websocket.Conn) {
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					log.Printf("handleManagementConnection: %s\n", err.Error())
+					log.Printf("handleStatusWS: %s\n", err.Error())
 				} else {
 					// Use 'msg'.
 				}
@@ -154,12 +176,20 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func managementInterface() {
+	weatherUpdate = make(chan WeatherMessage, 1024)
+
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
-				Handler: websocket.Handler(handleManagementConnection)}
+				Handler: websocket.Handler(handleStatusWS)}
+			s.ServeHTTP(w, req)
+		})
+	http.HandleFunc("/weather",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleWeatherWS)}
 			s.ServeHTTP(w, req)
 		})
 

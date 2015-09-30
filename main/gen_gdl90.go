@@ -430,6 +430,43 @@ func replayLog(msg string, msgclass int) {
 	}
 }
 
+type WeatherMessage struct {
+	Type              string
+	Location          string
+	Time              string
+	Data              string
+	LocaltimeReceived time.Time
+}
+
+var weatherMessages []WeatherMessage
+
+//TODO: Will likely hook into stream on management interface.
+func registerADSBTextMessageReceived(msg string) {
+	x := strings.Split(msg, " ")
+	if len(x) < 5 {
+		return
+	}
+
+	var wm WeatherMessage
+
+	wm.Type = x[0]
+	wm.Location = x[1]
+	wm.Time = x[2]
+	wm.Data = strings.Join(x[3:], " ")
+	wm.LocaltimeReceived = time.Now()
+
+	//FIXME: Fixed log size currently - determine what works best for the web interface.
+	n := len(weatherMessages)
+	if n >= 2500 {
+		weatherMessages = weatherMessages[1:]
+	}
+
+	weatherMessages = append(weatherMessages, wm)
+
+	// Send to weatherUpdate channel for any connected clients.
+	weatherUpdate <- wm
+}
+
 func parseInput(buf string) ([]byte, uint16) {
 	replayLog(buf, MSGCLASS_UAT) // Log the raw message.
 
@@ -515,6 +552,11 @@ func parseInput(buf string) ([]byte, uint16) {
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
+			}
+			// Get all of the text reports.
+			textReports, _ := uatMsg.GetTextReports()
+			for _, r := range textReports {
+				registerADSBTextMessageReceived(r)
 			}
 		}
 	}
@@ -717,6 +759,7 @@ func main() {
 
 	ADSBTowers = make(map[string]ADSBTower)
 	MsgLog = make([]msg, 0)
+	weatherMessages = make([]WeatherMessage, 0)
 
 	crcInit() // Initialize CRC16 table.
 	sdrInit()
