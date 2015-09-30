@@ -22,16 +22,16 @@ func handleManagementConnection(conn *websocket.Conn) {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		// The below is not used, but should be if something needs to be streamed from the web client ever in the future.
-/*		var msg SettingMessage
-		err := websocket.JSON.Receive(conn, &msg)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Printf("handleManagementConnection: %s\n", err.Error())
-		} else {
-			// Use 'msg'.
-		}
-*/
+		/*		var msg SettingMessage
+				err := websocket.JSON.Receive(conn, &msg)
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					log.Printf("handleManagementConnection: %s\n", err.Error())
+				} else {
+					// Use 'msg'.
+				}
+		*/
 
 		// Send status.
 		<-timer.C
@@ -128,6 +128,17 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.ReplayLog = val.(bool)
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "OwnshipModeS":
+						// Expecting a hex string less than 6 characters (24 bits) long.
+						hexc := val.(string)
+						if len(hexc) > 6 { // Too long.
+							continue
+						}
+						i, err := strconv.ParseInt(hexc, 16, 32)
+						if err != nil { // Number not valid.
+							continue
+						}
+						globalSettings.OwnshipModeS = int32(i)
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}

@@ -184,7 +184,10 @@ func main() {
 	logger = log.New(&buf, "logger: ", log.Lshortfile)
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		buf, _ := reader.ReadString('\n')
+		buf, err := reader.ReadString('\n')
+		if err != nil { // All done.
+			break
+		}
 		parseInput(buf)
 	}
 }
