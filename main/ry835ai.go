@@ -31,6 +31,7 @@ type SituationData struct {
 	quality                 uint8
 	Satellites              uint16
 	Accuracy                float32 // Meters.
+	NACp                    uint8   // NACp categories are defined in AC 20-165A
 	Alt                     float32 // Feet.
 	alt_accuracy            float32
 	LastFixLocalTime        time.Time
@@ -266,7 +267,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.quality = uint8(q)
+		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
 		// Satellites.
 		sat, err1 := strconv.Atoi(x[7])
@@ -280,7 +281,28 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.Accuracy = float32(hdop * 5.0) //FIXME: 5 meters ~ 1.0 HDOP?
+		if mySituation.quality == 2 {
+			mySituation.Accuracy = float32(hdop * 4.0) //Estimate for WAAS / DGPS solution
+		} else {
+			mySituation.Accuracy = float32(hdop * 8.0) //Estimate for 3D non-WAAS solution
+		}
+
+		// NACp estimate.
+		if mySituation.Accuracy < 3 {
+			mySituation.NACp = 11
+		} else if mySituation.Accuracy < 10 {
+			mySituation.NACp = 10
+		} else if mySituation.Accuracy < 30 {
+			mySituation.NACp = 9
+		} else if mySituation.Accuracy < 92.6 {
+			mySituation.NACp = 8
+		} else if mySituation.Accuracy < 185.2 {
+			mySituation.NACp = 7
+		} else if mySituation.Accuracy < 555.6 {
+			mySituation.NACp = 6
+		} else {
+			mySituation.NACp = 0
+		}
 
 		// Altitude.
 		alt, err1 := strconv.ParseFloat(x[9], 32)

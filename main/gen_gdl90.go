@@ -211,7 +211,7 @@ func makeOwnshipReport() bool {
 		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
 	}
 
-	msg[13] = 0xBB // NIC and NACp.
+	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
@@ -238,6 +238,15 @@ func makeOwnshipReport() bool {
 	msg[17] = byte(trk)
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
+
+	// Create callsign "Stratux".
+	msg[19] = 0x53
+	msg[20] = 0x74
+	msg[21] = 0x72
+	msg[22] = 0x61
+	msg[23] = 0x74
+	msg[24] = 0x75
+	msg[25] = 0x78
 
 	sendGDL90(prepareMessage(msg), false)
 	return true
@@ -737,7 +746,7 @@ func printStats() {
 		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
-		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.LastFixLocalTime))
+		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s, GPS solution type: %d, NACp: %d, est accuracy %.02f m\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.NACp, mySituation.Accuracy)
 	}
 }
 
