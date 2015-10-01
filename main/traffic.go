@@ -48,6 +48,11 @@ AUXSV:
 
 */
 
+const (
+	TRAFFIC_SOURCE_1090ES = 1
+	TRAFFIC_SOURCE_UAT    = 2
+)
+
 type TrafficInfo struct {
 	Icao_addr        uint32
 	addr_type        uint8
@@ -68,7 +73,8 @@ type TrafficInfo struct {
 
 	Tail string
 
-	Last_seen time.Time
+	Last_seen   time.Time
+	Last_source uint8
 }
 
 var traffic map[uint32]TrafficInfo
@@ -328,6 +334,7 @@ func parseDownlinkReport(s string) {
 	//OK.
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
+	ti.Last_source = TRAFFIC_SOURCE_UAT
 	ti.Last_seen = time.Now()
 
 	// Parse tail number, if available.
@@ -499,6 +506,7 @@ func esListen() {
 			}
 
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
+			ti.Last_source = TRAFFIC_SOURCE_1090ES
 			ti.Last_seen = time.Now()
 
 			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
