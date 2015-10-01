@@ -49,7 +49,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
             $scope.AHRS_Enabled = settings.AHRS_Enabled;
             $scope.DEBUG = settings.DEBUG;
             $scope.ReplayLog = settings.ReplayLog;
-            $scope.PPM = parseInt(settings.PPM);
+            $scope.PPM = settings.PPM;
             // $scope.$apply();
         }, function (response) {
             $scope.rawSettings = "error setting settings";
@@ -82,9 +82,9 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 
     $scope.updateppm = function() {
         if (($scope.PPM !== undefined) && ($scope.PPM !== null) && $scope.PPM !== settings["PPM"]) {
-            settings["PPM"] = $scope.PPM;
+            settings["PPM"] = parseInt($scope.PPM);
             newsettings = {
-                "PPM": $scope.PPM
+                "PPM": parseInt($scope.PPM)
             };
             console.log(angular.toJson(newsettings));
             setSettings(angular.toJson(newsettings));

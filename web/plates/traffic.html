@@ -1,13 +1,52 @@
-<div class="list-group text-center">
-    <div class="list-group-item list-group-item-home">
-        <h2>ADSB Traffic</h2>
-    </div>
-    <div class="list-group-item list-group-item-home">
-        <div>
-            <i class="fa fa-plane feature-icon text-primary"></i>
-        </div>
-        <div>
-            this space reserved to display traffic data
-        </div>
-    </div>
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Traffic</span> <span class="label" ng-class="ConnectStyle">{{ConnectState}}</span>
+		</div>
+		<div class="panel-body">
+			<div class="row">
+				<div class="col-sm-6">
+					<span class="col-xs-3"><strong>Flight</strong></span>
+					<span class="col-xs-3 text-right">Speed</span>
+					<span class="col-xs-3 text-right">Altitude</span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
+					<span class="col-xs-2 text-right">Hdg</span>
+				</div>
+				<div class="col-sm-6">
+					<span class="col-xs-2">&nbsp;</span>
+					<span class="col-xs-7">Location</span>
+					<span class="col-xs-3 text-right">Time</span>
+				</div>
+			</div>
+			
+			<div class="row" ng-repeat="aircraft in traffic | orderBy: -age">
+			<div class="separator"></div>
+				<div class="col-sm-6">
+					<span ng-show="aircraft.tail" class="col-xs-3"><strong>{{aircraft.tail}}</strong></span>
+					<span ng-hide="aircraft.tail" class="col-xs-3 text-muted"><strong>{{aircraft.icao}}</strong></span>
+	
+					<span class="col-xs-3 text-right">{{aircraft.speed}}KTS</span>
+					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
+					<span class="col-xs-1 small col-padding-shift-right text-muted">
+						<span ng-show="aircraft.vspeed">(<span ng-show="aircraft.vspeed > 0">+</span>{{aircraft.vspeed}})</span>
+					</span>
+					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>
+				</div>
+				<div class="col-sm-6">
+					<span class="col-xs-2">&nbsp;</span>
+					<span class="col-xs-7">{{aircraft.lat}} {{aircraft.lon}}</span>
+					<span class="col-xs-3 text-right">{{aircraft.time}}</span>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
+<!--
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">Raw Traffic Data</div>
+		<div class="panel-body">
+			<pre>{{rawTraffic}}</pre>
+		</div>
+	</div>
+</div>
+-->
