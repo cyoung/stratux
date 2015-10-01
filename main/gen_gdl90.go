@@ -273,6 +273,33 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	return true
 }
 
+/*
+
+	"Stratux" GDL90 message.
+
+	Message ID 0xCC.
+	Byte1: p p p p p p GPS AHRS
+	First 6 bytes are protocol version codes.
+	Protocol 1: GPS on/off | AHRS on/off.
+*/
+
+func makeStratuxHeartbeat() []byte {
+	msg := make([]byte, 2)
+	msg[0] = 0xCC // Message type "Stratux".
+	msg[1] = 0
+	if isGPSValid() {
+		msg[1] = 0x02
+	}
+	if isAHRSValid() {
+		msg[1] = msg[1] | 0x01
+	}
+
+	protocolVers := int8(1)
+	msg[1] = msg[1] | byte(protocolVers << 2)
+
+	return prepareMessage(msg)
+}
+
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
@@ -321,6 +348,7 @@ func heartBeatSender() {
 		select {
 		case <-timer.C:
 			sendGDL90(makeHeartbeat(), false)
+			sendGDL90(makeStratuxHeartbeat(), false)
 			//		sendGDL90(makeTrafficReport())
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
