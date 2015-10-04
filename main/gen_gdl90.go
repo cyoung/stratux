@@ -295,7 +295,7 @@ func makeStratuxHeartbeat() []byte {
 	}
 
 	protocolVers := int8(1)
-	msg[1] = msg[1] | byte(protocolVers << 2)
+	msg[1] = msg[1] | byte(protocolVers<<2)
 
 	return prepareMessage(msg)
 }
