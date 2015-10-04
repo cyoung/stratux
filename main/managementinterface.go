@@ -148,7 +148,11 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "ReplayLog":
-						globalSettings.ReplayLog = val.(bool)
+						v := val.(bool)
+						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
+							globalSettings.ReplayLog = v
+							replayMark(v)
+						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "WatchList":

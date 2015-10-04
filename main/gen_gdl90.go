@@ -756,12 +756,39 @@ func saveSettings() {
 	log.Printf("wrote settings.\n")
 }
 
+func replayMark(active bool) {
+	var t string
+	if !active {
+		t = fmt.Sprintf("PAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
+	} else {
+		t = fmt.Sprintf("UNPAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
+	}
+
+	if uatReplayfp != nil {
+		uatReplayfp.Write([]byte(t))
+	}
+
+	if esReplayfp != nil {
+		esReplayfp.Write([]byte(t))
+	}
+
+	if gpsReplayfp != nil {
+		gpsReplayfp.Write([]byte(t))
+	}
+
+	if ahrsReplayfp != nil {
+		ahrsReplayfp.Write([]byte(t))
+	}
+
+}
+
 func openReplay(fn string) (*os.File, error) {
 	ret, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Printf("Failed to open log file '%s': %s\n", fn, err.Error())
 	} else {
-		fmt.Fprintf(ret, "START,%s\n", timeStarted.Format("Mon Jan 2 15:04:05 -0700 MST 2006")) // Start time marker.
+		timeFmt := "Mon Jan 2 15:04:05 -0700 MST 2006"
+		fmt.Fprintf(ret, "START,%s,%s\n", timeStarted.Format(timeFmt), time.Now().Format(timeFmt)) // Start time marker.
 	}
 	return ret, err
 }
@@ -807,37 +834,39 @@ func main() {
 
 	readSettings()
 
-	// Log inputs.
-	if globalSettings.ReplayLog {
-		// UAT replay log.
-		if uatfp, err := openReplay(uatReplayLog); err != nil {
-			globalSettings.ReplayLog = false
-		} else {
-			uatReplayfp = uatfp
-			defer uatReplayfp.Close()
-		}
-		// 1090ES replay log.
-		if esfp, err := openReplay(esReplayLog); err != nil {
-			globalSettings.ReplayLog = false
-		} else {
-			esReplayfp = esfp
-			defer esReplayfp.Close()
-		}
-		// GPS replay log.
-		if gpsfp, err := openReplay(gpsReplayLog); err != nil {
-			globalSettings.ReplayLog = false
-		} else {
-			gpsReplayfp = gpsfp
-			defer gpsReplayfp.Close()
-		}
-		// AHRS replay log.
-		if ahrsfp, err := openReplay(ahrsReplayLog); err != nil {
-			globalSettings.ReplayLog = false
-		} else {
-			ahrsReplayfp = ahrsfp
-			defer ahrsReplayfp.Close()
-		}
+	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
+
+	// UAT replay log.
+	if uatfp, err := openReplay(uatReplayLog); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		uatReplayfp = uatfp
+		defer uatReplayfp.Close()
 	}
+	// 1090ES replay log.
+	if esfp, err := openReplay(esReplayLog); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		esReplayfp = esfp
+		defer esReplayfp.Close()
+	}
+	// GPS replay log.
+	if gpsfp, err := openReplay(gpsReplayLog); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		gpsReplayfp = gpsfp
+		defer gpsReplayfp.Close()
+	}
+	// AHRS replay log.
+	if ahrsfp, err := openReplay(ahrsReplayLog); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		ahrsReplayfp = ahrsfp
+		defer ahrsReplayfp.Close()
+	}
+
+	// Mark the files (whether we're logging or not).
+	replayMark(globalSettings.ReplayLog)
 
 	initRY835AI()
 
