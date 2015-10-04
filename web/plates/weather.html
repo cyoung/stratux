@@ -1,13 +1,86 @@
-<div class="list-group text-center">
-    <div class="list-group-item list-group-item-home">
-        <h2>ADSB Weather</h2>
-    </div>
-    <div class="list-group-item list-group-item-home">
-        <div>
-            <i class="fa fa-cloud feature-icon text-primary"></i>
-        </div>
-        <div>
-            this space reserved to display weather data
-        </div>
-    </div>
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Weather</span>
+			<span ng-show="ConnectState == 'Receiving'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Receiving'" class="label label-danger">{{ConnectState}}</span>
+		</div>
+	</div>
+
+	<div class="panel-group" ui-state="weatherAccordion" ui-default="1">
+		<div class="panel panel-default">
+			<div class="panel-heading" ui-set="{'weatherAccordion':1}">
+				<div class="panel-title">Watching <span class="text-normal">{{watching}}</span> ({{watch_count}})</div>
+			</div>
+			<div ui-if="weatherAccordion == 1">
+				<div class="panel-body weather-page">
+					<div class="row">
+						<div class="col-sm-6">
+							<span class="col-xs-3"><strong>Location</strong></span>
+							<span class="col-xs-3">Type</span>
+							<span class="col-xs-6 text-right">Time</span>
+						</div>
+						<div class="col-sm-6">
+							<span class="col-xs-2">&nbsp;</span>
+							<span class="col-xs-10">Report</span>
+						</div>
+					</div>
+					<div class="row" ng-repeat="weather in watch_list | orderBy: -age">
+						<div class="separator"></div>
+						<div class="col-sm-12">
+							<span class="col-xs-3"><strong>{{weather.location}}</strong></span>
+							<span class="col-xs-3">{{weather.type}}</span>
+							<span class="col-xs-6 text-right">{{weather.time}}</span>
+						</div>
+						<div class="col-sm-12">
+							<span class="col-xs-10">{{weather.data}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel panel-default">
+			<div class="panel-heading" ui-set="{'weatherAccordion':2}">
+				<div class="panel-title">Recent Reports ({{data_count}})</div>
+			</div>
+			<div ui-if="weatherAccordion == 2">
+				<div class="panel-body weather-page">
+					<div class="row">
+						<div class="col-sm-6">
+							<span class="col-xs-3"><strong>Location</strong></span>
+							<span class="col-xs-3">Type</span>
+							<span class="col-xs-6 text-right">Time</span>
+						</div>
+						<div class="col-sm-6">
+							<span class="col-xs-2">&nbsp;</span>
+							<span class="col-xs-10">Report</span>
+						</div>
+					</div>
+
+					<div class="row" ng-repeat="weather in data_list | orderBy: -age">
+						<div class="separator"></div>
+						<div class="col-sm-12">
+							<span class="col-xs-3"><strong>{{weather.location}}</strong></span>
+							<span class="col-xs-3">{{weather.type}}</span>
+							<span class="col-xs-6 text-right">{{weather.time}}</span>
+						</div>
+						<div class="col-sm-12">
+							<span class="col-xs-10">{{weather.data}}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
+<!--
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">Raw Weather Data</div>
+		<div class="panel-body">
+			<pre>{{raw_data}}</pre>
+		</div>
+	</div>
+</div>
+-->

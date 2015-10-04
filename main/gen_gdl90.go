@@ -648,6 +648,7 @@ type settings struct {
 	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
 	PPM            int
 	OwnshipModeS   int32
+	WatchList      string
 }
 
 type status struct {

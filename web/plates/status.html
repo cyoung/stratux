@@ -4,7 +4,9 @@
     </div>
     <div class="panel panel-default">
         <div class="panel-heading">
-            <span class="panel_label">Status</span> <span class="label" ng-class="ConnectStyle">{{ConnectState}}</span>
+            <span class="panel_label">Status</span> 
+			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
         </div>
         <div class="panel-body">
             <div class="form-horizontal">

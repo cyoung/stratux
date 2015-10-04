@@ -5,7 +5,7 @@ TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; 
 function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.$parent.helppage = 'plates/traffic-help.html';
-	$scope.traffic = [];
+	$scope.data_list = [];
 
 	function utcTimeString(epoc) {
 		var time = "";
@@ -43,6 +43,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		new_traffic.age = Date.parse(obj.Last_seen);
 		new_traffic.time = utcTimeString(new_traffic.age);
+		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;
 	}
 
@@ -58,40 +59,43 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.ConnectState = "Not Receiving";
 
 		socket.onopen = function (msg) {
-			$scope.ConnectStyle = "label-success";
+			// $scope.ConnectStyle = "label-success";
 			$scope.ConnectState = "Receiving";
 		};
 
 		socket.onclose = function (msg) {
-			$scope.ConnectStyle = "label-danger";
+			// $scope.ConnectStyle = "label-danger";
 			$scope.ConnectState = "Not Receiving";
+			$scope.$apply();
 			setTimeout(connect, 1000);
 		};
 
 		socket.onerror = function (msg) {
-			$scope.ConnectStyle = "label-danger";
+			// $scope.ConnectStyle = "label-danger";
 			$scope.ConnectState = "Problem";
+			$scope.$apply();
 		};
 
 		socket.onmessage = function (msg) {
 			console.log('Received traffic update.')
 
-			var aircraft = JSON.parse(msg.data);
-			if (aircraft.Position_valid) {
-				$scope.rawTraffic = msg.data;
+			var message = JSON.parse(msg.data);
+			$scope.raw_data = angular.toJson(msg.data, true);
+
+			if (message.Position_valid) {
 				// we need to use an array so AngularJS can perform sorting; it also means we need to loop to find an aircraft in the traffic set
 				var found = false;
-				for (var i = 0, len = $scope.traffic.length; i < len; i++) {
-					if ($scope.traffic[i].icao_int === aircraft.Icao_addr) {
-						setAircraft(aircraft, $scope.traffic[i]);
+				for (var i = 0, len = $scope.data_list.length; i < len; i++) {
+					if ($scope.data_list[i].icao_int === message.Icao_addr) {
+						setAircraft(message, $scope.data_list[i]);
 						found = true;
 						break;
 					}
 				}
 				if (!found) {
 					var new_traffic = {};
-					setAircraft(aircraft, new_traffic);
-					$scope.traffic.unshift(new_traffic); // add to start of array
+					setAircraft(message, new_traffic);
+					$scope.data_list.unshift(new_traffic); // add to start of array
 				}
 				$scope.$apply();
 			}
@@ -104,13 +108,14 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		var dirty = false;
 		var cutoff = Date.now() - (180 * 1000);
 
-		for (var i = len = $scope.traffic.length; i > 0; i--) {
-			if ($scope.traffic[i - 1].age < cutoff) {
-				$scope.traffic.splice(i - 1, 1);
+		for (var i = len = $scope.data_list.length; i > 0; i--) {
+			if ($scope.data_list[i - 1].age < cutoff) {
+				$scope.data_list.splice(i - 1, 1);
 				dirty = true;
 			}
 		}
 		if (dirty) {
+			$scope.raw_data = "";
 			$scope.$apply();
 		}
 	}, (1000 * 60), 0, false);

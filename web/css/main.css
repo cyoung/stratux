@@ -2,20 +2,26 @@
 	font-size: 0.85em;
 }
 
+.traffic-page {}
+
+.weather-page {}
+
 .section_invisible {
 	display: none;
 }
 
-.ahrs_connected {
-	content:
+.text-normal {
+	font-weight:100;
 }
 
-.ahrs_disconnected {}
+.reset-flow {
+	clear:both;
+}
 
 .separator {
 	height: 1px;
 	border-bottom: 1px solid #cccccc;
-	margin-bottom: 4px;
+	margin: 0 2px 4px 2px;
 }
 
 .label_adj {
@@ -24,13 +30,13 @@
 }
 
 .col-padding-shift-right {
-	margin-left: -12px;
-	margin-right: 12px;
+	margin-left: -10px;
+	margin-right: 10px;
 }
 
 .col-padding-shift-left {
-	margin-left: 12px;
-	margin-right: -12px;
+	margin-left: 10px;
+	margin-right: -10px;
 }
 
 .feature-icon {
@@ -47,9 +53,64 @@
 }
 
 .list-simple {
-  padding-left: 12px;
-  list-style: none;
+	padding-left: 12px;
+	list-style: none;
 }
+
+.fa-ascent:before {
+	content: "\f176";
+}
+
+.fa-descent:before {
+	content: "\f175";
+}
+
+.fa-ascent,
+.fa-descent,
+.fa-airplane-solid,
+.fa-airplane-hollow {
+	font-size: 12px;
+}
+
+.fa-ascent,
+.fa-descent {
+	display: inherit;
+}
+
+.fa-airplane-solid:before {
+	content: "\f1d8";
+}
+
+.fa-airplane-hollow:before {
+	content: "\f1d9";
+}
+
+.traffic-style1 {
+	color: #000000;
+	background-color: cornflowerblue;
+}
+
+.traffic-style2 {
+	color: #000000;
+	background-color: darkkhaki
+}
+
+.icon-red {
+	color: crimson;
+}
+
+.icon-green {
+	color: forestgreen;
+}
+
+.icon-blue {
+	color: blue;
+}
+
+.icon-yellow {
+	color: darkgoldenrod;
+}
+
 
 /* ***************************************************************************
 everything below this comment represents tweeks to the mobile-angular-uis CSS
@@ -125,11 +186,6 @@ input[type="number_format"] {
 	text-align: end;
 }
 
-.sidebar .scrollable-header,
-.panel-title {
-	border-bottom: 1px solid #cccccc;
-}
-
 .app-body,
 .panel-default,
 .scrollable-content,
@@ -146,6 +202,7 @@ input[type="number_format"] {
 	line-height: 50px;
 	color: #000;
 	background-color: #f7f7f7;
+	border-bottom: 1px solid #ccc;
 }
 
 .panel-heading {
@@ -213,4 +270,24 @@ pre {
 	background-color: inherit;
 	border: 0px;
 	border-radius: 0px;
+}
+
+
+/* change right sidebar behavior to always push */
+
+@media (min-width: 992px) {
+	.sidebar-right-in .app {
+		margin-right: 0;
+		right: 0;
+	}
+	.sidebar-right-in .app {
+		width: auto;
+		-webkit-transform: translate3d(-300px, 0, 0)!important;
+		-moz-transform: translate3d(-300px, 0, 0)!important;
+		transform: translate3d(-300px, 0, 0)!important;
+		position: relative;
+		-webkit-transition: -webkit-transform 0 ease;
+		-moz-transition: -moz-transform 0 ease;
+		transition: transform 0 ease;
+	}
 }

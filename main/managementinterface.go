@@ -151,6 +151,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.ReplayLog = val.(bool)
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "WatchList":
+						globalSettings.WatchList = val.(string)
 					case "OwnshipModeS":
 						// Expecting a hex string less than 6 characters (24 bits) long.
 						hexc := val.(string)

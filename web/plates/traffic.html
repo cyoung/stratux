@@ -1,9 +1,11 @@
 <div class="col-sm-12">
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<span class="panel_label">Traffic</span> <span class="label" ng-class="ConnectStyle">{{ConnectState}}</span>
+			<span class="panel_label">Traffic</span> 
+			<span ng-show="ConnectState == 'Receiving'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Receiving'" class="label label-danger">{{ConnectState}}</span>
 		</div>
-		<div class="panel-body">
+		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
 					<span class="col-xs-3"><strong>Flight</strong></span>
@@ -17,17 +19,20 @@
 					<span class="col-xs-3 text-right">Time</span>
 				</div>
 			</div>
-			
-			<div class="row" ng-repeat="aircraft in traffic | orderBy: -age">
-			<div class="separator"></div>
+
+			<div class="row" ng-repeat="aircraft in data_list | orderBy: -age">
+				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span ng-show="aircraft.tail" class="col-xs-3"><strong>{{aircraft.tail}}</strong></span>
-					<span ng-hide="aircraft.tail" class="col-xs-3 text-muted"><strong>{{aircraft.icao}}</strong></span>
-	
+					<span class="col-xs-3">
+						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src"><strong>{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src"><strong class="text-muted">{{aircraft.icao}}</strong></span>
+					</span>
+
 					<span class="col-xs-3 text-right">{{aircraft.speed}}KTS</span>
 					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
 					<span class="col-xs-1 small col-padding-shift-right text-muted">
-						<span ng-show="aircraft.vspeed">(<span ng-show="aircraft.vspeed > 0">+</span>{{aircraft.vspeed}})</span>
+						<span ng-show="aircraft.vspeed > 0"><span class="fa fa-ascent"></span>{{aircraft.vspeed}}</span>
+						<span ng-show="aircraft.vspeed < 0"><span class="fa fa-descent"></span>{{0-aircraft.vspeed}}</span>
 					</span>
 					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>
 				</div>
@@ -45,7 +50,7 @@
 	<div class="panel panel-default">
 		<div class="panel-heading">Raw Traffic Data</div>
 		<div class="panel-body">
-			<pre>{{rawTraffic}}</pre>
+			<pre>{{raw_data}}</pre>
 		</div>
 	</div>
 </div>

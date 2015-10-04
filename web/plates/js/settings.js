@@ -12,20 +12,24 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
         settings[toggles[i]] = undefined;
     }
 
-    function getSettings() {
-        // Simple GET request example (note: responce is asynchronous)
-        $http.get(URL_SETTINGS_GET).
-        then(function (response) {
-            //process
-            $scope.rawSettings = response.data; // angular.toJson(response.data, true);
-            settings = angular.fromJson(response.data);
-            $scope.UAT_Enabled = settings.UAT_Enabled;
+	function loadSettings(data) {
+            settings = angular.fromJson(data);
+            $scope.rawSettings = angular.toJson(data, true);
+			$scope.UAT_Enabled = settings.UAT_Enabled;
             $scope.ES_Enabled = settings.ES_Enabled;
             $scope.GPS_Enabled = settings.GPS_Enabled;
             $scope.AHRS_Enabled = settings.AHRS_Enabled;
             $scope.DEBUG = settings.DEBUG;
             $scope.ReplayLog = settings.ReplayLog;
             $scope.PPM = settings.PPM;
+			$scope.WatchList = settings.WatchList;
+	}
+	
+    function getSettings() {
+        // Simple GET request example (note: responce is asynchronous)
+        $http.get(URL_SETTINGS_GET).
+        then(function (response) {
+			loadSettings (response.data);
             // $scope.$apply();
         }, function (response) {
             $scope.rawSettings = "error getting settings";
@@ -40,16 +44,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
         // Simple POST request example (note: responce is asynchronous)
         $http.post(URL_SETTINGS_SET, msg).
         then(function (response) {
-            //process
-            $scope.rawSettings = response.data; // angular.toJson(response.data, true);
-            settings = angular.fromJson(response.data);
-            $scope.UAT_Enabled = settings.UAT_Enabled;
-            $scope.ES_Enabled = settings.ES_Enabled;
-            $scope.GPS_Enabled = settings.GPS_Enabled;
-            $scope.AHRS_Enabled = settings.AHRS_Enabled;
-            $scope.DEBUG = settings.DEBUG;
-            $scope.ReplayLog = settings.ReplayLog;
-            $scope.PPM = settings.PPM;
+			loadSettings (response.data);
             // $scope.$apply();
         }, function (response) {
             $scope.rawSettings = "error setting settings";
@@ -80,7 +75,17 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
         }
     });
 
-    $scope.updateppm = function() {
+    $scope.updatewatchlist = function() {
+        if (($scope.WatchList !== undefined) && ($scope.WatchList !== null) && $scope.WatchList !== settings["WatchList"]) {
+            settings["WatchList"] = $scope.WatchList.toUpperCase();
+            newsettings = {
+                "WatchList": $scope.WatchList.toUpperCase()
+            };
+            console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
+	    $scope.updateppm = function() {
         if (($scope.PPM !== undefined) && ($scope.PPM !== null) && $scope.PPM !== settings["PPM"]) {
             settings["PPM"] = parseInt($scope.PPM);
             newsettings = {
