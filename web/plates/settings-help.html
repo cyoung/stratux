@@ -6,7 +6,7 @@
         <stron>Status</stron> page.</p>
 
     <p>The <strong>Diagnostics</strong> section helps with debugging and communicating with the Stratux project contributors via GitHub and the reddit subgroup.
-        <ul>
+        <ul class="list-simple">
             <li>Toggling <strong>Traffic Source</strong> adds text for traffic targets within your navigation application. Traffic received via UAT will display <code>u</code> while traffic received via 1090 will display <code>e</code>.</li>
             <li>Toggling <strong>Record Logs</strong> enables logging to a series of files for your Stratux device including data recorded for UAT traffic and weather, 1090 traffic, GPS messages, and AHRS messages. The log files are accessible from the <strong>Logs</strong> menu available on the left.</li>
         </ul>
@@ -14,7 +14,7 @@
     <p>The <strong>Configuration</strong> section lets you adjust the default operation of your Stratux device.</p>
     <ul>
         <li>The SDR (software defined radio) receiver support error correction. From the Raspberry Pi, you may use the command <code>kal -g 48 -s GSM850</code> to scan for available channels in your area. Then use the command <code>kal -g 48 -c <em>channel#</em></code> to calculate the PPM.  <div class="text-warning">NOTE: You will need to perform all commands as <code>root</code> by issuing the command: <code>sudo su -</code>. You will need to stop the Stratux software before running the calibration process. You can stop all of the Stratux processes with the command: <code>pkill screen</code>.</div></li>
+        <li>The <strong>Weather</strong> page uses a user-defined <em>watch list</em> to filter the large volume of ADS-B weather messages for display. Define a list of identifiers (airport, VOR, etc) separated by a spaces. For example <code>KBOS EEN LAH LKP</code>. You may change this list at any time and the <strong>Weather</strong> page will start watching for the updated list immediately.</li>
         <li>Addiitonal settings will be added in future releases.</li>
     </ul>
-    
 </div>
