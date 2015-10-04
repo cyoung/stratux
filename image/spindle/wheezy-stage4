@@ -139,8 +139,7 @@ apt-get install -y mercurial
 rm -rf stratux
 git clone https://github.com/cyoung/stratux
 cd stratux
-mkdir -p /var/www
-cp -r web/* /var/www/
+make www
 cd dump978
 make
 cp dump978 /usr/bin/
