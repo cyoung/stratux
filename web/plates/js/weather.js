@@ -10,6 +10,8 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/weather-help.html';
 	$scope.data_list = [];
 	$scope.watch_list = [];
+	$scope.data_count = 0;
+	$scope.watch_count = 0;
 
 	function updateWatchList() {
 		$scope.watching = CONF_WATCHLIST;
