@@ -801,8 +801,10 @@ func printStats() {
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
-		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)))
-		log.Printf(" - Total traffic targets tracked=%s, last GPS fix: %s, GPS solution type: %d, NACp: %d, est accuracy %.02f m\n", humanize.Comma(int64(len(seenTraffic))), humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.NACp, mySituation.Accuracy)
+		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
+		if globalSettings.GPS_Enabled {
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d, NACp: %d, est accuracy %.02f m\n", humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.NACp, mySituation.Accuracy)
+		}
 	}
 }
 
