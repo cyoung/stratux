@@ -3,17 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"net"
 )
 
 var uatDone bool
 var esDone bool
 
-func uatReplay(f *os.File) {
+func uatReplay(f *os.File, replaySpeed uint64) {
 	rdr := bufio.NewReader(f)
 	curTick := int64(0)
 	for {
@@ -33,7 +33,7 @@ func uatReplay(f *os.File) {
 				fmt.Fprintf(os.Stderr, "invalid tick: '%s'\n", linesplit[0])
 				continue
 			}
-			thisWait := i - curTick
+			thisWait := (i - curTick) / int64(replaySpeed)
 
 			if thisWait >= 120000000000 { // More than 2 minutes wait, skip ahead.
 				fmt.Fprintf(os.Stderr, "UAT skipahead - %d seconds.\n", thisWait/1000000000)
@@ -48,7 +48,6 @@ func uatReplay(f *os.File) {
 	}
 	uatDone = true
 }
-
 
 var connections map[string]net.Conn
 
@@ -76,7 +75,7 @@ func esListener(l net.Listener) {
 	}
 }
 
-func esReplay(f *os.File) {
+func esReplay(f *os.File, replaySpeed uint64) {
 	l, err := net.Listen("tcp", "0.0.0.0:30003")
 	if err != nil {
 		esDone = true
@@ -106,7 +105,7 @@ func esReplay(f *os.File) {
 				fmt.Fprintf(os.Stderr, "invalid tick: '%s'\n", linesplit[0])
 				continue
 			}
-			thisWait := i - curTick
+			thisWait := (i - curTick) / int64(replaySpeed)
 
 			if thisWait >= 120000000000 { // More than 2 minutes wait, skip ahead.
 				fmt.Fprintf(os.Stderr, "ES skipahead - %d seconds.\n", thisWait/1000000000)
@@ -136,13 +135,21 @@ func openFile(fn string) *os.File {
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "%s <uat replay log> <es replay log>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s <uat replay log> <es replay log> [speed multiplier]\n", os.Args[0])
 		return
 	}
 	f := openFile(os.Args[1])
 	f2 := openFile(os.Args[2])
-	go uatReplay(f)
-	go esReplay(f2)
+	replaySpeed := uint64(1)
+	if len(os.Args) >= 4 {
+		i, err := strconv.ParseUint(os.Args[3], 10, 64)
+		if err == nil {
+			replaySpeed = i
+		}
+	}
+	fmt.Fprintf(os.Stderr, "Replay speed: %dx\n", replaySpeed)
+	go uatReplay(f, replaySpeed)
+	go esReplay(f2, replaySpeed)
 	for {
 		time.Sleep(1 * time.Second)
 		if uatDone && esDone {
