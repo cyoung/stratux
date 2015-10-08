@@ -708,6 +708,7 @@ func defaultSettings() {
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
+	globalSettings.OwnshipModeS = 0xF00000
 }
 
 func readSettings() {
