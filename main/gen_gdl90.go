@@ -475,9 +475,7 @@ type WeatherMessage struct {
 	LocaltimeReceived time.Time
 }
 
-var weatherMessages []WeatherMessage
-
-// Send update to attached client.
+// Send update to connected websockets.
 func registerADSBTextMessageReceived(msg string) {
 	x := strings.Split(msg, " ")
 	if len(x) < 5 {
@@ -492,16 +490,10 @@ func registerADSBTextMessageReceived(msg string) {
 	wm.Data = strings.Join(x[3:], " ")
 	wm.LocaltimeReceived = time.Now()
 
-	//FIXME: Fixed log size currently - determine what works best for the web interface.
-	n := len(weatherMessages)
-	if n >= 2500 {
-		weatherMessages = weatherMessages[1:]
-	}
-
-	weatherMessages = append(weatherMessages, wm)
+	wmJSON, _ := json.Marshal(&wm)
 
 	// Send to weatherUpdate channel for any connected clients.
-	weatherUpdate <- wm
+	weatherUpdate.Send(wmJSON)
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -712,7 +704,7 @@ func defaultSettings() {
 	globalSettings.ES_Enabled = false  //TODO
 	globalSettings.GPS_Enabled = false //TODO
 	//FIXME: Need to change format below.
-	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD |  NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}, 0}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}, 0}}
+	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}, 0}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}, 0}}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
@@ -826,7 +818,6 @@ func main() {
 
 	ADSBTowers = make(map[string]ADSBTower)
 	MsgLog = make([]msg, 0)
-	weatherMessages = make([]WeatherMessage, 0)
 
 	crcInit() // Initialize CRC16 table.
 	sdrInit()

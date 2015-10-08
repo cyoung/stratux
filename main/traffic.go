@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"math"
 	"net"
 	"strconv"
@@ -102,9 +103,12 @@ func sendTrafficUpdates() {
 
 // Send update to attached client.
 func registerTrafficUpdate(ti TrafficInfo) {
-	if ti.Position_valid { // Don't send unless a valid position exists.
-		trafficUpdate <- ti
+	if !ti.Position_valid { // Don't send unless a valid position exists.
+		return
 	}
+
+	tiJSON, _ := json.Marshal(&ti)
+	trafficUpdate.Send(tiJSON)
 }
 
 func makeTrafficReport(ti TrafficInfo) {

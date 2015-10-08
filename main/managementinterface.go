@@ -17,24 +17,28 @@ type SettingMessage struct {
 }
 
 // Weather updates channel.
-var weatherUpdate chan WeatherMessage
-var trafficUpdate chan TrafficInfo
+var weatherUpdate *uibroadcaster
+var trafficUpdate *uibroadcaster
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
 */
 
 func handleWeatherWS(conn *websocket.Conn) {
-	// Send current buffer.
-	for _, w := range weatherMessages {
-		weatherJSON, _ := json.Marshal(&w)
-		conn.Write(weatherJSON)
-	}
-	// Wait for updates and send as they are received.
+	// Subscribe the socket to receive updates.
+	weatherUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
-		lastUpdate := <-weatherUpdate
-		weatherJSON, _ := json.Marshal(&lastUpdate)
-		conn.Write(weatherJSON)
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -50,10 +54,20 @@ func handleTrafficWS(conn *websocket.Conn) {
 		conn.Write(trafficJSON)
 	}
 	trafficMutex.Unlock()
+	// Subscribe the socket to receive updates.
+	trafficUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
-		lastUpdate := <-trafficUpdate
-		trafficJSON, _ := json.Marshal(&lastUpdate)
-		conn.Write(trafficJSON)
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -183,8 +197,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func managementInterface() {
-	weatherUpdate = make(chan WeatherMessage, 1024)
-	trafficUpdate = make(chan TrafficInfo, 1024)
+	weatherUpdate = NewUIBroadcaster()
+	trafficUpdate = NewUIBroadcaster()
 
 	http.Handle("/", http.FileServer(http.Dir("/var/www")))
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -206,7 +220,6 @@ func managementInterface() {
 				Handler: websocket.Handler(handleTrafficWS)}
 			s.ServeHTTP(w, req)
 		})
-
 
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
