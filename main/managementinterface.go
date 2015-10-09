@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/hex"
+	"strings"
 	"fmt"
 	"golang.org/x/net/websocket"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -173,15 +174,17 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.WatchList = val.(string)
 					case "OwnshipModeS":
 						// Expecting a hex string less than 6 characters (24 bits) long.
-						hexc := val.(string)
-						if len(hexc) > 6 { // Too long.
+						if len(val.(string)) > 6 { // Too long.
 							continue
 						}
-						i, err := strconv.ParseInt(hexc, 16, 32)
-						if err != nil { // Number not valid.
+						vals := strings.ToUpper(val.(string))
+						hexn, _ := hex.DecodeString(vals)
+						hexs := strings.ToUpper(hex.EncodeToString(hexn))
+						if vals != hexs { // Number not valid.
+							log.Printf("handleSettingsSetRequest:OwnshipModeS: %s != %s\n", vals, hexs)
 							continue
 						}
-						globalSettings.OwnshipModeS = int32(i)
+						globalSettings.OwnshipModeS = vals
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}

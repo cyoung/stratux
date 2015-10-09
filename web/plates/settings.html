@@ -56,17 +56,24 @@
 			<div class="panel-heading">Configuration</div>
 			<div class="panel-body">
 				<div class="form-group reset-flow">
-					<label class="control-label col-xs-5">PPM Correction</label>
-					<form name="ppmForm" ng-submit="updateppm()" novalidate>
+					<label class="control-label col-xs-5">Mode S Code (Hex)</label>
+					<form name="modeForm" ng-submit="updatemodes()" novalidate>
 						<!-- type="number" not supported except on mobile -->
-						<input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" />
+						<input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
 					</form>
 				</div>
 				<div class="form-group reset-flow">
 					<label class="control-label col-xs-5">Watch List</label>
-					<form name="ppmForm" ng-submit="updatewatchlist()" novalidate>
+					<form name="watchForm" ng-submit="updatewatchlist()" novalidate>
 						<!-- type="number" not supported except on mobile -->
-						<input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space delimeted identifiers" />
+						<input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space delimeted identifiers" ng-blur="updatewatchlist()" />
+					</form>
+				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-5">PPM Correction</label>
+					<form name="ppmForm" ng-submit="updateppm()" novalidate>
+						<!-- type="number" not supported except on mobile -->
+						<input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
 					</form>
 				</div>
 			</div>
@@ -75,7 +82,7 @@
 </div>
 
 <!--
-<div class="col-sm-12">
+ssh<div class="col-sm-12">
 	<div class="panel panel-default">
 		<div class="panel-heading">Raw Configuration</div>
 		<div class="panel-body">

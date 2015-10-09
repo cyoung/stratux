@@ -177,9 +177,10 @@ func makeOwnshipReport() bool {
 
 	msg[1] = 0x01 // Alert status, address type.
 
-	msg[2] = byte((globalSettings.OwnshipModeS >> 16) & 0xFF) // Mode S address.
-	msg[3] = byte((globalSettings.OwnshipModeS >> 8) & 0xFF)  // Mode S address.
-	msg[4] = byte(globalSettings.OwnshipModeS & 0xFF)         // Mode S address.
+	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
+	msg[2] = code[0]	// Mode S address.
+	msg[3] = code[1]	// Mode S address.
+	msg[4] = code[2]	// Mode S address.
 
 	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.
@@ -676,7 +677,7 @@ type settings struct {
 	DEBUG          bool
 	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
 	PPM            int
-	OwnshipModeS   int32
+	OwnshipModeS   string
 	WatchList      string
 }
 
