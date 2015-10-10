@@ -59,6 +59,7 @@
 					<label class="control-label col-xs-5">Mode S Code (Hex)</label>
 					<form name="modeForm" ng-submit="updatemodes()" novalidate>
 						<!-- type="number" not supported except on mobile -->
+						<!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
 						<input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
 					</form>
 				</div>
