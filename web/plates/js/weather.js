@@ -33,17 +33,70 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		return false;
 	}
 
+
+	function parseFlightCondition(msg, body) {
+		if ((msg !== "METAR") && (msg !== "SPECI"))
+			return "";
+
+		// check the visibility: a value preceeding 'SM' which is either a fraction or a whole number
+		// we don't care what value of fraction since anything below 1SM is LIFR
+
+		// BTW: now I know why no one wants to parse METARs - ther can be spaces in the numbers ARGH
+		// test for special case of 'X X/X'
+		var exp = new RegExp("([0-9]) ([0-9])/([0-9])SM");
+		var match = exp.exec(body);
+		if ((match !== null) && (match.length === 4)) {
+			visability = parseInt(match[1]) + (parseInt(match[2]) / parseInt(match[3]));
+		} else {
+			exp = new RegExp("([0-9/]{1,5}?)SM");
+			match = exp.exec(body);
+			if (match === null)
+				return "";
+			// the only way we have 3 or more characters is if the '/' is present which means we need to do extra checking
+			if (match[1].length === 3)
+				return "LIFR";
+			// do we have a usable visability distance
+			var visability = parseInt(match[1]);
+			if (visability === 0)
+				return "";
+		}
+
+		// ceiling is at either the BKN or OVC layer
+		exp = new RegExp("BKN([0-9]{3})");
+		match = exp.exec(body);
+		if (match === null) {
+			exp = new RegExp("OVC([0-9]{3})");
+			match = exp.exec(body);
+		}
+		var ceiling = 999;
+		if (match !== null)
+			ceiling = parseInt(match[1]);
+
+		if ((visability > 5) && (ceiling > 30))
+			return "VFR";
+		if ((visability >= 3) && (ceiling >= 10))
+			return "MVFR";
+		if ((visability >= 1) && (ceiling >= 5))
+			return "IFR";
+		return "LIFR";
+	}
+
+
 	function utcTimeString(epoc) {
 		var time = "";
 		var val;
 		var d = new Date(epoc);
+		val = d.getUTCDate();
+		if (val > 0)
+			time += (val < 10 ? "0" + val : "" + val) + ":";
 		val = d.getUTCHours();
-		time += (val < 10 ? "0" + val : "" + val);
+		if (val > 0)
+			time += (val < 10 ? "0" + val : "" + val) + ":";
 		val = d.getUTCMinutes();
-		time += ":" + (val < 10 ? "0" + val : "" + val);
+		time += (val < 10 ? "0" + val : "" + val) + ":";
 		val = d.getUTCSeconds();
-		time += ":" + (val < 10 ? "0" + val : "" + val);
-		time += "Z";
+		time += (val < 10 ? "0" + val : "" + val);
+		// time += "Z";
 		return time;
 	}
 
@@ -57,7 +110,7 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		d.setUTCMinutes(parseInt(s.substring(4, 6)));
 		d.setUTCSeconds(0);
 		d.setUTCMilliseconds(0);
-		return d.getTime();
+		return d;
 	}
 
 	function setDataItem(obj, data_item) {
@@ -68,9 +121,13 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 			data_item.type = obj.Type;
 			data_item.update = false;
 		}
+
+		data_item.flight_condition = parseFlightCondition(obj.Type, obj.Data);
 		data_item.location = obj.Location;
-		data_item.age = parseShortDatetime(obj.Time);
-		data_item.time = utcTimeString(data_item.age);
+		var dThen = parseShortDatetime(obj.Time);
+		var dNow = new Date(obj.LocaltimeReceived);
+		data_item.age = dThen.getTime();
+		data_item.time = utcTimeString(Math.abs(dNow - dThen)) + " old";
 		data_item.received = utcTimeString(obj.LocaltimeReceived);
 		data_item.data = obj.Data;
 	}
