@@ -44,4 +44,4 @@ install:
 	cp -f libdump978.so /usr/lib/
 	
 clean:
-	rm -f gen_gdl90
+	rm -f gen_gdl90 libdump978.so
