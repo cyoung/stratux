@@ -178,9 +178,16 @@ func makeOwnshipReport() bool {
 	msg[1] = 0x01 // Alert status, address type.
 
 	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
-	msg[2] = code[0]	// Mode S address.
-	msg[3] = code[1]	// Mode S address.
-	msg[4] = code[2]	// Mode S address.
+	if len(code) != 3 {
+		// Reserved dummy code.
+		msg[2] = 0xF0
+		msg[3] = 0x00
+		msg[4] = 0x00
+	} else {
+		msg[2] = code[0] // Mode S address.
+		msg[3] = code[1] // Mode S address.
+		msg[4] = code[2] // Mode S address.
+	}
 
 	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.

@@ -177,14 +177,17 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						if len(val.(string)) > 6 { // Too long.
 							continue
 						}
+						// Pad string, must be 6 characters long.
 						vals := strings.ToUpper(val.(string))
-						hexn, _ := hex.DecodeString(vals)
-						hexs := strings.ToUpper(hex.EncodeToString(hexn))
-						if vals != hexs { // Number not valid.
-							log.Printf("handleSettingsSetRequest:OwnshipModeS: %s != %s\n", vals, hexs)
+						for len(vals) < 6 {
+							vals = "0" + vals
+						}
+						hexn, err := hex.DecodeString(vals)
+						if err != nil { // Number not valid.
+							log.Printf("handleSettingsSetRequest:OwnshipModeS: %s\n", err.Error())
 							continue
 						}
-						globalSettings.OwnshipModeS = vals
+						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
