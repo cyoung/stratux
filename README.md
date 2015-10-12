@@ -13,6 +13,10 @@ Tested RTL-SDR:
 * NooElec NESDR Mini 2
 * Generic R820T (degraded performance)
 
+Apps with stratux recognition/support:
+* Seattle Avionics FlyQ EFB 2.1.1+.
+* AvNav EFB 2.0.0+.
+
 Tested weather/traffic displays:
 * ForeFlight 7.3.2 (Sep 23, 2015) - weather, traffic, AHRS.
 * Naviator - weather, traffic, AHRS.
