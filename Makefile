@@ -15,10 +15,13 @@ www:
 	mkdir -p /var/www/css
 	cp web/css/*.css /var/www/css
 	mkdir -p /var/www/js
-	cp web/js/*.js /var/www/js
+	cp web/js/main.js /var/www/js
+	cp web/js/addtohomescreen.min.js /var/www/js
+	cp web/js/j3di-all.min.js /var/www/js
 	mkdir -p /var/www/img
 	cp web/img/logo*.png /var/www/img
 	cp web/img/screen*.png /var/www/img
+	cp web/img/world.png /var/www/img
 	mkdir -p /var/www/maui
 	mkdir -p /var/www/maui/js
 	cp web/maui/js/angular-ui-router.min.js /var/www/maui/js

@@ -52,7 +52,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			return; // we are getting called once after clicking away from the status page
 
 		if (($scope.socket === undefined) || ($scope.socket === null)) {
-			socket = new WebSocket('ws://' + URL_HOST_BASE + '/traffic');
+			socket = new WebSocket(URL_TRAFFIC_WS);
 			$scope.socket = socket; // store socket in scope for enter/exit usage
 		}
 

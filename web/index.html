@@ -39,9 +39,7 @@
 	<link rel="stylesheet" type="text/css" href="css/addtohomescreen.css">
 	<script src="js/addtohomescreen.min.js"></script>
 	<script>
-		addToHomescreen({
-			displayPace: 480
-		});
+		addToHomescreen({ displayPace: 480 });
 	</script>
 
 	<link rel="stylesheet" href="maui/css/mobile-angular-ui-base.min.css" />
@@ -57,12 +55,14 @@
 
 	<!-- TODO: combine and minify the following javascript -->
 	<script src="js/main.js"></script>
-	<script src="plates/js/gps.js"></script>
 	<script src="plates/js/logs.js"></script>
 	<script src="plates/js/settings.js"></script>
 	<script src="plates/js/status.js"></script>
 	<script src="plates/js/traffic.js"></script>
 	<script src="plates/js/weather.js"></script>
+	<script src="js/j3di-all.min.js"></script>
+	<script src="plates/js/ahrs.js"></script>
+	<script src="plates/js/gps.js"></script>
 </head>
 
 <body ng-app="stratux" ng-controller="MainCtrl" ui-prevent-touchmove-defaults>

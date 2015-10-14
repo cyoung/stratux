@@ -6,16 +6,48 @@
 
 .weather-page {}
 
+.gps_page {}
+
+.map-container {
+	position: relative;
+}
+
+.world-map {
+	background-image: url(../img/world.png);
+	background-position: 1186px 591px;
+	margin-bottom: 4px;
+	/* this will be set dynamically to center map at gps location */
+	/*
+	width: 100%;
+	height: 300px;
+*/
+}
+
+.mark-position {
+	position: absolute;
+	top: 0;
+	left: 0;
+	font-size: 18px;
+}
+
+.washout {
+	background-color: rgba(255, 255, 255, 0.65);
+	display: inline-block;
+	width: 100%;
+	text-align: center;
+	padding: 4px;
+}
+
 .section_invisible {
 	display: none;
 }
 
 .text-normal {
-	font-weight:100;
+	font-weight: 100;
 }
 
 .reset-flow {
-	clear:both;
+	clear: both;
 }
 
 .separator {
@@ -86,20 +118,23 @@
 }
 
 .flight_condition_VFR {
-	background-color:forestgreen;
-	color:white;
+	background-color: forestgreen;
+	color: white;
 }
+
 .flight_condition_MVFR {
-	background-color:blue;
-	color:white;
+	background-color: blue;
+	color: white;
 }
+
 .flight_condition_IFR {
-	background-color:crimson;
-	color:white;
+	background-color: crimson;
+	color: white;
 }
+
 .flight_condition_LIFR {
-	background-color:darkorchid;
-	color:white;
+	background-color: darkorchid;
+	color: white;
 }
 
 .traffic-style1 {
@@ -129,15 +164,17 @@
 }
 
 .bar_container {
-	display:inline-block;
-	border:1px solid #cccccc;
+	display: inline-block;
+	border: 1px solid #cccccc;
 	width: 100%;
-    border-radius: 2px;
-    font-size: 0.75em;
+	border-radius: 2px;
+	font-size: 0.75em;
 }
+
 .bar_display {
 	padding: 1px 2px 1px 3px;
 }
+
 
 /* ***************************************************************************
 everything below this comment represents tweeks to the mobile-angular-uis CSS

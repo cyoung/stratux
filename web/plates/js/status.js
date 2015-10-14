@@ -11,7 +11,7 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
 			return; // we are getting called once after clicking away from the status page
 
 		if (($scope.socket === undefined) || ($scope.socket === null)) {
-			socket = new WebSocket('ws://' + URL_HOST_BASE + '/status');
+			socket = new WebSocket(URL_STATUS_WS);
 			$scope.socket = socket; // store socket in scope for enter/exit usage
 		}
 
