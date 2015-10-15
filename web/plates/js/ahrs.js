@@ -19,16 +19,37 @@ ahrsRenderer.prototype = {
 			return;
 		this.gl = gl;
 
-		vertex_shader = 'uniform mat4 u_modelViewProjMatrix; uniform mat4 u_normalMatrix; uniform vec3 lightDir; attribute vec3 vNormal; attribute vec4 vColor; attribute vec4 vPosition; varying float v_Dot; varying vec4 v_Color; void main() { gl_Position = u_modelViewProjMatrix * vPosition; v_Color = vColor; vec4 transNormal = u_normalMatrix * vec4(vNormal, 1); v_Dot = max(dot(transNormal.xyz, lightDir), 0.0); }';
-		fragment_shader = 'precision mediump float; varying float v_Dot; varying vec4 v_Color; void main() { gl_FragColor = vec4(v_Color.xyz * v_Dot, v_Color.a * 0.95); }';
+		vertex_shader = ' \
+uniform mat4 u_modelViewProjMatrix; \
+uniform mat4 u_normalMatrix; \
+uniform vec3 lightDir; \
+attribute vec3 vNormal; \
+attribute vec4 vColor; \
+attribute vec4 vPosition; \
+varying float v_Dot; \
+varying vec4 v_Color; \
+void main() { \
+	gl_Position = u_modelViewProjMatrix * vPosition; \
+	v_Color = vColor; \
+	vec4 transNormal = u_normalMatrix * vec4(vNormal, 1); \
+	v_Dot = max(dot(transNormal.xyz, lightDir), 0.0); \
+}';
+		
+		color_shader = '\
+precision mediump float; \
+varying float v_Dot; \
+varying vec4 v_Color; \
+void main() { \
+	gl_FragColor = vec4(v_Color.xyz * v_Dot, v_Color.a); \
+}';
 
 		var vertexShader = loadShaderVertexScript(gl, vertex_shader);
-		var fragmentShader = loadShaderFragmentScript(gl, fragment_shader);
+		var colorShader = loadShaderFragmentScript(gl, color_shader);
 
 		var program = gl.createProgram();
 
 		gl.attachShader(program, vertexShader);
-		gl.attachShader(program, fragmentShader);
+		gl.attachShader(program, colorShader);
 
 		// Bind attributes
 		gl.bindAttribLocation(program, 0, "vNormal");
@@ -74,13 +95,13 @@ ahrsRenderer.prototype = {
 			return;
 
 		// Set up a uniform variable for the shaders
-		gl.uniform3f(gl.getUniformLocation(g.program, "lightDir"), 0, 1, -1);
+		gl.uniform3f(gl.getUniformLocation(g.program, "lightDir"), 0, 1, 1); // above and back
 
 		// Create a box. On return 'gl' contains a 'box' property with
 		// the BufferObjects containing the arrays for vertices,
 		// normals, texture coords, and indices.
 		// g.box = makeBox(gl);
-		g.box = makePaperAirplane(gl);
+		g.box = this.makePaperAirplane(gl);
 
 		// Create some matrices to use later and save their locations in the shaders
 		g.mvMatrix = new J3DIMatrix4();
@@ -90,18 +111,19 @@ ahrsRenderer.prototype = {
 			gl.getUniformLocation(g.program, "u_modelViewProjMatrix");
 		g.mvpMatrix = new J3DIMatrix4();
 
-		// Enable all of the vertex attribute arrays.
-		gl.enableVertexAttribArray(0);
-		gl.enableVertexAttribArray(1);
-		gl.enableVertexAttribArray(2);
-		// Set up all the vertex attributes for vertices, normals and colors
+		gl.enableVertexAttribArray(0); // lighting
+		gl.enableVertexAttribArray(1); // color
+		gl.enableVertexAttribArray(2); // vertices
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.vertexObject);
 		gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.normalObject);
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+		
 		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.colorObject);
-		gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, false, 0, 0);
-
+		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); // was gl.UNSIGNED_BYTE
+		
 		// Bind the index array
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g.box.indexObject);
 
@@ -149,9 +171,13 @@ ahrsRenderer.prototype = {
 		var FPS = 24; // we assume we can maintain a certain frame rate
 		var x_inc = ((x - this.pitch) / (FPS * t));
 		var y_inc = ((y - this.roll) / (FPS * t));
-		// let the animation wrap aroung gracefully
-		if ((z < this.heading) && (this.heading - z) > 180)
+		if ((z < this.heading) && (this.heading - z) > 180) {
+			// let the animation wrap aroung gracefully clockwise
 			z += 360;
+		} else if ((z > this.heading) && (z - this.heading) > 180) {
+			// let the animation wrap aroung gracefully counter clockwise
+			this.heading += 360;
+		}
 		var z_inc = ((z - this.heading) / (FPS * t));
 		var _this = this;
 		//console.log(z_inc);
@@ -203,5 +229,125 @@ ahrsRenderer.prototype = {
 
 		// Draw the object
 		gl.drawElements(gl.TRIANGLES, g.box.numIndices, gl.UNSIGNED_BYTE, 0);
+	},
+	
+	makePaperAirplane: function (ctx) {
+		// Return an object with the following properties:
+		//  normalObject        WebGLBuffer object for normals (for lighting)
+		//  vertexObject        WebGLBuffer object for vertices (actual 3d object)
+		//  indexObject         WebGLBuffer object for indices (index of triangles within object)
+		//  numIndices          The number of indices in the indexObject (number of triangles)
+
+		// constants to make it easy to adjust the proportions and axis of the object
+		var LENGTH = 1; 	var WIDTH = 1;		var DEPTH = 0.33;		var SPREAD = 0.1;
+		var CENTERX = 0;	var CENTERY = 0;	var CENTERZ = 0.5;
+
+		// vertex coords array
+		var vertices = new Float32Array([
+			CENTERX, CENTERY, -LENGTH-CENTERZ,
+			-WIDTH, CENTERY, LENGTH-CENTERZ,
+			-SPREAD, CENTERY, LENGTH-CENTERZ, // left wing
+
+		   	CENTERX, CENTERY, -LENGTH-CENTERZ,
+			CENTERX, -DEPTH, LENGTH-CENTERZ,
+			-SPREAD, CENTERY, LENGTH-CENTERZ, // left center section
+
+		   	CENTERX, CENTERY, -LENGTH-CENTERZ,
+			CENTERX, -DEPTH, LENGTH-CENTERZ,
+			SPREAD, CENTERY, LENGTH-CENTERZ, // right center section
+
+			CENTERX, CENTERY, -LENGTH-CENTERZ,
+			WIDTH, CENTERY, LENGTH-CENTERZ,
+			SPREAD, CENTERY, LENGTH-CENTERZ // right wing
+			]);
+
+		// normal array for light reflection and shading
+		var normals = new Float32Array([
+			0, 1, 0,
+         	0, 1, 0,
+         	0, 1, 0, // left wing actual perpendicular is up
+         	1, 1, 0,
+         	1, 1, 0,
+         	1, 1, 0, // left center section estmated perpendicular is right
+         	-1, 1, 0,
+         	-1, 1, 0,
+         	-1, 1, 0, // right center section estmated perpendicular is left
+         	0, 1, 0,
+         	0, 1, 0,
+         	0, 1, 0 // right wing actual perpendicular is up
+		]);
+
+
+		// index array
+		var indices = new Uint8Array([
+			0, 1, 2, // left wing
+           	3, 4, 5, // left center section
+           	6, 7, 8, // right center section
+           	9, 10, 11 // right wing
+		]);
+
+		// Set up the array of colors for the cube's faces
+		// the tip of the paper aiplane is lighter and then a gradiant back to red for teh left and a green for the right
+		var colors_rg = new Uint8Array([
+			1, 0, 0, 1,
+			1, 0, 0, 1,
+			1, 0, 0, 1, // left wing
+			   
+			1, 0, 0, 1,
+			1, 0, 0, 1,
+			1, 0, 0, 1, // left center section
+			   
+			0, 1, 0, 1,
+			0, 1, 0, 1,
+			0, 1, 0, 1, // right center section
+			   
+			0, 1, 0, 1,
+			0, 1, 0, 1,
+			0, 1, 0, 1 // right wing
+		]);
+
+		var colors_bt = new Float32Array([
+			.21, .31, .49, 1,
+			.21, .31, .49, 1,
+			.21, .31, .49, 1,
+
+			.21, .31, .49, 1,
+			.21, .31, .49, 1,
+			.21, .31, .49, 1,
+			   
+			.39, .38, .22, 1,
+			.39, .38, .22, 1,
+			.39, .38, .22, 1,
+
+			.39, .38, .22, 1,
+			.39, .38, .22, 1,
+			.39, .38, .22, 1
+		]);
+
+		var retval = {};
+
+		retval.vertexObject = ctx.createBuffer();
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.vertexObject);
+		ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.STATIC_DRAW);
+
+		retval.normalObject = ctx.createBuffer();
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.normalObject);
+		ctx.bufferData(ctx.ARRAY_BUFFER, normals, ctx.STATIC_DRAW);
+
+		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
+
+		retval.indexObject = ctx.createBuffer();
+		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, retval.indexObject);
+		ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, indices, ctx.STATIC_DRAW);
+		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
+
+		// Set up the vertex buffer for the colors
+		retval.colorObject = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, retval.colorObject);
+		gl.bufferData(gl.ARRAY_BUFFER, colors_bt, gl.STATIC_DRAW);
+
+		retval.numIndices = indices.length;
+
+		return retval;
 	}
 }

@@ -1541,116 +1541,10 @@ function loadShaderScript(ctx, script, typ) {
 
 
 
-//
-// makePaperAirplane
-//
-// Create a box with vertices, normals and texCoords. Create VBOs for each as well as the index array.
-// Return an object with the following properties:
-//
-//  normalObject        WebGLBuffer object for normals
-//  texCoordObject      WebGLBuffer object for texCoords
-//  vertexObject        WebGLBuffer object for vertices
-//  indexObject         WebGLBuffer object for indices
-//  numIndices          The number of indices in the indexObject
-//
-function makePaperAirplane(ctx) {
-	var LENGTH = 1;
-	var WIDTH = 1;
-	var DEPTH = 0.33;
-	var SPREAD = 0.1;
-	var CENTERX = 0;
-	var CENTERY = 0;
-	var CENTERZ = 0.5;
-
-	// vertex coords array
-	var vertices = new Float32Array(
-          [CENTERX, CENTERY, -LENGTH-CENTERZ,
-		   -WIDTH, CENTERY, LENGTH-CENTERZ,
-		   -SPREAD, CENTERY, LENGTH-CENTERZ, // left wing
-
-		   CENTERX, CENTERY, -LENGTH-CENTERZ,
-		   CENTERX, -DEPTH, LENGTH-CENTERZ,
-		   -SPREAD, CENTERY, LENGTH-CENTERZ, // left center section
-
-		   CENTERX, CENTERY, -LENGTH-CENTERZ,
-		   CENTERX, -DEPTH, LENGTH-CENTERZ,
-		   SPREAD, CENTERY, LENGTH-CENTERZ, // right center section
-
-		   CENTERX, CENTERY, -LENGTH-CENTERZ,
-		   WIDTH, CENTERY, LENGTH-CENTERZ,
-		   SPREAD, CENTERY, LENGTH-CENTERZ] // right wing
-	);
-
-		// normal array
-	var normals = new Float32Array(
-        [0, 1, 0,
-         0, 1, 0,
-         0, 1, 0, // left wing actual perpendicular is up
-         1, 1, 0,
-         1, 1, 0,
-         1, 1, 0, // left center section estmated perpendicular is right
-         -1, 1, 0,
-         -1, 1, 0,
-         -1, 1, 0, // right center section estmated perpendicular is left
-         0, 1, 0,
-         0, 1, 0,
-         0, 1, 0] // right wing actual perpendicular is up
-	);
-
-
-	// index array
-	var indices = new Uint8Array(
-          [0, 1, 2, // left wing
-           3, 4, 5, // left center section
-           6, 7, 8, // right center section
-           9, 10, 11] // right wing
-	);
-
-	// Set up the array of colors for the cube's faces
-	// the tip of the paper aiplane is lighter and then a gradiant back to red for teh left and a green for the right
-	var colors = new Uint8Array(
-              [1, 0, 0, 1,
-               1, 0, 0, 1,
-               1, 0, 0, 1, // left wing
-			   1, 0, 0, 1,
-               1, 0, 0, 1,
-               1, 0, 0, 1, // left center section
-			   0, 1, 0, 1,
-               0, 1, 0, 1,
-               0, 1, 0, 1, // right center section
-			   0, 1, 0, 1,
-               0, 1, 0, 1,
-               0, 1, 0, 1] // right wing
-	);
-
-
-	var retval = {};
-
-	retval.normalObject = ctx.createBuffer();
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.normalObject);
-	ctx.bufferData(ctx.ARRAY_BUFFER, normals, ctx.STATIC_DRAW);
-
-	retval.vertexObject = ctx.createBuffer();
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.vertexObject);
-	ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.STATIC_DRAW);
-
-	ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
-
-	retval.indexObject = ctx.createBuffer();
-	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, retval.indexObject);
-	ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, indices, ctx.STATIC_DRAW);
-	ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
-
-	// Set up the vertex buffer for the colors
-	retval.colorObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, retval.colorObject);
-	gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-
-	retval.numIndices = indices.length;
-
-	return retval;
-}
-
+/* **********************************************************************************
+** SAVE SOME SPACE BY COMMENTING OUT UNUSED makeAxis, makeBox, and makeSphere *******
+********************************************************************************** */
+/* BEGIN COMMENTING OUT makeAxis, makeBox, and makeSphere
 
 //
 // makeAxis
@@ -1971,6 +1865,8 @@ function makeSphere(ctx, radius, lats, longs) {
 
 	return retval;
 }
+
+END COMMENTING OUT makeAxis, makeBox, and makeSphere */
 
 // Array of Objects curently loading
 var g_loadingObjects = [];

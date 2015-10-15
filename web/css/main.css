@@ -30,14 +30,6 @@
 	font-size: 18px;
 }
 
-.washout {
-	background-color: rgba(255, 255, 255, 0.65);
-	display: inline-block;
-	width: 100%;
-	text-align: center;
-	padding: 4px;
-}
-
 .section_invisible {
 	display: none;
 }
@@ -137,11 +129,13 @@
 	color: white;
 }
 
+.paperairplane_left,
 .traffic-style1 {
 	color: #000000;
 	background-color: cornflowerblue;
 }
 
+.paperairplane_right,
 .traffic-style2 {
 	color: #000000;
 	background-color: darkkhaki
@@ -159,8 +153,16 @@
 	color: blue;
 }
 
-.icon-yellow {
-	color: darkgoldenrod;
+.icon-white {
+	color: white;
+}
+
+.icon-black {
+	color: black;
+}
+
+.icon-red {
+	color: crimson;
 }
 
 .bar_container {
