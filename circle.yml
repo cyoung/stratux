@@ -1,6 +1,6 @@
 dependencies:
   pre:
-    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd /tmp; git clone git://git.osmocom.org/rtl-sdr.git; cd rtl-sdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig ; cd ~; wget https://storage.googleapis.com/golang/go1.5.1.src.tar.gz; tar -zxvf go1.5.1.src.tar.gz; cd go/src ; ./all.bash
+    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd /tmp; git clone git://git.osmocom.org/rtl-sdr.git; cd rtl-sdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig ; cd ~; wget https://storage.googleapis.com/golang/go1.5.1.src.tar.gz; tar -zxvf go1.5.1.src.tar.gz; cd go/src ; export GOROOT_BOOTSTRAP=/usr/lib/go; ./all.bash
   override:
     - export PATH=~/go/bin:${PATH}; make
 test:
