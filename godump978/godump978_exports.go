@@ -13,6 +13,7 @@ import (
 	"strconv"
 )
 
+// #cgo CFLAGS: -L../
 /*
 #include <stdint.h>
 #include "../dump978/dump978.h"
