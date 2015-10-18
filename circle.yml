@@ -1,4 +1,6 @@
 dependencies:
+  pre:
+    - sudo apt-get install librtlsdr-dev
   override:
     - make
 test:
