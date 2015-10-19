@@ -534,18 +534,18 @@ func attitudeReaderSender() {
 		// Read pitch and roll.
 		pitch, roll, err_mpu6050 := readMPU6050()
 
-		mySituation.mu_Attitude.Lock()
-
 		if err_mpu6050 != nil {
 			log.Printf("readMPU6050(): %s\n", err_mpu6050.Error())
 			globalStatus.RY835AI_connected = false
 			break
-		} else {
-			mySituation.Pitch = pitch
-			mySituation.Roll = roll
-			mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-			mySituation.LastAttitudeTime = time.Now()
 		}
+
+		mySituation.mu_Attitude.Lock()
+
+		mySituation.Pitch = pitch
+		mySituation.Roll = roll
+		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
+		mySituation.LastAttitudeTime = time.Now()
 
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
