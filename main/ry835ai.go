@@ -338,9 +338,7 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
-		if x[2] != "A" { // invalid fix
-			return false
-		}
+
 		// Timestamp.
 		if len(x[1]) < 9 {
 			return false
@@ -352,6 +350,27 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+
+		if len(x[9]) == 6 {
+			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
+			gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[9], hr, min, sec)
+			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+			if err == nil {
+				if time.Since(gpsTime) > 10*time.Minute {
+					log.Printf("setting system time to: %s\n", gpsTime)
+					setStr := gpsTime.Format("20060102 15:04:05")
+					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
+						log.Printf("Set Date failure: %s error\n", err)
+					}
+				}
+			}
+		}
+
+
+		if x[2] != "A" { // invalid fix
+			return false
+		}
+
 		// Latitude.
 		if len(x[3]) < 10 {
 			return false
@@ -390,18 +409,6 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.TrueCourse = uint16(tc)
-		// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-		gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[8], hr, min, sec)
-		gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
-		if err == nil {
-			if time.Since(gpsTime) > 10*time.Minute {
-				log.Printf("setting system time to: %s\n", gpsTime)
-				setStr := gpsTime.Format("20060102 15:04:05")
-				if err := exec.Command("date", "-s", setStr).Run(); err != nil {
-					log.Printf("Set Date failure: %s error\n", err)
-				}
-			}
-		}
 	}
 	return true
 }
