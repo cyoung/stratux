@@ -340,6 +340,11 @@ func heartBeatSender() {
 	}
 }
 
+var cal_pitch float64
+var cal_roll float64
+
+var cal_num int
+
 func main() {
 	crcInit()
 	if len(os.Args) < 5 {
@@ -416,7 +421,18 @@ func main() {
 		myGPS = gps
 		fmt.Printf("matchy: %d, %d\n", ahrs.Timestamp, gps.Timestamp)
 		pitch := ahrs.FusedEuler[0] * (180.0 / math.Pi)
-		roll := ahrs.FusedEuler[1] * (180.0 / math.Pi)
+		roll := -ahrs.FusedEuler[1] * (180.0 / math.Pi)
+
+		if cal_num < 20 { // Average the first 5 measurements and call this "level".
+			cal_pitch = ((cal_pitch * float64(cal_num)) + pitch) / float64(cal_num + 1)
+			cal_roll = ((cal_roll * float64(cal_num)) + roll) / float64(cal_num + 1)
+			cal_num++
+		}
+
+		// Apply the calibration values.
+		pitch -= cal_pitch
+		roll -= cal_roll
+
 		fmt.Printf("%f %f\n", pitch, roll)
 		s := fmt.Sprintf("XATTStratux,%f,%f,%f", gps.Course, pitch, roll)
 		outConn.Write([]byte(s))
