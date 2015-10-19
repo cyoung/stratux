@@ -342,13 +342,19 @@ func heartBeatSender() {
 
 func main() {
 	crcInit()
-	if len(os.Args) < 4 {
-		fmt.Printf("%s <start second> <ahrs file> <gps file>\n", os.Args[0])
+	if len(os.Args) < 5 {
+		fmt.Printf("%s <start second> <ahrs file> <gps file> <replay speed>\n", os.Args[0])
 		return
 	}
 	startsec, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		fmt.Printf("invalid: %s\n", os.Args[1])
+		return
+	}
+
+	replayspeed, err := strconv.Atoi(os.Args[4])
+	if err != nil {
+		fmt.Printf("invalid: %s\n", os.Args[4])
 		return
 	}
 
@@ -414,7 +420,7 @@ func main() {
 		fmt.Printf("%f %f\n", pitch, roll)
 		s := fmt.Sprintf("XATTStratux,%f,%f,%f", gps.Course, pitch, roll)
 		outConn.Write([]byte(s))
-		time.Sleep(time.Duration(ahrs.Timestamp - lastTs))
+		time.Sleep(time.Duration((ahrs.Timestamp - lastTs)/int64(replayspeed)))
 		lastTs = ahrs.Timestamp
 
 		// Now we're working with synced samples.
