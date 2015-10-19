@@ -54,9 +54,9 @@ func handleTrafficWS(conn *websocket.Conn) {
 		trafficJSON, _ := json.Marshal(&traf)
 		conn.Write(trafficJSON)
 	}
-	trafficMutex.Unlock()
 	// Subscribe the socket to receive updates.
 	trafficUpdate.AddSocket(conn)
+	trafficMutex.Unlock()
 
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
