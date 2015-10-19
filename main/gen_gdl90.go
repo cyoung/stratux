@@ -431,6 +431,31 @@ func updateMessageStats() {
 
 }
 
+/*
+	cpuTempMonitor() reads the RPi board temperature every second and updates it in globalStatus.
+	This is broken out into its own function (run as its own goroutine) because the RPi temperature
+	 monitor code is buggy, and often times reading this file hangs quite some time.
+*/
+func cpuTempMonitor() {
+	timer := time.NewTicker(1 * time.Second)
+	for {
+		<-timer.C
+
+		// Update CPUTemp.
+		globalStatus.CPUTemp = float32(-99.0) // Default value - in case code below hangs.
+
+		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
+		tempStr := strings.Trim(string(temp), "\n")
+		if err == nil {
+			tInt, err := strconv.Atoi(tempStr)
+			if err == nil {
+				globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+			}
+		}		
+
+	}
+}
+
 func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.Satellites
@@ -438,17 +463,6 @@ func updateStatus() {
 
 	// Update Uptime value
 	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000000
-
-	// Update CPUTemp.
-	temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
-	tempStr := strings.Trim(string(temp), "\n")
-	globalStatus.CPUTemp = float32(-99.0)
-	if err == nil {
-		tInt, err := strconv.Atoi(tempStr)
-		if err == nil {
-			globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
-		}
-	}
 }
 
 func replayLog(msg string, msgclass int) {
@@ -882,6 +896,9 @@ func main() {
 
 	// Start printing stats periodically to the logfiles.
 	go printStats()
+
+	// Monitor RPi CPU temp.
+	go cpuTempMonitor()
 
 	reader := bufio.NewReader(os.Stdin)
 
