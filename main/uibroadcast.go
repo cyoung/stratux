@@ -32,8 +32,9 @@ func (u *uibroadcaster) writer() {
 		// Send to all.
 		p := make([]*websocket.Conn, 0) // Keep a list of the writeable sockets.
 		for _, sock := range u.sockets {
-			_, err := sock.Write(msg)
-			if err == nil {
+			err := sock.SetWriteDeadline(time.Now().Add(time.Second))
+			_, err2 := sock.Write(msg)
+			if err == nil && err2 == nil {
 				p = append(p, sock)
 			}
 		}
