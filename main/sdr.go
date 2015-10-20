@@ -5,12 +5,29 @@ import (
 	rtl "github.com/jpoirier/gortlsdr"
 	"log"
 	"time"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 var uatSDR int // Index.
 var esSDR int  // Index.
 
 var maxSignalStrength int
+
+
+func getSDRSerial(dev *rtl.Context) (string, error) {
+	info, err := dev.GetHwInfo()
+	if err != nil {
+		return "", err
+	}
+	info.Serial = strings.Replace(info.Serial, "\x00", "", -1)
+	return info.Serial, nil
+}
+
+func setSDRSerial(dev *rtl.Context, info rtl.HwInfo) error {
+	return dev.SetHwInfo(info)
+}
 
 // Read 978MHz from SDR.
 func sdrReader() {
@@ -24,12 +41,7 @@ func sdrReader() {
 		return
 	}
 	defer dev.Close()
-	m, p, s, err := dev.GetUsbStrings()
-	if err != nil {
-		log.Printf("\tGetUsbStrings Failed - error: %s\n", err)
-	} else {
-		log.Printf("\tGetUsbStrings - %s %s %s\n", m, p, s)
-	}
+
 	log.Printf("\tGetTunerType: %s\n", dev.GetTunerType())
 
 	//---------- Set Tuner Gain ----------
@@ -111,7 +123,7 @@ func sdrReader() {
 		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
 	}
 
-	for uatSDR != -1 {
+	for uatSDR != -1 && globalSettings.UAT_Enabled {
 		var buffer = make([]uint8, rtl.DefaultBufLength)
 		nRead, err := dev.ReadSync(buffer, rtl.DefaultBufLength)
 		if err != nil {
@@ -124,6 +136,7 @@ func sdrReader() {
 			godump978.InChan <- buf
 		}
 	}
+	esSDR = -1
 }
 
 // Read from the godump978 channel - on or off.
@@ -145,28 +158,75 @@ func sdrWatcher() {
 		// Update device count.
 		globalStatus.Devices = uint(rtl.GetDeviceCount())
 
-		if uatSDR == -1 && globalSettings.UAT_Enabled {
-			if globalStatus.Devices == 0 {
-				log.Printf("No RTL-SDR devices.\n")
+		if (uatSDR != -1 || !globalSettings.UAT_Enabled) && (esSDR != -1 || !globalSettings.ES_Enabled) {
+			// Nothing to do. All devices are set up and running or not required.
+			continue
+		}
+
+		// Get the device strings for every device that we can.
+		devs := make(map[int]string)
+		for i := 0; i < int(globalStatus.Devices); i++ {
+			dev, err := rtl.Open(i)
+			if err != nil {
 				continue
 			}
-			uatSDR = 0
-			go sdrReader()
-		}
-		if esSDR == -1 && globalSettings.ES_Enabled {
-			if globalStatus.Devices == 0 || (globalStatus.Devices == 1 && globalSettings.UAT_Enabled) {
-				log.Printf("Not enough RTL-SDR devices.\n")
+			serial, err := getSDRSerial(dev)
+			if err != nil {
+				continue
 			}
-			esSDR = 1
+			devs[i] = serial
+			dev.Close()
+		}
+
+		if uatSDR == -1 && globalSettings.UAT_Enabled {
+			for devid, serial := range devs {
+				if strings.HasPrefix(serial, "stratux:978") {
+					uatSDR = devid
+					delete(devs, devid)
+					break
+				}
+			}
+			if uatSDR == -1 {
+				for devid, _ := range devs {
+					uatSDR = devid
+					break
+				}
+			}
+
+			if uatSDR != -1 {
+				log.Printf("UAT SDR: %d\n", uatSDR)
+				go sdrReader()
+			} else {
+				log.Printf("Can't start UAT listening - no available RTL-SDR.\n")
+			}
+		}
+
+		if esSDR == -1 && globalSettings.ES_Enabled {
+			for devid, _ := range devs {
+				esSDR = devid
+				break
+			}
+
+			if esSDR != -1 {
+				log.Printf("ES SDR: %d\n", esSDR)
+				// Assume that this keeps running forever and won't change.
+				//TODO: esSDR modify, watch if SDR disappears.
+				err := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(esSDR)).Run()
+				if err != nil {
+					log.Printf("Error executing /usr/bin/dump1090: %s\n", err.Error())
+				}
+			} else {
+				log.Printf("Can't start ES listening - no available RTL-SDR.\n")
+			}
 		}
 	}
 }
 
 func sdrInit() {
+	godump978.Dump978Init()
 	uatSDR = -1
 	esSDR = -1
 	go sdrWatcher()
 	go uatReader()
-	godump978.Dump978Init()
 	go godump978.ProcessDataFromChannel()
 }
