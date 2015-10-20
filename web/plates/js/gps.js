@@ -23,10 +23,14 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setGeoReferenceMap(la, lo) {
 		// Mercator projection
 		// var map = "img/world.png";
-		var map_width = 3929;
-		var map_height = 2184;
-		var map_zero_x = 1868;
-		var map_zero_y = 1412;
+//		var map_width = 3929;
+//		var map_height = 2184;
+//		var map_zero_x = 1868;
+//		var map_zero_y = 1412;
+		var map_width = 2530;
+		var map_height = 1603;
+		var map_zero_x = 1192;
+		var map_zero_y = 1124;
 		var font_size = 18; // size of font used for marker
 
 		sizeMap();
@@ -67,6 +71,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		// $scope.gps_accuracy = accuracies[status.NACp];
 		// "LastFixLocalTime":"2015-10-11T16:47:03.523085162Z"
 
+		// status.Lat = 42.47; status.Lng = -83.66;
+		
 		$scope.gps_lat = status.Lat.toPrecision(6); // result is string
 		$scope.gps_lon = status.Lng.toPrecision(6); // result is string
 		$scope.gps_alt = Math.round(status.Alt);
