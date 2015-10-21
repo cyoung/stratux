@@ -23,10 +23,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setGeoReferenceMap(la, lo) {
 		// Mercator projection
 		// var map = "img/world.png";
-		var map_width = 3929;
-		var map_height = 2184;
-		var map_zero_x = 1868;
-		var map_zero_y = 1412;
+		var map_width = 2530;
+		var map_height = 1603;
+		var map_zero_x = 1192;
+		var map_zero_y = 1124;
 		var font_size = 18; // size of font used for marker
 
 		sizeMap();
