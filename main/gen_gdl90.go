@@ -696,7 +696,7 @@ type settings struct {
 	NetworkOutputs []networkConnection
 	AHRS_Enabled   bool
 	DEBUG          bool
-	ReplayLog      bool // Startup only option. Cannot be changed during runtime.
+	ReplayLog      bool
 	PPM            int
 	OwnshipModeS   string
 	WatchList      string
