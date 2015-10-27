@@ -1,8 +1,8 @@
 angular.module('appControllers').controller('StatusCtrl', StatusCtrl); // get the main module contollers set
-StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http']; // Inject my dependencies
+StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
 // create our controller function with all necessary logic
-function StatusCtrl($rootScope, $scope, $state, $http) {
+function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.$parent.helppage = 'plates/status-help.html';
 
@@ -91,6 +91,31 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
 		});
 	};
 
+	function getTowers() {
+		// Simple GET request example (note: responce is asynchronous)
+		$http.get(URL_TOWERS_GET).
+		then(function (response) {
+			var towers = angular.fromJson(response.data);
+			var cnt = 0;
+			for (var key in towers) {
+				if (towers[key].Messages_last_minute > 0) {
+					cnt++;
+				}
+			}
+			$scope.UAT_Towers = cnt;
+			// $scope.$apply();
+		}, function (response) {
+			$scope.raw_data = "error getting tower data";
+		});
+	};
+
+	// periodically get the tower list
+	var updateTowers = $interval(function () {
+		// refresh tower count once each 5 seconds (aka polling)
+		getTowers();
+	}, (5 * 1000), 0, false);
+
+
 	$state.get('home').onEnter = function () {
 		// everything gets handled correctly by the controller
 	};
@@ -99,8 +124,8 @@ function StatusCtrl($rootScope, $scope, $state, $http) {
 			$scope.socket.close();
 			$scope.socket = null;
 		}
+		$interval.cancel(updateTowers);
 	};
-
 
 	// Status Controller tasks
 	setHardwareVisibility();

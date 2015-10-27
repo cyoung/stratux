@@ -1,0 +1,33 @@
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Towers</span>
+			<span ng-show="ConnectState == 'Receiving'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Receiving'" class="label label-danger">{{ConnectState}}</span>
+		</div>
+		<div class="panel-body towers-page">
+			<div class="row">
+				<span class="col-xs-6"><strong>Tower</strong></span>
+				<span class="col-xs-3 text-right">Signal</span>
+				<span class="col-xs-3 text-right">Msgs</span>
+			</div>
+
+			<div class="row" ng-repeat="tower in data_list | orderBy: messages">
+				<div class="separator"></div>
+				<span class="col-xs-6">{{tower.lat}} {{tower.lon}}</span>
+				<span class="col-xs-3 text-right">{{tower.signal}}</span>
+				<span class="col-xs-3 text-right">{{tower.messages}}</span>
+			</div>
+		</div>
+	</div>
+</div>
+<!--
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">Raw Tower Data</div>
+		<div class="panel-body">
+			<pre>{{raw_data}}</pre>
+		</div>
+	</div>
+</div>
+-->

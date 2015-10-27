@@ -49,8 +49,12 @@
                     <div>{{product_rows}}</div>
                 </div>
 -->
-				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs)}">
+				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_uat}">
+					<label class="col-xs-6">UAT Towers:</label>
+					<span class="col-xs-6">{{UAT_Towers}}</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS satellites:</label>
