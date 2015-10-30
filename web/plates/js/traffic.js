@@ -23,7 +23,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	function dmsString(val) {
 		return [0 | val,
-				'd ',
+				'° ',
 				0 | (val < 0 ? val = -val : val) % 1 * 60,
 				"' ",
 				0 | val * 60 % 1 * 60,

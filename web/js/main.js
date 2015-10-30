@@ -3,6 +3,8 @@ var URL_HOST_BASE 		= window.location.hostname;
 var URL_SETTINGS_GET 	= "http://"	+ URL_HOST_BASE + "/getSettings";
 var URL_SETTINGS_SET 	= "http://"	+ URL_HOST_BASE + "/setSettings";
 var URL_GPS_GET 		= "http://"	+ URL_HOST_BASE + "/getSituation";
+var URL_TOWERS_GET 		= "http://"	+ URL_HOST_BASE + "/getTowers"
+var URL_STATUS_GET 		= "http://"	+ URL_HOST_BASE + "/getStatus"
 var URL_STATUS_WS 		= "ws://"	+ URL_HOST_BASE + "/status"
 var URL_TRAFFIC_WS 		= "ws://"	+ URL_HOST_BASE + "/traffic";
 var URL_WEATHER_WS 		= "ws://"	+ URL_HOST_BASE + "/weather";
@@ -21,6 +23,12 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			controller: 'StatusCtrl',
 			reloadOnSearch: false
 		})
+//		.state('towers', {
+//			url: '/towers',
+//			templateUrl: 'plates/towers.html',
+//			controller: 'TowersCtrl',
+//			reloadOnSearch: false
+//		})
 		.state('weather', {
 			url: '/weather',
 			templateUrl: 'plates/weather.html',
