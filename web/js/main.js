@@ -23,12 +23,12 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			controller: 'StatusCtrl',
 			reloadOnSearch: false
 		})
-//		.state('towers', {
-//			url: '/towers',
-//			templateUrl: 'plates/towers.html',
-//			controller: 'TowersCtrl',
-//			reloadOnSearch: false
-//		})
+		.state('towers', {
+			url: '/towers',
+			templateUrl: 'plates/towers.html',
+			controller: 'TowersCtrl',
+			reloadOnSearch: false
+		})
 		.state('weather', {
 			url: '/weather',
 			templateUrl: 'plates/weather.html',
