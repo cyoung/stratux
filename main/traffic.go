@@ -56,6 +56,7 @@ const (
 
 type TrafficInfo struct {
 	Icao_addr        uint32
+	OnGround         bool
 	addr_type        uint8
 	emitter_category uint8
 
@@ -146,7 +147,10 @@ func makeTrafficReport(ti TrafficInfo) {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 
-	msg[12] = byte(((alt & 0x00F) << 4) | 0xB) //FIXME. "Airborne".
+	msg[12] = byte(((alt & 0x00F) << 4) | 0x3) // True heading.
+	if !ti.OnGround {
+		msg[12] = msg[12] | 0x08 // Airborne.
+	}
 
 	msg[13] = 0x11 //FIXME.
 
@@ -302,6 +306,7 @@ func parseDownlinkReport(s string) {
 			}
 		}
 	} else if airground_state == 2 { // Ground vehicle.
+		ti.OnGround = true
 		raw_gs := ((uint16(frame[12]) & 0x1f) << 6) | ((uint16(frame[13]) & 0xfc) >> 2)
 		if raw_gs != 0 {
 			speed_valid = true
