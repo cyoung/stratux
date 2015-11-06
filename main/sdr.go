@@ -47,7 +47,7 @@ func (e *ES) read() {
 		select {
 		default:
 			time.Sleep(1 * time.Second)
-		case _ = <-es_shutdown:
+		case <-es_shutdown:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			cmd.Process.Kill()
 			log.Println("\t kill successful...")
@@ -58,7 +58,6 @@ func (e *ES) read() {
 
 func (u *UAT) read() {
 	defer uat_wg.Done()
-	// defer u.dev.Close()
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
 	for {
@@ -74,7 +73,7 @@ func (u *UAT) read() {
 				buf := buffer[:nRead]
 				godump978.InChan <- buf
 			}
-		case _ = <-uat_shutdown:
+		case <-uat_shutdown:
 			log.Println("UAT read(): shutdown msg received...")
 			return
 		}
@@ -208,10 +207,7 @@ func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
 	close(uat_shutdown) // signal to shutdown
 	log.Println("UAT shutdown(): closing device ...")
-	// XXX: how to preempt ReadSync?
-	// the assumption is that calling Close()
-	// causes ReadSync to return immediately
-	u.dev.Close()
+	u.dev.Close() // preempt the blocking ReadSync call
 	log.Println("UAT shutdown(): calling uat_wg.Wait() ...")
 	uat_wg.Wait() // Wait for the goroutine to shutdown
 	log.Println("UAT shutdown(): uat_wg.Wait() returned...")
