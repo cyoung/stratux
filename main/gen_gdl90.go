@@ -455,7 +455,7 @@ func cpuTempMonitor() {
 					globalStatus.CPUTemp = float32(tInt) // case where Temp is returned as simple integer
 				}
 			}
-		}		
+		}
 
 	}
 }
@@ -708,7 +708,7 @@ type settings struct {
 
 type status struct {
 	Version                  string
-	Devices                  uint
+	Devices                  uint32
 	Connected_Users          uint
 	UAT_messages_last_minute uint
 	uat_products_last_minute map[string]uint32

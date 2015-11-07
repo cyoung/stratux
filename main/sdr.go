@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"../godump978"
@@ -228,6 +229,7 @@ func sdrWatcher() {
 	for {
 		time.Sleep(1 * time.Second)
 		count := rtl.GetDeviceCount()
+		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 		log.Println("DeviceCount...", count)
 
 		// support two and only two dongles
