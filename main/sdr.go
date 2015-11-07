@@ -181,16 +181,17 @@ func (u *UAT) sdrConfig() (err error) {
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = u.dev.SetFreqCorrection(globalSettings.PPM)
-	// librtlsdr returned error code inconsistencies, i.e.
-	// error code -2 means the current value is the same as
+	// avoid librtlsdr error code inconsistency, i.e.
+	// error code -2 means the stored value is the same as
 	// the PPM value we sent (dev->corr == PPM)
-	if err != nil && err != -2 {
-		u.dev.Close()
-		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
-		return
-	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
+	if freqCorr != globalSettings.PPM
+		err = u.dev.SetFreqCorrection(globalSettings.PPM)
+		if err != nil{
+			// just print a warning
+			log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
+		} else {
+			log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
+		}
 	}
 	return
 }
