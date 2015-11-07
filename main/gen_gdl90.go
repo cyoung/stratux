@@ -449,7 +449,11 @@ func cpuTempMonitor() {
 		if err == nil {
 			tInt, err := strconv.Atoi(tempStr)
 			if err == nil {
-				globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+				if tInt > 1000 {
+					globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+				} else {
+					globalStatus.CPUTemp = float32(tInt) // case where Temp is returned as simple integer
+				}
 			}
 		}		
 
