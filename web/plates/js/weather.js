@@ -125,13 +125,13 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		data_item.flight_condition = parseFlightCondition(obj.Type, obj.Data);
 		data_item.location = obj.Location;
 		s = obj.Time;
-		data_item.time = s.substring(0, 2) + '-' + s.substring(2, 4) + ':' + s.substring(4, 6) + 'Z';
-		// we can not accurately determime the current time on the Stratux
-		// calculating age of a weather report is indeterminate
-//		var dThen = parseShortDatetime(obj.Time);
-//		var dNow = new Date(obj.LocaltimeReceived);
-//		data_item.age = dThen.getTime();
-//		data_item.time = utcTimeString(Math.abs(dNow - dThen)) + " old";
+		// data_item.time = s.substring(0, 2) + '-' + s.substring(2, 4) + ':' + s.substring(4, 6) + 'Z';
+		// we may not get an accurate base time on the stratux device so we use the device time as our base
+		// var dNow = new Date(obj.LocaltimeReceived);
+		var dNow = new Date();
+		var dThen = parseShortDatetime(obj.Time);
+		data_item.age = dThen.getTime();
+		data_item.time = utcTimeString(dNow - dThen) + " old";
 		data_item.received = utcTimeString(obj.LocaltimeReceived);
 		data_item.data = obj.Data;
 	}
