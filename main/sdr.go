@@ -295,8 +295,12 @@ func sdrWatcher() {
 				} else {
 					UATDev = &UAT{indexID: id}
 					if err := UATDev.sdrConfig(); err != nil {
+						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
 					} else {
+						if UATDev == nil {
+							log.Println("XXXXXXX UATDev == nil this shouldn't be nil")
+						}
 						uat_shutdown = make(chan int)
 						uat_wg.Add(1)
 						go UATDev.read()
@@ -338,8 +342,12 @@ func sdrWatcher() {
 				} else {
 					ESDev = &ES{indexID: id}
 					if err := ESDev.sdrConfig(); err != nil {
+						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
 					} else {
+						if ESDev == nil {
+							log.Println("XXXXXXX ESDev == nil this shouldn't be nil")
+						}
 						es_shutdown = make(chan int)
 						es_wg.Add(1)
 						go ESDev.read()
