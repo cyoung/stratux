@@ -275,7 +275,7 @@ func sdrWatcher() {
 		// has enabled both UAT and ES via the web interface.
 		id := 0
 		if globalSettings.UAT_Enabled {
-			log.Println("globalSettings.UAT_Enabled == true")
+			// log.Println("globalSettings.UAT_Enabled == true")
 			if count == 1 {
 				if ESDev != nil {
 					ESDev.shutdown()
@@ -319,7 +319,7 @@ func sdrWatcher() {
 		// ES specific handling
 		id = 0
 		if globalSettings.ES_Enabled {
-			log.Println("globalSettings.ES_Enabled == true")
+			// log.Println("globalSettings.ES_Enabled == true")
 			if count == 1 {
 				if globalSettings.UAT_Enabled {
 					// defer to the UAT handler
