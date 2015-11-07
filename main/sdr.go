@@ -187,7 +187,7 @@ func (u *UAT) sdrConfig() (err error) {
 	if freqCorr != globalSettings.PPM {
 		err = u.dev.SetFreqCorrection(globalSettings.PPM)
 		if err != nil {
-			// just print a warning
+			// just a warning
 			log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
 		} else {
 			log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
@@ -243,7 +243,7 @@ func sdrWatcher() {
 
 		// cleanup if necessary
 		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			log.Println("doing cleanup...")
+			log.Println("count == 0, doing cleanup if necessary...")
 			if UATDev != nil {
 				UATDev.shutdown()
 				UATDev = nil
@@ -290,7 +290,7 @@ func sdrWatcher() {
 			}
 
 			if UATDev == nil {
-				log.Println("\tUATDev == nil")
+				// log.Println("\tUATDev == nil")
 				// preference check based on stratux
 				// hardware serial when it exists
 				serial := ids[id]
@@ -302,9 +302,6 @@ func sdrWatcher() {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
 					} else {
-						if UATDev == nil {
-							log.Println("XXXXXXX UATDev == nil this shouldn't be nil")
-						}
 						uat_shutdown = make(chan int)
 						uat_wg.Add(1)
 						go UATDev.read()
@@ -337,7 +334,7 @@ func sdrWatcher() {
 			}
 
 			if ESDev == nil {
-				log.Println("\tESDev == nil")
+				// log.Println("\tESDev == nil")
 				// preference check based on stratux
 				// hardware serial when it exists
 				serial := ids[id]
@@ -349,9 +346,6 @@ func sdrWatcher() {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
 					} else {
-						if ESDev == nil {
-							log.Println("XXXXXXX ESDev == nil this shouldn't be nil")
-						}
 						es_shutdown = make(chan int)
 						es_wg.Add(1)
 						go ESDev.read()
