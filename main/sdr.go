@@ -183,8 +183,9 @@ func (u *UAT) sdrConfig() (err error) {
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
 	err = u.dev.SetFreqCorrection(globalSettings.PPM)
 	if err != nil {
-		// just a warning
+		u.dev.Close()
 		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
+		return
 	} else {
 		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
 	}
