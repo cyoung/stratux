@@ -67,7 +67,7 @@ func (u *UAT) read() {
 			nRead, err := u.dev.ReadSync(buffer, rtl.DefaultBufLength)
 			if err != nil {
 				log.Printf("\tReadSync Failed - error: %s\n", err)
-				break
+				return
 			}
 			// log.Printf("\tReadSync %d\n", nRead)
 			if nRead > 0 {
