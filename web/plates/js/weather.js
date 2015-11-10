@@ -86,16 +86,17 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		var time = "";
 		var val;
 		var d = new Date(epoc);
-		val = d.getUTCDate();
+		val = d.getUTCDate() - 1; // Date starts at 1.
 		if (val > 0)
-			time += (val < 10 ? "0" + val : "" + val) + ":";
+			time += (val < 10 ? "0" + val : "" + val) + "d ";
 		val = d.getUTCHours();
 		if (val > 0)
-			time += (val < 10 ? "0" + val : "" + val) + ":";
+			time += (val < 10 ? "0" + val : "" + val) + "h ";
 		val = d.getUTCMinutes();
-		time += (val < 10 ? "0" + val : "" + val) + ":";
+		time += (val < 10 ? "0" + val : "" + val) + "m ";
 		val = d.getUTCSeconds();
-		time += (val < 10 ? "0" + val : "" + val);
+		time += (val < 10 ? "0" + val : "" + val) + "s";
+
 		// time += "Z";
 		return time;
 	}
