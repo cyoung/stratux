@@ -7,9 +7,9 @@ import (
 )
 
 type uibroadcaster struct {
-	sockets   []*websocket.Conn
+	sockets    []*websocket.Conn
 	sockets_mu *sync.Mutex
-	messages  chan []byte
+	messages   chan []byte
 }
 
 func NewUIBroadcaster() *uibroadcaster {
