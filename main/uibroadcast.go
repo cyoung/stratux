@@ -8,7 +8,7 @@ import (
 
 type uibroadcaster struct {
 	sockets   []*websocket.Conn
-	socket_mu *sync.Mutex
+	sockets_mu *sync.Mutex
 	messages  chan []byte
 }
 
