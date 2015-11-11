@@ -97,26 +97,26 @@ func (u *UAT) sdrConfig() (err error) {
 		log.Printf("\tUAT Open Failed...\n")
 		return
 	}
-	log.Printf("\tGetTunerType: %s\n", u.dev.GetTunerType())
+	log.Printf("\tUAT GetTunerType: %s\n", u.dev.GetTunerType())
 
 	//---------- Set Tuner Gain ----------
 	err = u.dev.SetTunerGainMode(true)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetTunerGainMode Failed - error: %s\n", err)
+		log.Printf("\tUAT SetTunerGainMode Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetTunerGainMode Successful\n")
+		log.Printf("\tUAT SetTunerGainMode Successful\n")
 	}
 
 	tgain := 480
 	err = u.dev.SetTunerGain(tgain)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetTunerGain Failed - error: %s\n", err)
+		log.Printf("\tUAT SetTunerGain Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetTunerGain Successful\n")
+		log.Printf("\tUAT SetTunerGain Successful\n")
 	}
 
 	//---------- Get/Set Sample Rate ----------
@@ -124,21 +124,21 @@ func (u *UAT) sdrConfig() (err error) {
 	err = u.dev.SetSampleRate(samplerate)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetSampleRate Failed - error: %s\n", err)
+		log.Printf("\tUAT SetSampleRate Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetSampleRate - rate: %d\n", samplerate)
+		log.Printf("\tUAT SetSampleRate - rate: %d\n", samplerate)
 	}
-	log.Printf("\tGetSampleRate: %d\n", u.dev.GetSampleRate())
+	log.Printf("\tUAT GetSampleRate: %d\n", u.dev.GetSampleRate())
 
 	//---------- Get/Set Xtal Freq ----------
 	rtlFreq, tunerFreq, err := u.dev.GetXtalFreq()
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tGetXtalFreq Failed - error: %s\n", err)
+		log.Printf("\tUAT GetXtalFreq Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
+		log.Printf("\tUAT GetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 	}
 
 	newRTLFreq := 28800000
@@ -146,10 +146,10 @@ func (u *UAT) sdrConfig() (err error) {
 	err = u.dev.SetXtalFreq(newRTLFreq, newTunerFreq)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetXtalFreq Failed - error: %s\n", err)
+		log.Printf("\tUAT SetXtalFreq Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
+		log.Printf("\tUAT SetXtalFreq - Center freq: %d, Tuner freq: %d\n",
 			newRTLFreq, newTunerFreq)
 	}
 
@@ -157,42 +157,47 @@ func (u *UAT) sdrConfig() (err error) {
 	err = u.dev.SetCenterFreq(978000000)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetCenterFreq 978MHz Failed, error: %s\n", err)
+		log.Printf("\tUAT SetCenterFreq 978MHz Failed, error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetCenterFreq 978MHz Successful\n")
+		log.Printf("\tUAT SetCenterFreq 978MHz Successful\n")
 	}
 
-	log.Printf("\tGetCenterFreq: %d\n", u.dev.GetCenterFreq())
+	log.Printf("\tUAT GetCenterFreq: %d\n", u.dev.GetCenterFreq())
 
 	//---------- Set Bandwidth ----------
 	bw := 1000000
-	log.Printf("\tSetting Bandwidth: %d\n", bw)
+	log.Printf("\tUAT Setting Bandwidth: %d\n", bw)
 	if err = u.dev.SetTunerBw(bw); err != nil {
 		u.dev.Close()
-		log.Printf("\tSetTunerBw %d Failed, error: %s\n", bw, err)
+		log.Printf("\tUAT SetTunerBw %d Failed, error: %s\n", bw, err)
 		return
 	} else {
-		log.Printf("\tSetTunerBw %d Successful\n", bw)
+		log.Printf("\tUAT SetTunerBw %d Successful\n", bw)
 	}
 
 	if err = u.dev.ResetBuffer(); err != nil {
 		u.dev.Close()
-		log.Printf("\tResetBuffer Failed - error: %s\n", err)
+		log.Printf("\tUAT ResetBuffer Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tResetBuffer Successful\n")
+		log.Printf("\tUAT ResetBuffer Successful\n")
 	}
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
-	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = u.dev.SetFreqCorrection(globalSettings.PPM)
-	if err != nil {
-		u.dev.Close()
-		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
-		return
+	log.Printf("\tUAT GetFreqCorrection: %d\n", freqCorr)
+	if freqCorr == globalSettings.PPM {
+		log.Printf("\tUAT FreqCorrection: Using Default\n")
+		err = nil
 	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
+		err = u.dev.SetFreqCorrection(globalSettings.PPM)
+		if err != nil {
+			u.dev.Close()
+			log.Printf("\tUAT SetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
+			return
+		} else {
+			log.Printf("\tUAT SetFreqCorrection %d Successful\n", globalSettings.PPM)
+		}
 	}
 	return
 }
@@ -228,6 +233,7 @@ func (e *ES) shutdown() {
 }
 
 var devMap = map[int]string{0: "", 1: ""}
+var sdrCount int
 
 // Watch for config/device changes.
 func sdrWatcher() {
@@ -235,7 +241,10 @@ func sdrWatcher() {
 		time.Sleep(1 * time.Second)
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
-		log.Println("DeviceCount...", count)
+		if count != sdrCount {
+			log.Println("DeviceCount...", count) // only log changes in the number of sdr devices
+		}
+		sdrCount = count
 
 		// support two and only two dongles
 		if count > 2 {
@@ -300,7 +309,7 @@ func sdrWatcher() {
 				} else {
 					UATDev = &UAT{indexID: id}
 					if err := UATDev.sdrConfig(); err != nil {
-						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
+						log.Printf("UATDev = &UAT{indexID: %d} failed: %s\n", id, err)
 						UATDev = nil
 					} else {
 						uat_shutdown = make(chan int)
