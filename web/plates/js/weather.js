@@ -82,22 +82,26 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 
 
-	function utcTimeString(epoc) {
+	function deltaTimeString(epoc) {
 		var time = "";
 		var val;
 		var d = new Date(epoc);
-		val = d.getUTCDate() - 1; // Date starts at 1.
+		val = d.getUTCDate() - 1; // we got here by subtrracting two dates so we have a delta, not a day of month
 		if (val > 0)
 			time += (val < 10 ? "0" + val : "" + val) + "d ";
 		val = d.getUTCHours();
-		if (val > 0)
+		if (val > 0) {
 			time += (val < 10 ? "0" + val : "" + val) + "h ";
+		} else {
+			if (time.length > 0)
+				time += "00h ";
+		}
 		val = d.getUTCMinutes();
 		time += (val < 10 ? "0" + val : "" + val) + "m ";
-		val = d.getUTCSeconds();
-		time += (val < 10 ? "0" + val : "" + val) + "s";
+		// ADS-B weather is only accurate to minutes
+		// val = d.getUTCSeconds();
+		// time += (val < 10 ? "0" + val : "" + val) + "s";
 
-		// time += "Z";
 		return time;
 	}
 
@@ -108,7 +112,11 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 			return 0;
 		d.setUTCDate(parseInt(s.substring(0, 2)));
 		d.setUTCHours(parseInt(s.substring(2, 4)));
-		d.setUTCMinutes(parseInt(s.substring(4, 6)));
+		if (s.length > 7) { // TAF datetime range
+			d.setUTCMinutes(0);
+		} else {
+			d.setUTCMinutes(parseInt(s.substring(4, 6)));
+		}
 		d.setUTCSeconds(0);
 		d.setUTCMilliseconds(0);
 		return d;
@@ -132,8 +140,8 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		var dNow = new Date();
 		var dThen = parseShortDatetime(obj.Time);
 		data_item.age = dThen.getTime();
-		data_item.time = utcTimeString(dNow - dThen) + " old";
-		data_item.received = utcTimeString(obj.LocaltimeReceived);
+		data_item.time = deltaTimeString(dNow - dThen) + " old";
+		// data_item.received = utcTimeString(obj.LocaltimeReceived);
 		data_item.data = obj.Data;
 	}
 
