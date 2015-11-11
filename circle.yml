@@ -1,6 +1,7 @@
 machine:
   environment:
     GOPATH: $HOME/gopath
+    GOROOT: $HOME/go
     PATH: $HOME/go/bin:$HOME/gopath/bin:$PATH
 
 dependencies:
