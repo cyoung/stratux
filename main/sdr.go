@@ -209,6 +209,24 @@ func uatReader() {
 	}
 }
 
+func (u *UAT) writeID() error {
+	info, err := u.dev.GetHwInfo()
+	if err != nil {
+		return err
+	}
+	info.Serial = "stratux:978"
+	return u.dev.SetHwInfo(info)
+}
+
+func (e *ES) writeID() error {
+	info, err := e.dev.GetHwInfo()
+	if err != nil {
+		return err
+	}
+	info.Serial = "stratux:1090"
+	return e.dev.SetHwInfo(info)
+}
+
 func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
 	close(uat_shutdown) // signal to shutdown
