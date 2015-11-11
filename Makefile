@@ -1,7 +1,7 @@
 all:
 	cd dump978 && make lib
 	go get -t -d -v ./...
-	go build -ldflags " -X main.stratuxVersion=`git describe --abbrev=0 --tags` -X main.stratuxBuild=`git log -n 1 --pretty=%H`" main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
+	go build -ldflags " -X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`" main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
 test:
 	sh -c true
