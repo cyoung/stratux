@@ -7,6 +7,7 @@ endif
 all:
 	cd dump978 && make lib
 	go get -t -d -v ./...
+	cp -f libdump978.so /usr/lib/
 	go build -ldflags $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
 test:
@@ -46,7 +47,6 @@ www:
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
-	cp -f libdump978.so /usr/lib/
 
 clean:
 	rm -f gen_gdl90 libdump978.so
