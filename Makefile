@@ -8,8 +8,8 @@ endif
 
 all:
 	cd dump978 && make lib
-	$(LIBDUMP978_DEST)
 	go get -t -d -v ./...
+	$(LIBDUMP978_DEST)
 	go version
 	go build -ldflags $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
