@@ -17,7 +17,7 @@ dependencies:
     - go version
     - env
   override:
-    - make -d
+    - make
 
 test:
   override:
