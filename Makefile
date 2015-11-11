@@ -41,6 +41,6 @@ install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
 	cp -f libdump978.so /usr/lib/
-	
+
 clean:
 	rm -f gen_gdl90 libdump978.so
