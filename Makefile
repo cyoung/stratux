@@ -1,5 +1,5 @@
 ifeq "$(CIRCLECI)" "true"
-	BUILDINFO=""
+	BUILDINFO=
 else
 	BUILDINFO="-ldflags -X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
 endif
