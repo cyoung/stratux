@@ -6,8 +6,8 @@ endif
 
 all:
 	cd dump978 && make lib
+	sudo cp -f libdump978.so /usr/lib/
 	go get -t -d -v ./...
-	cp -f libdump978.so /usr/lib/
 	go build -ldflags $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
 test:

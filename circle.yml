@@ -13,7 +13,7 @@ dependencies:
     - echo $PATH
     - go version
   override:
-    - sudo make
+    - make
 
 test:
   override:
