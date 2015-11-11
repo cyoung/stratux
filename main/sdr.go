@@ -50,8 +50,13 @@ func (e *ES) read() {
 			time.Sleep(1 * time.Second)
 		case <-es_shutdown:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
-			cmd.Process.Kill()
-			log.Println("\t kill successful...")
+			err := cmd.Process.Kill()
+			if err != nil {
+				log.Println("\t couldn't kill dump1090: %s", err.Error)
+			} else {
+				cmd.Wait()
+				log.Println("\t kill successful...")
+			}
 			return
 		}
 	}
