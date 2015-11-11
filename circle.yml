@@ -15,8 +15,9 @@ dependencies:
     - echo $PATH
     - echo $GOPATH
     - go version
+    - env
   override:
-    - make
+    - make -d
 
 test:
   override:
