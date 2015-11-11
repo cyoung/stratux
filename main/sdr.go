@@ -235,7 +235,7 @@ func sdrWatcher() {
 		time.Sleep(1 * time.Second)
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
-		log.Println("DeviceCount...", count)
+		// log.Println("DeviceCount...", count)
 
 		// support two and only two dongles
 		if count > 2 {
