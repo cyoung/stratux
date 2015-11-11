@@ -1,13 +1,16 @@
 ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=""
+	LIBDUMP978_DEST="cp -f libdump978.so ./"
 else
 	BUILDINFO=" -X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
+	LIBDUMP978_DEST="cp -f libdump978.so /usr/lib/"
 endif
 
 all:
 	cd dump978 && make lib
+	$(LIBDUMP978_DEST)
 	go get -t -d -v ./...
-	cp -f libdump978.so /usr/lib/
+	go version
 	go build -ldflags $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
 test:
