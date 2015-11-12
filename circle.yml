@@ -5,8 +5,8 @@ machine:
 dependencies:
   pre:
     - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev
-    - cd /tmp; git clone https://github.com/steve-m/librtlsdr.git; cd librtlsdr
-    - mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig
+    - git clone https://github.com/steve-m/librtlsdr.git ; cd librtlsdr
+    - mkdir build; cd build ; cmake ../ ; make ; sudo make install ; sudo ldconfig
     - cd ~
     - mkdir gopath
     - echo $PATH
