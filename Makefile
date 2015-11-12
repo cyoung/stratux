@@ -41,6 +41,15 @@ install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
 	cp -f libdump978.so /usr/lib/
+	cp start_uat.sh /usr/bin/start_uat
+	cp init.d-stratux /etc/init.d/stratux
+	cp start_stratux.sh /usr/sbin/stratux
+	chmod 755 /usr/bin/start_uat
+	chmod 755 /usr/sbin/stratux
+	chmod 755 /etc/init.d/stratux
+	ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
+	ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
+	make www
 
 clean:
 	rm -f gen_gdl90 libdump978.so
