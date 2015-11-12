@@ -1,8 +1,6 @@
 machine:
   environment:
     GOPATH: $HOME/gopath
-    GOROOT: $HOME/go
-    PATH: $HOME/go/bin:$HOME/gopath/bin:$PATH
 
 dependencies:
   pre:
@@ -11,8 +9,6 @@ dependencies:
     - mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig
     - cd ~
     - mkdir gopath
-    - wget https://storage.googleapis.com/golang/go1.5.1.src.tar.gz; tar -zxvf go1.5.1.src.tar.gz
-    - cd go/src ; export GOROOT_BOOTSTRAP=/usr/local/go; ./make.bash
     - echo $PATH
     - echo $GOPATH
     - go version
