@@ -47,8 +47,8 @@ install:
 	chmod 755 /usr/bin/start_uat
 	chmod 755 /usr/sbin/stratux
 	chmod 755 /etc/init.d/stratux
-	ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
-	ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux
+	ln -sf /etc/init.d/stratux /etc/rc2.d/S01stratux
+	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux
 	make www
 
 clean:
