@@ -832,12 +832,13 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 
 	// Duplicate log.* output to debugLog.
+	var mfp io.Writer
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
 	} else {
 		defer fp.Close()
-		mfp := io.MultiWriter(fp, os.Stdout)
+		mfp = io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}
 
@@ -847,7 +848,7 @@ func main() {
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
-	sdrInit()
+	sdrInit(mfp)
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion

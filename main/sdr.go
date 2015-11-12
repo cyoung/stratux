@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os/exec"
 	"strconv"
@@ -23,6 +24,7 @@ type ES struct {
 	indexID int
 }
 
+var mfp io.Writer
 var UATDev *UAT
 var ESDev *ES
 
@@ -38,6 +40,10 @@ func (e *ES) read() {
 	defer es_wg.Done()
 	log.Println("Entered ES read() ...")
 	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID))
+	if mfp != nil {
+		cmd.Stdout = mfp
+		cmd.Stderr = cmd.Stdout
+	}
 	err := cmd.Start()
 	if err != nil {
 		log.Printf("Error executing /usr/bin/dump1090: %s\n", err.Error())
@@ -382,7 +388,8 @@ func sdrWatcher() {
 	}
 }
 
-func sdrInit() {
+func sdrInit(m io.Writer) {
+	mfp = m
 	go sdrWatcher()
 	go uatReader()
 	godump978.Dump978Init()
