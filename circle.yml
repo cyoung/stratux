@@ -1,10 +1,11 @@
 machine:
   environment:
+    PATH: $HOME/go/bin:$HOME/gopath/bin:$PATH
     GOPATH: $HOME/gopath
 
 dependencies:
   pre:
-    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd ~/; git clone https://github.com/steve-m/librtlsdr.git; cd librtlsdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig; cd ~/; mkdir gopath; echo $PATH; echo $GOPATH; go version; env
+    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd ~/; git clone https://github.com/steve-m/librtlsdr.git; cd librtlsdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig; cd ~/; mkdir gopath; cd ~/; mkdir gopath; wget https://storage.googleapis.com/golang/go1.5.1.src.tar.gz; tar -zxvf go1.5.1.src.tar.gz; cd go/src; export GOROOT_BOOTSTRAP=/usr/local/go; ./make.bash; echo $PATH; echo $GOPATH; go version; env
   override:
     - make
 
