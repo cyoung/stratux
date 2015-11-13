@@ -18,7 +18,7 @@ Apps with stratux recognition/support:
 * AvNav EFB 2.0.0+.
 
 Tested weather/traffic displays:
-* ForeFlight 7.3.2 (Sep 23, 2015) - weather, traffic, AHRS.
+* ForeFlight 7+ - weather, traffic, AHRS.
 * Naviator - weather, traffic, AHRS.
 * WingX - weather & traffic.
 * Avare
