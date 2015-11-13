@@ -31,6 +31,7 @@ const (
 	esReplayLog         = "/var/log/stratux-es.log"
 	gpsReplayLog        = "/var/log/stratux-gps.log"
 	ahrsReplayLog       = "/var/log/stratux-ahrs.log"
+	dump1090ReplayLog   = "/var/log/stratux-dump1090.log"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -51,10 +52,11 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT  = 0
-	MSGCLASS_ES   = 1
-	MSGCLASS_GPS  = 3
-	MSGCLASS_AHRS = 4
+	MSGCLASS_UAT      = 0
+	MSGCLASS_ES       = 1
+	MSGCLASS_GPS      = 3
+	MSGCLASS_AHRS     = 4
+	MSGCLASS_DUMP1090 = 5
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -74,6 +76,7 @@ var uatReplayfp *os.File
 var esReplayfp *os.File
 var gpsReplayfp *os.File
 var ahrsReplayfp *os.File
+var dump1090Replayfp *os.File
 
 type msg struct {
 	MessageClass    uint
@@ -469,6 +472,23 @@ func updateStatus() {
 	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000000
 }
 
+type ReplayWriter struct {
+	fp *os.File
+}
+
+func (r ReplayWriter) Write(p []byte) (n int, err error) {
+	//TODO.
+	return r.fp.Write(p)
+}
+
+func (r ReplayWriter) Close() error {
+	return r.fp.Close()
+}
+
+func makeReplayLogEntry(msg string) string {
+	return fmt.Sprintf("%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+}
+
 func replayLog(msg string, msgclass int) {
 	if !globalSettings.ReplayLog { // Logging disabled.
 		return
@@ -487,9 +507,12 @@ func replayLog(msg string, msgclass int) {
 		fp = gpsReplayfp
 	case MSGCLASS_AHRS:
 		fp = ahrsReplayfp
+	case MSGCLASS_DUMP1090:
+		fp = dump1090Replayfp
 	}
 	if fp != nil {
-		fmt.Fprintf(fp, "%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
+		s := makeReplayLogEntry(msg)
+		fp.Write([]byte(s))
 	}
 }
 
@@ -799,6 +822,10 @@ func replayMark(active bool) {
 		ahrsReplayfp.Write([]byte(t))
 	}
 
+	if dump1090Replayfp != nil {
+		dump1090Replayfp.Write([]byte(t))
+	}
+
 }
 
 func openReplay(fn string) (*os.File, error) {
@@ -883,6 +910,13 @@ func main() {
 	} else {
 		ahrsReplayfp = ahrsfp
 		defer ahrsReplayfp.Close()
+	}
+	// Dump1090 replay log.
+	if dump1090fp, err := openReplay(dump1090ReplayLog); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		dump1090Replayfp = dump1090fp
+		defer dump1090Replayfp.Close()
 	}
 
 	// Mark the files (whether we're logging or not).

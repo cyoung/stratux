@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os/exec"
 	"strconv"
@@ -34,20 +35,42 @@ var es_wg *sync.WaitGroup = &sync.WaitGroup{}
 
 var maxSignalStrength int
 
+func readToChan(fp io.ReadCloser, ch chan []byte) {
+	for {
+		buf := make([]byte, 1024)
+		n, err := fp.Read(buf)
+		if n > 0 {
+			ch <- buf[:n]
+		} else if err != nil {
+			return
+		}
+	}
+}
+
 func (e *ES) read() {
 	defer es_wg.Done()
 	log.Println("Entered ES read() ...")
 	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID))
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+
+	outputChan := make(chan []byte, 1024)
+
+	go readToChan(stdout, outputChan)
+	go readToChan(stderr, outputChan)
+
 	err := cmd.Start()
 	if err != nil {
 		log.Printf("Error executing /usr/bin/dump1090: %s\n", err.Error())
 		return
 	}
 	log.Println("Executed /usr/bin/dump1090 successfully...")
+
 	for {
 		select {
-		default:
-			time.Sleep(1 * time.Second)
+		case buf := <-outputChan:
+			replayLog(string(buf), MSGCLASS_DUMP1090)
+
 		case <-es_shutdown:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			err := cmd.Process.Kill()
@@ -58,6 +81,9 @@ func (e *ES) read() {
 				log.Println("\t kill successful...")
 			}
 			return
+		default:
+			time.Sleep(1 * time.Second)
+
 		}
 	}
 }
