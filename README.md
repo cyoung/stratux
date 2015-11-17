@@ -16,10 +16,10 @@ Tested RTL-SDR:
 Apps with stratux recognition/support:
 * Seattle Avionics FlyQ EFB 2.1.1+.
 * AvNav EFB 2.0.0+.
+* Naviator.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
-* Naviator - weather, traffic, AHRS.
 * WingX - weather & traffic.
 * Avare
 * iFly 740 - weather & traffic.
