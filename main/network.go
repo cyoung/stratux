@@ -219,7 +219,7 @@ func messageQueueSender() {
 					pd = float64(1.0/2500.0)
 				}
 				queueTimer.Stop()
-				queueTimer = time.NewTicker(int64(pd * 1000000000.0) * time.Nanosecond)
+				queueTimer = time.NewTicker(int(pd * 1000000000.0) * time.Nanosecond)
 				lastQueueTimeChange = time.Now()
 			}
 			averageSendableQueueSize 
