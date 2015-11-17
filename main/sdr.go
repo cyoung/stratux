@@ -92,6 +92,8 @@ func (u *UAT) read() {
 	defer uat_wg.Done()
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
+
+	slowReadTimer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		default:
@@ -108,6 +110,12 @@ func (u *UAT) read() {
 		case <-uat_shutdown:
 			log.Println("UAT read(): shutdown msg received...")
 			return
+		case <-slowReadTimer.C:
+			// Check (every 5 seconds) if we haven't received any UAT messages in the last minute. If that's the case, sleep for 15 seconds.
+			// Puts the RTL-SDR reading and UAT message parsing on a 25% duty cycle unless we're receiving messages, then it goes back to 100%.
+			if globalStatus.UAT_messages_last_minute == 0 {
+				time.Sleep(15 * time.Second)
+			}
 		}
 	}
 }
