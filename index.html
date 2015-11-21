@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
-    <meta charset="UTF-8">
-    <title>Stratux by cyoung</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
-  </head>
-  <body>
-    <section class="page-header">
-      <h1 class="project-name">Stratux</h1>
-      <h2 class="project-tagline">Aviation weather and traffic receiver based on RTL-SDR.</h2>
-        <a href="https://github.com/cyoung/stratux" class="btn">View on GitHub</a>
-        <a href="https://github.com/cyoung/stratux/releases/download/v0.4r4/stratux-v0.4r4-293d0e74a8-10222015.img.zip" class="btn">Download</a>
-    </section>
+	<head>
+		<meta charset="UTF-8">
+		<title>Stratux by cyoung</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+		<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+		<link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+	</head>
+	<body>
+		<section class="page-header">
+			<h1 class="project-name">Stratux</h1>
+			<h2 class="project-tagline">Aviation weather and traffic receiver based on RTL-SDR.</h2>
+			<a href="https://github.com/cyoung/stratux" class="btn">View on GitHub</a>
+			<a href="https://github.com/cyoung/stratux/releases/download/v0.4r4/stratux-v0.4r4-293d0e74a8-10222015.img.zip" class="btn">Download</a>
+		</section>
 
-    <section class="main-content">
-      <h1>
-<a id="stratux" class="anchor" href="#stratux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stratux</h1>
+		<section class="main-content">
+
+
+<h1 id="stratux">Stratux</h1>
 
 <p>
 	Hello! Stratux is a <strong>homebuilt ADS-B In receiver</strong> for pilots. It's easy to assemble from inexpensive, off-the-shelf hardware, and probably already works with your electronic flight bag (EFB) of choice. Even better, if you're so inclined, the software is open-source and hackable so you can build the system that's right for you.
@@ -29,41 +30,34 @@
 </p>
 
 
-<h2>
-<a id="shopping-list" class="anchor" href="#shopping-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Shopping List</h2>
+<h2 id="shopping-list">Shopping List</h2>
 
 <ol>
-<li>
-<a href="http://amzn.com/B00MV6TAJI">http://amzn.com/B00MV6TAJI</a> (Raspberry Pi 2).</li>
-<li>
-<a href="http://amzn.com/B00P2UOU72">http://amzn.com/B00P2UOU72</a> (RTL-SDR tuner dongle). One minimum, two for full (978 UAT + 1090ES) traffic reception.</li>
-<li>
-<a href="http://amzn.com/B00JM59JPG">http://amzn.com/B00JM59JPG</a> (battery pack).</li>
+	<li><a href="http://amzn.com/B00MV6TAJI">http://amzn.com/B00MV6TAJI</a> (Raspberry Pi 2).
+	<li><a href="http://amzn.com/B00P2UOU72">http://amzn.com/B00P2UOU72</a> (RTL-SDR tuner dongle). One minimum, two for full (978 UAT + 1090ES) traffic reception.
+	<li><a href="http://amzn.com/B00JM59JPG">http://amzn.com/B00JM59JPG</a> (battery pack).
 </ol>
 
-<h2>
-<a id="loading-the-software" class="anchor" href="#loading-the-software" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading the Software</h2>
+<h2 id="loading-the-software">Loading the Software</h2>
 
 <ol>
-<li>Download the .zip file, latest linked above.</li>
-<li>Unzip the file. Look for the ".img" file.</li>
-<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md">Win32DiskImager</a>.</li>
-<li>If using Mac, download and follow prompts for <a href="http://ivanx.com/raspberrypi/">Pi Filler</a>.</li>
+	<li>Download the .zip file, latest linked above.
+	<li>Unzip the file. Look for the ".img" file.
+	<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md">Win32DiskImager</a>.
+	<li>If using Mac, download and follow prompts for <a href="http://ivanx.com/raspberrypi/">Pi Filler</a>.
 </ol>
 
-<h2>
-<a id="assembly" class="anchor" href="#assembly" aria-hidden="true"><span class="octicon octicon-link"></span></a>Assembly</h2>
+<h2 id="assembly">Assembly</h2>
 
 <ol>
-<li>Stick heat sinks onto Raspberry Pi components and snap together case as specified in the Vilros information booklet.</li>
-<li>Insert EDIMAX WiFi controller into a USB port.</li>
-<li>Insert RTl-SDR (NooElec) dongle into a USB port.</li>
-<li>Insert (and secure) the SD card programmed above.</li>
-<li>Power up and connect to the "stratux" WiFi network.</li>
+	<li>Stick heat sinks onto Raspberry Pi components and snap together case as specified in the Vilros information booklet.
+	<li>Insert EDIMAX WiFi controller into a USB port.
+	<li>Insert RTl-SDR (NooElec) dongle into a USB port.
+	<li>Insert (and secure) the SD card programmed above.
+	<li>Power up and connect to the "stratux" WiFi network.
 </ol>
 
-<h1>
-<a id="current-project-status" class="anchor" href="#current-project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Current Project Status</h1>
+<h1 id="current-project-status">Current Project Status</h1>
 
 <table>
 	<thead>
@@ -75,99 +69,96 @@
 	<tbody>
 		<tr>
 			<td>ADS-B In</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>‣ Weather (978 FIS-B)</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>‣ Traffic (978 TIS-B)</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>‣ Traffic (1090ES)</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>GPS support</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>‣ Ublox</td>
-			<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
+			<td>✅</td>
 		</tr>
 		<tr>
 			<td>‣ SIRF</td>
-			<td><g-emoji alias="x" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/274c.png">❌</g-emoji></td>
+			<td>❌</td>
 		</tr>
 		<tr>
 			<td>AHRS / Synthetic Vision</td>
-			<td><g-emoji alias="x" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/274c.png">❌</g-emoji></td>
+			<td>❌</td>
 		</tr>
 		<tr>
 			<td>Anything else</td>
-			<td><g-emoji alias="x" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/274c.png">❌</g-emoji></td>
+			<td>❌</td>
 		</tr>
 	</tbody>
 </table>
 
 <table>
-<thead>
-<tr>
-<th>EFB platform support</th>
-<th>Status</th>
-<th>Details</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ForeFlight 7.x (iOS)</td>
-<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
-<td>All currently-supported features tested.</td>
-</tr>
-<tr>
-<td>WingX (iOS, Android)</td>
-<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
-<td>All currently-supported features tested.</td>
-</tr>
-<tr>
-<td>Avare EFB (Android)</td>
-<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
-<td><a href="https://www.reddit.com/r/stratux/comments/3hi2ub/stratux_google_nexus_7_2013_fltplan_go_and_avare/">All currently-supported features tested.</a></td>
-</tr>
-<tr>
-<td>FltPlan Go (Android)</td>
-<td><g-emoji alias="construction" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f6a7.png">🚧</g-emoji></td>
-<td><a href="https://www.reddit.com/r/stratux/comments/3hi2ub/stratux_google_nexus_7_2013_fltplan_go_and_avare/">Weather works, traffic does not.</a></td>
-</tr>
-<tr>
-<td>DroidEFB</td>
-<td><g-emoji alias="white_check_mark" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/2705.png">✅</g-emoji></td>
-<td><a href="https://www.reddit.com/r/stratux/comments/3ptjgr/droidefb_and_avare/">All currently-supported features tested.</a></td>
-</tr>
-</tbody>
+	<thead>
+		<tr>
+			<th>EFB platform support</th>
+			<th>Status</th>
+			<th>Details</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>ForeFlight 7.x (iOS)</td>
+			<td>✅</td>
+			<td>All currently-supported features tested.</td>
+		</tr>
+		<tr>
+			<td>WingX (iOS, Android)</td>
+			<td>✅</td>
+			<td>All currently-supported features tested.</td>
+		</tr>
+		<tr>
+			<td>Avare EFB (Android)</td>
+			<td>✅</td>
+			<td><a href="https://www.reddit.com/r/stratux/comments/3hi2ub/stratux_google_nexus_7_2013_fltplan_go_and_avare/">All currently-supported features tested.</a></td>
+		</tr>
+		<tr>
+			<td>FltPlan Go (Android)</td>
+			<td>🚧</td>
+			<td><a href="https://www.reddit.com/r/stratux/comments/3hi2ub/stratux_google_nexus_7_2013_fltplan_go_and_avare/">Weather works, traffic does not.</a></td>
+		</tr>
+		<tr>
+			<td>DroidEFB</td>
+			<td>✅</td>
+			<td><a href="https://www.reddit.com/r/stratux/comments/3ptjgr/droidefb_and_avare/">All currently-supported features tested.</a></td>
+		</tr>
+	</tbody>
 </table>
 
-<h1>
-<a id="further-information" class="anchor" href="#further-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further Information</h1>
+<h1 id="further-information">Further Information</h1>
 
-<p><a href="http://www.eaa.org/en/eaa/aviation-communities-and-interests/homebuilt-aircraft-and-homebuilt-aircraft-kits/resources-for-while-youre-building/building-articles/instruments-and-avionics/%7E/media/47050da6a2174165983a3a74d5a1ab77.ashx?la=en&amp;h=342&amp;w=400">EAA writeup on Stratux assembly</a>.</p>
+<ul>
+	<li><a href="http://www.eaa.org/en/eaa/aviation-communities-and-interests/homebuilt-aircraft-and-homebuilt-aircraft-kits/resources-for-while-youre-building/building-articles/instruments-and-avionics/%7E/media/47050da6a2174165983a3a74d5a1ab77.ashx?la=en&amp;h=342&amp;w=400">EAA writeup on Stratux assembly</a>.
+	<li><a href="http://www.reddit.com/r/stratux">http://www.reddit.com/r/stratux</a> - stratux community. Ask for help or suggest/contribute improvements.
+	<li><a href="http://www.github.com/cyoung/stratux">http://www.github.com/cyoung/stratux</a> - latest developments.
+		<li><a href="http://www.thingiverse.com/groups/stratux/things">http://www.thingiverse.com/groups/stratux/things</a> - 3D printable cases.
+</ul>
 
-<p><a href="http://www.reddit.com/r/stratux">http://www.reddit.com/r/stratux</a> - stratux community. Ask for help or suggest/contribute improvements.</p>
+<footer class="site-footer">
+	<span class="site-footer-owner"><a href="https://github.com/cyoung/stratux">Stratux</a> is maintained by <a href="https://github.com/cyoung">cyoung</a>.</span>
 
-<p><a href="http://www.github.com/cyoung/stratux">http://www.github.com/cyoung/stratux</a> - latest developments.</p>
-
-<p><a href="http://www.thingiverse.com/groups/stratux/things">http://www.thingiverse.com/groups/stratux/things</a> - 3D printable cases.</p>
-
-      <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/cyoung/stratux">Stratux</a> is maintained by <a href="https://github.com/cyoung">cyoung</a>.</span>
-
-        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
-      </footer>
-
-    </section>
+	<span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+</footer>
 
 
-  </body>
+		</section>
+	</body>
 </html>
