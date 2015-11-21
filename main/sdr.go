@@ -93,7 +93,6 @@ func (u *UAT) read() {
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
 
-	slowReadTimer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		default:
@@ -110,12 +109,6 @@ func (u *UAT) read() {
 		case <-uat_shutdown:
 			log.Println("UAT read(): shutdown msg received...")
 			return
-		case <-slowReadTimer.C:
-			// Check (every 5 seconds) if we haven't received any UAT messages in the last minute. If that's the case, sleep for 15 seconds.
-			// Puts the RTL-SDR reading and UAT message parsing on a 25% duty cycle unless we're receiving messages, then it goes back to 100%.
-			if globalStatus.UAT_messages_last_minute == 0 {
-				time.Sleep(15 * time.Second)
-			}
 		}
 	}
 }
@@ -124,7 +117,6 @@ func (e *ES) sdrConfig() (err error) {
 	return
 }
 
-// Read 978MHz from SDR.
 func (u *UAT) sdrConfig() (err error) {
 	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
@@ -283,6 +275,10 @@ var devMap = map[int]string{0: "", 1: ""}
 
 // Watch for config/device changes.
 func sdrWatcher() {
+	stopCheckingUATUntil := time.Time{}
+
+	lastUATCheck := time.Now()
+
 	for {
 		time.Sleep(1 * time.Second)
 		count := rtl.GetDeviceCount()
@@ -324,10 +320,22 @@ func sdrWatcher() {
 		}
 
 		// UAT specific handling
+
+		// Shutdown UAT for 30 seconds, check every 60 seconds if the count is 0.
+		if time.Since(lastUATCheck) >= 1 * time.Minute {
+			if UATDev != nil && globalStatus.UAT_messages_last_minute == 0 {
+				log.Printf("Pausing UAT listening for 50 seconds - none received.\n")
+				UATDev.shutdown()
+				UATDev = nil
+				stopCheckingUATUntil = time.Now().Add(50 * time.Second)
+			}
+			lastUATCheck = time.Now()
+		}
+
 		// When count is one, favor UAT in the case where the user
 		// has enabled both UAT and ES via the web interface.
 		id := 0
-		if globalSettings.UAT_Enabled {
+		if globalSettings.UAT_Enabled && time.Now().After(stopCheckingUATUntil) {
 			// log.Println("globalSettings.UAT_Enabled == true")
 			if count == 1 {
 				if ESDev != nil {
