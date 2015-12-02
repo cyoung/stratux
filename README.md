@@ -10,7 +10,6 @@ Use Pi 2 and ForeFlight 7.3.1 (1792) (Sep 18, 2015).
 
 Supported WiFi adapters:
 * Edimax EW-7811Un
-* TP-LINK TL-WN725N
 
 Tested RTL-SDR:
 * NooElec NESDR Mini 2
