@@ -212,7 +212,7 @@ func makeOwnshipReport() bool {
 	if isTempPressValid() {
 		altf = float64(mySituation.Pressure_alt)
 	} else {
-		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available
+		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
 	altf = (altf + 1000) / 25
 
@@ -464,7 +464,6 @@ func cpuTempMonitor() {
 
 	}
 }
-
 
 func updateStatus() {
 	if isGPSValid() {
