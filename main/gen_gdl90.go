@@ -207,14 +207,16 @@ func makeOwnshipReport() bool {
 	//	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
 
 	var alt uint16
-	if isTempPressValid() {
-		alt = uint16(mySituation.Pressure_alt)
-	} else {
-		alt = uint16(mySituation.Alt) //FIXME: This should not be here.
-	}
-	alt = (alt + 1000) / 25
+	var altf float64
 
-	alt = alt & 0xFFF // Should fit in 12 bits.
+	if isTempPressValid() {
+		altf = float64(mySituation.Pressure_alt)
+	} else {
+		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
+	}
+	altf = (altf + 1000) / 25
+
+	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
@@ -233,7 +235,7 @@ func makeOwnshipReport() bool {
 	msg[14] = byte((gdSpeed & 0xFF0) >> 4)
 	msg[15] = byte((gdSpeed & 0x00F) << 4)
 
-	verticalVelocity := int16(1000 / 64) // ft/min. 64 ft/min resolution.
+	verticalVelocity := int16(0x800) // ft/min. 64 ft/min resolution.
 	//TODO: 0x800 = no information available.
 	// verticalVelocity should fit in 12 bits.
 	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
@@ -466,6 +468,13 @@ func cpuTempMonitor() {
 func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.Satellites
+		if mySituation.quality == 2 {
+			globalStatus.GPS_solution = "DGPS (WAAS)"
+		} else if mySituation.quality == 1 {
+			globalStatus.GPS_solution = "3D GPS"
+		} else {
+			globalStatus.GPS_solution = "N/A"
+		}
 	}
 
 	// Update Uptime value
@@ -740,6 +749,7 @@ type status struct {
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
 	GPS_connected            bool
+	GPS_solution             string
 	RY835AI_connected        bool
 	Uptime                   int64
 	CPUTemp                  float32

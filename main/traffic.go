@@ -65,7 +65,7 @@ type TrafficInfo struct {
 
 	Position_valid bool
 
-	Alt uint32
+	Alt int32
 
 	Track       uint16
 	Speed       uint16
@@ -140,7 +140,7 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	//Altitude: OK
 	//TODO: 0xFFF "invalid altitude."
-	alt := uint16(ti.Alt)
+	alt := int16(math.Max(float64(ti.Alt), float64(-1000.00)))
 	alt = (alt + 1000) / 25
 	alt = alt & 0xFFF // Should fit in 12 bits.
 
@@ -237,9 +237,9 @@ func parseDownlinkReport(s string) {
 	ti.Lng = lng
 	ti.Position_valid = position_valid
 
-	raw_alt := (uint32(frame[10]) << 4) | ((uint32(frame[11]) & 0xf0) >> 4)
+	raw_alt := (int32(frame[10]) << 4) | ((int32(frame[11]) & 0xf0) >> 4)
 	//	alt_geo := false // Barometric if not geometric.
-	alt := uint32(0)
+	alt := int32(0)
 	if raw_alt != 0 {
 		//		alt_geo = (uint8(frame[9]) & 1) != 0
 		alt = ((raw_alt - 1) * 25) - 1000
@@ -460,7 +460,7 @@ func esListen() {
 
 				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
 				if valid_change {
-					ti.Alt = uint32(altFloat)
+					ti.Alt = int32(altFloat)
 					ti.Lat = float32(latFloat)
 					ti.Lng = float32(lngFloat)
 					ti.Position_valid = true
