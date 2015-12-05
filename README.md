@@ -12,6 +12,7 @@ Supported WiFi adapters:
 * Edimax EW-7811Un
 
 Tested RTL-SDR:
+* NooElec NESDR Nano 2 (best)
 * NooElec NESDR Mini 2
 * Generic R820T (degraded performance)
 
