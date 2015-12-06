@@ -1,7 +1,7 @@
 ifeq "$(CIRCLECI)" "true"
 	#
 else
-	$(if $(GOROOT),,$(error GOROOT is not set!))
+$(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 SRCS = $(wildcard *.go)
