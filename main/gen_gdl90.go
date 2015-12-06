@@ -104,6 +104,7 @@ type ADSBTower struct {
 	Messages_total              uint64
 }
 
+
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
 
 // Construct the CRC table. Adapted from FAA ref above.
@@ -378,6 +379,7 @@ func heartBeatSender() {
 func updateMessageStats() {
 	t := make([]msg, 0)
 	m := len(MsgLog)
+	
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
 	products_last_minute := make(map[string]uint32)
@@ -737,6 +739,7 @@ type settings struct {
 	PPM            int
 	OwnshipModeS   string
 	WatchList      string
+	UDPPort	       uint32 
 }
 
 type status struct {
@@ -769,6 +772,7 @@ func defaultSettings() {
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.UDPPort = 4000
 }
 
 func readSettings() {

@@ -179,6 +179,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							globalSettings.ReplayLog = v
 							replayMark(v)
 						}
+					case "UDPPort":
+						globalSettings.UDPPort = uint32(val.(float64))
+						restartNetworkConnections()
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "WatchList":
