@@ -1,3 +1,6 @@
+# check to make sure GOROOT variable is set
+$(if $(GOROOT),,$(error GOROOT is not set!))
+
 ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 else
@@ -10,8 +13,9 @@ all:
 	go get -t -d -v ./...
 	go build $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
+.PHONY: test
 test:
-	sh -c true
+	make -C test	
 
 www:
 	mkdir -p /var/www
