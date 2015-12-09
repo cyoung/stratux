@@ -24,16 +24,13 @@ import (
 
 const (
 	configLocation      = "/etc/stratux.conf"
+	indexFilename       = "/var/log/stratux/LOGINDEX"
 	managementAddr      = ":80"
 	debugLog            = "/var/log/stratux.log"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
-	uatReplayLog        = "/var/log/stratux-uat.log"
-	esReplayLog         = "/var/log/stratux-es.log"
-	gpsReplayLog        = "/var/log/stratux-gps.log"
-	ahrsReplayLog       = "/var/log/stratux-ahrs.log"
-	dump1090ReplayLog   = "/var/log/stratux-dump1090.log"
-
+	logDirectory        = "/var/log/stratux"
+	
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
 	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS / 8)
@@ -62,6 +59,12 @@ const (
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
+
+var	uatReplayLog string
+var	esReplayLog string
+var	gpsReplayLog string
+var	ahrsReplayLog string
+var	dump1090ReplayLog string
 
 var stratuxBuild string
 var stratuxVersion string
@@ -104,7 +107,48 @@ type ADSBTower struct {
 	Messages_total              uint64
 }
 
+
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
+
+func constructFilenames() {
+//	uatReplayLog        = "/var/log/stratux-uat.log"
+//	esReplayLog         = "/var/log/stratux-es.log"
+//	gpsReplayLog        = "/var/log/stratux-gps.log"
+//	ahrsReplayLog       = "/var/log/stratux-ahrs.log"
+//	dump1090ReplayLog   = "/var/log/stratux-dump1090.log"
+	var fileIndexNumber uint
+	
+	// First, create the log file directory if it does not exist
+	os.Mkdir(logDirectory,0644)
+	
+	f, err := os.Open(indexFilename)
+	if err != nil {
+		log.Printf("Unable to open index file %s using index of 0\n", indexFilename)
+		fileIndexNumber=0
+	} else {
+	  _, err := fmt.Fscanf(f,"%d\n",&fileIndexNumber)
+	  if err != nil {
+		log.Printf("Unable to read index file %s using index of 0\n", indexFilename)
+	  }
+	  f.Close()
+	  fileIndexNumber++
+	}
+	fo, err := os.Create(indexFilename)
+	if err != nil {
+		log.Printf("Error creating index file %s\n", indexFilename)
+	}
+	_, err2 := fmt.Fprintf(fo,"%d\n",fileIndexNumber)
+	if err2 != nil {
+		log.Printf("Error writing to index file %s\n", indexFilename)
+	}
+	fo.Sync()
+	fo.Close()
+	uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz",logDirectory,fileIndexNumber)
+	esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz",logDirectory,fileIndexNumber)
+	gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log.gz",logDirectory,fileIndexNumber)
+	ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz",logDirectory,fileIndexNumber)
+	dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz",logDirectory,fileIndexNumber)
+}
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -884,7 +928,8 @@ func main() {
 	}
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
-
+	constructFilenames()
+	
 	ADSBTowers = make(map[string]ADSBTower)
 	MsgLog = make([]msg, 0)
 
