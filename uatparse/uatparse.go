@@ -312,7 +312,7 @@ func (f *UATFrame) decodeAirmet() {
 			//FIXME: Off by one vertex.
 			fmt.Printf("%d\n", len(record_data))
 			for i := 0; i < int(overlay_vertices_count); i++ {
-				lng_raw := (int32(record_data[6*i]) << 11) | (int32(record_data[6*i+1]) << 3) | (int32(record_data[6*i+2]) & 0xE0 << 5)
+				lng_raw := (int32(record_data[6*i]) << 11) | (int32(record_data[6*i+1]) << 3) | (int32(record_data[6*i+2]) & 0xE0 >> 5)
 				lat_raw := ((int32(record_data[6*i+2]) & 0x1F) << 14) | (int32(record_data[6*i+3]) << 6) | ((int32(record_data[6*i+4]) & 0xFC) >> 2)
 				alt_raw := ((int32(record_data[6*i+4]) & 0x03) << 8) | int32(record_data[6*i+5])
 
