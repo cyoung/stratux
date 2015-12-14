@@ -43,6 +43,12 @@ type UATFrame struct {
 	Product_id uint32
 	// Text data, if applicable.
 	Text_data []string
+
+	// Flags.
+	a_f bool
+	g_f bool
+	p_f bool
+	s_f bool //TODO: Segmentation.
 }
 
 type UATMsg struct {
@@ -94,7 +100,6 @@ func (f *UATFrame) decodeTimeFormat() {
 	t_opt := ((uint32(f.Raw_data[1]) & 0x01) << 1) | (uint32(f.Raw_data[2]) >> 7)
 
 	var fisb_data []byte
-
 	switch t_opt {
 	case 0: // Hours, Minutes.
 		if f.frame_length < 4 {
@@ -137,23 +142,15 @@ func (f *UATFrame) decodeTimeFormat() {
 	default:
 		return // Should never reach this.
 	}
+
 	f.FISB_data = fisb_data
+
+	if (uint16(f.Raw_data[1]) & 0x02) != 0 {
+		f.s_f = true // Default false.
+	}
 }
 
-func (f *UATFrame) decodeInfoFrame() {
-
-	f.Product_id = ((uint32(f.Raw_data[0]) & 0x1f) << 6) | (uint32(f.Raw_data[1]) >> 2)
-
-	if f.Frame_type != 0 {
-		return // Not FIS-B.
-	}
-
-	f.decodeTimeFormat()
-
-	if f.Product_id != 413 { // Doesn't have text data that we'd be interested in, so we're done.
-		return
-	}
-
+func (f *UATFrame) decodeTextFrame() {
 	p := dlac_decode(f.FISB_data, f.FISB_length)
 	ret := make([]string, 0)
 	for {
@@ -170,6 +167,88 @@ func (f *UATFrame) decodeInfoFrame() {
 	}
 
 	f.Text_data = ret
+}
+
+//TODO: Ignoring flags (segmentation, etc.)
+// Aero_FISB_ProdDef_Rev4.pdf
+// Decode product IDs 8-13.
+func (f *UATFrame) decodeAirmet() {
+	// APDU header: 48 bits  (3-3) - assume no segmentation.
+
+	//	fmt.Printf("%s\n", hex.Dump(f.FISB_data))
+
+	record_format := (uint8(f.FISB_data[0]) & 0xF0) >> 4
+	fmt.Printf("record_format=%d\n", record_format)
+	product_version := (uint8(f.FISB_data[0]) & 0x0F)
+	fmt.Printf("product_version=%d\n", product_version)
+	record_count := (uint8(f.FISB_data[1]) & 0xF0) >> 4
+	fmt.Printf("record_count=%d\n", record_count)
+	location_identifier := dlac_decode(f.FISB_data[2:], 3)
+	fmt.Printf("location_identifier=%s\n", location_identifier)
+	record_reference := (uint8(f.FISB_data[5])) //FIXME: Special values. 0x00 means "use location_identifier". 0xFF means "use different reference". (4-3).
+	fmt.Printf("record_reference=%d\n", record_reference)
+	// Not sure when this is even used.
+	// rwy_designator := (record_reference & FC) >> 4
+	// parallel_rwy_designator := record_reference & 0x03 // 0 = NA, 1 = R, 2 = L, 3 = C (Figure 4-2).
+
+	//FIXME: Assume one record.
+	if record_count != 1 {
+		fmt.Printf("record_count=%d, != 1\n", record_count)
+		return
+	}
+	/*
+		0 - No data
+		1 - Unformatted ASCII Text
+		2 - Unformatted DLAC Text
+		3 - Unformatted DLAC Text w/ dictionary
+		4 - Formatted Text using ASN.1/PER
+		5-7 - Future Use
+		8 - Graphical Overlay
+		9-15 - Future Use
+	*/
+	switch record_format {
+	case 2:
+		record_length := (uint16(f.FISB_data[6]) << 8) | uint16(f.FISB_data[7])
+		if len(f.FISB_data)-int(record_length) < 6 {
+			fmt.Printf("FISB record not long enough: record_length=%d, len(f.FISB_data)=%d\n", record_length, len(f.FISB_data))
+			return
+		}
+		fmt.Printf("record_length=%d\n", record_length)
+		// Report identifier = report number + report year.
+		report_number := (uint16(f.FISB_data[8]) << 8) | ((uint16(f.FISB_data[9]) & 0xFC) >> 2)
+		fmt.Printf("report_number=%d\n", report_number)
+		report_year := ((uint16(f.FISB_data[9]) & 0x03) << 5) | ((uint16(f.FISB_data[10]) & 0xF8) >> 3)
+		fmt.Printf("report_year=%d\n", report_year)
+		report_status := (uint8(f.FISB_data[10]) & 0x04) >> 2 //TODO: 0 = cancelled, 1 = active.
+		fmt.Printf("report_status=%d\n", report_status)
+		fmt.Printf("record_length=%d,len=%d\n", record_length, len(f.FISB_data))
+		text_data_len := record_length - 5
+		text_data := dlac_decode(f.FISB_data[11:], uint32(text_data_len))
+		fmt.Printf("text_data=%s\n", text_data)
+	case 8:
+		// (6-1).
+
+	}
+}
+
+func (f *UATFrame) decodeInfoFrame() {
+
+	f.Product_id = ((uint32(f.Raw_data[0]) & 0x1f) << 6) | (uint32(f.Raw_data[1]) >> 2)
+
+	if f.Frame_type != 0 {
+		return // Not FIS-B.
+	}
+
+	f.decodeTimeFormat()
+
+	switch f.Product_id {
+	case 413:
+		f.decodeTextFrame()
+	case 8, 11, 13:
+		f.decodeAirmet()
+	default:
+		fmt.Printf("don't know what to do with product id: %d\n", f.Product_id)
+	}
 
 	//	logger.Printf("pos=%d,len=%d,t_opt=%d,product_id=%d, time=%d:%d\n", frame_start, frame_len, t_opt, product_id, fisb_hours, fisb_minutes)
 }
