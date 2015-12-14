@@ -101,6 +101,21 @@ func handleStatusWS(conn *websocket.Conn) {
 	}
 }
 
+func handleSituationWS(conn *websocket.Conn) {
+	timer := time.NewTicker(100 * time.Millisecond)
+	for {
+		<-timer.C
+		situationJSON, _ := json.Marshal(&mySituation)
+		_, err := conn.Write(situationJSON)
+
+		if err != nil {
+			break
+		}
+
+	}
+
+}
+
 // AJAX call - /getStatus. Responds with current global status
 // a webservice call for the same data available on the websocket but when only a single update is needed
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +238,12 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleStatusWS)}
+			s.ServeHTTP(w, req)
+		})
+	http.HandleFunc("/situation",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleSituationWS)}
 			s.ServeHTTP(w, req)
 		})
 	http.HandleFunc("/weather",

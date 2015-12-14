@@ -1,7 +1,9 @@
+
 ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 else
 	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
+$(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
@@ -10,8 +12,9 @@ all:
 	go get -t -d -v ./...
 	go build $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
 
+.PHONY: test
 test:
-	sh -c true
+	make -C test	
 
 www:
 	mkdir -p /var/www

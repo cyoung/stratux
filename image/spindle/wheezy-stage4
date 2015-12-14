@@ -107,7 +107,7 @@ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 
 cd /root
 rm -rf rtl-sdr
-git clone git://git.osmocom.org/rtl-sdr.git
+git clone https://github.com/jpoirier/librtlsdr rtl-sdr
 cd rtl-sdr
 mkdir build
 cd build
