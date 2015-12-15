@@ -211,9 +211,13 @@ func airmetParseDate(b []byte, date_time_format uint8) string {
 	return ""
 }
 
-func airmetLatLng(lat_raw, lng_raw int32) (float64, float64) {
-	lat := float64(0.000687) * float64(lat_raw)
-	lng := float64(0.000687) * float64(lng_raw)
+func airmetLatLng(lat_raw, lng_raw int32, alt bool) (float64, float64) {
+	fct := float64(0.000687)
+	if alt {
+		fct = float64(0.001373)
+	}
+	lat := fct * float64(lat_raw)
+	lng := fct * float64(lng_raw)
 	if lat > 90.0 {
 		lat = lat - 180.0
 	}
@@ -382,7 +386,7 @@ func (f *UATFrame) decodeAirmet() {
 				alt_raw := ((int32(record_data[6*i+4]) & 0x03) << 8) | int32(record_data[6*i+5])
 
 				fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
-				lat, lng := airmetLatLng(lat_raw, lng_raw)
+				lat, lng := airmetLatLng(lat_raw, lng_raw, false)
 
 				alt := alt_raw * 100
 				fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
@@ -400,7 +404,7 @@ func (f *UATFrame) decodeAirmet() {
 			alt_raw := ((int32(record_data[4]) & 0x03) << 8) | int32(record_data[5])
 
 			fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
-			lat, lng := airmetLatLng(lat_raw, lng_raw)
+			lat, lng := airmetLatLng(lat_raw, lng_raw, false)
 
 			alt := alt_raw * 100
 			fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
@@ -410,6 +414,34 @@ func (f *UATFrame) decodeAirmet() {
 			point.Lon = lng
 			point.Alt = alt
 			f.Points = []GeoPoint{point}
+		case 7: // Extended Range Circular Prism (MSL).
+			lng_bot_raw := (int32(record_data[0]) << 10) | (int32(record_data[1]) << 2) | (int32(record_data[2]) & 0xC0 >> 6)
+			lat_bot_raw := ((int32(record_data[2]) & 0x3F) << 12) | (int32(record_data[3]) << 4) | ((int32(record_data[4]) & 0xF0) >> 4)
+			lng_top_raw := ((int32(record_data[4]) & 0x0F) << 14) | (int32(record_data[5]) << 6) | ((int32(record_data[6]) & 0xFC) >> 2)
+			lat_top_raw := ((int32(record_data[6]) & 0x03) << 16) | (int32(record_data[7]) << 8) | int32(record_data[8])
+
+			alt_bot_raw := (int32(record_data[9]) & 0xFE) >> 1
+			alt_top_raw := ((int32(record_data[9]) & 0x01) << 6) | ((int32(record_data[10]) & 0xFC) >> 2)
+
+			r_lng := ((int32(record_data[10]) & 0x03) << 7) | ((int32(record_data[11]) & 0xFE) >> 1)
+			r_lat := ((int32(record_data[11]) & 0x01) << 8) | int32(record_data[12])
+			alpha := int32(record_data[13])
+
+			lat_bot, lng_bot := airmetLatLng(lat_bot_raw, lng_bot_raw, true)
+			lat_top, lng_top := airmetLatLng(lat_top_raw, lng_top_raw, true)
+
+			alt_bot := alt_bot_raw * 5
+			alt_top := alt_top_raw * 500
+
+			fmt.Printf("lat_bot, lng_bot = %f, %f\n", lat_bot, lng_bot)
+			fmt.Printf("lat_top, lng_top = %f, %f\n", lat_top, lng_top)
+
+			fmt.Printf("alt_bot, alt_top = %d, %d\n", alt_bot, alt_top)
+			fmt.Printf("r_lng, r_lat = %d, %d\n", r_lng, r_lat)
+
+			fmt.Printf("alpha=%d\n", alpha)
+
+		case 8: // Extended Range Circular Prism (AGL).
 		default:
 			fmt.Printf("unknown geometry: %d\n", geometry_overlay_options)
 		}
