@@ -57,6 +57,8 @@ type UATFrame struct {
 	ReportYear         uint16
 	LocationIdentifier string
 	RecordFormat       uint8
+	ReportStart        string
+	ReportEnd          string
 }
 
 type UATMsg struct {
@@ -181,6 +183,32 @@ func (f *UATFrame) decodeTextFrame() {
 	p := dlac_decode(f.FISB_data, f.FISB_length)
 
 	f.Text_data = formatDLACData(p)
+}
+
+// Gets month, day, hours, minutes.
+// Formats into a string.
+func airmetParseDate(b []byte, date_time_format uint8) string {
+	switch date_time_format {
+	case 0: // No date/time used.
+		return ""
+	case 1: // Month, Day, Hours, Minutes.
+		month := uint8(b[0])
+		day := uint8(b[1])
+		hours := uint8(b[2])
+		minutes := uint8(b[3])
+		return fmt.Sprintf("%02d-%02d %02d:%02d", month, day, hours, minutes)
+	case 2: // Day, Hours, Minutes.
+		day := uint8(b[0])
+		hours := uint8(b[1])
+		minutes := uint8(b[2])
+		return fmt.Sprintf("%02d %02d:%02d", day, hours, minutes)
+	case 3: // Hours, Minutes.
+		hours := uint8(b[0])
+		minutes := uint8(b[1])
+		return fmt.Sprintf("%02d:%02d", hours, minutes)
+	}
+
+	return ""
 }
 
 //TODO: Ignoring flags (segmentation, etc.)
@@ -315,10 +343,19 @@ func (f *UATFrame) decodeAirmet() {
 		overlay_vertices_count := (uint8(record_data[1]) & 0x3F) + 1 // Document instructs to add 1. (6.20).
 		fmt.Printf("overlay_vertices_count=%d\n", overlay_vertices_count)
 
-		//TODO: Parse all applicability options.
-		if record_applicability_options == 3 && date_time_format == 1 {
-			//TODO:. Date formats.
-			//			record_data = record_data[???:]
+		// Parse all of the dates.
+		switch record_applicability_options {
+		case 0: // No times given. UFN.
+			record_data = record_data[2:]
+		case 1: // Start time only. WEF.
+			f.ReportStart = airmetParseDate(record_data[2:], date_time_format)
+			record_data = record_data[6:]
+		case 2: // End time only. TIL.
+			f.ReportEnd = airmetParseDate(record_data[2:], date_time_format)
+			record_data = record_data[6:]
+		case 3: // Both start and end times. WEF.
+			f.ReportStart = airmetParseDate(record_data[2:], date_time_format)
+			f.ReportEnd = airmetParseDate(record_data[6:], date_time_format)
 			record_data = record_data[10:]
 		}
 

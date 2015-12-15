@@ -29,6 +29,8 @@ type UATFrame struct {
 	ReportYear         uint16
 	LocationIdentifier string
 	RecordFormat       uint8
+	ReportStart        string
+	ReportEnd          string
 }
 
 var reports map[string]UATFrame
@@ -64,6 +66,8 @@ func updateReport(f *uatparse.UATFrame) {
 		z.ReportYear = f.ReportYear
 		z.LocationIdentifier = f.LocationIdentifier
 		z.RecordFormat = f.RecordFormat
+		z.ReportStart = f.ReportStart
+		z.ReportEnd = f.ReportEnd
 
 		reports[s] = z
 	}
