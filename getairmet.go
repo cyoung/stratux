@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/gansidui/geohash"
 	"os"
 	"strconv"
 	"strings"
@@ -24,7 +25,7 @@ type UATFrame struct {
 
 	// For AIRMET/NOTAM.
 	//FIXME: Temporary.
-	Points             []uatparse.GeoPoint
+	Points             map[string][]uatparse.GeoPoint
 	ReportNumber       uint16
 	ReportYear         uint16
 	LocationIdentifier string
@@ -34,6 +35,22 @@ type UATFrame struct {
 }
 
 var reports map[string]UATFrame
+
+func groupPoints(f *uatparse.UATFrame) map[string][]uatparse.GeoPoint {
+	// Index all of the points by GeoHash. Group points together.
+	res := make(map[string][]uatparse.GeoPoint)
+	precision := 5 // 6 maybe, 0.000687.
+	for _, p := range f.Points {
+		hash, _ := geohash.Encode(p.Lat, p.Lon, precision)
+		if r, ok := res[hash]; ok {
+			r = append(r, p)
+			res[hash] = r
+		} else {
+			res[hash] = []uatparse.GeoPoint{p}
+		}
+	}
+	return res
+}
 
 func updateReport(f *uatparse.UATFrame) {
 	if f.ReportNumber == 0 || f.ReportYear == 0 || f.RecordFormat == 0 {
@@ -46,7 +63,7 @@ func updateReport(f *uatparse.UATFrame) {
 	}
 	if p, ok := reports[s]; ok {
 		if len(f.Points) > 0 {
-			p.Points = f.Points
+			p.Points = groupPoints(f)
 			reports[s] = p
 		}
 		if len(f.Text_data) > 0 {
@@ -61,7 +78,7 @@ func updateReport(f *uatparse.UATFrame) {
 		z.FISB_minutes = f.FISB_minutes
 		z.FISB_seconds = f.FISB_seconds
 		z.Product_id = f.Product_id
-		z.Points = f.Points
+		z.Points = groupPoints(f)
 		z.ReportNumber = f.ReportNumber
 		z.ReportYear = f.ReportYear
 		z.LocationIdentifier = f.LocationIdentifier
