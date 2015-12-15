@@ -414,7 +414,7 @@ func (f *UATFrame) decodeAirmet() {
 			point.Lon = lng
 			point.Alt = alt
 			f.Points = []GeoPoint{point}
-		case 7: // Extended Range Circular Prism (MSL).
+		case 7, 8: // Extended Range Circular Prism (MSL). (8 = AGL)
 			lng_bot_raw := (int32(record_data[0]) << 10) | (int32(record_data[1]) << 2) | (int32(record_data[2]) & 0xC0 >> 6)
 			lat_bot_raw := ((int32(record_data[2]) & 0x3F) << 12) | (int32(record_data[3]) << 4) | ((int32(record_data[4]) & 0xF0) >> 4)
 			lng_top_raw := ((int32(record_data[4]) & 0x0F) << 14) | (int32(record_data[5]) << 6) | ((int32(record_data[6]) & 0xFC) >> 2)
@@ -439,12 +439,15 @@ func (f *UATFrame) decodeAirmet() {
 			fmt.Printf("lat_bot, lng_bot = %f, %f\n", lat_bot, lng_bot)
 			fmt.Printf("lat_top, lng_top = %f, %f\n", lat_top, lng_top)
 
-			fmt.Printf("alt_bot, alt_top = %d, %d\n", alt_bot, alt_top)
+			if geometry_overlay_options == 8 {
+				fmt.Printf("alt_bot, alt_top = %d AGL, %d AGL\n", alt_bot, alt_top)
+			} else {
+				fmt.Printf("alt_bot, alt_top = %d MSL, %d MSL\n", alt_bot, alt_top)
+			}
 			fmt.Printf("r_lng, r_lat = %f, %f\n", r_lng, r_lat)
 
 			fmt.Printf("alpha=%d\n", alpha)
 
-		case 8: // Extended Range Circular Prism (AGL).
 		default:
 			fmt.Printf("unknown geometry: %d\n", geometry_overlay_options)
 		}
