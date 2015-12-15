@@ -15,14 +15,14 @@ const (
 )
 
 // Points can be in 3D - take care that altitude is used correctly.
-type GeoPoints struct {
+type GeoPoint struct {
 	Lat float64
 	Lon float64
 	Alt int32
 }
 
 type UATAirmet struct {
-	Points []GeoPoints // Points
+	Points []GeoPoint // Points
 }
 
 type UATMsgDecoded struct {

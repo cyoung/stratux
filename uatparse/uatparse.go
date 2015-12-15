@@ -49,6 +49,14 @@ type UATFrame struct {
 	g_f bool
 	p_f bool
 	s_f bool //TODO: Segmentation.
+
+	// For AIRMET/NOTAM.
+	//FIXME: Temporary.
+	Points             []GeoPoint
+	ReportNumber       uint16
+	ReportYear         uint16
+	LocationIdentifier string
+	RecordFormat       uint8
 }
 
 type UATMsg struct {
@@ -176,19 +184,15 @@ func (f *UATFrame) decodeAirmet() {
 	// APDU header: 48 bits  (3-3) - assume no segmentation.
 
 	record_format := (uint8(f.FISB_data[0]) & 0xF0) >> 4
-	//FIXME: temp.
-	if record_format != 8 {
-		return
-	}
-
-	fmt.Printf("%s\n", hex.Dump(f.FISB_data))
-
+	f.RecordFormat = record_format
 	fmt.Printf("record_format=%d\n", record_format)
 	product_version := (uint8(f.FISB_data[0]) & 0x0F)
 	fmt.Printf("product_version=%d\n", product_version)
 	record_count := (uint8(f.FISB_data[1]) & 0xF0) >> 4
 	fmt.Printf("record_count=%d\n", record_count)
 	location_identifier := dlac_decode(f.FISB_data[2:], 3)
+	fmt.Printf("%s\n", hex.Dump(f.FISB_data))
+	f.LocationIdentifier = location_identifier
 	fmt.Printf("location_identifier=%s\n", location_identifier)
 	record_reference := (uint8(f.FISB_data[5])) //FIXME: Special values. 0x00 means "use location_identifier". 0xFF means "use different reference". (4-3).
 	fmt.Printf("record_reference=%d\n", record_reference)
@@ -221,8 +225,10 @@ func (f *UATFrame) decodeAirmet() {
 		fmt.Printf("record_length=%d\n", record_length)
 		// Report identifier = report number + report year.
 		report_number := (uint16(f.FISB_data[8]) << 6) | ((uint16(f.FISB_data[9]) & 0xFC) >> 2)
+		f.ReportNumber = report_number
 		fmt.Printf("report_number=%d\n", report_number)
 		report_year := ((uint16(f.FISB_data[9]) & 0x03) << 5) | ((uint16(f.FISB_data[10]) & 0xF8) >> 3)
+		f.ReportYear = report_year
 		fmt.Printf("report_year=%d\n", report_year)
 		report_status := (uint8(f.FISB_data[10]) & 0x04) >> 2 //TODO: 0 = cancelled, 1 = active.
 		fmt.Printf("report_status=%d\n", report_status)
@@ -230,6 +236,7 @@ func (f *UATFrame) decodeAirmet() {
 		text_data_len := record_length - 5
 		text_data := dlac_decode(f.FISB_data[11:], uint32(text_data_len))
 		fmt.Printf("text_data=%s\n", text_data)
+		f.Text_data = []string{text_data}
 	case 8:
 		// (6-1). (6.22 - Graphical Overlay Record Format).
 		record_data := f.FISB_data[6:] // Start after the record header.
@@ -237,8 +244,10 @@ func (f *UATFrame) decodeAirmet() {
 		fmt.Printf("record_length=%d\n", record_length)
 		// Report identifier = report number + report year.
 		report_number := ((uint16(record_data[1]) & 0x3F) << 8) | uint16(record_data[2])
+		f.ReportNumber = report_number
 		fmt.Printf("report_number=%d\n", report_number)
 		report_year := (uint16(record_data[3]) & 0xFE) >> 1
+		f.ReportYear = report_year
 		fmt.Printf("report_year=%d\n", report_year)
 		overlay_record_identifier := ((uint8(record_data[4]) & 0x1E) >> 1) + 1 // Document instructs to add 1.
 		fmt.Printf("overlay_record_identifier=%d\n", overlay_record_identifier)
@@ -309,6 +318,7 @@ func (f *UATFrame) decodeAirmet() {
 
 		// Now we have the vertices.
 		if geometry_overlay_options == 3 { // Extended Range 3D Polygon (MSL).
+			points := make([]GeoPoint, 0) // Slice containing all of the points.
 			//FIXME: Off by one vertex.
 			fmt.Printf("%d\n", len(record_data))
 			for i := 0; i < int(overlay_vertices_count); i++ {
@@ -328,7 +338,13 @@ func (f *UATFrame) decodeAirmet() {
 				alt := alt_raw * 100
 				fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
 				fmt.Printf("coord:%f,%f\n", lat, lng)
+				var point GeoPoint
+				point.Lat = lat
+				point.Lon = lng
+				point.Alt = alt
+				points = append(points, point)
 			}
+			f.Points = points
 		}
 
 		fmt.Printf("\n\n\n")
