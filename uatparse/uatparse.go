@@ -423,8 +423,8 @@ func (f *UATFrame) decodeAirmet() {
 			alt_bot_raw := (int32(record_data[9]) & 0xFE) >> 1
 			alt_top_raw := ((int32(record_data[9]) & 0x01) << 6) | ((int32(record_data[10]) & 0xFC) >> 2)
 
-			r_lng := ((int32(record_data[10]) & 0x03) << 7) | ((int32(record_data[11]) & 0xFE) >> 1)
-			r_lat := ((int32(record_data[11]) & 0x01) << 8) | int32(record_data[12])
+			r_lng_raw := ((int32(record_data[10]) & 0x03) << 7) | ((int32(record_data[11]) & 0xFE) >> 1)
+			r_lat_raw := ((int32(record_data[11]) & 0x01) << 8) | int32(record_data[12])
 			alpha := int32(record_data[13])
 
 			lat_bot, lng_bot := airmetLatLng(lat_bot_raw, lng_bot_raw, true)
@@ -433,11 +433,14 @@ func (f *UATFrame) decodeAirmet() {
 			alt_bot := alt_bot_raw * 5
 			alt_top := alt_top_raw * 500
 
+			r_lng := float64(r_lng_raw) * float64(0.2)
+			r_lat := float64(r_lat_raw) * float64(0.2)
+
 			fmt.Printf("lat_bot, lng_bot = %f, %f\n", lat_bot, lng_bot)
 			fmt.Printf("lat_top, lng_top = %f, %f\n", lat_top, lng_top)
 
 			fmt.Printf("alt_bot, alt_top = %d, %d\n", alt_bot, alt_top)
-			fmt.Printf("r_lng, r_lat = %d, %d\n", r_lng, r_lat)
+			fmt.Printf("r_lng, r_lat = %f, %f\n", r_lng, r_lat)
 
 			fmt.Printf("alpha=%d\n", alpha)
 
