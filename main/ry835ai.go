@@ -104,6 +104,12 @@ func sendGPSAssist() {
 		log.Printf("Cannot send assist data due to file missing!\n")
 		return
 	}
+	done := make([]byte, 1)
+
+	done[0] = 0xff;
+	serialPort.Write(makeUBXCFG(0x0b,0x50, 1, done))
+	time.Sleep(100 * time.Millisecond)
+	
 	defer f.Close()
 	data := make([]byte, 512)
 	for {
@@ -117,13 +123,14 @@ func sendGPSAssist() {
 			return
 		}
 		data = data[:n]
-		log.Printf("Sending 512 bytes\n")
-		serialPort.Write(makeUBXCFG(0x0b, 0x50, 0x200, data ))
+		log.Printf("Sending %d bytes\n",n)
+		serialPort.Write(makeUBXCFG(0x0b, 0x50, uint16(n), data ))
+		time.Sleep(100 * time.Millisecond)
 	} 
+	done[0] = 0xff;
+	serialPort.Write(makeUBXCFG(0x0b,0x50, 1, done))
 	
-	
-//	serialPort.Write
-//	p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
+
 
 }
 
@@ -204,7 +211,12 @@ func initGPSSerial() bool {
 	// Set 1Hz update.
 	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xe8, 0x03, 0x00, 0x01, 0x00, 0x01}))
 
+
 	sendGPSAssist()
+
+	// Set 10Hz update.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x00, 0x01, 0x00, 0x01}))
+
 	p.Close()
 
 	return true
