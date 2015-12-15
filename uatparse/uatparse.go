@@ -158,8 +158,8 @@ func (f *UATFrame) decodeTimeFormat() {
 	}
 }
 
-func (f *UATFrame) decodeTextFrame() {
-	p := dlac_decode(f.FISB_data, f.FISB_length)
+// Format newlines.
+func formatDLACData(p string) []string {
 	ret := make([]string, 0)
 	for {
 		pos := strings.Index(p, "\x1E")
@@ -173,8 +173,14 @@ func (f *UATFrame) decodeTextFrame() {
 		ret = append(ret, p[:pos])
 		p = p[pos+1:]
 	}
+	return ret
+}
 
-	f.Text_data = ret
+// Whole frame contents is DLAC encoded text.
+func (f *UATFrame) decodeTextFrame() {
+	p := dlac_decode(f.FISB_data, f.FISB_length)
+
+	f.Text_data = formatDLACData(p)
 }
 
 //TODO: Ignoring flags (segmentation, etc.)
@@ -236,7 +242,7 @@ func (f *UATFrame) decodeAirmet() {
 		text_data_len := record_length - 5
 		text_data := dlac_decode(f.FISB_data[11:], uint32(text_data_len))
 		fmt.Printf("text_data=%s\n", text_data)
-		f.Text_data = []string{text_data}
+		f.Text_data = formatDLACData(text_data)
 	case 8:
 		// (6-1). (6.22 - Graphical Overlay Record Format).
 		record_data := f.FISB_data[6:] // Start after the record header.
@@ -346,9 +352,11 @@ func (f *UATFrame) decodeAirmet() {
 			}
 			f.Points = points
 		}
-
-		fmt.Printf("\n\n\n")
+	//case 1: // Unformatted ASCII Text.
+	default:
+		fmt.Printf("unknown record format: %d\n", record_format)
 	}
+	fmt.Printf("\n\n\n")
 }
 
 func (f *UATFrame) decodeInfoFrame() {
