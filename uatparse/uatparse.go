@@ -211,6 +211,18 @@ func airmetParseDate(b []byte, date_time_format uint8) string {
 	return ""
 }
 
+func airmetLatLng(lat_raw, lng_raw int32) (float64, float64) {
+	lat := float64(0.000687) * float64(lat_raw)
+	lng := float64(0.000687) * float64(lng_raw)
+	if lat > 90.0 {
+		lat = lat - 180.0
+	}
+	if lng > 180.0 {
+		lng = lng - 360.0
+	}
+	return lat, lng
+}
+
 //TODO: Ignoring flags (segmentation, etc.)
 // Aero_FISB_ProdDef_Rev4.pdf
 // Decode product IDs 8-13.
@@ -360,9 +372,9 @@ func (f *UATFrame) decodeAirmet() {
 		}
 
 		// Now we have the vertices.
-		if geometry_overlay_options == 3 { // Extended Range 3D Polygon (MSL).
+		switch geometry_overlay_options {
+		case 3: // Extended Range 3D Polygon (MSL).
 			points := make([]GeoPoint, 0) // Slice containing all of the points.
-			//FIXME: Off by one vertex.
 			fmt.Printf("%d\n", len(record_data))
 			for i := 0; i < int(overlay_vertices_count); i++ {
 				lng_raw := (int32(record_data[6*i]) << 11) | (int32(record_data[6*i+1]) << 3) | (int32(record_data[6*i+2]) & 0xE0 >> 5)
@@ -370,14 +382,8 @@ func (f *UATFrame) decodeAirmet() {
 				alt_raw := ((int32(record_data[6*i+4]) & 0x03) << 8) | int32(record_data[6*i+5])
 
 				fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
-				lat := float64(0.000687) * float64(lat_raw)
-				lng := float64(0.000687) * float64(lng_raw)
-				if lat > 90.0 {
-					lat = lat - 180.0
-				}
-				if lng > 180.0 {
-					lng = lng - 360.0
-				}
+				lat, lng := airmetLatLng(lat_raw, lng_raw)
+
 				alt := alt_raw * 100
 				fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
 				fmt.Printf("coord:%f,%f\n", lat, lng)
@@ -386,8 +392,26 @@ func (f *UATFrame) decodeAirmet() {
 				point.Lon = lng
 				point.Alt = alt
 				points = append(points, point)
+				f.Points = points
 			}
-			f.Points = points
+		case 9: // Extended Range 3D Point (AGL). p.47.
+			lng_raw := (int32(record_data[0]) << 11) | (int32(record_data[1]) << 3) | (int32(record_data[2]) & 0xE0 >> 5)
+			lat_raw := ((int32(record_data[2]) & 0x1F) << 14) | (int32(record_data[3]) << 6) | ((int32(record_data[4]) & 0xFC) >> 2)
+			alt_raw := ((int32(record_data[4]) & 0x03) << 8) | int32(record_data[5])
+
+			fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
+			lat, lng := airmetLatLng(lat_raw, lng_raw)
+
+			alt := alt_raw * 100
+			fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
+			fmt.Printf("coord:%f,%f\n", lat, lng)
+			var point GeoPoint
+			point.Lat = lat
+			point.Lon = lng
+			point.Alt = alt
+			f.Points = []GeoPoint{point}
+		default:
+			fmt.Printf("unknown geometry: %d\n", geometry_overlay_options)
 		}
 	//case 1: // Unformatted ASCII Text.
 	default:
