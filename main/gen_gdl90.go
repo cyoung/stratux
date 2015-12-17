@@ -939,7 +939,8 @@ func printStats() {
 
 var uatReplayDone bool
 
-func uatReplay(f *os.File, replaySpeed uint64) {
+func uatReplay(f ReadCloser, replaySpeed uint64) {
+	defer f.Close()
 	rdr := bufio.NewReader(f)
 	curTick := int64(0)
 	for {
@@ -980,7 +981,7 @@ func uatReplay(f *os.File, replaySpeed uint64) {
 	uatReplayDone = true
 }
 
-func openReplayFile(fn string, compressed bool) ReadCloser {
+func openReplayFile(fn string) ReadCloser {
 	fp, err := os.Open(fn)
 	if err != nil {
 		log.Printf("error opening '%s': %s\n", fn, err.Error())
@@ -989,7 +990,7 @@ func openReplayFile(fn string, compressed bool) ReadCloser {
 	}
 
 	var ret ReadCloser
-	if compressed {
+	if strings.HasSuffix(fn, ".gz") { // Open as a compressed replay log, depending on the suffix.
 		ret, err = gzip.NewReader(fp)
 		if err != nil {
 			log.Printf("error opening compressed log '%s': %s\n", fn, err.Error())
@@ -1038,12 +1039,6 @@ func main() {
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
-	if *replayFlag == true {
-		//		if (*replayESFilename == "none") || (*replayUATFilename == "none") {
-		//			log.Fatal("Must specify both UAT and ES log files\n")
-		//		}
-		log.Printf("Replay file %s\n", *replayUATFilename)
-	}
 
 	sdrInit()
 	initTraffic()
@@ -1051,6 +1046,13 @@ func main() {
 	globalStatus.Version = stratuxVersion
 
 	readSettings()
+
+	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
+	// Override after reading in the settings.
+	if *replayFlag == true {
+		log.Printf("Replay file %s\n", *replayUATFilename)
+		globalSettings.ReplayLog = true
+	}
 
 	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 
@@ -1111,11 +1113,11 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	if *replayFlag == true {
-		f := openReplayFile(*replayUATFilename)
+		fp := openReplayFile(*replayUATFilename)
 
 		playSpeed := uint64(*replaySpeed)
 		log.Printf("Replay speed: %dx\n", playSpeed)
-		go uatReplay(f, playSpeed)
+		go uatReplay(fp, playSpeed)
 
 		for {
 			time.Sleep(1 * time.Second)
