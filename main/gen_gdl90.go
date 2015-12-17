@@ -81,6 +81,11 @@ type WriteCloser interface {
 	io.Closer
 }
 
+type ReadCloser interface {
+	io.Reader
+	io.Closer
+}
+
 // File handles for replay logging.
 var uatReplayWriter WriteCloser
 var esReplayWriter WriteCloser
@@ -951,19 +956,19 @@ func uatReplay(f *os.File, replaySpeed uint64) {
 		} else { // If it's not "START", then it's a tick count.
 			i, err := strconv.ParseInt(linesplit[0], 10, 64)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "invalid tick: '%s'\n", linesplit[0])
+				log.Printf("invalid tick: '%s'\n", linesplit[0])
 				continue
 			}
 			thisWait := (i - curTick) / int64(replaySpeed)
 
 			if thisWait >= 120000000000 { // More than 2 minutes wait, skip ahead.
-				fmt.Fprintf(os.Stderr, "UAT skipahead - %d seconds.\n", thisWait/1000000000)
+				log.Printf("UAT skipahead - %d seconds.\n", thisWait/1000000000)
 			} else {
 				time.Sleep(time.Duration(thisWait) * time.Nanosecond) // Just in case the units change.
 			}
 
 			p := strings.Trim(linesplit[1], " ;\r\n")
-			fmt.Printf("%s;\n", p)
+			log.Printf("%s;\n", p)
 			buf := fmt.Sprintf("%s;\n", p)
 			o, msgtype := parseInput(buf)
 			if o != nil && msgtype != 0 {
@@ -975,14 +980,27 @@ func uatReplay(f *os.File, replaySpeed uint64) {
 	uatReplayDone = true
 }
 
-func openReplayFile(fn string) *os.File {
-	f, err := os.Open(fn)
+func openReplayFile(fn string, compressed bool) ReadCloser {
+	fp, err := os.Open(fn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening '%s': %s\n", fn, err.Error())
+		log.Printf("error opening '%s': %s\n", fn, err.Error())
 		os.Exit(1)
 		return nil
 	}
-	return f
+
+	var ret ReadCloser
+	if compressed {
+		ret, err = gzip.NewReader(fp)
+		if err != nil {
+			log.Printf("error opening compressed log '%s': %s\n", fn, err.Error())
+			os.Exit(1)
+			return nil
+		}
+	} else {
+		ret = fp
+	}
+
+	return ret
 }
 
 func main() {
@@ -1094,16 +1112,11 @@ func main() {
 
 	if *replayFlag == true {
 		f := openReplayFile(*replayUATFilename)
-		//		if len(os.Args) >= 4 {
-		//			i, err := strconv.ParseUint(os.Args[3], 10, 64)
-		//			if err == nil {
-		//				replaySpeed = i
-		//			}
-		//		}
+
 		playSpeed := uint64(*replaySpeed)
-		fmt.Fprintf(os.Stderr, "Replay speed: %dx\n", playSpeed)
+		log.Printf("Replay speed: %dx\n", playSpeed)
 		go uatReplay(f, playSpeed)
-		//		go esReplay(f2, playSpeed)
+
 		for {
 			time.Sleep(1 * time.Second)
 			if uatReplayDone {
