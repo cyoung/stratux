@@ -368,10 +368,10 @@ func makeSXHeartbeat() []byte {
 	msg[7] = byte(stratuxBuild[3])
 
 	//TODO: Hardware revision.
-	msg[8] = 0
-	msg[9] = 0
-	msg[10] = 0
-	msg[11] = 0
+	msg[8] = 0xFF
+	msg[9] = 0xFF
+	msg[10] = 0xFF
+	msg[11] = 0xFF
 
 	// Valid and enabled flags.
 	// Valid/Enabled: GPS portion.
@@ -423,7 +423,7 @@ func makeSXHeartbeat() []byte {
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
 
 	//FIXME: Number of satellites connected. ??
-	msg[17] = 0
+	msg[17] = 0xFF
 
 	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
 	var uat_traffic_targets uint16
@@ -451,7 +451,7 @@ func makeSXHeartbeat() []byte {
 	msg[24] = byte((globalStatus.ES_messages_last_minute & 0xFF00) >> 8)
 	msg[25] = byte(globalStatus.ES_messages_last_minute & 0xFF)
 
-	//FIXME: CPU temperature.
+	// CPU temperature.
 	v := uint16(float32(10.0)*globalStatus.CPUTemp) + 32768
 
 	msg[26] = byte((v & 0xFF00) >> 8)
