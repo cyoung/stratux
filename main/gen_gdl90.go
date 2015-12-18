@@ -348,6 +348,138 @@ func makeOwnshipGeometricAltitudeReport() bool {
 
 /*
 
+	"SX" Stratux GDL90 message.
+	http://hiltonsoftware.com/stratux/StratuxStatusMessage-V01.pdf
+
+*/
+
+func makeSXHeartbeat() []byte {
+	msg := make([]byte, 29)
+	msg[0] = 'S'
+	msg[1] = 'X'
+	msg[2] = 1
+
+	msg[3] = 1 // "message version".
+
+	// Firmware version. First 4 bytes of build.
+	msg[4] = byte(stratuxBuild[0])
+	msg[5] = byte(stratuxBuild[1])
+	msg[6] = byte(stratuxBuild[2])
+	msg[7] = byte(stratuxBuild[3])
+
+	//TODO: Hardware revision.
+	msg[8] = 0
+	msg[9] = 0
+	msg[10] = 0
+	msg[11] = 0
+
+	// Valid and enabled flags.
+	// Valid/Enabled: GPS portion.
+	if isGPSValid() {
+		switch mySituation.quality {
+		case 1: // 1 = 3D GPS.
+			msg[12] = msg[12] | (1 << 6)
+		case 2: // 2 = DGPS (SBAS /WAAS).
+			msg[12] = msg[12] | (1 << 7)
+		default: // Zero.
+		}
+	}
+
+	// Valid/Enabled: AHRS portion.
+	if isAHRSValid() {
+		msg[12] = msg[12] | (1 << 5)
+	}
+
+	// Valid/Enabled: Pressure altitude portion.
+	if isTempPressValid() {
+		msg[12] = msg[12] | (1 << 4)
+	}
+
+	// Valid/Enabled: CPU temperature portion.
+	if isCPUTempValid() {
+		msg[12] = msg[12] | (1 << 3)
+	}
+
+	// Valid/Enabled: UAT portion.
+	if globalSettings.UAT_Enabled {
+		msg[12] = msg[12] | (1 << 2)
+	}
+
+	// Valid/Enabled: ES portion.
+	if globalSettings.ES_Enabled {
+		msg[12] = msg[12] | (1 << 1)
+	}
+
+	// Valid/Enabled: last bit unused.
+
+	// Connected hardware: number of radios.
+	msg[14] = msg[14] | (byte(globalStatus.Devices) << 6)
+	// Connected hardware: RY835AI.
+	if globalStatus.RY835AI_connected {
+		msg[14] = msg[14] | (1 << 5)
+	}
+
+	// Number of GPS satellites locked.
+	msg[16] = byte(globalStatus.GPS_satellites_locked)
+
+	//FIXME: Number of satellites connected. ??
+	msg[17] = 0
+
+	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
+	var uat_traffic_targets uint16
+	var es_traffic_targets uint16
+	for _, traf := range traffic {
+		switch traf.Last_source {
+		case TRAFFIC_SOURCE_1090ES:
+			es_traffic_targets++
+		case TRAFFIC_SOURCE_UAT:
+			uat_traffic_targets++
+		}
+	}
+
+	// Number of UAT traffic targets.
+	msg[18] = byte((uat_traffic_targets & 0xFF00) >> 8)
+	msg[19] = byte(uat_traffic_targets & 0xFF)
+	// Number of 1090ES traffic targets.
+	msg[20] = byte((es_traffic_targets & 0xFF00) >> 8)
+	msg[21] = byte(es_traffic_targets & 0xFF)
+
+	// Number of UAT messages per minute.
+	msg[22] = byte((globalStatus.UAT_messages_last_minute & 0xFF00) >> 8)
+	msg[23] = byte(globalStatus.UAT_messages_last_minute & 0xFF)
+	// Number of 1090ES messages per minute.
+	msg[24] = byte((globalStatus.ES_messages_last_minute & 0xFF00) >> 8)
+	msg[25] = byte(globalStatus.ES_messages_last_minute & 0xFF)
+
+	//FIXME: CPU temperature.
+	v := uint16(float32(10.0)*globalStatus.CPUTemp) + 32768
+
+	msg[26] = byte((v & 0xFF00) >> 8)
+	msg[27] = byte(v * 0xFF)
+
+	// Number of ADS-B towers.
+	num_towers := uint8(len(ADSBTowers))
+
+	msg[28] = byte(num_towers)
+
+	// List of ADS-B towers (lat, lng).
+	for _, tower := range ADSBTowers {
+		tmp := makeLatLng(float32(tower.Lat))
+		msg = append(msg, tmp[0]) // Latitude.
+		msg = append(msg, tmp[1]) // Latitude.
+		msg = append(msg, tmp[2]) // Latitude.
+
+		tmp = makeLatLng(float32(tower.Lng))
+		msg = append(msg, tmp[0]) // Longitude.
+		msg = append(msg, tmp[1]) // Longitude.
+		msg = append(msg, tmp[2]) // Longitude.
+	}
+
+	return prepareMessage(msg)
+}
+
+/*
+
 	"Stratux" GDL90 message.
 
 	Message ID 0xCC.
@@ -422,6 +554,7 @@ func heartBeatSender() {
 		case <-timer.C:
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
+			sendGDL90(makeSXHeartbeat(), false)
 			//		sendGDL90(makeTrafficReport())
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
@@ -494,6 +627,11 @@ func updateMessageStats() {
 		ADSBTowers[t] = tinf
 	}
 
+}
+
+// Check if CPU temperature is valid. Assume <= 0 is invalid.
+func isCPUTempValid() bool {
+	return globalStatus.CPUTemp <= 0
 }
 
 /*
