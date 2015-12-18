@@ -60,103 +60,105 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * `http://192.168.10.1/getTowers` - a list of ADS-B towers received with attached message receipt and signal level statistics. Example output:
 
-
-      {
-        "(28.845592,-96.920400)": {
-          "Lat": 28.845591545105,
-          "Lng": -96.920399665833,
-          "Signal_strength_last_minute": 55,
-          "Signal_strength_max": 69,
-          "Messages_last_minute": 97,
-          "Messages_total": 196
-        },
-        "(29.266505,-98.309097)": {
-          "Lat": 29.266505241394,
-          "Lng": -98.309097290039,
-          "Signal_strength_last_minute": 78,
-          "Signal_strength_max": 78,
-          "Messages_last_minute": 1,
-          "Messages_total": 3
-        },
-        "(29.702547,-96.900787)": {
-          "Lat": 29.702546596527,
-          "Lng": -96.900787353516,
-          "Signal_strength_last_minute": 87,
-          "Signal_strength_max": 119,
-          "Messages_last_minute": 94,
-          "Messages_total": 203
-        }
-      }
+```
+{
+  "(28.845592,-96.920400)": {
+    "Lat": 28.845591545105,
+    "Lng": -96.920399665833,
+    "Signal_strength_last_minute": 55,
+    "Signal_strength_max": 69,
+    "Messages_last_minute": 97,
+    "Messages_total": 196
+  },
+  "(29.266505,-98.309097)": {
+    "Lat": 29.266505241394,
+    "Lng": -98.309097290039,
+    "Signal_strength_last_minute": 78,
+    "Signal_strength_max": 78,
+    "Messages_last_minute": 1,
+    "Messages_total": 3
+  },
+  "(29.702547,-96.900787)": {
+    "Lat": 29.702546596527,
+    "Lng": -96.900787353516,
+    "Signal_strength_last_minute": 87,
+    "Signal_strength_max": 119,
+    "Messages_last_minute": 94,
+    "Messages_total": 203
+  }
+}
+```
 
 * `http://192.168.10.1/getStatus` - device status and statistics. Example output (commented JSON):
 
-
-      {
-        "Version": "v0.5b1",            // Software version.
-        "Devices": 0,                   // Number of radios connected.
-        "Connected_Users": 1,           // Number of WiFi devices connected.
-        "UAT_messages_last_minute": 0,  // UAT messages received in last minute.
-        "UAT_messages_max": 17949,      // Max UAT messages received in a minute (since last reboot).
-        "ES_messages_last_minute": 0,   // 1090ES messages received in last minute.
-        "ES_messages_max": 0,           // Max 1090ES messages received in a minute (since last reboot).
-        "GPS_satellites_locked": 0,     // Number of GPS satellites used in last GPS lock.
-        "GPS_connected": true,          // GPS unit connected and functioning.
-        "GPS_solution": "",             // "DGPS (WAAS)", "3D GPS", "N/A", or "" when GPS not connected/enabled.
-        "RY835AI_connected": false,     // GPS/AHRS unit - use only for debugging (this will be removed).
-        "Uptime": 227068,               // Device uptime (in milliseconds).
-        "CPUTemp": 42.236               // CPU temperature (in ºC).
-      }
+```
+{
+  "Version": "v0.5b1",            // Software version.
+  "Devices": 0,                   // Number of radios connected.
+  "Connected_Users": 1,           // Number of WiFi devices connected.
+  "UAT_messages_last_minute": 0,  // UAT messages received in last minute.
+  "UAT_messages_max": 17949,      // Max UAT messages received in a minute (since last reboot).
+  "ES_messages_last_minute": 0,   // 1090ES messages received in last minute.
+  "ES_messages_max": 0,           // Max 1090ES messages received in a minute (since last reboot).
+  "GPS_satellites_locked": 0,     // Number of GPS satellites used in last GPS lock.
+  "GPS_connected": true,          // GPS unit connected and functioning.
+  "GPS_solution": "",             // "DGPS (WAAS)", "3D GPS", "N/A", or "" when GPS not connected/enabled.
+  "RY835AI_connected": false,     // GPS/AHRS unit - use only for debugging (this will be removed).
+  "Uptime": 227068,               // Device uptime (in milliseconds).
+  "CPUTemp": 42.236               // CPU temperature (in ºC).
+}
+```
 
 * http://192.168.10.1/getSettings` - get device settings. Example output:
 
-
-      {
-        "UAT_Enabled": true,
-        "ES_Enabled": false,
-        "GPS_Enabled": true,
-        "NetworkOutputs": [
-          {
-            "Conn": null,
-            "Ip": "",
-            "Port": 4000,
-            "Capability": 5
-          },
-          {
-            "Conn": null,
-            "Ip": "",
-            "Port": 49002,
-            "Capability": 2
-          }
-        ],
-        "AHRS_Enabled": false,
-        "DEBUG": false,
-        "ReplayLog": true,
-        "PPM": 0,
-        "OwnshipModeS": "F00000",
-        "WatchList": ""
-      }
-
+```
+{
+  "UAT_Enabled": true,
+  "ES_Enabled": false,
+  "GPS_Enabled": true,
+  "NetworkOutputs": [
+    {
+      "Conn": null,
+      "Ip": "",
+      "Port": 4000,
+      "Capability": 5
+    },
+    {
+      "Conn": null,
+      "Ip": "",
+      "Port": 49002,
+      "Capability": 2
+    }
+  ],
+  "AHRS_Enabled": false,
+  "DEBUG": false,
+  "ReplayLog": true,
+  "PPM": 0,
+  "OwnshipModeS": "F00000",
+  "WatchList": ""
+}
+```
 * `http://192.168.10.1/setSettings` - set device settings. Use an HTTP POST of JSON content in the format given above - posting only the fields containing the settings to be modified.
 
 * `http://192.168.10.1/getSituation` - get GPS/AHRS information. Example output:
 
-
-      {
-        "Lat": 39.108533,
-        "Lng": -76.770862,
-        "Satellites": 7,
-        "Accuracy": 5.88,
-        "NACp": 10,
-        "Alt": 170.10767,
-        "LastFixLocalTime": "2015-12-18T23:47:06.015563066Z",
-        "TrueCourse": 0,
-        "GroundSpeed": 0,
-        "LastGroundTrackTime": "0001-01-01T00:00:00Z",
-        "Temp": 6553,
-        "Pressure_alt": 231.27980834234,
-        "Pitch": -0.006116937627108,
-        "Roll": -0.026442866350631,
-        "Gyro_heading": 45.844213419776,
-        "LastAttitudeTime": "2015-12-18T23:47:06.774039623Z"
-      }
-      
+```
+{
+  "Lat": 39.108533,
+  "Lng": -76.770862,
+  "Satellites": 7,
+  "Accuracy": 5.88,
+  "NACp": 10,
+  "Alt": 170.10767,
+  "LastFixLocalTime": "2015-12-18T23:47:06.015563066Z",
+  "TrueCourse": 0,
+  "GroundSpeed": 0,
+  "LastGroundTrackTime": "0001-01-01T00:00:00Z",
+  "Temp": 6553,
+  "Pressure_alt": 231.27980834234,
+  "Pitch": -0.006116937627108,
+  "Roll": -0.026442866350631,
+  "Gyro_heading": 45.844213419776,
+  "LastAttitudeTime": "2015-12-18T23:47:06.774039623Z"
+}
+```
