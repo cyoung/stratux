@@ -60,7 +60,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * `http://192.168.10.1/getTowers` - a list of ADS-B towers received with attached message receipt and signal level statistics. Example output:
 
-```
+```json
 {
   "(28.845592,-96.920400)": {
     "Lat": 28.845591545105,
@@ -91,7 +91,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * `http://192.168.10.1/getStatus` - device status and statistics. Example output (commented JSON):
 
-```
+```json
 {
   "Version": "v0.5b1",            // Software version.
   "Devices": 0,                   // Number of radios connected.
@@ -111,7 +111,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * http://192.168.10.1/getSettings` - get device settings. Example output:
 
-```
+```json
 {
   "UAT_Enabled": true,
   "ES_Enabled": false,
@@ -142,7 +142,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * `http://192.168.10.1/getSituation` - get GPS/AHRS information. Example output:
 
-```
+```json
 {
   "Lat": 39.108533,
   "Lng": -76.770862,
