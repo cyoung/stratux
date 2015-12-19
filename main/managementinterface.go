@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"syscall"
 )
 
 type SettingMessage struct {
@@ -228,6 +229,20 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
+	const LINUX_REBOOT_CMD_POWER_OFF= 0x4321FEDC
+	syscall.Sync()
+	syscall.Reboot(LINUX_REBOOT_CMD_POWER_OFF)	
+}
+
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+	const LINUX_REBOOT_CMD_RESTART = 0x01234567
+      	syscall.Sync()
+	syscall.Reboot(LINUX_REBOOT_CMD_RESTART)
+}
+
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
@@ -264,6 +279,8 @@ func managementInterface() {
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/shutdown", handleShutdownRequest)
+	http.HandleFunc("/reboot", handleRebootRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
