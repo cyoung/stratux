@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"syscall"
 )
 
 type SettingMessage struct {
@@ -218,7 +219,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
-				saveSettings()
+			saveSettings()
 			}
 		}
 
@@ -227,6 +228,18 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", settingsJSON)
 	}
 }
+
+func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
+	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)	
+}
+
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+      	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
 
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
@@ -264,6 +277,8 @@ func managementInterface() {
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/shutdown", handleShutdownRequest)
+	http.HandleFunc("/reboot", handleRebootRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

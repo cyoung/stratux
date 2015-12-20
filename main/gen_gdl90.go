@@ -378,45 +378,45 @@ func makeSXHeartbeat() []byte {
 	if isGPSValid() {
 		switch mySituation.quality {
 		case 1: // 1 = 3D GPS.
-			msg[12] = msg[12] | (1 << 6)
+			msg[13] = 1
 		case 2: // 2 = DGPS (SBAS /WAAS).
-			msg[12] = msg[12] | (1 << 7)
+			msg[13] = 2
 		default: // Zero.
 		}
 	}
 
 	// Valid/Enabled: AHRS portion.
 	if isAHRSValid() {
-		msg[12] = msg[12] | (1 << 5)
+		msg[13] = msg[13] | (1 << 2)
 	}
 
 	// Valid/Enabled: Pressure altitude portion.
 	if isTempPressValid() {
-		msg[12] = msg[12] | (1 << 4)
+		msg[13] = msg[13] | (1 << 3)
 	}
 
 	// Valid/Enabled: CPU temperature portion.
 	if isCPUTempValid() {
-		msg[12] = msg[12] | (1 << 3)
+		msg[13] = msg[13] | (1 << 4)
 	}
 
 	// Valid/Enabled: UAT portion.
 	if globalSettings.UAT_Enabled {
-		msg[12] = msg[12] | (1 << 2)
+		msg[13] = msg[13] | (1 << 5)
 	}
 
 	// Valid/Enabled: ES portion.
 	if globalSettings.ES_Enabled {
-		msg[12] = msg[12] | (1 << 1)
+		msg[13] = msg[13] | (1 << 6)
 	}
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
-	msg[14] = msg[14] | (byte(globalStatus.Devices) << 6)
+	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
 	// Connected hardware: RY835AI.
 	if globalStatus.RY835AI_connected {
-		msg[14] = msg[14] | (1 << 5)
+		msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
 	}
 
 	// Number of GPS satellites locked.
