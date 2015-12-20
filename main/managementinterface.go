@@ -219,7 +219,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
-				saveSettings()
+			saveSettings()
 			}
 		}
 
@@ -230,16 +230,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
-	const LINUX_REBOOT_CMD_POWER_OFF= 0x4321FEDC
 	syscall.Sync()
-	syscall.Reboot(LINUX_REBOOT_CMD_POWER_OFF)	
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)	
 }
 
 
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
-	const LINUX_REBOOT_CMD_RESTART = 0x01234567
       	syscall.Sync()
-	syscall.Reboot(LINUX_REBOOT_CMD_RESTART)
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
 
