@@ -149,12 +149,12 @@ func makeTrafficReport(ti TrafficInfo) {
 	//
 	// Algo example at: https://play.golang.org/p/AQ0fpDudvi
 	//
-	var alt int32
+	var alt int16
 	if ti.Alt < -1000 || ti.Alt > 101350 {
-		alt = 0xFFF
+		alt = 0x0FFF
 	} else {
-		// output guaranteed to be between 0x000 and 0xFFE
-		alt = int32((ti.Alt / 25) + 40)
+		// output guaranteed to be between 0x0000 and 0x0FFE
+		alt = int16((ti.Alt / 25) + 40)
 	}
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
