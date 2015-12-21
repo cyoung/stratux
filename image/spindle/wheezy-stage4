@@ -131,7 +131,8 @@ echo " - Stratux"
 
 scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
 
-  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+  ssh_in_to_qemu chroot /mnt bash -l -ex - <<\EOF
+source /root/.bashrc
 cd /root
 
 apt-get install -y mercurial
