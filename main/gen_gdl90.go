@@ -959,9 +959,9 @@ var globalSettings settings
 var globalStatus status
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true  //TODO
-	globalSettings.ES_Enabled = false  //TODO
-	globalSettings.GPS_Enabled = false //TODO
+	globalSettings.UAT_Enabled = true
+	globalSettings.ES_Enabled = true
+	globalSettings.GPS_Enabled = false
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}, 0}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}, 0}}
 	globalSettings.AHRS_Enabled = false
