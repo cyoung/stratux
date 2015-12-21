@@ -147,7 +147,7 @@ func makeTrafficReport(ti TrafficInfo) {
 	//    +101,350 feet             0xFFE
 	//    Invalid or unavailable    0xFFF
 	//
-	// Algo example at: https://play.golang.org/p/AQ0fpDudvi
+	// Algo example at: https://play.golang.org/p/VXCckSdsvT
 	//
 	var alt int16
 	if ti.Alt < -1000 || ti.Alt > 101350 {
