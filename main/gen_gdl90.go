@@ -362,10 +362,13 @@ func makeSXHeartbeat() []byte {
 	msg[3] = 1 // "message version".
 
 	// Firmware version. First 4 bytes of build.
-	msg[4] = byte(stratuxBuild[0])
-	msg[5] = byte(stratuxBuild[1])
-	msg[6] = byte(stratuxBuild[2])
-	msg[7] = byte(stratuxBuild[3])
+	build_byte := make([]byte, hex.DecodedLen(len(stratuxBuild)))
+	hex.Decode(build_byte, []byte(stratuxBuild))
+
+	msg[4] = build_byte[0]
+	msg[5] = build_byte[1]
+	msg[6] = build_byte[2]
+	msg[7] = build_byte[3]
 
 	//TODO: Hardware revision.
 	msg[8] = 0xFF
