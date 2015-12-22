@@ -631,7 +631,7 @@ func updateMessageStats() {
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
 func isCPUTempValid() bool {
-	return globalStatus.CPUTemp <= 0
+	return globalStatus.CPUTemp > 0
 }
 
 /*
