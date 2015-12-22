@@ -416,7 +416,7 @@ func makeSXHeartbeat() []byte {
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
 	// Connected hardware: RY835AI.
 	if globalStatus.RY835AI_connected {
-		msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
+		msg[15] = msg[15] | (1 << 2)
 	}
 
 	// Number of GPS satellites locked.
