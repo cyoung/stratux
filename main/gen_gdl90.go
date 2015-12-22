@@ -452,7 +452,7 @@ func makeSXHeartbeat() []byte {
 	msg[25] = byte(globalStatus.ES_messages_last_minute & 0xFF)
 
 	// CPU temperature.
-	v := uint16(float32(10.0)*globalStatus.CPUTemp) + 32768
+	v := uint16(float32(10.0) * globalStatus.CPUTemp)
 
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v * 0xFF)
