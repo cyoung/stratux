@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,6 +98,42 @@ func makeUBXCFG(class, id byte, msglen uint16, msg []byte) []byte {
 	return ret
 }
 
+func sendGPSAssist() {
+	f, err := os.Open("/root/current_14d.alp")
+	if err != nil {
+		log.Printf("Cannot send assist data due to file missing!\n")
+		return
+	}
+	done := make([]byte, 1)
+
+	done[0] = 0xff;
+	serialPort.Write(makeUBXCFG(0x0b,0x50, 1, done))
+	time.Sleep(100 * time.Millisecond)
+	
+	defer f.Close()
+	data := make([]byte, 512)
+	for {
+		data = data[:cap(data)]
+		n, err := f.Read(data)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Printf("Something is dicked up!\n")
+			return
+		}
+		data = data[:n]
+		log.Printf("Sending %d bytes\n",n)
+		serialPort.Write(makeUBXCFG(0x0b, 0x50, uint16(n), data ))
+		time.Sleep(100 * time.Millisecond)
+	} 
+	done[0] = 0xff;
+	serialPort.Write(makeUBXCFG(0x0b,0x50, 1, done))
+	
+
+
+}
+
 func initGPSSerial() bool {
 	var device string
 	if _, err := os.Stat("/dev/ttyACM0"); err == nil {
@@ -121,8 +158,8 @@ func initGPSSerial() bool {
 		return false
 	}
 
-	// Set 10Hz update.
-	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x00, 0x01, 0x00, 0x01}))
+	// Set 1Hz update.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xe8, 0x03, 0x00, 0x01, 0x00, 0x01}))
 
 	// Set navigation settings.
 	nav := make([]byte, 36)
@@ -170,6 +207,15 @@ func initGPSSerial() bool {
 	cfg[19] = 0x00 //pad.
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+
+	// Set 1Hz update.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xe8, 0x03, 0x00, 0x01, 0x00, 0x01}))
+
+
+	sendGPSAssist()
+
+	// Set 10Hz update.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x00, 0x01, 0x00, 0x01}))
 
 	p.Close()
 
