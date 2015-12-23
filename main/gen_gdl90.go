@@ -362,10 +362,13 @@ func makeSXHeartbeat() []byte {
 	msg[3] = 1 // "message version".
 
 	// Firmware version. First 4 bytes of build.
-	msg[4] = byte(stratuxBuild[0])
-	msg[5] = byte(stratuxBuild[1])
-	msg[6] = byte(stratuxBuild[2])
-	msg[7] = byte(stratuxBuild[3])
+	build_byte := make([]byte, hex.DecodedLen(len(stratuxBuild)))
+	hex.Decode(build_byte, []byte(stratuxBuild))
+
+	msg[4] = build_byte[0]
+	msg[5] = build_byte[1]
+	msg[6] = build_byte[2]
+	msg[7] = build_byte[3]
 
 	//TODO: Hardware revision.
 	msg[8] = 0xFF
@@ -416,7 +419,7 @@ func makeSXHeartbeat() []byte {
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
 	// Connected hardware: RY835AI.
 	if globalStatus.RY835AI_connected {
-		msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
+		msg[15] = msg[15] | (1 << 2)
 	}
 
 	// Number of GPS satellites locked.
@@ -452,7 +455,7 @@ func makeSXHeartbeat() []byte {
 	msg[25] = byte(globalStatus.ES_messages_last_minute & 0xFF)
 
 	// CPU temperature.
-	v := uint16(float32(10.0)*globalStatus.CPUTemp) + 32768
+	v := uint16(float32(10.0) * globalStatus.CPUTemp)
 
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v * 0xFF)
@@ -631,7 +634,7 @@ func updateMessageStats() {
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
 func isCPUTempValid() bool {
-	return globalStatus.CPUTemp <= 0
+	return globalStatus.CPUTemp > 0
 }
 
 /*

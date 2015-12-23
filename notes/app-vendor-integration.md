@@ -109,7 +109,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 }
 ```
 
-* http://192.168.10.1/getSettings` - get device settings. Example output:
+* `http://192.168.10.1/getSettings` - get device settings. Example output:
 
 ```json
 {
@@ -161,4 +161,20 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "Gyro_heading": 45.844213419776,
   "LastAttitudeTime": "2015-12-18T23:47:06.774039623Z"
 }
+```
+
+
+* `ws://192.168.10.1/traffic` - traffic stream. On initial connect, all currently tracked traffic targets are dumped. Updates are streamed as they are received. Example output:
+
+Initial connect:
+
+```json
+{"Icao_addr":2837120,"OnGround":false,"Lat":42.19293,"Lng":-83.92148,"Position_valid":true,"Alt":3400,"Track":9,"Speed":92,"Speed_valid":true,"Vvel":0,"Tail":"","Last_seen":"2015-12-22T21:29:22.241048727Z","Last_source":2}
+{"Icao_addr":2836155,"OnGround":false,"Lat":42.122932,"Lng":-84.17615,"Position_valid":true,"Alt":2800,"Track":158,"Speed":105,"Speed_valid":true,"Vvel":0,"Tail":"","Last_seen":"2015-12-22T21:29:22.241543881Z","Last_source":2}
+```
+
+Subsequent update (2837120 = 2B4A80 reports a newer position, altitude increased from 2,800' to 3,400'):
+
+```json
+{"Icao_addr":2837120,"OnGround":false,"Lat":42.193336,"Lng":-83.92136,"Position_valid":true,"Alt":3400,"Track":9,"Speed":92,"Speed_valid":true,"Vvel":0,"Tail":"","Last_seen":"2015-12-22T21:29:22.252914555Z","Last_source":2}
 ```
