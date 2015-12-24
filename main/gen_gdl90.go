@@ -951,6 +951,7 @@ type status struct {
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
+	GPS_messages_received    uint32
 	GPS_connected            bool
 	GPS_solution             string
 	RY835AI_connected        bool
