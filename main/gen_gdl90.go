@@ -413,6 +413,16 @@ func makeSXHeartbeat() []byte {
 		msg[13] = msg[13] | (1 << 6)
 	}
 
+	// Valid/Enabled: GPS Enabled portion.
+	if globalSettings.GPS_Enabled {
+		msg[13] = msg[13] | (1 << 7)
+	}
+
+	// Valid/Enabled: AHRS Enabled portion.
+	if globalSettings.AHRS_Enabled {
+		msg[12] = 1 << 0
+	}
+
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
