@@ -363,9 +363,9 @@ func makeSXHeartbeat() []byte {
 
 	// Version code. Messy parsing to fit into four bytes.
 	//FIXME: This is why we can't have nice things.
-	thisVers := stratuxVersion[1:]                // Skip first character, should be 'v'.
-	m_str := v[0:strings.Index(thisVers, ".")]    // Major version.
-	mib_str := v[strings.Index(thisVers, ".")+1:] // Minor and build version.
+	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
+	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
+	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
 
 	tp := 0 // Build "type".
 	mi_str := ""
