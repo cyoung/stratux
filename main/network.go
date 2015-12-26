@@ -186,13 +186,7 @@ func refreshConnectedClients() {
 
 func messageQueueSender() {
 	secondTimer := time.NewTicker(5 * time.Second)
-<<<<<<< HEAD
-
-	queueTimer := time.NewTicker(1 * time.Second)
-	//	queueTimer := time.NewTicker(400 * time.Microsecond) // 2500 msg/sec
-=======
 	queueTimer := time.NewTicker(100 * time.Millisecond)
->>>>>>> origin/master
 
 	var lastQueueTimeChange time.Time // Reevaluate	send frequency every 5 seconds.
 	for {
@@ -214,18 +208,6 @@ func messageQueueSender() {
 					outSockets[k] = tmpConn
 				}
 			}
-<<<<<<< HEAD
-			if time.Since(lastQueueTimeChange) >= 5 * time.Second {
-				var pd float64
-				if averageSendableQueueSize > 0.0 && len(outSockets) > 0 {
-					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets)) // It's a total, not an average, up until this point.
-					pd = math.Max(float64(1.0/2500.0), float64(1.0/(4.0*averageSendableQueueSize))) // Say 250msg is enough to get through the whole queue.
-				} else {
-					pd = float64(1.0)
-				}
-				queueTimer.Stop()
-				queueTimer = time.NewTicker(time.Duration(pd * 1000000000.0) * time.Nanosecond)
-=======
 
 			if time.Since(lastQueueTimeChange) >= 5*time.Second {
 				var pd float64
@@ -237,7 +219,6 @@ func messageQueueSender() {
 				}
 				queueTimer.Stop()
 				queueTimer = time.NewTicker(time.Duration(pd*1000000000.0) * time.Nanosecond)
->>>>>>> origin/master
 				lastQueueTimeChange = time.Now()
 			}
 			netMutex.Unlock()
