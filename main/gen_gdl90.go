@@ -361,14 +361,38 @@ func makeSXHeartbeat() []byte {
 
 	msg[3] = 1 // "message version".
 
-	// Firmware version. First 4 bytes of build.
-	build_byte := make([]byte, hex.DecodedLen(len(stratuxBuild)))
-	hex.Decode(build_byte, []byte(stratuxBuild))
+	// Version code. Messy parsing to fit into four bytes.
+	//FIXME: This is why we can't have nice things.
+	v := stratuxVersion[1:]                // Skip first character, should be 'v'.
+	m_str := v[0:strings.Index(v, ".")]    // Major version.
+	mib_str := v[strings.Index(v, ".")+1:] // Minor and build version.
 
-	msg[4] = build_byte[0]
-	msg[5] = build_byte[1]
-	msg[6] = build_byte[2]
-	msg[7] = build_byte[3]
+	tp := 0 // Build "type".
+	mi_str := ""
+	b_str := ""
+	if strings.Index(mib_str, "rc") != -1 {
+		tp = 3
+		mi_str = mib_str[0:strings.Index(mib_str, "rc")]
+		b_str = mib_str[strings.Index(mib_str, "rc")+2:]
+	} else if strings.Index(mib_str, "r") != -1 {
+		tp = 2
+		mi_str = mib_str[0:strings.Index(mib_str, "r")]
+		b_str = mib_str[strings.Index(mib_str, "r")+1:]
+	} else if strings.Index(mib_str, "b") != -1 {
+		tp = 1
+		mi_str = mib_str[0:strings.Index(mib_str, "b")]
+		b_str = mib_str[strings.Index(mib_str, "b")+1:]
+	}
+
+	// Convert to strings.
+	m, _ := strconv.Atoi(m_str)
+	mi, _ := strconv.Atoi(mi_str)
+	b, _ := strconv.Atoi(b_str)
+
+	msg[4] = byte(m)
+	msg[5] = byte(mi)
+	msg[6] = byte(tp)
+	msg[7] = byte(b)
 
 	//TODO: Hardware revision.
 	msg[8] = 0xFF
