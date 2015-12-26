@@ -65,7 +65,7 @@ type TrafficInfo struct {
 
 	Position_valid bool
 
-	Alt uint32
+	Alt int32
 
 	Track       uint16
 	Speed       uint16
@@ -138,12 +138,24 @@ func makeTrafficReport(ti TrafficInfo) {
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-	//Altitude: OK
-	//TODO: 0xFFF "invalid altitude."
-	alt := uint16(ti.Alt)
-	alt = (alt + 1000) / 25
-	alt = alt & 0xFFF // Should fit in 12 bits.
-
+	// Altitude: OK
+	// GDL 90 Data Interface Specification examples:
+	// where 1,000 foot offset and 25 foot resolution (1,000 / 25 = 40)
+	//    -1,000 feet               0x000
+	//    0 feet                    0x028
+	//    +1000 feet                0x050
+	//    +101,350 feet             0xFFE
+	//    Invalid or unavailable    0xFFF
+	//
+	// Algo example at: https://play.golang.org/p/VXCckSdsvT
+	//
+	var alt int16
+	if ti.Alt < -1000 || ti.Alt > 101350 {
+		alt = 0x0FFF
+	} else {
+		// output guaranteed to be between 0x0000 and 0x0FFE
+		alt = int16((ti.Alt / 25) + 40)
+	}
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 
@@ -237,9 +249,9 @@ func parseDownlinkReport(s string) {
 	ti.Lng = lng
 	ti.Position_valid = position_valid
 
-	raw_alt := (uint32(frame[10]) << 4) | ((uint32(frame[11]) & 0xf0) >> 4)
+	raw_alt := (int32(frame[10]) << 4) | ((int32(frame[11]) & 0xf0) >> 4)
 	//	alt_geo := false // Barometric if not geometric.
-	alt := uint32(0)
+	alt := int32(0)
 	if raw_alt != 0 {
 		//		alt_geo = (uint8(frame[9]) & 1) != 0
 		alt = ((raw_alt - 1) * 25) - 1000
@@ -460,7 +472,7 @@ func esListen() {
 
 				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
 				if valid_change {
-					ti.Alt = uint32(altFloat)
+					ti.Alt = int32(altFloat)
 					ti.Lat = float32(latFloat)
 					ti.Lng = float32(lngFloat)
 					ti.Position_valid = true

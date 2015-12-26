@@ -107,7 +107,7 @@ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 
 cd /root
 rm -rf rtl-sdr
-git clone git://git.osmocom.org/rtl-sdr.git
+git clone https://github.com/jpoirier/librtlsdr rtl-sdr
 cd rtl-sdr
 mkdir build
 cd build
@@ -131,7 +131,8 @@ echo " - Stratux"
 
 scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
 
-  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+  ssh_in_to_qemu chroot /mnt bash -l -ex - <<\EOF
+source /root/.bashrc
 cd /root
 
 apt-get install -y mercurial

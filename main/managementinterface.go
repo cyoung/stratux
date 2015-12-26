@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"syscall"
 )
 
 type SettingMessage struct {
@@ -99,6 +100,21 @@ func handleStatusWS(conn *websocket.Conn) {
 			break
 		}
 	}
+}
+
+func handleSituationWS(conn *websocket.Conn) {
+	timer := time.NewTicker(100 * time.Millisecond)
+	for {
+		<-timer.C
+		situationJSON, _ := json.Marshal(&mySituation)
+		_, err := conn.Write(situationJSON)
+
+		if err != nil {
+			break
+		}
+
+	}
+
 }
 
 // AJAX call - /getStatus. Responds with current global status
@@ -203,7 +219,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
-				saveSettings()
+			saveSettings()
 			}
 		}
 
@@ -212,6 +228,18 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", settingsJSON)
 	}
 }
+
+func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
+	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)	
+}
+
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+      	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
 
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
@@ -223,6 +251,12 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleStatusWS)}
+			s.ServeHTTP(w, req)
+		})
+	http.HandleFunc("/situation",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleSituationWS)}
 			s.ServeHTTP(w, req)
 		})
 	http.HandleFunc("/weather",
@@ -243,6 +277,8 @@ func managementInterface() {
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/shutdown", handleShutdownRequest)
+	http.HandleFunc("/reboot", handleRebootRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

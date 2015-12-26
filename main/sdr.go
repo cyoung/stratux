@@ -256,11 +256,11 @@ func (e *ES) writeID() error {
 func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
 	close(uat_shutdown) // signal to shutdown
-	log.Println("UAT shutdown(): closing device ...")
-	u.dev.Close() // preempt the blocking ReadSync call
 	log.Println("UAT shutdown(): calling uat_wg.Wait() ...")
 	uat_wg.Wait() // Wait for the goroutine to shutdown
 	log.Println("UAT shutdown(): uat_wg.Wait() returned...")
+	log.Println("UAT shutdown(): closing device ...")
+	u.dev.Close() // preempt the blocking ReadSync call
 }
 
 func (e *ES) shutdown() {
