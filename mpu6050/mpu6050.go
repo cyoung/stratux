@@ -5,6 +5,7 @@ package mpu6050
 import (
 	"../linux-mpu9150/mpu"
 	"log"
+	"math"
 	"time"
 )
 
@@ -30,9 +31,10 @@ type MPU6050 struct {
 	roll_resting  float64
 
 	// For tracking heading (mixing GPS track and the gyro output).
-	heading                 float64 // Current heading.
-	last_gyro_heading       float64 // Last reading directly from the gyro for comparison with current heading.
-	last_gyro_heading_valid bool
+	heading              float64 // Current heading.
+	gps_track            float64 // Last reading directly from the gyro for comparison with current heading.
+	gps_track_valid      bool
+	heading_when_gps_set float64
 
 	quit chan struct{}
 }
@@ -91,23 +93,28 @@ func normalizeHeading(h float64) float64 {
 }
 
 func (d *MPU6050) getMPUData() {
-	p, r, h, err := mpu.ReadMPU()
+	pr, rr, hr, err := mpu.ReadMPU()
+
+	// Convert from radians to degrees.
+	pitch := float64(pr) * (float64(180.0) / math.Pi)
+	roll := float64(rr) * (float64(180.0) / math.Pi)
+	heading := float64(hr) * (float64(180.0) / math.Pi)
+	if heading < float64(0.0) {
+		heading = float64(360.0) + heading
+	}
 
 	if err == nil {
-		d.pitch = float64(p)
-		d.roll = float64(r)
+		d.pitch = pitch
+		d.roll = roll
 
 		// Calculate the change in direction from current and previous IMU reading.
-		if d.last_gyro_heading_valid {
-			h2 := float64(h)
-			this_change := h2 - d.last_gyro_heading
-
-			d.heading = normalizeHeading(d.heading + this_change)
+		if d.gps_track_valid {
+			d.heading = normalizeHeading((heading - d.heading_when_gps_set) + d.gps_track)
+		} else {
+			d.heading = heading
 		}
-		d.last_gyro_heading_valid = true
-		d.last_gyro_heading = float64(h)
 	} else {
-		log.Printf("mpu6050.calculatePitchAndRoll(): mpu.ReadMPU() err: %s\n", err.Error())
+		//		log.Printf("mpu6050.calculatePitchAndRoll(): mpu.ReadMPU() err: %s\n", err.Error())
 	}
 }
 
@@ -121,6 +128,7 @@ func (d *MPU6050) Heading() float64 {
 }
 
 func (d *MPU6050) Run() {
+	time.Sleep(d.Poll)
 	go func() {
 		d.quit = make(chan struct{})
 		timer := time.NewTicker(d.Poll)
@@ -133,6 +141,7 @@ func (d *MPU6050) Run() {
 				//				d.calibrate()
 				//				calibrateTimer.Stop()
 			case <-d.quit:
+				mpu.CloseMPU()
 				return
 			}
 		}
@@ -143,7 +152,9 @@ func (d *MPU6050) Run() {
 // Set heading from a known value (usually GPS true heading).
 func (d *MPU6050) ResetHeading(heading float64) {
 	log.Printf("reset true heading: %f\n", heading)
-	d.heading = heading
+	d.gps_track = heading
+	d.gps_track_valid = true
+	d.heading_when_gps_set = d.heading
 }
 
 // Close.
