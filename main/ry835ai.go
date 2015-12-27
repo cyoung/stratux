@@ -366,7 +366,6 @@ func processNMEALine(l string) bool {
 			}
 		}
 
-
 		if x[2] != "A" { // invalid fix
 			return false
 		}
@@ -458,7 +457,7 @@ func initBMP180() error {
 }
 
 func initMPU6050() error {
-	myMPU6050 = mpu6050.New(i2cbus) //TODO: error checking.
+	myMPU6050 = mpu6050.New() //TODO: error checking.
 	return nil
 }
 
