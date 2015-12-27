@@ -140,7 +140,7 @@ cd /root
 apt-get install -y mercurial
 
 rm -rf stratux
-git clone https://github.com/cyoung/stratux
+git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make www
 cd dump978
