@@ -1,0 +1,3 @@
+[submodule "linux-mpu9150"]
+	path = linux-mpu9150
+	url = git://github.com/cyoung/linux-mpu9150
