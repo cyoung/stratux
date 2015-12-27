@@ -3,13 +3,10 @@ package main
 import (
 	"../mpu6050"
 	"fmt"
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/all"
 	"net"
 	"time"
 )
 
-var bus embd.I2CBus
 var attSensor *mpu6050.MPU6050
 
 func readMPU6050() (float64, float64) {
@@ -19,8 +16,7 @@ func readMPU6050() (float64, float64) {
 }
 
 func initMPU6050() {
-	bus = embd.NewI2CBus(1)
-	attSensor = mpu6050.New(bus)
+	attSensor = mpu6050.New()
 }
 
 func main() {
