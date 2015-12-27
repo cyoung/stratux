@@ -92,6 +92,7 @@ func (u *UAT) read() {
 	defer uat_wg.Done()
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
+
 	for {
 		select {
 		default:
@@ -116,7 +117,6 @@ func (e *ES) sdrConfig() (err error) {
 	return
 }
 
-// Read 978MHz from SDR.
 func (u *UAT) sdrConfig() (err error) {
 	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
@@ -275,6 +275,10 @@ var devMap = map[int]string{0: "", 1: ""}
 
 // Watch for config/device changes.
 func sdrWatcher() {
+	stopCheckingUATUntil := time.Time{}
+
+	lastUATCheck := time.Now()
+
 	for {
 		time.Sleep(1 * time.Second)
 		count := rtl.GetDeviceCount()
@@ -316,10 +320,22 @@ func sdrWatcher() {
 		}
 
 		// UAT specific handling
+
+		// Shutdown UAT for 50 seconds, check every 60 seconds if the count is 0.
+		if time.Since(lastUATCheck) >= 1*time.Minute {
+			if UATDev != nil && globalStatus.UAT_messages_last_minute == 0 {
+				log.Printf("Pausing UAT listening for 50 seconds - none received.\n")
+				UATDev.shutdown()
+				UATDev = nil
+				stopCheckingUATUntil = time.Now().Add(50 * time.Second)
+			}
+			lastUATCheck = time.Now()
+		}
+
 		// When count is one, favor UAT in the case where the user
 		// has enabled both UAT and ES via the web interface.
 		id := 0
-		if globalSettings.UAT_Enabled {
+		if globalSettings.UAT_Enabled && time.Now().After(stopCheckingUATUntil) {
 			// log.Println("globalSettings.UAT_Enabled == true")
 			if count == 1 {
 				if ESDev != nil {
