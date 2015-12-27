@@ -26,7 +26,8 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			// $scope.ConnectStyle = "label-danger";
 			$scope.ConnectState = "Disconnected";
 			$scope.$apply();
-			setTimeout(connect, 1000);
+			delete $scope.socket;
+			setTimeout(function() {connect($scope);}, 1000);
 		};
 
 		socket.onerror = function (msg) {
