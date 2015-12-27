@@ -9,6 +9,7 @@ endif
 all:
 	cd dump978 && make lib
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
+	git submodule update --init
 	cd linux-mpu9150 && make -f Makefile-native-shared
 	go get -t -d -v ./main ./test ./linux-mpu9150/mpu ./godump978 ./mpu6050 ./uatparse
 	go build $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go
