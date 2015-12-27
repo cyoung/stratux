@@ -34,6 +34,7 @@ type SituationData struct {
 	NACp                    uint8   // NACp categories are defined in AC 20-165A
 	Alt                     float32 // Feet.
 	alt_accuracy            float32
+	vertVelGPS		float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime        time.Time
 	TrueCourse              uint16
 	GroundSpeed             uint16
@@ -110,9 +111,46 @@ func initGPSSerial() bool {
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
 		return false
+	} else { // reset port to 9600 baud for configuration
+	        cfg1 := make([]byte, 20)
+	        cfg1[0] = 0x01 // portID.
+	        cfg1[1] = 0x00 // res0.
+	        cfg1[2] = 0x00 // res1.
+	        cfg1[3] = 0x00 // res1.
+
+        	//      [   7   ] [   6   ] [   5   ] [   4   ]
+	        //      0000 0000 0000 0000 1000 0000 1100 0000
+	        // UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
+	        cfg1[4] = 0xC0
+	        cfg1[5] = 0x08
+	        cfg1[6] = 0x00
+	        cfg1[7] = 0x00
+
+        	// Baud rate. Little endian order.
+	        bdrt1 := uint32(9600)
+	        cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
+	        cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
+	        cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
+	        cfg1[8] = byte(bdrt1 & 0xFF)
+
+        	// inProtoMask. NMEA and UBX. Little endian.
+	        cfg1[12] = 0x03
+	        cfg1[13] = 0x00
+
+	        // outProtoMask. NMEA. Little endian.
+	        cfg1[14] = 0x02
+	        cfg1[15] = 0x00
+
+        	cfg1[16] = 0x00 // flags.
+	        cfg1[17] = 0x00 // flags.
+
+        	cfg1[18] = 0x00 //pad.
+	        cfg1[19] = 0x00 //pad.
+
+        	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
+		p.Close()
 	}
 
-	serialPort = p
 	// Open port at 9600 baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: 9600}
 	p, err = serial.OpenPort(serialConfig)
@@ -121,8 +159,9 @@ func initGPSSerial() bool {
 		return false
 	}
 
-	// Set 10Hz update.
-	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x00, 0x01, 0x00, 0x01}))
+	// Set 10Hz update. Little endian order.
+	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
+
 
 	// Set navigation settings.
 	nav := make([]byte, 36)
@@ -134,34 +173,75 @@ func initGPSSerial() bool {
 
 	p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
+
+	// GNSS configuration CFG-GNSS, p. 125
+	// 
+	cfgGnss	:= []byte{0x00, 0x20, 0x20, 0x05}
+	gps	:= []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
+	sbas	:= []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
+	beidou	:= []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
+	qzss	:= []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
+	glonass	:= []byte{0x06, 0x04, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01}
+	cfgGnss = append(cfgGnss, gps...)
+	cfgGnss = append(cfgGnss, sbas...)
+	cfgGnss = append(cfgGnss, beidou...)
+	cfgGnss = append(cfgGnss, qzss...)
+	cfgGnss = append(cfgGnss, glonass...)
+	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
+
+	// SBAS configuration
+	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
+
+	// Message output configuration
+	//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GGA
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x01})) // RMC
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
+
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
+
 	// Reconfigure serial port.
 	cfg := make([]byte, 20)
 	cfg[0] = 0x01 // portID.
 	cfg[1] = 0x00 // res0.
 	cfg[2] = 0x00 // res1.
 	cfg[3] = 0x00 // res1.
-
-	//	0000 0000 0000 0010 0011 0000 0000 0000
-	// UART mode. 0 stop bits, no parity, 8 data bits.
-	cfg[4] = 0x00
-	cfg[5] = 0x20
-	cfg[6] = 0x30
+        
+        //      [   7   ] [   6   ] [   5   ] [   4   ]
+	//	0000 0000 0000 0000 1000 0000 1100 0000
+	// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
+	cfg[4] = 0xC0
+	cfg[5] = 0x08
+	cfg[6] = 0x00
 	cfg[7] = 0x00
 
-	// Baud rate.
+	// Baud rate. Little endian order.
 	bdrt := uint32(115200)
-	cfg[8] = byte((bdrt >> 24) & 0xFF)
-	cfg[9] = byte((bdrt >> 16) & 0xFF)
-	cfg[10] = byte((bdrt >> 8) & 0xFF)
-	cfg[11] = byte(bdrt & 0xFF)
+	cfg[11] = byte((bdrt >> 24) & 0xFF)
+	cfg[10] = byte((bdrt >> 16) & 0xFF)
+	cfg[9] = byte((bdrt >> 8) & 0xFF)
+	cfg[8] = byte(bdrt & 0xFF)
 
-	// inProtoMask. NMEA and UBX.
-	cfg[12] = 0x00
-	cfg[13] = 0x03
+	// inProtoMask. NMEA and UBX. Little endian.
+	cfg[12] = 0x03
+	cfg[13] = 0x00
 
-	// outProtoMask. NMEA.
-	cfg[14] = 0x00
-	cfg[15] = 0x02
+	// outProtoMask. NMEA. Little endian.
+	cfg[14] = 0x02
+	cfg[15] = 0x00
 
 	cfg[16] = 0x00 // flags.
 	cfg[17] = 0x00 // flags.
@@ -170,16 +250,239 @@ func initGPSSerial() bool {
 	cfg[19] = 0x00 //pad.
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
-
 	p.Close()
 
+	// Re-open port at 115200 baud so we can read messages
+	serialConfig = &serial.Config{Name: device, Baud: 115200}
+	p, err = serial.OpenPort(serialConfig)
+	if err != nil {
+		log.Printf("serial port err: %s\n", err.Error())
+		return false
+	}
+
+	serialPort = p
+	log.Printf("GPS configuration complete\n")
 	return true
 }
 
+// func validateNMEAChecksum determines if a string is a properly formatted NMEA sentence with a valid checksum.
+//
+// If the input string is valid, output is the input stripped of the "$" token and checksum, along with a boolean 'true'
+// If the input string is the incorrect format, the checksum is missing/invalid, or checksum calculation fails, an error string and
+// boolean 'false' are returned
+//
+// Checksum is calculated as XOR of all bytes between "$" and "*"
+
+func validateNMEAChecksum(s string) (string, bool) {
+	//validate format. NMEA sentences start with "$" and end in "*xx" where xx is the XOR value of all bytes between
+	if !(strings.HasPrefix(s, "$") && strings.Contains(s, "*")) {
+		return "Invalid NMEA message", false
+	}
+
+	// strip leading "$" and split at "*"	
+	s_split := strings.Split(strings.TrimPrefix(s, "$"), "*")
+	s_out := s_split[0]
+	s_cs := s_split[1]
+	
+	if (len(s_cs) < 2) {
+		return "Missing checksum. Fewer than two bytes after asterisk", false
+	}
+	
+	cs, err := strconv.ParseUint(s_cs[:2], 16, 8)
+	if err != nil {
+		return "Invalid checksum", false
+	}
+
+	cs_calc := byte(0)
+	for i := range s_out {
+		cs_calc = cs_calc ^ byte(s_out[i])
+	}
+	
+	if (cs_calc != byte(cs)) {
+		return fmt.Sprintf("Checksum failed. Calculated %#X; expected %#X", cs_calc, cs), false
+	}
+	
+	return s_out, true
+}
+
+
+
 func processNMEALine(l string) bool {
 	replayLog(l, MSGCLASS_GPS)
-	x := strings.Split(l, ",")
-	if (x[0] == "$GNVTG") || (x[0] == "$GPVTG") { // Ground track information.
+	l_valid, validNMEAcs := validateNMEAChecksum(l)
+	if (!validNMEAcs) {
+		log.Printf("GPS error. Invalid NMEA string: %s\n", l_valid) // remove log message once validation complete
+		return false
+	}
+	x := strings.Split(l_valid, ",")
+
+	if (x[0] == "PUBX") { // UBX proprietary message
+		if (x[1] == "00") { // position message
+                        if len (x) < 20 {
+	                        return false
+                        }
+
+		        mySituation.mu_GPS.Lock()
+        	        defer mySituation.mu_GPS.Unlock()
+	
+			// field 2 = time
+			if len(x[2]) < 9 {
+				return false
+			}
+			hr, err1 := strconv.Atoi(x[2][0:2])
+			min, err2 := strconv.Atoi(x[2][2:4])
+			sec, err3 := strconv.Atoi(x[2][4:6])
+			if err1 != nil || err2 != nil || err3 != nil {
+				return false
+			}
+
+			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+
+			// field 3-4 = lat
+
+			if len(x[3]) < 10 {
+				return false
+			}
+
+			hr, err1 = strconv.Atoi(x[3][0:2])
+			minf, err2 := strconv.ParseFloat(x[3][2:10], 32)
+			if err1 != nil || err2 != nil {
+				return false
+			}
+
+			mySituation.Lat = float32(hr) + float32(minf/60.0)
+			if x[4] == "S" { // South = negative.
+				mySituation.Lat = -mySituation.Lat
+			}
+
+			// field 5-6 = lon
+			if len(x[5]) < 11 {
+				return false
+			}
+			hr, err1 = strconv.Atoi(x[5][0:3])
+			minf, err2 = strconv.ParseFloat(x[5][3:11], 32)
+			if err1 != nil || err2 != nil {
+				return false
+			}
+
+			mySituation.Lng = float32(hr) + float32(minf/60.0)
+			if x[6] == "W" { // West = negative.
+				mySituation.Lng = -mySituation.Lng
+			}
+
+			// field 7 = altitude, m
+
+			alt, err1 := strconv.ParseFloat(x[7], 32)
+			if err1 != nil {
+				return false
+			}
+			mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
+
+			// field 8 = nav status
+			// DR = dead reckoning, G2= 2D GPS, G3 = 3D GPS, D2= 2D diff, D3 = 3D diff, RK = GPS+DR, TT = time only
+			// TODO
+			
+			if (x[8] == "D2" || x[8] == "D3") {
+				mySituation.quality = 2
+			} else if (x[8] == "G2" || x[8] == "G3") {
+				mySituation.quality = 1
+			} else if (x[8] == "DR" || x[8] == "RK") {
+				mySituation.quality = 6
+			} else {
+				mySituation.quality = 0
+			}
+
+			// field 9 = horizontal accuracy, m
+                        hAcc, err := strconv.ParseFloat(x[9], 32)
+                        if err != nil {
+                                return false
+                        }
+                        mySituation.Accuracy = float32(hAcc)
+
+	                // NACp estimate.
+        	        if mySituation.Accuracy < 3 {
+                	        mySituation.NACp = 11
+	                } else if mySituation.Accuracy < 10 {
+        	                mySituation.NACp = 10
+	                } else if mySituation.Accuracy < 30 {
+        	                mySituation.NACp = 9
+	                } else if mySituation.Accuracy < 92.6 {
+        	                mySituation.NACp = 8
+	                } else if mySituation.Accuracy < 185.2 {
+        	                mySituation.NACp = 7
+	                } else if mySituation.Accuracy < 555.6 {
+        	                mySituation.NACp = 6
+	                } else {
+        	                mySituation.NACp = 0
+	                }
+
+
+			// field 10 = vertical accuracy, m
+                        vAcc, err := strconv.ParseFloat(x[10], 32)
+                        if err != nil {
+                                return false
+                        }
+                        mySituation.alt_accuracy = float32(vAcc)
+
+
+			// field 11 = groundspeed, km/h
+			groundspeed, err := strconv.ParseFloat(x[11], 32)
+			if err != nil {
+				return false
+			}
+			groundspeed = groundspeed * 0.540003 // convert to knots
+			
+			// field 12 = track, deg
+			trueCourse := uint16(0)
+			if len(x[12]) > 0 && groundspeed > 2 {
+				tc, err := strconv.ParseFloat(x[12], 32)
+				if err != nil {
+					return false
+				}
+				trueCourse = uint16(tc)
+				//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
+				if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+					myMPU6050.ResetHeading(float64(tc))
+				}
+			} else {
+				// No movement.
+				mySituation.TrueCourse = 0
+				mySituation.GroundSpeed = 0
+				mySituation.LastGroundTrackTime = time.Time{}
+			}
+		
+			mySituation.TrueCourse = uint16(trueCourse)
+                        mySituation.GroundSpeed = uint16(groundspeed) // convert to knots
+			mySituation.LastGroundTrackTime = time.Now()
+
+
+
+			// field 13 = vertical velocity, m/s
+                        vv, err := strconv.ParseFloat(x[13], 32)
+                        if err != nil {
+                                return false
+                        }
+                        mySituation.vertVelGPS = float32(vv*3.28084) // convert to ft/sec
+
+
+
+			// field 14 = age of diff corrections
+
+
+			// field 18 = number of satellites
+			sat, err1 := strconv.Atoi(x[18])
+			if err1 != nil {
+				return false
+			}
+			mySituation.Satellites = uint16(sat)
+
+			mySituation.LastFixLocalTime = time.Now()
+
+		} // else if 03 or 04 message -- TODO
+
+
+
+	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
 		if len(x) < 10 {
@@ -212,7 +515,7 @@ func processNMEALine(l string) bool {
 		mySituation.GroundSpeed = uint16(groundSpeed)
 		mySituation.LastGroundTrackTime = time.Now()
 
-	} else if (x[0] == "$GNGGA") || (x[0] == "$GPGGA") { // GPS fix.
+	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // GPS fix.
 		if len(x) < 15 {
 			return false
 		}
@@ -317,7 +620,7 @@ func processNMEALine(l string) bool {
 		// Timestamp.
 		mySituation.LastFixLocalTime = time.Now()
 
-	} else if (x[0] == "$GNRMC") || (x[0] == "$GPRMC") {
+	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") {
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 		/*						check RY835 man for NMEA version, if >2.2, add mode field
 				Where:
