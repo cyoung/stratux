@@ -49,6 +49,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.ES_messages_last_minute = status.ES_messages_last_minute;
 			$scope.ES_messages_max = status.ES_messages_max;
 			$scope.GPS_satellites_locked = status.GPS_satellites_locked;
+			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.RY835AI_connected = status.RY835AI_connected;
 
