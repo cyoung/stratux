@@ -29,12 +29,14 @@ type SituationData struct {
 	Lat                     float32
 	Lng                     float32
 	quality                 uint8
+	GeoidSep		float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
 	Satellites              uint16 // satellites used in solution
-	SatellitesTracked	uint16 // satellites tracked
-	Accuracy                float32 // Meters.
+	SatellitesTracked	uint16 // satellites tracked (almanac data received)
+	SatellitesSeen		uint16 // satellites seen (signal received)
+	Accuracy                float32 // 95% confidence for horizontal position, meters.
 	NACp                    uint8   // NACp categories are defined in AC 20-165A
-	Alt                     float32 // Feet.
-	AccuracyVert            float32
+	Alt                     float32 // Feet MSL
+	AccuracyVert            float32 // 95% confidence for vertical position, meters
 	GPSVertVel		float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime        time.Time
 	TrueCourse              uint16
@@ -108,8 +110,8 @@ func initGPSSerial() bool {
 	}
 	log.Printf("Using %s for GPS\n", device)
 
-	/* Developer option -- allow "hot" configuration of GPS (assume it comes up at 115.2 kpbs on reboot)
-	serialConfig = &serial.Config{Name: device, Baud: 115200}
+	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start) 
+	serialConfig = &serial.Config{Name: device, Baud: 38400}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -153,8 +155,9 @@ func initGPSSerial() bool {
         	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
 		p.Close()
 	}
-	*/
 
+	-- End developer option */
+	
 	// Open port at 9600 baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: 9600}
 	p, err := serial.OpenPort(serialConfig)
@@ -180,12 +183,16 @@ func initGPSSerial() bool {
 
 	// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
 	// 
+	// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
+	// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
+	// for SBAS (WAAS), so little real-world impact.
+	
 	cfgGnss	:= []byte{0x00, 0x20, 0x20, 0x05}
 	gps	:= []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
 	sbas	:= []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
 	beidou	:= []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
 	qzss	:= []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-	glonass	:= []byte{0x06, 0x04, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01}
+	glonass	:= []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
 	cfgGnss = append(cfgGnss, gps...)
 	cfgGnss = append(cfgGnss, sbas...)
 	cfgGnss = append(cfgGnss, beidou...)
@@ -196,9 +203,9 @@ func initGPSSerial() bool {
 	// SBAS configuration for ublox 6 and higher
 	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
-	// Message output configuration -- disable standard NMEA messages
+	// Message output configuration -- disable standard NMEA messages except 1Hz GGA
 	//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GGA
+        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
         p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
         p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
@@ -374,34 +381,37 @@ func processNMEALine(l string) bool {
 				mySituation.Lng = -mySituation.Lng
 			}
 
-			// field 7 = altitude, m
+			// field 7 = height above ellipsoid, m
 
-			alt, err1 := strconv.ParseFloat(x[7], 32)
+			hae, err1 := strconv.ParseFloat(x[7], 32)
 			if err1 != nil {
 				return false
 			}
-			mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
+			alt := float32(hae*3.28084) - mySituation.GeoidSep // convert to feet and offset by geoid separation
+			mySituation.Alt = alt
 
 			// field 8 = nav status
 			// DR = dead reckoning, G2= 2D GPS, G3 = 3D GPS, D2= 2D diff, D3 = 3D diff, RK = GPS+DR, TT = time only
-			// TODO
-			
+						
 			if (x[8] == "D2" || x[8] == "D3") {
 				mySituation.quality = 2
 			} else if (x[8] == "G2" || x[8] == "G3") {
 				mySituation.quality = 1
 			} else if (x[8] == "DR" || x[8] == "RK") {
 				mySituation.quality = 6
-			} else {
+			} else if (x[8] == "NF") {
 				mySituation.quality = 0
+				return false // return false if no valid fix.
+			} else {
+				 mySituation.quality = 0
 			}
-
+			
 			// field 9 = horizontal accuracy, m
                         hAcc, err := strconv.ParseFloat(x[9], 32)
                         if err != nil {
                                 return false
                         }
-                        mySituation.Accuracy = float32(hAcc)
+                        mySituation.Accuracy = float32(hAcc*2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
 
 	                // NACp estimate.
         	        if mySituation.Accuracy < 3 {
@@ -426,7 +436,7 @@ func processNMEALine(l string) bool {
                         if err != nil {
                                 return false
                         }
-                        mySituation.AccuracyVert = float32(vAcc)
+                        mySituation.AccuracyVert = float32(vAcc*2) // UBX reports 1-sigma variation; we want 95% confidence
 
 
 			// field 11 = groundspeed, km/h
@@ -438,7 +448,7 @@ func processNMEALine(l string) bool {
 			
 			// field 12 = track, deg
 			trueCourse := uint16(0)
-			if len(x[12]) > 0 && groundspeed > 2 {
+			if len(x[12]) > 0 && groundspeed > 3 {
 				tc, err := strconv.ParseFloat(x[12], 32)
 				if err != nil {
 					return false
@@ -456,7 +466,7 @@ func processNMEALine(l string) bool {
 			}
 		
 			mySituation.TrueCourse = uint16(trueCourse)
-                        mySituation.GroundSpeed = uint16(groundspeed) // convert to knots
+                        mySituation.GroundSpeed = uint16(groundspeed)
 			mySituation.LastGroundTrackTime = time.Now()
 
 
@@ -466,7 +476,7 @@ func processNMEALine(l string) bool {
                         if err != nil {
                                 return false
                         }
-                        mySituation.GPSVertVel = float32(vv*-3.28084) // convert to ft/sec; positive = up
+                        mySituation.GPSVertVel = float32(vv*-3.28084) // convert to ft/sec and positive = up
 
 
 
@@ -485,14 +495,25 @@ func processNMEALine(l string) bool {
 		} else if (x[1] == "03") { // satellite status message
 
 			// field 2 = number of satellites tracked
+			satSeen := 0 // satellites seen (signal present)
 			satTracked, err := strconv.Atoi(x[2])
                         if err != nil {
                                 return false
                         }
                         mySituation.SatellitesTracked = uint16(satTracked)
-
+			
 			// fields 3-8 are repeated block 
-			/*
+                        for i:= 0; i < satTracked; i++ {
+				if (x[7+6*i] != "") {
+					satSeen++
+				}	
+			}
+
+                        mySituation.SatellitesSeen = uint16(satSeen)
+                        // log.Printf("Satellites with signal: %v\n",mySituation.SatellitesSeen)
+
+
+			/* Reference for future constellation tracking
 			for i:= 0; i < satTracked; i++ {
 				x[3+6*i] // sv number
 				x[4+6*i] // status [ U | e | - ] for used / ephemeris / not used
@@ -501,7 +522,6 @@ func processNMEALine(l string) bool {
                                 x[7+6*i] // signal strength dB-Hz
                                 x[8+6*i] // lock time, sec, 0-64
 			*/
-
 
 		} else if (x[1] == "04") { // clock message
 
@@ -626,6 +646,7 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
+		/* Satellite count and horizontal accuracy deprecated. Use GSA/GST or PUBX,00 message.
 		// Satellites.
 		sat, err1 := strconv.Atoi(x[7])
 		if err1 != nil {
@@ -660,7 +681,8 @@ func processNMEALine(l string) bool {
 		} else {
 			mySituation.NACp = 0
 		}
-
+		*/
+	
 		// Altitude.
 		alt, err1 := strconv.ParseFloat(x[9], 32)
 		if err1 != nil {
@@ -668,8 +690,14 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
 
-		//TODO: Altitude accuracy.
-		mySituation.AccuracyVert = 0
+		// Geoid separation (Sep = HAE - MSL)
+		// (needed for proper MSL offset on PUBX,00 altitudes)
+
+                geoidSep, err1 := strconv.ParseFloat(x[11], 32)
+                if err1 != nil {
+                        return false
+                }
+                mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
 
 		// Timestamp.
 		mySituation.LastFixLocalTime = time.Now()

@@ -703,6 +703,7 @@ func cpuTempMonitor() {
 func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.Satellites
+                globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
 		globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
 		if mySituation.quality == 2 {
 			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
@@ -711,7 +712,7 @@ func updateStatus() {
 		} else if mySituation.quality == 6 {
 			globalStatus.GPS_solution = "Dead Reckoning"
 		} else {
-			globalStatus.GPS_solution = "N/A"
+			globalStatus.GPS_solution = "No Fix"
 		}
 	}
 
@@ -988,6 +989,7 @@ type status struct {
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
+	GPS_satellites_seen	 uint16
 	GPS_satellites_tracked	 uint16
 	GPS_connected            bool
 	GPS_solution             string
