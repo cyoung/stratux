@@ -21,6 +21,7 @@ Apps with stratux recognition/support:
 * AvNav EFB 2.0.0+.
 * Naviator.
 * WingX Pro7 8.6.2+
+* FltPlan Go.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
