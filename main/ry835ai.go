@@ -426,6 +426,7 @@ func gpsSerialReader() {
 		for scanner.Scan() {
 			s := scanner.Text()
 			// log.Printf("Output: %s\n", s)
+			globalStatus.GPS_messages_received++
 			processNMEALine(s)
 		}
 		if err := scanner.Err(); err != nil {

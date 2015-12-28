@@ -64,6 +64,10 @@
 					<label class="col-xs-6">GPS satellites:</label>
 					<span class="col-xs-6">{{GPS_satellites_locked}}</span>
 				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_gps}">
+					<label class="col-xs-6">GPS messages received:</label>
+					<span class="col-xs-6">{{GPS_messages_received}}</span>
+				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ahrs}">
 					<label class="col-xs-6">AHRS:</label>
 					<div id="RY835AI_connected-container" class="col-xs-6">
