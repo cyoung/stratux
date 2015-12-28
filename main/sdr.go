@@ -28,7 +28,6 @@ var UATDev *UAT
 var ESDev *ES
 
 var uat_shutdown chan int
-var uat_wg *sync.WaitGroup = &sync.WaitGroup{}
 
 var es_shutdown chan int
 var es_wg *sync.WaitGroup = &sync.WaitGroup{}
@@ -70,7 +69,6 @@ func (e *ES) read() {
 		select {
 		case buf := <-outputChan:
 			replayLog(string(buf), MSGCLASS_DUMP1090)
-
 		case <-es_shutdown:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			err := cmd.Process.Kill()
@@ -83,13 +81,11 @@ func (e *ES) read() {
 			return
 		default:
 			time.Sleep(1 * time.Second)
-
 		}
 	}
 }
 
 func (u *UAT) read() {
-	defer uat_wg.Done()
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
 
@@ -256,17 +252,18 @@ func (e *ES) writeID() error {
 func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
 	close(uat_shutdown) // signal to shutdown
-	log.Println("UAT shutdown(): calling uat_wg.Wait() ...")
-	uat_wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("UAT shutdown(): uat_wg.Wait() returned...")
 	log.Println("UAT shutdown(): closing device ...")
-	u.dev.Close() // preempt the blocking ReadSync call
+	u.dev.Close()
+	log.Println("UAT device is closed...")
 }
 
 func (e *ES) shutdown() {
 	log.Println("Entered ES shutdown() ...")
 	close(es_shutdown) // signal to shutdown
 	log.Println("ES shutdown(): calling es_wg.Wait() ...")
+	// An important part of the shutdown is killing the
+	// dump1090 process and we wait for that to happen
+	// via the es_wg sync variable.
 	es_wg.Wait() // Wait for the goroutine to shutdown
 	log.Println("ES shutdown(): es_wg.Wait() returned...")
 }
@@ -363,8 +360,8 @@ func sdrWatcher() {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
 					} else {
+						// synchronous channel
 						uat_shutdown = make(chan int)
-						uat_wg.Add(1)
 						go UATDev.read()
 					}
 				}
@@ -407,6 +404,7 @@ func sdrWatcher() {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
 					} else {
+						// synchronous channel
 						es_shutdown = make(chan int)
 						es_wg.Add(1)
 						go ESDev.read()
