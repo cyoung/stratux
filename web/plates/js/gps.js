@@ -60,18 +60,22 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		/*	not currently used
 		$scope.gps_satellites = status.Satellites;
 		*/
-		$scope.gps_accuracy = Math.round(status.Accuracy);
+		$scope.gps_accuracy = status.Accuracy.toFixed(1);
+                $scope.gps_vert_accuracy = (status.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
+
 
 		// NACp should be an integer value in the range of 0 .. 11
 		// var accuracies = ["≥ 10 NM", "< 10 NM", "< 4 NM", "< 2 NM", "< 1 NM", "< 0.5 NM", "< 0.3 NM", "< 0.1 NM", "< 100 m", "< 30 m", "< 10 m", "< 3 m"];
 		// $scope.gps_accuracy = accuracies[status.NACp];
 		// "LastFixLocalTime":"2015-10-11T16:47:03.523085162Z"
 
-		$scope.gps_lat = status.Lat.toPrecision(6); // result is string
-		$scope.gps_lon = status.Lng.toPrecision(6); // result is string
+		$scope.gps_lat = status.Lat.toFixed(5); // result is string
+		$scope.gps_lon = status.Lng.toFixed(5); // result is string
 		$scope.gps_alt = Math.round(status.Alt);
 		$scope.gps_track = status.TrueCourse;
 		$scope.gps_speed = status.GroundSpeed;
+                $scope.gps_vert_speed = status.GPSVertVel.toFixed(1);
+
 		// "LastGroundTrackTime":"0001-01-01T00:00:00Z"
 
 		/* not currently used 
@@ -103,9 +107,9 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	var updateStatus = $interval(function () {
-		// refresh GPS/AHRS status once each second (aka polling)
+		// refresh GPS/AHRS status once each half second (aka polling)
 		getStatus();
-	}, (1 * 1000), 0, false);
+	}, (1 * 500), 0, false);
 
 	$state.get('gps').onEnter = function () {
 		// everything gets handled correctly by the controller

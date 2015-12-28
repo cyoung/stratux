@@ -459,8 +459,8 @@ func makeSXHeartbeat() []byte {
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
 
-	//FIXME: Number of satellites connected. ??
-	msg[17] = 0xFF
+	// Number of satellites tracked
+	msg[17] = byte(globalStatus.GPS_satellites_tracked)
 
 	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
 	var uat_traffic_targets uint16
@@ -703,12 +703,16 @@ func cpuTempMonitor() {
 func updateStatus() {
 	if isGPSValid() {
 		globalStatus.GPS_satellites_locked = mySituation.Satellites
+                globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
+		globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
 		if mySituation.quality == 2 {
-			globalStatus.GPS_solution = "DGPS (WAAS)"
+			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
 		} else if mySituation.quality == 1 {
 			globalStatus.GPS_solution = "3D GPS"
+		} else if mySituation.quality == 6 {
+			globalStatus.GPS_solution = "Dead Reckoning"
 		} else {
-			globalStatus.GPS_solution = "N/A"
+			globalStatus.GPS_solution = "No Fix"
 		}
 	}
 
@@ -985,6 +989,8 @@ type status struct {
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
+	GPS_satellites_seen	 uint16
+	GPS_satellites_tracked	 uint16
 	GPS_connected            bool
 	GPS_solution             string
 	RY835AI_connected        bool
@@ -1107,7 +1113,8 @@ func printStats() {
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		if globalSettings.GPS_Enabled {
-			log.Printf(" - Last GPS fix: %s, GPS solution type: %d, NACp: %d, est accuracy %.02f m\n", humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %v satellites (%v tracked), NACp: %d, est accuracy %.02f m\n", humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
 	}
 }
