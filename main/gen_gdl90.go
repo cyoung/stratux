@@ -701,10 +701,10 @@ func cpuTempMonitor() {
 }
 
 func updateStatus() {
+	globalStatus.GPS_satellites_locked = mySituation.Satellites
+	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
+	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
 	if isGPSValid() {
-		globalStatus.GPS_satellites_locked = mySituation.Satellites
-		globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
-		globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
 		if mySituation.quality == 2 {
 			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
 		} else if mySituation.quality == 1 {
