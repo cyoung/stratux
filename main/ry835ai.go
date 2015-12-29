@@ -229,7 +229,7 @@ func initGPSSerial() bool {
 	cfg[2] = 0x00 // res1.
 	cfg[3] = 0x00 // res1.
 
-	//      [   7   ] [   6   ] [   5   ] [   4   ]
+        //      [   7   ] [   6   ] [   5   ] [   4   ]
 	//	0000 0000 0000 0000 0000 10x0 1100 0000
 	// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
 	cfg[4] = 0xC0
