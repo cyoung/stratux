@@ -448,15 +448,21 @@ func processNMEALine(l string) bool {
 					return false
 				}
 				trueCourse = uint16(tc)
-				//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
-				if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-					myMPU6050.ResetHeading(float64(tc))
-				}
 			} else {
 				// No movement.
 				mySituation.TrueCourse = 0
 				mySituation.GroundSpeed = 0
 				mySituation.LastGroundTrackTime = time.Time{}
+			}
+
+			//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
+			if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+				// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
+				//  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
+				//TODO: Some more robust checking above current and last speed.
+				if mySituation.GroundSpeed >= 10 && uint16(groundSpeed) >= 10 {
+					myMPU6050.ResetHeading(float64(trueCourse))
+				}
 			}
 
 			mySituation.TrueCourse = uint16(trueCourse)
