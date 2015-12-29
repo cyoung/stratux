@@ -232,7 +232,7 @@ func initGPSSerial() bool {
 	cfg[3] = 0x00 // res1.
         
         //      [   7   ] [   6   ] [   5   ] [   4   ]
-	//	0000 0000 0000 0000 1000 0000 1100 0000
+	//	0000 0000 0000 0000 0000 10x0 1100 0000
 	// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
 	cfg[4] = 0xC0
 	cfg[5] = 0x08
@@ -261,8 +261,11 @@ func initGPSSerial() bool {
 	cfg[19] = 0x00 //pad.
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 	p.Close()
 
+
+	time.Sleep(250*time.Millisecond)
 	// Re-open port at 38400 baud so we can read messages
 	serialConfig = &serial.Config{Name: device, Baud: 38400}
 	p, err = serial.OpenPort(serialConfig)
