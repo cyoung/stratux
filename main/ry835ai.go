@@ -29,15 +29,15 @@ type SituationData struct {
 	Lat                     float32
 	Lng                     float32
 	quality                 uint8
-	GeoidSep		float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	Satellites              uint16 // satellites used in solution
-	SatellitesTracked	uint16 // satellites tracked (almanac data received)
-	SatellitesSeen		uint16 // satellites seen (signal received)
+	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	Satellites              uint16  // satellites used in solution
+	SatellitesTracked       uint16  // satellites tracked (almanac data received)
+	SatellitesSeen          uint16  // satellites seen (signal received)
 	Accuracy                float32 // 95% confidence for horizontal position, meters.
 	NACp                    uint8   // NACp categories are defined in AC 20-165A
 	Alt                     float32 // Feet MSL
 	AccuracyVert            float32 // 95% confidence for vertical position, meters
-	GPSVertVel		float32 // GPS vertical velocity, feet per second
+	GPSVertVel              float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime        time.Time
 	TrueCourse              uint16
 	GroundSpeed             uint16
@@ -110,54 +110,54 @@ func initGPSSerial() bool {
 	}
 	log.Printf("Using %s for GPS\n", device)
 
-	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start) 
-	serialConfig = &serial.Config{Name: device, Baud: 38400}
-	p, err := serial.OpenPort(serialConfig)
-	if err != nil {
-		log.Printf("serial port err: %s\n", err.Error())
-		return false
-	} else { // reset port to 9600 baud for configuration
-	        cfg1 := make([]byte, 20)
-	        cfg1[0] = 0x01 // portID.
-	        cfg1[1] = 0x00 // res0.
-	        cfg1[2] = 0x00 // res1.
-	        cfg1[3] = 0x00 // res1.
+	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start)
+		serialConfig = &serial.Config{Name: device, Baud: 38400}
+		p, err := serial.OpenPort(serialConfig)
+		if err != nil {
+			log.Printf("serial port err: %s\n", err.Error())
+			return false
+		} else { // reset port to 9600 baud for configuration
+		        cfg1 := make([]byte, 20)
+		        cfg1[0] = 0x01 // portID.
+		        cfg1[1] = 0x00 // res0.
+		        cfg1[2] = 0x00 // res1.
+		        cfg1[3] = 0x00 // res1.
 
-        	//      [   7   ] [   6   ] [   5   ] [   4   ]
-	        //      0000 0000 0000 0000 1000 0000 1100 0000
-	        // UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
-	        cfg1[4] = 0xC0
-	        cfg1[5] = 0x08
-	        cfg1[6] = 0x00
-	        cfg1[7] = 0x00
+	        	//      [   7   ] [   6   ] [   5   ] [   4   ]
+		        //      0000 0000 0000 0000 1000 0000 1100 0000
+		        // UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
+		        cfg1[4] = 0xC0
+		        cfg1[5] = 0x08
+		        cfg1[6] = 0x00
+		        cfg1[7] = 0x00
 
-        	// Baud rate. Little endian order.
-	        bdrt1 := uint32(9600)
-	        cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
-	        cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
-	        cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
-	        cfg1[8] = byte(bdrt1 & 0xFF)
+	        	// Baud rate. Little endian order.
+		        bdrt1 := uint32(9600)
+		        cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
+		        cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
+		        cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
+		        cfg1[8] = byte(bdrt1 & 0xFF)
 
-        	// inProtoMask. NMEA and UBX. Little endian.
-	        cfg1[12] = 0x03
-	        cfg1[13] = 0x00
+	        	// inProtoMask. NMEA and UBX. Little endian.
+		        cfg1[12] = 0x03
+		        cfg1[13] = 0x00
 
-	        // outProtoMask. NMEA. Little endian.
-	        cfg1[14] = 0x02
-	        cfg1[15] = 0x00
+		        // outProtoMask. NMEA. Little endian.
+		        cfg1[14] = 0x02
+		        cfg1[15] = 0x00
 
-        	cfg1[16] = 0x00 // flags.
-	        cfg1[17] = 0x00 // flags.
+	        	cfg1[16] = 0x00 // flags.
+		        cfg1[17] = 0x00 // flags.
 
-        	cfg1[18] = 0x00 //pad.
-	        cfg1[19] = 0x00 //pad.
+	        	cfg1[18] = 0x00 //pad.
+		        cfg1[19] = 0x00 //pad.
 
-        	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
-		p.Close()
-	}
+	        	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
+			p.Close()
+		}
 
-	-- End developer option */
-	
+		-- End developer option */
+
 	// Open port at 9600 baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: 9600}
 	p, err := serial.OpenPort(serialConfig)
@@ -169,7 +169,6 @@ func initGPSSerial() bool {
 	// Set 10Hz update. Little endian order.
 	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
 
-
 	// Set navigation settings.
 	nav := make([]byte, 36)
 	nav[0] = 0x05 // Set dyn and fixMode only.
@@ -180,19 +179,18 @@ func initGPSSerial() bool {
 
 	p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
-
 	// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
-	// 
+	//
 	// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
 	// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
 	// for SBAS (WAAS), so little real-world impact.
-	
-	cfgGnss	:= []byte{0x00, 0x20, 0x20, 0x05}
-	gps	:= []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
-	sbas	:= []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
-	beidou	:= []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
-	qzss	:= []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-	glonass	:= []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
+
+	cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
+	gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
+	sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
+	beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
+	qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
+	glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
 	cfgGnss = append(cfgGnss, gps...)
 	cfgGnss = append(cfgGnss, sbas...)
 	cfgGnss = append(cfgGnss, beidou...)
@@ -205,20 +203,20 @@ func initGPSSerial() bool {
 
 	// Message output configuration -- disable standard NMEA messages except 1Hz GGA
 	//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
-        p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
 
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
@@ -230,8 +228,8 @@ func initGPSSerial() bool {
 	cfg[1] = 0x00 // res0.
 	cfg[2] = 0x00 // res1.
 	cfg[3] = 0x00 // res1.
-        
-        //      [   7   ] [   6   ] [   5   ] [   4   ]
+
+	//      [   7   ] [   6   ] [   5   ] [   4   ]
 	//	0000 0000 0000 0000 1000 0000 1100 0000
 	// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
 	cfg[4] = 0xC0
@@ -290,15 +288,15 @@ func validateNMEAChecksum(s string) (string, bool) {
 		return "Invalid NMEA message", false
 	}
 
-	// strip leading "$" and split at "*"	
+	// strip leading "$" and split at "*"
 	s_split := strings.Split(strings.TrimPrefix(s, "$"), "*")
 	s_out := s_split[0]
 	s_cs := s_split[1]
-	
-	if (len(s_cs) < 2) {
+
+	if len(s_cs) < 2 {
 		return "Missing checksum. Fewer than two bytes after asterisk", false
 	}
-	
+
 	cs, err := strconv.ParseUint(s_cs[:2], 16, 8)
 	if err != nil {
 		return "Invalid checksum", false
@@ -308,34 +306,32 @@ func validateNMEAChecksum(s string) (string, bool) {
 	for i := range s_out {
 		cs_calc = cs_calc ^ byte(s_out[i])
 	}
-	
-	if (cs_calc != byte(cs)) {
+
+	if cs_calc != byte(cs) {
 		return fmt.Sprintf("Checksum failed. Calculated %#X; expected %#X", cs_calc, cs), false
 	}
-	
+
 	return s_out, true
 }
-
-
 
 func processNMEALine(l string) bool {
 	replayLog(l, MSGCLASS_GPS)
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
-	if (!validNMEAcs) {
+	if !validNMEAcs {
 		log.Printf("GPS error. Invalid NMEA string: %s\n", l_valid) // remove log message once validation complete
 		return false
 	}
 	x := strings.Split(l_valid, ",")
 
-	if (x[0] == "PUBX") { // UBX proprietary message
-		if (x[1] == "00") { // position message
-                        if len (x) < 20 {
-	                        return false
-                        }
+	if x[0] == "PUBX" { // UBX proprietary message
+		if x[1] == "00" { // position message
+			if len(x) < 20 {
+				return false
+			}
 
-		        mySituation.mu_GPS.Lock()
-        	        defer mySituation.mu_GPS.Unlock()
-	
+			mySituation.mu_GPS.Lock()
+			defer mySituation.mu_GPS.Unlock()
+
 			// field 2 = time
 			if len(x[2]) < 9 {
 				return false
@@ -392,52 +388,50 @@ func processNMEALine(l string) bool {
 
 			// field 8 = nav status
 			// DR = dead reckoning, G2= 2D GPS, G3 = 3D GPS, D2= 2D diff, D3 = 3D diff, RK = GPS+DR, TT = time only
-						
-			if (x[8] == "D2" || x[8] == "D3") {
+
+			if x[8] == "D2" || x[8] == "D3" {
 				mySituation.quality = 2
-			} else if (x[8] == "G2" || x[8] == "G3") {
+			} else if x[8] == "G2" || x[8] == "G3" {
 				mySituation.quality = 1
-			} else if (x[8] == "DR" || x[8] == "RK") {
+			} else if x[8] == "DR" || x[8] == "RK" {
 				mySituation.quality = 6
-			} else if (x[8] == "NF") {
+			} else if x[8] == "NF" {
 				mySituation.quality = 0
 				return false // return false if no valid fix.
 			} else {
-				 mySituation.quality = 0
+				mySituation.quality = 0
 			}
-			
+
 			// field 9 = horizontal accuracy, m
-                        hAcc, err := strconv.ParseFloat(x[9], 32)
-                        if err != nil {
-                                return false
-                        }
-                        mySituation.Accuracy = float32(hAcc*2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
+			hAcc, err := strconv.ParseFloat(x[9], 32)
+			if err != nil {
+				return false
+			}
+			mySituation.Accuracy = float32(hAcc * 2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
 
-	                // NACp estimate.
-        	        if mySituation.Accuracy < 3 {
-                	        mySituation.NACp = 11
-	                } else if mySituation.Accuracy < 10 {
-        	                mySituation.NACp = 10
-	                } else if mySituation.Accuracy < 30 {
-        	                mySituation.NACp = 9
-	                } else if mySituation.Accuracy < 92.6 {
-        	                mySituation.NACp = 8
-	                } else if mySituation.Accuracy < 185.2 {
-        	                mySituation.NACp = 7
-	                } else if mySituation.Accuracy < 555.6 {
-        	                mySituation.NACp = 6
-	                } else {
-        	                mySituation.NACp = 0
-	                }
-
+			// NACp estimate.
+			if mySituation.Accuracy < 3 {
+				mySituation.NACp = 11
+			} else if mySituation.Accuracy < 10 {
+				mySituation.NACp = 10
+			} else if mySituation.Accuracy < 30 {
+				mySituation.NACp = 9
+			} else if mySituation.Accuracy < 92.6 {
+				mySituation.NACp = 8
+			} else if mySituation.Accuracy < 185.2 {
+				mySituation.NACp = 7
+			} else if mySituation.Accuracy < 555.6 {
+				mySituation.NACp = 6
+			} else {
+				mySituation.NACp = 0
+			}
 
 			// field 10 = vertical accuracy, m
-                        vAcc, err := strconv.ParseFloat(x[10], 32)
-                        if err != nil {
-                                return false
-                        }
-                        mySituation.AccuracyVert = float32(vAcc*2) // UBX reports 1-sigma variation; we want 95% confidence
-
+			vAcc, err := strconv.ParseFloat(x[10], 32)
+			if err != nil {
+				return false
+			}
+			mySituation.AccuracyVert = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
 
 			// field 11 = groundspeed, km/h
 			groundspeed, err := strconv.ParseFloat(x[11], 32)
@@ -445,7 +439,7 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
-			
+
 			// field 12 = track, deg
 			trueCourse := uint16(0)
 			if len(x[12]) > 0 && groundspeed > 3 {
@@ -464,24 +458,19 @@ func processNMEALine(l string) bool {
 				mySituation.GroundSpeed = 0
 				mySituation.LastGroundTrackTime = time.Time{}
 			}
-		
+
 			mySituation.TrueCourse = uint16(trueCourse)
-                        mySituation.GroundSpeed = uint16(groundspeed)
+			mySituation.GroundSpeed = uint16(groundspeed)
 			mySituation.LastGroundTrackTime = time.Now()
 
-
-
 			// field 13 = vertical velocity, m/s
-                        vv, err := strconv.ParseFloat(x[13], 32)
-                        if err != nil {
-                                return false
-                        }
-                        mySituation.GPSVertVel = float32(vv*-3.28084) // convert to ft/sec and positive = up
-
-
+			vv, err := strconv.ParseFloat(x[13], 32)
+			if err != nil {
+				return false
+			}
+			mySituation.GPSVertVel = float32(vv * -3.28084) // convert to ft/sec and positive = up
 
 			// field 14 = age of diff corrections
-
 
 			// field 18 = number of satellites
 			sat, err1 := strconv.Atoi(x[18])
@@ -492,38 +481,37 @@ func processNMEALine(l string) bool {
 
 			mySituation.LastFixLocalTime = time.Now()
 
-		} else if (x[1] == "03") { // satellite status message
+		} else if x[1] == "03" { // satellite status message
 
 			// field 2 = number of satellites tracked
 			satSeen := 0 // satellites seen (signal present)
 			satTracked, err := strconv.Atoi(x[2])
-                        if err != nil {
-                                return false
-                        }
-                        mySituation.SatellitesTracked = uint16(satTracked)
-			
-			// fields 3-8 are repeated block 
-                        for i:= 0; i < satTracked; i++ {
-				if (x[7+6*i] != "") {
+			if err != nil {
+				return false
+			}
+			mySituation.SatellitesTracked = uint16(satTracked)
+
+			// fields 3-8 are repeated block
+			for i := 0; i < satTracked; i++ {
+				if x[7+6*i] != "" {
 					satSeen++
-				}	
+				}
 			}
 
-                        mySituation.SatellitesSeen = uint16(satSeen)
-                        // log.Printf("Satellites with signal: %v\n",mySituation.SatellitesSeen)
-
+			mySituation.SatellitesSeen = uint16(satSeen)
+			// log.Printf("Satellites with signal: %v\n",mySituation.SatellitesSeen)
 
 			/* Reference for future constellation tracking
-			for i:= 0; i < satTracked; i++ {
-				x[3+6*i] // sv number
-				x[4+6*i] // status [ U | e | - ] for used / ephemeris / not used
-                                x[5+6*i] // azimuth, deg, 0-359
-                                x[6+6*i] // elevation, deg, 0-90
-                                x[7+6*i] // signal strength dB-Hz
-                                x[8+6*i] // lock time, sec, 0-64
+						for i:= 0; i < satTracked; i++ {
+							x[3+6*i] // sv number
+							x[4+6*i] // status [ U | e | - ] for used / ephemeris / not used
+			                                x[5+6*i] // azimuth, deg, 0-359
+			                                x[6+6*i] // elevation, deg, 0-90
+			                                x[7+6*i] // signal strength dB-Hz
+			                                x[8+6*i] // lock time, sec, 0-64
 			*/
 
-		} else if (x[1] == "04") { // clock message
+		} else if x[1] == "04" { // clock message
 
 			// field 2 is UTC time
 			if len(x[2]) < 9 {
@@ -536,7 +524,7 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
-		
+
 			// field 3 is date
 
 			if len(x[3]) == 6 {
@@ -553,9 +541,9 @@ func processNMEALine(l string) bool {
 					}
 				}
 			}
- 		}
+		}
 
-	// otherwise look for NMEA standard messages and process them
+		// otherwise look for NMEA standard messages and process them
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
@@ -688,7 +676,7 @@ func processNMEALine(l string) bool {
 			mySituation.NACp = 0
 		}
 		*/
-	
+
 		// Altitude.
 		alt, err1 := strconv.ParseFloat(x[9], 32)
 		if err1 != nil {
@@ -699,11 +687,11 @@ func processNMEALine(l string) bool {
 		// Geoid separation (Sep = HAE - MSL)
 		// (needed for proper MSL offset on PUBX,00 altitudes)
 
-                geoidSep, err1 := strconv.ParseFloat(x[11], 32)
-                if err1 != nil {
-                        return false
-                }
-                mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
+		geoidSep, err1 := strconv.ParseFloat(x[11], 32)
+		if err1 != nil {
+			return false
+		}
+		mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
 
 		// Timestamp.
 		mySituation.LastFixLocalTime = time.Now()
