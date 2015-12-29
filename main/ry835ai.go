@@ -259,8 +259,11 @@ func initGPSSerial() bool {
 	cfg[19] = 0x00 //pad.
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 	p.Close()
 
+
+	time.Sleep(250*time.Millisecond)
 	// Re-open port at 38400 baud so we can read messages
 	serialConfig = &serial.Config{Name: device, Baud: 38400}
 	p, err = serial.OpenPort(serialConfig)
