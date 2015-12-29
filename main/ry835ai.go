@@ -314,6 +314,17 @@ func validateNMEAChecksum(s string) (string, bool) {
 	return s_out, true
 }
 
+// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
+//  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
+//TODO: Some more robust checking above current and last speed.
+func setTrueCourse(groundSpeed, trueCourse uint16) {
+	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+		if mySituation.GroundSpeed >= 10 && groundSpeed >= 10 {
+			myMPU6050.ResetHeading(float64(trueCourse))
+		}
+	}
+}
+
 func processNMEALine(l string) bool {
 	replayLog(l, MSGCLASS_GPS)
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
@@ -455,15 +466,7 @@ func processNMEALine(l string) bool {
 				mySituation.LastGroundTrackTime = time.Time{}
 			}
 
-			//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
-			if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-				// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
-				//  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
-				//TODO: Some more robust checking above current and last speed.
-				if mySituation.GroundSpeed >= 10 && uint16(groundSpeed) >= 10 {
-					myMPU6050.ResetHeading(float64(trueCourse))
-				}
-			}
+			setTrueCourse(trueCourse, uint16(groundspeed))
 
 			mySituation.TrueCourse = uint16(trueCourse)
 			mySituation.GroundSpeed = uint16(groundspeed)
@@ -575,15 +578,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		//FIXME: Experimental. Set heading to true heading on the MPU6050 reader.
-		if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-			// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
-			//  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
-			//TODO: Some more robust checking above current and last speed.
-			if mySituation.GroundSpeed >= 10 && uint16(groundSpeed) >= 10 {
-				myMPU6050.ResetHeading(float64(trueCourse))
-			}
-		}
+		setTrueCourse(trueCourse, uint16(groundSpeed))
 
 		mySituation.TrueCourse = uint16(trueCourse)
 		mySituation.GroundSpeed = uint16(groundSpeed)
