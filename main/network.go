@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"net"
 	"os"
@@ -185,21 +186,40 @@ func refreshConnectedClients() {
 
 func messageQueueSender() {
 	secondTimer := time.NewTicker(5 * time.Second)
-	queueTimer := time.NewTicker(400 * time.Microsecond) // 2500 msg/sec
+	queueTimer := time.NewTicker(100 * time.Millisecond)
+
+	var lastQueueTimeChange time.Time // Reevaluate	send frequency every 5 seconds.
 	for {
 		select {
 		case msg := <-messageQueue:
 			sendToAllConnectedClients(msg)
 		case <-queueTimer.C:
 			netMutex.Lock()
+
+			averageSendableQueueSize := float64(0.0)
 			for k, netconn := range outSockets {
 				if len(netconn.messageQueue) > 0 && !isSleeping(k) && !isThrottled(k) {
+					averageSendableQueueSize += float64(len(netconn.messageQueue)) // Add num sendable messages.
+
 					tmpConn := netconn
 					tmpConn.Conn.Write(tmpConn.messageQueue[0])
 					totalNetworkMessagesSent++
 					tmpConn.messageQueue = tmpConn.messageQueue[1:]
 					outSockets[k] = tmpConn
 				}
+			}
+
+			if time.Since(lastQueueTimeChange) >= 5*time.Second {
+				var pd float64
+				if averageSendableQueueSize > 0.0 && len(outSockets) > 0 {
+					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets))  // It's a total, not an average, up until this point.
+					pd = math.Max(float64(1.0/2500.0), float64(1.0/(4.0*averageSendableQueueSize))) // Say 250ms is enough to get through the whole queue.
+				} else {
+					pd = float64(1.0 / 0.1) // 100ms.
+				}
+				queueTimer.Stop()
+				queueTimer = time.NewTicker(time.Duration(pd*1000000000.0) * time.Nanosecond)
+				lastQueueTimeChange = time.Now()
 			}
 			netMutex.Unlock()
 		case <-secondTimer.C:

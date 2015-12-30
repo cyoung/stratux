@@ -361,11 +361,38 @@ func makeSXHeartbeat() []byte {
 
 	msg[3] = 1 // "message version".
 
-	// Firmware version. First 4 bytes of build.
-	msg[4] = byte(stratuxBuild[0])
-	msg[5] = byte(stratuxBuild[1])
-	msg[6] = byte(stratuxBuild[2])
-	msg[7] = byte(stratuxBuild[3])
+	// Version code. Messy parsing to fit into four bytes.
+	//FIXME: This is why we can't have nice things.
+	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
+	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
+	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
+
+	tp := 0 // Build "type".
+	mi_str := ""
+	b_str := ""
+	if strings.Index(mib_str, "rc") != -1 {
+		tp = 3
+		mi_str = mib_str[0:strings.Index(mib_str, "rc")]
+		b_str = mib_str[strings.Index(mib_str, "rc")+2:]
+	} else if strings.Index(mib_str, "r") != -1 {
+		tp = 2
+		mi_str = mib_str[0:strings.Index(mib_str, "r")]
+		b_str = mib_str[strings.Index(mib_str, "r")+1:]
+	} else if strings.Index(mib_str, "b") != -1 {
+		tp = 1
+		mi_str = mib_str[0:strings.Index(mib_str, "b")]
+		b_str = mib_str[strings.Index(mib_str, "b")+1:]
+	}
+
+	// Convert to strings.
+	m, _ := strconv.Atoi(m_str)
+	mi, _ := strconv.Atoi(mi_str)
+	b, _ := strconv.Atoi(b_str)
+
+	msg[4] = byte(m)
+	msg[5] = byte(mi)
+	msg[6] = byte(tp)
+	msg[7] = byte(b)
 
 	//TODO: Hardware revision.
 	msg[8] = 0xFF
@@ -378,52 +405,62 @@ func makeSXHeartbeat() []byte {
 	if isGPSValid() {
 		switch mySituation.quality {
 		case 1: // 1 = 3D GPS.
-			msg[12] = msg[12] | (1 << 6)
+			msg[13] = 1
 		case 2: // 2 = DGPS (SBAS /WAAS).
-			msg[12] = msg[12] | (1 << 7)
+			msg[13] = 2
 		default: // Zero.
 		}
 	}
 
 	// Valid/Enabled: AHRS portion.
 	if isAHRSValid() {
-		msg[12] = msg[12] | (1 << 5)
+		msg[13] = msg[13] | (1 << 2)
 	}
 
 	// Valid/Enabled: Pressure altitude portion.
 	if isTempPressValid() {
-		msg[12] = msg[12] | (1 << 4)
+		msg[13] = msg[13] | (1 << 3)
 	}
 
 	// Valid/Enabled: CPU temperature portion.
 	if isCPUTempValid() {
-		msg[12] = msg[12] | (1 << 3)
+		msg[13] = msg[13] | (1 << 4)
 	}
 
 	// Valid/Enabled: UAT portion.
 	if globalSettings.UAT_Enabled {
-		msg[12] = msg[12] | (1 << 2)
+		msg[13] = msg[13] | (1 << 5)
 	}
 
 	// Valid/Enabled: ES portion.
 	if globalSettings.ES_Enabled {
-		msg[12] = msg[12] | (1 << 1)
+		msg[13] = msg[13] | (1 << 6)
+	}
+
+	// Valid/Enabled: GPS Enabled portion.
+	if globalSettings.GPS_Enabled {
+		msg[13] = msg[13] | (1 << 7)
+	}
+
+	// Valid/Enabled: AHRS Enabled portion.
+	if globalSettings.AHRS_Enabled {
+		msg[12] = 1 << 0
 	}
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
-	msg[14] = msg[14] | (byte(globalStatus.Devices) << 6)
+	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
 	// Connected hardware: RY835AI.
 	if globalStatus.RY835AI_connected {
-		msg[14] = msg[14] | (1 << 5)
+		msg[15] = msg[15] | (1 << 2)
 	}
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
 
-	//FIXME: Number of satellites connected. ??
-	msg[17] = 0xFF
+	// Number of satellites tracked
+	msg[17] = byte(globalStatus.GPS_satellites_tracked)
 
 	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
 	var uat_traffic_targets uint16
@@ -452,7 +489,7 @@ func makeSXHeartbeat() []byte {
 	msg[25] = byte(globalStatus.ES_messages_last_minute & 0xFF)
 
 	// CPU temperature.
-	v := uint16(float32(10.0)*globalStatus.CPUTemp) + 32768
+	v := uint16(float32(10.0) * globalStatus.CPUTemp)
 
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v * 0xFF)
@@ -631,7 +668,7 @@ func updateMessageStats() {
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
 func isCPUTempValid() bool {
-	return globalStatus.CPUTemp <= 0
+	return globalStatus.CPUTemp > 0
 }
 
 /*
@@ -664,14 +701,18 @@ func cpuTempMonitor() {
 }
 
 func updateStatus() {
+	globalStatus.GPS_satellites_locked = mySituation.Satellites
+	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
+	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
 	if isGPSValid() {
-		globalStatus.GPS_satellites_locked = mySituation.Satellites
 		if mySituation.quality == 2 {
-			globalStatus.GPS_solution = "DGPS (WAAS)"
+			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
 		} else if mySituation.quality == 1 {
 			globalStatus.GPS_solution = "3D GPS"
+		} else if mySituation.quality == 6 {
+			globalStatus.GPS_solution = "Dead Reckoning"
 		} else {
-			globalStatus.GPS_solution = "N/A"
+			globalStatus.GPS_solution = "No Fix"
 		}
 	}
 
@@ -948,6 +989,8 @@ type status struct {
 	ES_messages_last_minute  uint
 	ES_messages_max          uint
 	GPS_satellites_locked    uint16
+	GPS_satellites_seen      uint16
+	GPS_satellites_tracked   uint16
 	GPS_connected            bool
 	GPS_solution             string
 	RY835AI_connected        bool
@@ -959,9 +1002,9 @@ var globalSettings settings
 var globalStatus status
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true  //TODO
-	globalSettings.ES_Enabled = false  //TODO
-	globalSettings.GPS_Enabled = false //TODO
+	globalSettings.UAT_Enabled = true
+	globalSettings.ES_Enabled = true
+	globalSettings.GPS_Enabled = false
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{{nil, "", 4000, NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90, nil, time.Time{}, time.Time{}, 0}, {nil, "", 49002, NETWORK_AHRS_FFSIM, nil, time.Time{}, time.Time{}, 0}}
 	globalSettings.AHRS_Enabled = false
@@ -1070,7 +1113,8 @@ func printStats() {
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		if globalSettings.GPS_Enabled {
-			log.Printf(" - Last GPS fix: %s, GPS solution type: %d, NACp: %d, est accuracy %.02f m\n", humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", humanize.Time(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
 	}
 }

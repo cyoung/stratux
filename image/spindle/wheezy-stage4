@@ -51,11 +51,13 @@ scp_in_to_qemu /root/spindle/hostapd.conf /tmp/hostapd.conf.in
 scp_in_to_qemu /root/spindle/isc-dhcp-server /tmp/isc-dhcp-server.in
 scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
 scp_in_to_qemu /root/spindle/libdump978.so /tmp/libdump978.so.in
+scp_in_to_qemu /root/spindle/libimu.so /tmp/libimu.so.in
 scp_in_to_qemu /root/spindle/go.tgz /mnt/root/go.tgz
 
 
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 mv /tmp/libdump978.so.in /usr/lib/libdump978.so
+mv /tmp/libimu.so.in /usr/lib/libimu.so
 mv -f /tmp/hostapd.in /usr/sbin/hostapd
 chown root.root /usr/sbin/hostapd
 chmod 755 /usr/sbin/hostapd
@@ -117,33 +119,24 @@ make install
 ldconfig
 EOF
 
-echo " - dump1090"
-  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
-cd /root
-rm -rf dump1090
-git clone https://github.com/antirez/dump1090
-cd dump1090
-make
-cp dump1090 /usr/bin/
-EOF
-
 echo " - Stratux"
 
 scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
 
-  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
+  ssh_in_to_qemu chroot /mnt bash -l -ex - <<\EOF
+source /root/.bashrc
 cd /root
 
 apt-get install -y mercurial
 
 rm -rf stratux
-git clone https://github.com/cyoung/stratux
+git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make www
-cd dump978
-make
-cp dump978 /usr/bin/
-cd ..
+make xdump978
+make xdump1090
+cp -f dump978/dump978 /usr/bin/
+cp -f dump1090/dump1090 /usr/bin/
 
 mv /tmp/gen_gdl90 /usr/bin/gen_gdl90
 chmod +x /usr/bin/gen_gdl90

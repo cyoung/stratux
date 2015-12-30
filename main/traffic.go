@@ -138,12 +138,24 @@ func makeTrafficReport(ti TrafficInfo) {
 	msg[9] = tmp[1]  // Longitude.
 	msg[10] = tmp[2] // Longitude.
 
-	//Altitude: OK
-	//TODO: 0xFFF "invalid altitude."
-	alt := int16(math.Max(float64(ti.Alt), float64(-1000.00)))
-	alt = (alt + 1000) / 25
-	alt = alt & 0xFFF // Should fit in 12 bits.
-
+	// Altitude: OK
+	// GDL 90 Data Interface Specification examples:
+	// where 1,000 foot offset and 25 foot resolution (1,000 / 25 = 40)
+	//    -1,000 feet               0x000
+	//    0 feet                    0x028
+	//    +1000 feet                0x050
+	//    +101,350 feet             0xFFE
+	//    Invalid or unavailable    0xFFF
+	//
+	// Algo example at: https://play.golang.org/p/VXCckSdsvT
+	//
+	var alt int16
+	if ti.Alt < -1000 || ti.Alt > 101350 {
+		alt = 0x0FFF
+	} else {
+		// output guaranteed to be between 0x0000 and 0x0FFE
+		alt = int16((ti.Alt / 25) + 40)
+	}
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 

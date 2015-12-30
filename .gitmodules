@@ -1,0 +1,6 @@
+[submodule "linux-mpu9150"]
+	path = linux-mpu9150
+	url = git://github.com/cyoung/linux-mpu9150
+[submodule "dump1090"]
+	path = dump1090
+	url = https://github.com/MalcolmRobb/dump1090

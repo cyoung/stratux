@@ -1,14 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/hex"
-	"strings"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/net/websocket"
 	"io"
 	"log"
 	"net/http"
+	"strings"
+	"syscall"
 	"time"
 )
 
@@ -119,6 +120,7 @@ func handleSituationWS(conn *websocket.Conn) {
 // AJAX call - /getStatus. Responds with current global status
 // a webservice call for the same data available on the websocket but when only a single update is needed
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	statusJSON, _ := json.Marshal(&globalStatus)
@@ -127,6 +129,7 @@ func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
 
 // AJAX call - /getSituation. Responds with current situation (lat/lon/gdspeed/track/pitch/roll/heading/etc.)
 func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	situationJSON, _ := json.Marshal(&mySituation)
@@ -135,6 +138,7 @@ func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
 
 // AJAX call - /getTowers. Responds with all ADS-B ground towers that have sent messages that we were able to parse, along with its stats.
 func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	towersJSON, _ := json.Marshal(&ADSBTowers)
@@ -145,6 +149,7 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 
 // AJAX call - /getSettings. Responds with all stratux.conf data.
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	settingsJSON, _ := json.Marshal(&globalSettings)
@@ -154,6 +159,7 @@ func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 // AJAX call - /setSettings. receives via POST command, any/all stratux.conf data.
 func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 	// define header in support of cross-domain AJAX
+	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
@@ -228,11 +234,33 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
+	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
+}
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+	syscall.Sync()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
+func setNoCache(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+}
+
+func defaultServer(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+
+	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
+}
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
 
-	http.Handle("/", http.FileServer(http.Dir("/var/www")))
+	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
@@ -264,6 +292,8 @@ func managementInterface() {
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/shutdown", handleShutdownRequest)
+	http.HandleFunc("/reboot", handleRebootRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
