@@ -119,16 +119,6 @@ make install
 ldconfig
 EOF
 
-echo " - dump1090"
-  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
-cd /root
-rm -rf dump1090
-git clone https://github.com/antirez/dump1090
-cd dump1090
-make
-cp dump1090 /usr/bin/
-EOF
-
 echo " - Stratux"
 
 scp_in_to_qemu /root/spindle/gen_gdl90 /tmp/gen_gdl90
