@@ -133,10 +133,10 @@ rm -rf stratux
 git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make www
-cd dump978
-make
-cp dump978 /usr/bin/
-cd ..
+make xdump978
+make xdump1090
+cp -f dump978/dump978 /usr/bin/
+cp -f dump1090/dump1090 /usr/bin/
 
 mv /tmp/gen_gdl90 /usr/bin/gen_gdl90
 chmod +x /usr/bin/gen_gdl90
