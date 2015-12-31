@@ -316,13 +316,14 @@ func validateNMEAChecksum(s string) (string, bool) {
 	return s_out, true
 }
 
-// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
+//  Only count this heading if a "sustained" >7 kts is obtained. This filters out a lot of heading
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
+//TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed, trueCourse uint16) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		if mySituation.GroundSpeed >= 10 && groundSpeed >= 10 {
-			myMPU6050.ResetHeading(float64(trueCourse))
+		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
+			myMPU6050.ResetHeading(float64(trueCourse), 0.01)
 		}
 	}
 }
