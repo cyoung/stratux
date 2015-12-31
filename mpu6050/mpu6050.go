@@ -31,10 +31,10 @@ type MPU6050 struct {
 	roll_resting  float64
 
 	// For tracking heading (mixing GPS track and the gyro output).
-	heading              float64 // Current heading.
-	gps_track            float64 // Last reading directly from the gyro for comparison with current heading.
-	gps_track_valid      bool
-	heading_when_gps_set float64
+	heading            float64 // Current heading.
+	gps_track          float64 // Last reading directly from the gyro for comparison with current heading.
+	gps_track_valid    bool
+	heading_correction float64
 
 	quit chan struct{}
 }
@@ -97,7 +97,7 @@ func (d *MPU6050) getMPUData() {
 
 	// Convert from radians to degrees.
 	pitch := float64(pr) * (float64(180.0) / math.Pi)
-	roll := float64(rr) * (float64(180.0) / math.Pi)
+	roll := float64(-rr) * (float64(180.0) / math.Pi)
 	heading := float64(hr) * (float64(180.0) / math.Pi)
 	if heading < float64(0.0) {
 		heading = float64(360.0) + heading
@@ -107,12 +107,10 @@ func (d *MPU6050) getMPUData() {
 		d.pitch = pitch
 		d.roll = roll
 
-		// Calculate the change in direction from current and previous IMU reading.
-		if d.gps_track_valid {
-			d.heading = normalizeHeading((heading - d.heading_when_gps_set) + d.gps_track)
-		} else {
-			d.heading = heading
-		}
+		// Heading is raw value off the IMU. Without mag compass fusion, need to apply correction bias.
+		// Amount of correction is set by ResetHeading() -- doesn't necessarily have to be based off GPS.
+		d.heading = normalizeHeading((heading - d.heading_correction))
+
 	} else {
 		//		log.Printf("mpu6050.calculatePitchAndRoll(): mpu.ReadMPU() err: %s\n", err.Error())
 	}
@@ -150,11 +148,29 @@ func (d *MPU6050) Run() {
 }
 
 // Set heading from a known value (usually GPS true heading).
-func (d *MPU6050) ResetHeading(heading float64) {
-	log.Printf("reset true heading: %f\n", heading)
-	d.gps_track = heading
-	d.gps_track_valid = true
-	d.heading_when_gps_set = d.heading
+func (d *MPU6050) ResetHeading(newHeading float64, gain float64) {
+	if gain < 0.001 { // sanitize our inputs!
+		gain = 0.001
+	} else if gain > 1 {
+		gain = 1
+	}
+
+	old_hdg := d.heading // only used for debug log report
+	//newHeading = float64(30*time.Now().Minute()) // demo input for testing
+	newHeading = normalizeHeading(newHeading) // sanitize the inputs
+
+	// By applying gain factor, this becomes a 1st order function that slowly converges on solution.
+	// Time constant is poll rate over gain. With gain of 0.1, convergence to +/-2 deg on a 180 correction difference is about 4 sec; 0.01 converges in 45 sec.
+
+	hdg_corr_bias := float64(d.heading - newHeading) // desired adjustment to heading_correction
+	if hdg_corr_bias > 180 {
+		hdg_corr_bias = hdg_corr_bias - 360
+	} else if hdg_corr_bias < -180 {
+		hdg_corr_bias = hdg_corr_bias + 360
+	}
+	hdg_corr_bias = hdg_corr_bias * gain
+	d.heading_correction = normalizeHeading(d.heading_correction + hdg_corr_bias)
+	log.Printf("Adjusted heading. Old: %f Desired: %f  Adjustment: %f  New: %f\n", old_hdg, newHeading, hdg_corr_bias, d.heading-hdg_corr_bias)
 }
 
 // Close.
