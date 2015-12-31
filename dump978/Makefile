@@ -1,4 +1,4 @@
-CFLAGS+=-O2 -g -Wall -Werror -Ifec
+CFLAGS+=-O2 -Wall -Werror -Ifec
 LDFLAGS=
 LIBS=-lm
 CC=gcc
