@@ -323,7 +323,8 @@ func validateNMEAChecksum(s string) (string, bool) {
 func setTrueCourse(groundSpeed, trueCourse uint16) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(float64(trueCourse), 0.01)
+			log.Printf("setTrueCourse %v\n", trueCourse)
+			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
 		}
 	}
 }
@@ -469,7 +470,7 @@ func processNMEALine(l string) bool {
 				mySituation.LastGroundTrackTime = time.Time{}
 			}
 
-			setTrueCourse(trueCourse, uint16(groundspeed))
+			setTrueCourse(uint16(groundspeed), trueCourse)
 
 			mySituation.TrueCourse = uint16(trueCourse)
 			mySituation.GroundSpeed = uint16(groundspeed)
@@ -594,7 +595,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		setTrueCourse(trueCourse, uint16(groundSpeed))
+		setTrueCourse(uint16(groundSpeed), trueCourse)
 
 		mySituation.TrueCourse = uint16(trueCourse)
 		mySituation.GroundSpeed = uint16(groundSpeed)
