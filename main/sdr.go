@@ -17,11 +17,13 @@ import (
 type UAT struct {
 	dev     *rtl.Context
 	indexID int
+	serial  string
 }
 
 type ES struct {
 	dev     *rtl.Context
 	indexID int
+	serial  string
 }
 
 var UATDev *UAT
@@ -271,8 +273,6 @@ func (e *ES) shutdown() {
 	log.Println("ES shutdown(): es_wg.Wait() returned...")
 }
 
-var devMap = map[int]string{0: "", 1: ""}
-
 // Watch for config/device changes.
 func sdrWatcher() {
 	stopCheckingUATUntil := time.Time{}
@@ -312,13 +312,6 @@ func sdrWatcher() {
 			}
 		}
 
-		ids := []string{"", ""}
-		for i := 0; i < count; i++ {
-			// manufact, product, serial, err
-			_, _, s, _ := rtl.GetDeviceUsbStrings(i)
-			ids[i] = s
-		}
-
 		// UAT specific handling
 
 		// Shutdown UAT for 50 seconds, check every 60 seconds if the count is 0.
@@ -354,11 +347,15 @@ func sdrWatcher() {
 				// log.Println("\tUATDev == nil")
 				// preference check based on stratux
 				// hardware serial when it exists
-				serial := ids[id]
+				serial := ""
+				// manufact, product, serial, err
+				if _, _, s, err := rtl.GetDeviceUsbStrings(id); err == nil {
+					serial = s
+				}
 				if strings.HasPrefix(serial, "stratux:1090") {
 					log.Println("Settings conflict: 978UAT set via WebUI but hardware serial says stratux:1090")
 				} else {
-					UATDev = &UAT{indexID: id}
+					UATDev = &UAT{indexID: id, serial: serial}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
@@ -397,12 +394,15 @@ func sdrWatcher() {
 			if ESDev == nil {
 				// log.Println("\tESDev == nil")
 				// preference check based on stratux
-				// hardware serial when it exists
-				serial := ids[id]
+				serial := ""
+				// manufact, product, serial, err
+				if _, _, s, err := rtl.GetDeviceUsbStrings(id); err == nil {
+					serial = s
+				}
 				if strings.HasPrefix(serial, "stratux:978") {
 					log.Println("Settings conflict: 1090ES set via WebUI but hardware serial says stratux:978")
 				} else {
-					ESDev = &ES{indexID: id}
+					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
