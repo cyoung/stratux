@@ -525,6 +525,16 @@ func esListen() {
 					ti.Tail = tail
 				}
 			}
+			if x[1] == "5" { // Surveillance alt message. DF4, DF20.
+				// MSG,5,,,%02X%02X%02X,,,,,,,%d,,,,,,,%d,%d,%d,%d
+				// MSG,5,111,11111,AB5F1B,111111,2016/01/03,04:43:52.028,2016/01/03,04:43:52.006,,13050,,,,,,,0,,0,0
+				alt := x[11]
+
+				altFloat, err := strconv.ParseFloat(alt, 32)
+				if len(alt) != 0 && err == nil {
+					ti.Alt = int32(altFloat)
+				}
+			}
 
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
