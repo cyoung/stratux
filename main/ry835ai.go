@@ -316,13 +316,14 @@ func validateNMEAChecksum(s string) (string, bool) {
 	return s_out, true
 }
 
-// Only count this heading if a "sustained" >10kts is obtained. This filters out a lot of heading
+//  Only count this heading if a "sustained" >7 kts is obtained. This filters out a lot of heading
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
+//TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed, trueCourse uint16) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		if mySituation.GroundSpeed >= 10 && groundSpeed >= 10 {
-			myMPU6050.ResetHeading(float64(trueCourse))
+		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
+			myMPU6050.ResetHeading(float64(trueCourse), 0.01)
 		}
 	}
 }
@@ -523,6 +524,18 @@ func processNMEALine(l string) bool {
 			*/
 
 		} else if x[1] == "04" { // clock message
+			// field 5 is UTC week (epoch = 1980-JAN-06). If this is invalid, do not parse date / time
+			utcWeek, err0 := strconv.Atoi(x[5])
+			if err0 != nil {
+				// log.Printf("Error reading GPS week\n")
+				return false
+			}
+			if utcWeek < 1877 || utcWeek >= 32767 { // unless we're in a flying Delorean, UTC dates before 2016-JAN-01 are not valid. Check underflow condition as well.
+				log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
+				return false
+			} /* else {
+				log.Printf("GPS week # %v valid; evaluate time and date\n", utcWeek) //debug option
+			} */
 
 			// field 2 is UTC time
 			if len(x[2]) < 9 {
@@ -540,10 +553,11 @@ func processNMEALine(l string) bool {
 
 			if len(x[3]) == 6 {
 				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-				gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[3], hr, min, sec)
+				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[3], hr, min, sec)
 				gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
 				if err == nil {
-					if time.Since(gpsTime) > 10*time.Minute {
+					// log.Printf("GPS time is: %s\n", gpsTime) //debug
+					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 						log.Printf("setting system time to: %s\n", gpsTime)
 						setStr := gpsTime.Format("20060102 15:04:05")
 						if err := exec.Command("date", "-s", setStr).Run(); err != nil {
@@ -735,10 +749,10 @@ func processNMEALine(l string) bool {
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-			gpsTimeStr := fmt.Sprintf("%s %d:%d:%d", x[9], hr, min, sec)
+			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
 			if err == nil {
-				if time.Since(gpsTime) > 10*time.Minute {
+				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					log.Printf("setting system time to: %s\n", gpsTime)
 					setStr := gpsTime.Format("20060102 15:04:05")
 					if err := exec.Command("date", "-s", setStr).Run(); err != nil {

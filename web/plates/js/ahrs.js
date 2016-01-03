@@ -212,7 +212,7 @@ void main() { \
 
 		g.mvMatrix.rotate(15, 1, 0, 0); // adjust viewing angle slightly by pitching the airplane up
 
-		g.mvMatrix.rotate(-this.pitch, 1, 0, 0);
+		g.mvMatrix.rotate(this.pitch, 1, 0, 0);
 		g.mvMatrix.rotate(-this.roll, 0, 0, 1);
 		g.mvMatrix.rotate(-this.heading, 0, 1, 0);
 

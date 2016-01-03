@@ -36,10 +36,15 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.tail = obj.Tail;
 		new_traffic.lat = dmsString(obj.Lat);
 		new_traffic.lon = dmsString(obj.Lng);
-		var n = Math.round(obj.Alt / 100) * 100;
+		var n = Math.round(obj.Alt / 25) * 25;
 		new_traffic.alt = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-		new_traffic.heading = Math.round(obj.Track / 10) * 10;
-		new_traffic.speed = Math.round(obj.Speed / 10) * 10;
+		new_traffic.heading = Math.round(obj.Track / 5) * 5;
+		var s = Math.round(obj.Speed / 5) * 5;
+		if (obj.Speed_valid) {
+			new_traffic.speed = s.toString();
+		} else {
+			new_traffic.speed = "---";
+		}
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		new_traffic.age = Date.parse(obj.Last_seen);
 		new_traffic.time = utcTimeString(new_traffic.age);

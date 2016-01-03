@@ -135,7 +135,6 @@ cd stratux
 make www
 make xdump978
 make xdump1090
-cp -f dump978/dump978 /usr/bin/
 cp -f dump1090/dump1090 /usr/bin/
 
 mv /tmp/gen_gdl90 /usr/bin/gen_gdl90
