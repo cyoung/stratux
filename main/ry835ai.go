@@ -324,7 +324,6 @@ func validateNMEAChecksum(s string) (string, bool) {
 func setTrueCourse(groundSpeed, trueCourse uint16) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			log.Printf("setTrueCourse %v\n", trueCourse)
 			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
 		}
 	}
@@ -570,7 +569,7 @@ func processNMEALine(l string) bool {
 			}
 		}
 
-		// otherwise parse the NMEA standard messages as a fall-back / compatibility option
+	// otherwise parse the NMEA standard messages as a fall-back / compatibility option
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
@@ -806,17 +805,17 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.TrueCourse = uint16(tc)
-
+		
 	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") {
 		if len(x) < 18 {
 			return false
 		}
-
+		
 		// field 1: operation mode
 		if x[1] != "A" { // invalid fix
 			return false
-		}
-
+		}		
+		
 		// field 2: solution type
 		// 1 = no solution; 2 = 2D fix, 3 = 3D fix. WAAS status is parsed from GGA message, so no need to get here
 
@@ -829,16 +828,17 @@ func processNMEALine(l string) bool {
 			}
 		}
 		mySituation.Satellites = uint16(sat)
-
+		
 		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
 		if mySituation.SatellitesTracked == 0 {
 			mySituation.SatellitesTracked = uint16(sat)
 		}
-
+		
 		if mySituation.SatellitesSeen == 0 {
 			mySituation.SatellitesSeen = uint16(sat)
 		}
 
+		
 		// field 16: HDOP
 		// Accuracy estimate
 		hdop, err1 := strconv.ParseFloat(x[16], 32)
@@ -874,7 +874,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
+		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence	
 	}
 	return true
 }
