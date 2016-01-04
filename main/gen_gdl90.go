@@ -349,7 +349,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 /*
 
 	"SX" Stratux GDL90 message.
-	http://hiltonsoftware.com/stratux/StratuxStatusMessage-V01.pdf
+	http://hiltonsoftware.com/stratux/ for latest version (currently using V104)
 
 */
 
@@ -492,7 +492,7 @@ func makeSXHeartbeat() []byte {
 	v := uint16(float32(10.0) * globalStatus.CPUTemp)
 
 	msg[26] = byte((v & 0xFF00) >> 8)
-	msg[27] = byte(v * 0xFF)
+	msg[27] = byte(v & 0xFF)
 
 	// Number of ADS-B towers.
 	num_towers := uint8(len(ADSBTowers))

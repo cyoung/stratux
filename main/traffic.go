@@ -442,7 +442,7 @@ func esListen() {
 
 			//FIXME: Some stale information will be renewed.
 			valid_change := true
-			if x[1] == "3" {
+			if x[1] == "3" { // ES airborne position message. DF17 BDS 0,5.
 				//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
 				//MSG,3,111,11111,A5D007,111111,          ,            ,          ,            ,,35000,,,42.47454,-82.57433,,,0,0,0,0
 				alt := x[11]
@@ -478,7 +478,7 @@ func esListen() {
 					ti.Position_valid = true
 				}
 			}
-			if x[1] == "4" {
+			if x[1] == "4" { // ES airborne velocity message. DF17 BDS 0,9.
 				// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
 				speed := x[12]
 				track := x[13]
@@ -513,7 +513,7 @@ func esListen() {
 					ti.Speed_valid = true
 				}
 			}
-			if x[1] == "1" {
+			if x[1] == "1" { // ES identification and category. DF17 BDS 0,8.
 				// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
 				tail := x[10]
 
@@ -523,6 +523,16 @@ func esListen() {
 
 				if valid_change {
 					ti.Tail = tail
+				}
+			}
+			if x[1] == "5" { // Surveillance alt message. DF4, DF20.
+				// MSG,5,,,%02X%02X%02X,,,,,,,%d,,,,,,,%d,%d,%d,%d
+				// MSG,5,111,11111,AB5F1B,111111,2016/01/03,04:43:52.028,2016/01/03,04:43:52.006,,13050,,,,,,,0,,0,0
+				alt := x[11]
+
+				altFloat, err := strconv.ParseFloat(alt, 32)
+				if len(alt) != 0 && err == nil {
+					ti.Alt = int32(altFloat)
 				}
 			}
 
