@@ -267,7 +267,8 @@ static void uat_display_sv(const struct uat_adsb_mdb *mdb, FILE *to)
             mdb->tisb_site_id);
 }
 
-static char base40_alphabet[40] = "0123456789ABCDEFGHIJKLMNOPQRTSUVWXYZ  ..";
+static char base40_alphabet[40] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  ..";
+
 static void uat_decode_ms(uint8_t *frame, struct uat_adsb_mdb *mdb)
 {
     uint16_t v;
