@@ -260,10 +260,11 @@ func initGPSSerial() bool {
 
 	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 	//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
+
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
-	// Re-open port at 38400 baud so we can read messages
+	// Re-open port at 38400 baud so we can read messages. TO-DO: Fault detection / fallback to 9600 baud after failed config
 	serialConfig = &serial.Config{Name: device, Baud: 38400}
 	p, err = serial.OpenPort(serialConfig)
 	if err != nil {
@@ -323,7 +324,7 @@ func validateNMEAChecksum(s string) (string, bool) {
 func setTrueCourse(groundSpeed, trueCourse uint16) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(float64(trueCourse), 0.01)
+			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
 		}
 	}
 }
@@ -469,7 +470,7 @@ func processNMEALine(l string) bool {
 				mySituation.LastGroundTrackTime = time.Time{}
 			}
 
-			setTrueCourse(trueCourse, uint16(groundspeed))
+			setTrueCourse(uint16(groundspeed), trueCourse)
 
 			mySituation.TrueCourse = uint16(trueCourse)
 			mySituation.GroundSpeed = uint16(groundspeed)
@@ -568,7 +569,7 @@ func processNMEALine(l string) bool {
 			}
 		}
 
-		// otherwise look for NMEA standard messages and process them
+		// otherwise parse the NMEA standard messages as a fall-back / compatibility option
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
@@ -594,7 +595,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		setTrueCourse(trueCourse, uint16(groundSpeed))
+		setTrueCourse(uint16(groundSpeed), trueCourse)
 
 		mySituation.TrueCourse = uint16(trueCourse)
 		mySituation.GroundSpeed = uint16(groundSpeed)
@@ -657,7 +658,7 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
-		/* Satellite count and horizontal accuracy deprecated. Use GSA/GST or PUBX,00 message.
+		/* Satellite count and horizontal accuracy deprecated. Using PUBX,00 with fallback to GSA.
 		// Satellites.
 		sat, err1 := strconv.Atoi(x[7])
 		if err1 != nil {
@@ -804,6 +805,75 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.TrueCourse = uint16(tc)
+
+	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") {
+		if len(x) < 18 {
+			return false
+		}
+
+		// field 1: operation mode
+		if x[1] != "A" { // invalid fix
+			return false
+		}
+
+		// field 2: solution type
+		// 1 = no solution; 2 = 2D fix, 3 = 3D fix. WAAS status is parsed from GGA message, so no need to get here
+
+		// fields 3-14: satellites in solution
+		sat := 0
+		for _, svtxt := range x[3:15] {
+			_, err := strconv.Atoi(svtxt)
+			if err == nil {
+				sat++
+			}
+		}
+		mySituation.Satellites = uint16(sat)
+
+		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
+		if mySituation.SatellitesTracked == 0 {
+			mySituation.SatellitesTracked = uint16(sat)
+		}
+
+		if mySituation.SatellitesSeen == 0 {
+			mySituation.SatellitesSeen = uint16(sat)
+		}
+
+		// field 16: HDOP
+		// Accuracy estimate
+		hdop, err1 := strconv.ParseFloat(x[16], 32)
+		if err1 != nil {
+			return false
+		}
+		if mySituation.quality == 2 {
+			mySituation.Accuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
+		} else {
+			mySituation.Accuracy = float32(hdop * 8.0) // Rough 95% confidence estimate for 3D non-WAAS solution
+		}
+
+		// NACp estimate.
+		if mySituation.Accuracy < 3 {
+			mySituation.NACp = 11
+		} else if mySituation.Accuracy < 10 {
+			mySituation.NACp = 10
+		} else if mySituation.Accuracy < 30 {
+			mySituation.NACp = 9
+		} else if mySituation.Accuracy < 92.6 {
+			mySituation.NACp = 8
+		} else if mySituation.Accuracy < 185.2 {
+			mySituation.NACp = 7
+		} else if mySituation.Accuracy < 555.6 {
+			mySituation.NACp = 6
+		} else {
+			mySituation.NACp = 0
+		}
+
+		// field 17: VDOP
+		// accuracy estimate
+		vdop, err1 := strconv.ParseFloat(x[17], 32)
+		if err1 != nil {
+			return false
+		}
+		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
 	}
 	return true
 }
