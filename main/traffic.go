@@ -107,6 +107,7 @@ func registerTrafficUpdate(ti TrafficInfo) {
 	if !ti.Position_valid { // Don't send unless a valid position exists.
 		return
 	}
+	makeTrafficReport(ti)
 
 	tiJSON, _ := json.Marshal(&ti)
 	trafficUpdate.Send(tiJSON)
@@ -190,8 +191,6 @@ func makeTrafficReport(ti TrafficInfo) {
 		}
 		msg[19+i] = c
 	}
-
-	//TODO: text identifier (tail).
 
 	sendGDL90(prepareMessage(msg), false)
 }
@@ -480,6 +479,7 @@ func esListen() {
 			}
 			if x[1] == "4" { // ES airborne velocity message. DF17 BDS 0,9.
 				// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
+				// MSG,4,111,11111,ABE287,111111,2016/01/03,19:44:43.440,2016/01/03,19:44:43.401,,,469,88,,,0,,,,,0
 				speed := x[12]
 				track := x[13]
 				vvel := x[16]
