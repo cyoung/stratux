@@ -77,6 +77,13 @@
 						<input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
 					</form>
 				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-5">UDP Port</label>
+					<form name="portForm" ng-submit="updateport()" novalidate>
+						<!-- type="number" not supported except on mobile -->
+						<input class="col-xs-7" type="number_format" required ng-model="UDPPort" placeholder="integer" ng-blur="updateport()" />
+					</form>
+				</div>
 			</div>
 		</div>
 	</div>

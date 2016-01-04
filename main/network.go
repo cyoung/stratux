@@ -152,6 +152,10 @@ func refreshConnectedClients() {
 		return
 	}
 	dhcpLeases = t
+
+	// Use the UDP port specified in the configuration
+	globalSettings.NetworkOutputs[0].Port = globalSettings.UDPPort;
+	
 	// Client connected that wasn't before.
 	for ip, hostname := range dhcpLeases {
 		for _, networkOutput := range globalSettings.NetworkOutputs {
@@ -348,4 +352,9 @@ func initNetwork() {
 	go monitorDHCPLeases()
 	go messageQueueSender()
 	go sleepMonitor()
+}
+
+func restartNetworkConnections() {
+	outSockets = make(map[string]networkConnection)
+	refreshConnectedClients()
 }

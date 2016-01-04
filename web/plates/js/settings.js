@@ -25,6 +25,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
+        $scope.UDPPort = settings.UDPPort;
 	}
 
 	function getSettings() {
@@ -82,6 +83,16 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 			settings["PPM"] = parseInt($scope.PPM);
 			newsettings = {
 				"PPM": parseInt($scope.PPM)
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+		$scope.updateport = function () {
+		if (($scope.UDPPort !== undefined) && ($scope.UDPPort !== null) && ($scope.UDPPort !== settings["UDPPort"])) {
+			settings["UDPPort"] = parseInt($scope.UDPPort);
+			newsettings = {
+				"UDPPort": parseInt($scope.UDPPort)
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
