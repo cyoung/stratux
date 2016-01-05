@@ -329,6 +329,26 @@ func setTrueCourse(groundSpeed, trueCourse uint16) {
 	}
 }
 
+func calculateNACp(accuracy float32) uint8 {
+	ret := uint8(0)
+
+	if accuracy < 3 {
+		ret = 11
+	} else if accuracy < 10 {
+		ret = 10
+	} else if accuracy < 30 {
+		ret = 9
+	} else if accuracy < 92.6 {
+		ret = 8
+	} else if accuracy < 185.2 {
+		ret = 7
+	} else if accuracy < 555.6 {
+		ret = 6
+	}
+
+	return ret
+}
+
 func processNMEALine(l string) bool {
 	replayLog(l, MSGCLASS_GPS)
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
@@ -425,21 +445,7 @@ func processNMEALine(l string) bool {
 			mySituation.Accuracy = float32(hAcc * 2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
 
 			// NACp estimate.
-			if mySituation.Accuracy < 3 {
-				mySituation.NACp = 11
-			} else if mySituation.Accuracy < 10 {
-				mySituation.NACp = 10
-			} else if mySituation.Accuracy < 30 {
-				mySituation.NACp = 9
-			} else if mySituation.Accuracy < 92.6 {
-				mySituation.NACp = 8
-			} else if mySituation.Accuracy < 185.2 {
-				mySituation.NACp = 7
-			} else if mySituation.Accuracy < 555.6 {
-				mySituation.NACp = 6
-			} else {
-				mySituation.NACp = 0
-			}
+			mySituation.NACp = calculateNACp(mySituation.Accuracy)
 
 			// field 10 = vertical accuracy, m
 			vAcc, err := strconv.ParseFloat(x[10], 32)
@@ -678,21 +684,7 @@ func processNMEALine(l string) bool {
 		}
 
 		// NACp estimate.
-		if mySituation.Accuracy < 3 {
-			mySituation.NACp = 11
-		} else if mySituation.Accuracy < 10 {
-			mySituation.NACp = 10
-		} else if mySituation.Accuracy < 30 {
-			mySituation.NACp = 9
-		} else if mySituation.Accuracy < 92.6 {
-			mySituation.NACp = 8
-		} else if mySituation.Accuracy < 185.2 {
-			mySituation.NACp = 7
-		} else if mySituation.Accuracy < 555.6 {
-			mySituation.NACp = 6
-		} else {
-			mySituation.NACp = 0
-		}
+		mySituation.NACp = calculateNACp(mySituation.Accuracy)
 		*/
 
 		// Altitude.
@@ -851,21 +843,7 @@ func processNMEALine(l string) bool {
 		}
 
 		// NACp estimate.
-		if mySituation.Accuracy < 3 {
-			mySituation.NACp = 11
-		} else if mySituation.Accuracy < 10 {
-			mySituation.NACp = 10
-		} else if mySituation.Accuracy < 30 {
-			mySituation.NACp = 9
-		} else if mySituation.Accuracy < 92.6 {
-			mySituation.NACp = 8
-		} else if mySituation.Accuracy < 185.2 {
-			mySituation.NACp = 7
-		} else if mySituation.Accuracy < 555.6 {
-			mySituation.NACp = 6
-		} else {
-			mySituation.NACp = 0
-		}
+		mySituation.NACp = calculateNACp(mySituation.Accuracy)
 
 		// field 17: VDOP
 		// accuracy estimate
