@@ -353,7 +353,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 
 */
 
-func makeSXHeartbeat() []byte {
+func makeStratuxStatus() []byte {
 	msg := make([]byte, 29)
 	msg[0] = 'S'
 	msg[1] = 'X'
@@ -591,7 +591,7 @@ func heartBeatSender() {
 		case <-timer.C:
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
-			sendGDL90(makeSXHeartbeat(), false)
+			sendGDL90(makeStratuxStatus(), false)
 			//		sendGDL90(makeTrafficReport())
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
