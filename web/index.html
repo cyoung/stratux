@@ -67,7 +67,8 @@
 </head>
 
 <body ng-app="stratux" ng-controller="MainCtrl" ui-prevent-touchmove-defaults>
-
+	<!-- Needed for modal confirmation dialogs -->
+	<div ui-yield-to="modals"></div>
 	<!-- Define Left (Menu) Sidebar Navigation -->
 	<div ui-track-as-search-param='true' class="sidebar sidebar-left">
 		<div class="scrollable">
