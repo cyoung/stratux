@@ -717,7 +717,7 @@ func updateStatus() {
 	}
 
 	// Update Uptime value
-	globalStatus.Uptime = time.Since(timeStarted).Nanoseconds() / 1000000
+	globalStatus.Uptime = int64(stratuxClock.Seconds) * 1000
 }
 
 type ReplayWriter struct {
@@ -1109,7 +1109,7 @@ func printStats() {
 		<-statTimer.C
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
-		log.Printf("stats [up since: %s]\n", humanize.Time(timeStarted))
+		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		if globalSettings.GPS_Enabled {
@@ -1186,7 +1186,10 @@ func openReplayFile(fn string) ReadCloser {
 	return ret
 }
 
+var stratuxClock *monotonic
+
 func main() {
+	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
