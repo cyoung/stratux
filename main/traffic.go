@@ -424,7 +424,7 @@ func esListen() {
 			// Log the message after we've determined that it at least meets some requirements on the fields.
 			var thisMsg msg
 			thisMsg.MessageClass = MSGCLASS_ES
-			thisMsg.TimeReceived = time.Now()
+			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = []byte(buf)
 			MsgLog = append(MsgLog, thisMsg)
 

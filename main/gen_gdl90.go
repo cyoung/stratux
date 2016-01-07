@@ -619,7 +619,7 @@ func updateMessageStats() {
 	}
 
 	for i := 0; i < m; i++ {
-		if time.Now().Sub(MsgLog[i].TimeReceived).Minutes() < 1 {
+		if stratuxClock.Since(MsgLog[i].TimeReceived) < 1*time.Minutes {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
@@ -787,7 +787,7 @@ func registerADSBTextMessageReceived(msg string) {
 	wm.Location = x[1]
 	wm.Time = x[2]
 	wm.Data = strings.Join(x[3:], " ")
-	wm.LocaltimeReceived = time.Now()
+	wm.LocaltimeReceived = stratuxClock.Time
 
 	wmJSON, _ := json.Marshal(&wm)
 
@@ -857,7 +857,7 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_UAT
-	thisMsg.TimeReceived = time.Now()
+	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = frame
 	thisMsg.Signal_strength = thisSignalStrength
 	thisMsg.Products = make([]uint32, 0)
