@@ -627,12 +627,12 @@ func processNMEALine(l string) bool {
 		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
 
 		// Latitude.
-		if len(x[2]) < 10 {
+		if len(x[2]) < 4 {
 			return false
 		}
 
 		hr, err1 = strconv.Atoi(x[2][0:2])
-		minf, err2 := strconv.ParseFloat(x[2][2:10], 32)
+		minf, err2 := strconv.ParseFloat(x[2][2:], 32)
 		if err1 != nil || err2 != nil {
 			return false
 		}
@@ -643,11 +643,11 @@ func processNMEALine(l string) bool {
 		}
 
 		// Longitude.
-		if len(x[4]) < 11 {
+		if len(x[4]) < 5 {
 			return false
 		}
 		hr, err1 = strconv.Atoi(x[4][0:3])
-		minf, err2 = strconv.ParseFloat(x[4][3:11], 32)
+		minf, err2 = strconv.ParseFloat(x[4][3:], 32)
 		if err1 != nil || err2 != nil {
 			return false
 		}
@@ -760,11 +760,11 @@ func processNMEALine(l string) bool {
 		}
 
 		// Latitude.
-		if len(x[3]) < 10 {
+		if len(x[3]) < 4 {
 			return false
 		}
 		hr, err1 = strconv.Atoi(x[3][0:2])
-		minf, err2 := strconv.ParseFloat(x[3][2:10], 32)
+		minf, err2 := strconv.ParseFloat(x[3][2:], 32)
 		if err1 != nil || err2 != nil {
 			return false
 		}
@@ -773,11 +773,11 @@ func processNMEALine(l string) bool {
 			mySituation.Lat = -mySituation.Lat
 		}
 		// Longitude.
-		if len(x[5]) < 11 {
+		if len(x[5]) < 5 {
 			return false
 		}
 		hr, err1 = strconv.Atoi(x[5][0:3])
-		minf, err2 = strconv.ParseFloat(x[5][3:11], 32)
+		minf, err2 = strconv.ParseFloat(x[5][3:], 32)
 		if err1 != nil || err2 != nil {
 			return false
 		}
