@@ -480,7 +480,7 @@ func processNMEALine(l string) bool {
 
 			mySituation.TrueCourse = uint16(trueCourse)
 			mySituation.GroundSpeed = uint16(groundspeed)
-			mySituation.LastGroundTrackTime = time.Now()
+			mySituation.LastGroundTrackTime = stratuxClock.Time
 
 			// field 13 = vertical velocity, m/s
 			vv, err := strconv.ParseFloat(x[13], 32)
@@ -498,7 +498,7 @@ func processNMEALine(l string) bool {
 			}
 			mySituation.Satellites = uint16(sat)
 
-			mySituation.LastFixLocalTime = time.Now()
+			mySituation.LastFixLocalTime = stratuxClock.Time
 
 		} else if x[1] == "03" { // satellite status message
 
@@ -605,7 +605,7 @@ func processNMEALine(l string) bool {
 
 		mySituation.TrueCourse = uint16(trueCourse)
 		mySituation.GroundSpeed = uint16(groundSpeed)
-		mySituation.LastGroundTrackTime = time.Now()
+		mySituation.LastGroundTrackTime = stratuxClock.Time
 
 	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // GPS fix.
 		if len(x) < 15 {
@@ -704,7 +704,7 @@ func processNMEALine(l string) bool {
 		mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
 
 		// Timestamp.
-		mySituation.LastFixLocalTime = time.Now()
+		mySituation.LastFixLocalTime = stratuxClock.Time
 
 	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") {
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
@@ -924,7 +924,7 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			mySituation.lastTempPressTime = time.Now()
+			mySituation.lastTempPressTime = stratuxClock.Time
 		}
 	}
 	globalStatus.RY835AI_connected = false
@@ -995,7 +995,7 @@ func attitudeReaderSender() {
 		mySituation.Pitch = pitch
 		mySituation.Roll = roll
 		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-		mySituation.LastAttitudeTime = time.Now()
+		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
@@ -1009,19 +1009,19 @@ func attitudeReaderSender() {
 }
 
 func isGPSValid() bool {
-	return time.Since(mySituation.LastFixLocalTime).Seconds() < 15
+	return stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second
 }
 
 func isGPSGroundTrackValid() bool {
-	return time.Since(mySituation.LastGroundTrackTime).Seconds() < 15
+	return stratuxClock.Since(mySituation.LastGroundTrackTime) < 15*time.Second
 }
 
 func isAHRSValid() bool {
-	return time.Since(mySituation.LastAttitudeTime).Seconds() < 1 // If attitude information gets to be over 1 second old, declare invalid.
+	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
 }
 
 func isTempPressValid() bool {
-	return time.Since(mySituation.lastTempPressTime).Seconds() < 15
+	return stratuxClock.Since(mySituation.lastTempPressTime) < 15*time.Second
 }
 
 func initAHRS() error {
