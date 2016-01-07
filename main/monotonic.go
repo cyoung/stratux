@@ -1,6 +1,7 @@
 package main
 
 import (
+	humanize "github.com/dustin/go-humanize"
 	"time"
 )
 
@@ -22,6 +23,10 @@ func (m *monotonic) Watcher() {
 
 func (m *monotonic) Since(t time.Time) time.Duration {
 	return m.Time.Sub(t)
+}
+
+func (m *monotonic) HumanizeTime(t time.Time) string {
+	return humanize.RelTime(time.Time{}, t, "ago", "from now")
 }
 
 func NewMonotonic() *monotonic {
