@@ -20,6 +20,10 @@ func (m *monotonic) Watcher() {
 	}
 }
 
+func (m *monotonic) Since(t time.Time) time.Duration {
+	return m.Time.Sub(t)
+}
+
 func NewMonotonic() *monotonic {
 	t := &monotonic{Seconds: 0, Time: time.Time{}, ticker: time.NewTicker(1 * time.Second)}
 	go t.Watcher()
