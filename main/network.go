@@ -209,7 +209,7 @@ func messageQueueSender() {
 				}
 			}
 
-			if time.Since(lastQueueTimeChange) >= 5*time.Second {
+			if stratuxClock.Since(lastQueueTimeChange) >= 5*time.Second {
 				var pd float64
 				if averageSendableQueueSize > 0.0 && len(outSockets) > 0 {
 					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets))  // It's a total, not an average, up until this point.
@@ -219,7 +219,7 @@ func messageQueueSender() {
 				}
 				queueTimer.Stop()
 				queueTimer = time.NewTicker(time.Duration(pd*1000000000.0) * time.Nanosecond)
-				lastQueueTimeChange = time.Now()
+				lastQueueTimeChange = stratuxClock.Time
 			}
 			netMutex.Unlock()
 		case <-secondTimer.C:
