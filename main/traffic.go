@@ -85,7 +85,7 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if time.Since(ti.Last_seen).Seconds() > float64(60.0) { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { //FIXME: 60 seconds with no update on this address - stop displaying.
 			delete(traffic, icao_addr)
 		}
 	}
@@ -355,7 +355,7 @@ func parseDownlinkReport(s string) {
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
 	ti.Last_source = TRAFFIC_SOURCE_UAT
-	ti.Last_seen = time.Now()
+	ti.Last_seen = stratuxClock.Time
 
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
@@ -538,7 +538,7 @@ func esListen() {
 
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
-			ti.Last_seen = time.Now()
+			ti.Last_seen = stratuxClock.Time
 
 			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
 			ti.emitter_category = 0x01 //FIXME. "Light"
