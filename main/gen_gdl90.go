@@ -619,7 +619,7 @@ func updateMessageStats() {
 	}
 
 	for i := 0; i < m; i++ {
-		if stratuxClock.Since(MsgLog[i].TimeReceived) < 1*time.Minutes {
+		if stratuxClock.Since(MsgLog[i].TimeReceived) < 1*time.Minute {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
