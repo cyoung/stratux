@@ -41,6 +41,8 @@ apt-get install -y tcpdump
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
+#disable ntpd autostart
+update-rc.d ntp disable
 EOF
 
 scp_in_to_qemu /root/spindle/hostapd-edimax /tmp/hostapd.in
