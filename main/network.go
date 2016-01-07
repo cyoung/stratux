@@ -84,10 +84,10 @@ func isSleeping(k string) bool {
 	ipAndPort := strings.Split(k, ":")
 	lastPing, ok := pingResponse[ipAndPort[0]]
 	// No ping response. Assume disconnected/sleeping device.
-	if !ok || time.Since(lastPing) > (10*time.Second) {
+	if !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
 		return true
 	}
-	if time.Since(outSockets[k].lastUnreachable) < (5 * time.Second) {
+	if stratuxClock.Since(outSockets[k].lastUnreachable) < (5 * time.Second) {
 		return true
 	}
 	return false
@@ -96,7 +96,7 @@ func isSleeping(k string) bool {
 // Throttle mode for testing port open and giving some start-up time to the app.
 // Throttling is 0.1% data rate for first 15 seconds.
 func isThrottled(k string) bool {
-	return (rand.Int()%1000 != 0) && time.Since(outSockets[k].lastUnreachable) < (15*time.Second)
+	return (rand.Int()%1000 != 0) && stratuxClock.Since(outSockets[k].lastUnreachable) < (15*time.Second)
 }
 
 func sendToAllConnectedClients(msg networkMessage) {
@@ -229,7 +229,7 @@ func messageQueueSender() {
 }
 
 func sendMsg(msg []byte, msgType uint8, queueable bool) {
-	messageQueue <- networkMessage{msg: msg, msgType: msgType, queueable: queueable, ts: time.Now()}
+	messageQueue <- networkMessage{msg: msg, msgType: msgType, queueable: queueable, ts: stratuxClock.Time}
 }
 
 func sendGDL90(msg []byte, queueable bool) {
@@ -305,7 +305,7 @@ func sleepMonitor() {
 
 		// Look for echo replies, mark it as received.
 		if msg.Type == ipv4.ICMPTypeEchoReply {
-			pingResponse[ip] = time.Now()
+			pingResponse[ip] = stratuxClock.Time
 			continue // No further processing needed.
 		}
 
@@ -333,7 +333,7 @@ func sleepMonitor() {
 			netMutex.Unlock()
 			continue
 		}
-		p.lastUnreachable = time.Now()
+		p.lastUnreachable = stratuxClock.Time
 		outSockets[ipAndPort] = p
 		netMutex.Unlock()
 	}
