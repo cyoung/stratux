@@ -26,7 +26,7 @@ func (m *monotonic) Since(t time.Time) time.Duration {
 }
 
 func (m *monotonic) HumanizeTime(t time.Time) string {
-	return humanize.RelTime(time.Time{}, t, "ago", "from now")
+	return humanize.RelTime(m.Time, t, "ago", "from now")
 }
 
 func NewMonotonic() *monotonic {
