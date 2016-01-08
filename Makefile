@@ -66,11 +66,7 @@ www:
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
-	cp start_uat.sh /usr/bin/start_uat
 	cp init.d-stratux /etc/init.d/stratux
-	cp start_stratux.sh /usr/sbin/stratux
-	chmod 755 /usr/bin/start_uat
-	chmod 755 /usr/sbin/stratux
 	chmod 755 /etc/init.d/stratux
 	ln -sf /etc/init.d/stratux /etc/rc2.d/S01stratux
 	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux
