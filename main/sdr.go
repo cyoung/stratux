@@ -412,7 +412,7 @@ func sdrWatcher() {
 				if strings.HasPrefix(serial, "stratux:978") {
 					log.Println("Settings conflict: 1090ES set via WebUI but hardware serial says stratux:978")
 				} else {
-					ESDev = &ES{indexID: id}
+					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
