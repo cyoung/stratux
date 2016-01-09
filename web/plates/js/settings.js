@@ -108,4 +108,13 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+
+       $scope.postShutdown = function () {
+                $http.post('/shutdown');
+        };
+
+       $scope.postReboot = function () {
+                $http.post('/reboot');
+        };
+
 };
