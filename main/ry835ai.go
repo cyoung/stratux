@@ -565,10 +565,12 @@ func processNMEALine(l string) bool {
 				if err == nil {
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
-						log.Printf("setting system time to: %s\n", gpsTime)
-						setStr := gpsTime.Format("20060102 15:04:05")
+						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
+						log.Printf("setting system time to: '%s'\n", setStr)
 						if err := exec.Command("date", "-s", setStr).Run(); err != nil {
 							log.Printf("Set Date failure: %s error\n", err)
+						} else {
+							log.Printf("Time set from GPS. Current time is %v\n", time.Now())
 						}
 					}
 				}
@@ -746,10 +748,12 @@ func processNMEALine(l string) bool {
 			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
 			if err == nil {
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
-					log.Printf("setting system time to: %s\n", gpsTime)
-					setStr := gpsTime.Format("20060102 15:04:05")
+					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
+					log.Printf("setting system time to: '%s'\n", setStr)
 					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
 						log.Printf("Set Date failure: %s error\n", err)
+					} else {
+						log.Printf("Time set from GPS. Current time is %v\n", time.Now())
 					}
 				}
 			}
