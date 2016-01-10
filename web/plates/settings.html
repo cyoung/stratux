@@ -80,21 +80,26 @@
 			</div>
 		</div>
 	</div>
-	<div class="panel-group col-sm-6">
+<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading">System</div>
+			<div class="panel-heading">Shutdown</div>
 			<div class="panel-body">
 				<div class="form-group">				
-					<label class="control-label col-xs-7">Shutdown</label>
 					<div class="col-xs-5">
 	  				  <button ui-turn-on="modalShutdown">Shutdown</button> 				
 	  				 </div>
 				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">Reboot</label>
+			</div>
+		</div>
+	</div>
+	<div class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">Reboot</div>
+			<div class="panel-body">
+				<div class="form-group">				
 					<div class="col-xs-5">
-						<button ui-turn-on="modalReboot">Reboot</button>
-					</div>
+	  				  <button ui-turn-on="modalReboot">Reboot</button> 				
+	  				 </div>
 				</div>
 			</div>
 		</div>
@@ -113,6 +118,11 @@
 	</div>
 </div>
 -->
+ 
+<div class="col-sm-12">
+ 	<h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
+   	<h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
+</div>
 
 <div ui-content-for="modals">
   <div class="modal" ui-if="modalReboot" ui-state="modalReboot">
@@ -132,7 +142,7 @@
         </div>
         <div class="modal-footer">
           <a ui-turn-off="modalReboot" class="btn btn-default">Cancel</a>
-          <a href="/reboot" ui-turn-off="modalReboot" class="btn btn-primary">Reboot</a>
+          <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting" class="btn btn-primary">Reboot</a>
         </div>
       </div>
     	  </div>
@@ -156,7 +166,7 @@
         </div>
         <div class="modal-footer">
           <a ui-turn-off="modalShutdown" class="btn btn-default">Cancel</a>
-          <a href="/shutdown" ui-turn-off="modalShutdown" class="btn btn-primary">Shutdown</a>
+          <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown" class="btn btn-primary">Shutdown</a>
         </div>
       </div>
     	  </div>
@@ -164,3 +174,4 @@
   </div> 
 
 </div>
+
