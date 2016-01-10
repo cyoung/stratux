@@ -13,7 +13,7 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON_SBIN=/usr/sbin/stratux
+DAEMON_SBIN=/usr/bin/gen_gdl90
 DAEMON_DEFS=
 DAEMON_CONF=
 NAME=stratux
@@ -22,14 +22,14 @@ PIDFILE=/var/run/stratux.pid
 
 [ -x "$DAEMON_SBIN" ] || exit 0
 
-DAEMON_OPTS="-B -P $PIDFILE $DAEMON_OPTS $DAEMON_CONF"
+DAEMON_OPTS=""
 
 . /lib/lsb/init-functions
 
 case "$1" in
   start)
 	log_daemon_msg "Starting $DESC" "$NAME"
-	start-stop-daemon --start --oknodo --quiet --exec "$DAEMON_SBIN" \
+	start-stop-daemon --start --background --oknodo --quiet --exec "$DAEMON_SBIN" \
 		--pidfile "$PIDFILE" --make-pidfile -- $DAEMON_OPTS >/dev/null
 	log_end_msg "$?"
 	;;
@@ -37,6 +37,7 @@ case "$1" in
 	log_daemon_msg "Stopping $DESC" "$NAME"
 	start-stop-daemon --stop --oknodo --quiet --exec "$DAEMON_SBIN" \
 		--pidfile "$PIDFILE"
+	pkill dump1090 || true
 	log_end_msg "$?"
 	;;
   reload)

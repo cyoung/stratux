@@ -1196,6 +1196,7 @@ func main() {
 	develFlag := flag.Bool("developer", false, "Developer mode")
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
+	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
 
 	flag.Parse()
 
@@ -1312,7 +1313,7 @@ func main() {
 			}
 		}
 
-	} else {
+	} else if *stdinFlag == true {
 		for {
 			buf, err := reader.ReadString('\n')
 			if err != nil {
@@ -1324,5 +1325,8 @@ func main() {
 				relayMessage(msgtype, o)
 			}
 		}
+	} else {
+		// wait indefinitely
+		select {}
 	}
 }
