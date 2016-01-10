@@ -17,11 +17,13 @@ import (
 type UAT struct {
 	dev     *rtl.Context
 	indexID int
+	serial  string
 }
 
 type ES struct {
 	dev     *rtl.Context
 	indexID int
+	serial  string
 }
 
 var UATDev *UAT
@@ -353,12 +355,16 @@ func sdrWatcher() {
 			if UATDev == nil {
 				// log.Println("\tUATDev == nil")
 				// preference check based on stratux
-				// hardware serial when it exists
-				serial := ids[id]
+				// hardware serial when it exists.
+				// manufact, product, serial, err
+				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
+				if err != nil {
+					serial = ""
+				}
 				if strings.HasPrefix(serial, "stratux:1090") {
 					log.Println("Settings conflict: 978UAT set via WebUI but hardware serial says stratux:1090")
 				} else {
-					UATDev = &UAT{indexID: id}
+					UATDev = &UAT{indexID: id, serial: serial}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
@@ -397,12 +403,16 @@ func sdrWatcher() {
 			if ESDev == nil {
 				// log.Println("\tESDev == nil")
 				// preference check based on stratux
-				// hardware serial when it exists
-				serial := ids[id]
+				// hardware serial when it exists.
+				// manufact, product, serial, err
+				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
+				if err != nil {
+					serial = ""
+				}
 				if strings.HasPrefix(serial, "stratux:978") {
 					log.Println("Settings conflict: 1090ES set via WebUI but hardware serial says stratux:978")
 				} else {
-					ESDev = &ES{indexID: id}
+					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
