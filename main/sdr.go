@@ -314,13 +314,6 @@ func sdrWatcher() {
 			}
 		}
 
-		ids := []string{"", ""}
-		for i := 0; i < count; i++ {
-			// manufact, product, serial, err
-			_, _, s, _ := rtl.GetDeviceUsbStrings(i)
-			ids[i] = s
-		}
-
 		// UAT specific handling
 
 		// Shutdown UAT for 50 seconds, check every 60 seconds if the count is 0.
