@@ -47,7 +47,9 @@ func New() *MPU6050 {
 }
 
 func (d *MPU6050) StartUp() error {
-	mpu.InitMPU()
+	mpu_sample_rate := 10 // 10 Hz read rate of hardware IMU
+	yaw_mix_factor := 0   // must be zero if no magnetometer
+	mpu.InitMPU(mpu_sample_rate, yaw_mix_factor)
 
 	d.pitch_history = make([]float64, 0)
 	d.roll_history = make([]float64, 0)
