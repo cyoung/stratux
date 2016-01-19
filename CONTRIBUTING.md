@@ -1,0 +1,3 @@
+## Issues
+
+Please use the [issue template](https://github.com/cyoung/stratux/issues/new?title=description+of+issue&body=1.%20Stratux%20version%3A%0A2.%20Stratux%20config%3A%20single%2Fdual%20SDR%2C%20GPS%20yes%2Fno%20(type%3F)%2C%20AHRS%20yes%2Fno%2C%20battery%2C%20battery%20cable.%0A3.%20EFB%20app%20and%20version%20(e.g.%2C%20WingX%20Pro7%208.6.2).%20EFB%20platform%20(e.g.%2C%20iOS%209.2).%20EFB%20hardware%20(e.g.%2C%20iPad%20Mini%202).%0A4.%20Description%20of%20your%20issue.%20If%20possible%2C%20enable%20%22Replay%20Logs%22%2C%20reproduce%20the%20problem%2C%20and%20provide%20a%20copy%20of%20the%20logs%20in%20http%3A%2F%2F192.168.10.1%2Flogs%2Fstratux%2F%20and%20http%3A%2F%2F192.168.10.1%2Flogs%2Fstratux.log.) to report an issue.
