@@ -284,6 +284,17 @@ func (e *ES) shutdown() {
 
 var devMap = map[int]string{0: "", 1: ""}
 
+var sdrShutdown bool
+
+func sdrKill() {
+	// Send signal to shutdown to sdrWatcher().
+	sdrShutdown = true
+	// Spin until all devices have been de-initialized.
+	for UATDev != nil || ESDev != nil {
+		time.Sleep(1 * time.Second)
+	}
+}
+
 // Watch for config/device changes.
 func sdrWatcher() {
 	stopCheckingUATUntil := time.Time{}
@@ -292,6 +303,17 @@ func sdrWatcher() {
 
 	for {
 		time.Sleep(1 * time.Second)
+		if sdrShutdown {
+			if UATDev != nil {
+				UATDev.shutdown()
+				UATDev = nil
+			}
+			if ESDev != nil {
+				ESDev.shutdown()
+				ESDev = nil
+			}
+			return
+		}
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 		// log.Println("DeviceCount...", count)

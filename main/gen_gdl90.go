@@ -21,9 +21,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
@@ -1200,8 +1202,23 @@ func openReplayFile(fn string) ReadCloser {
 }
 
 var stratuxClock *monotonic
+var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
+
+// Graceful shutdown.
+func signalWatcher() {
+	sig := <-sigs
+	log.Printf("signal caught: %s - shutting down.\n", sig.String())
+	// Shut down SDRs.
+	sdrKill()
+	//TODO: Any other graceful shutdown functions.
+	os.Exit(1)
+}
 
 func main() {
+	// Catch signals for graceful shutdown.
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go signalWatcher()
+
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
