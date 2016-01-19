@@ -1,3 +1,13 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	uibroadcast.go: Helper functions for managementinterface - notification channels for update "subscriptions"
+	 (used for weather and traffic websockets).
+*/
+
 package main
 
 import (

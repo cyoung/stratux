@@ -1,3 +1,12 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	network.go: Client networking routines, DHCP lease monitoring, queue management, ICMP monitoring.
+*/
+
 package main
 
 import (

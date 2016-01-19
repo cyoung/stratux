@@ -1,3 +1,12 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	traffic.go: Target management, UAT downlink message processing, 1090ES source input, GDL90 traffic reports.
+*/
+
 package main
 
 import (
