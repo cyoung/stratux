@@ -253,6 +253,15 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
+// AJAX call - /getClients. Responds with all connected clients.
+func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	clientsJSON, _ := json.Marshal(&outSockets)
+	fmt.Fprintf(w, "%s\n", clientsJSON)
+}
+
 func setNoCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -303,6 +312,7 @@ func managementInterface() {
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
+	http.HandleFunc("/getClients", handleClientsGetRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

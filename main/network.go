@@ -41,9 +41,10 @@ type networkConnection struct {
 		Sleep mode/throttle variables. "sleep mode" is actually now just a very reduced packet rate, since we don't know positively
 		 when a client is ready to accept packets - we just assume so if we don't receive ICMP Unreachable packets in 5 secs.
 	*/
-	lastUnreachable time.Time // Last time the device sent an ICMP Unreachable packet.
+	LastUnreachable time.Time // Last time the device sent an ICMP Unreachable packet.
 	nextMessageTime time.Time // The next time that the device is "able" to receive a message.
 	numOverflows    uint32    // Number of times the queue has overflowed - for calculating the amount to chop off from the queue.
+	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging (relies on messages being sent to update this flag in sendToAllConnectedClients()).
 }
 
 var messageQueue chan networkMessage
@@ -96,7 +97,7 @@ func isSleeping(k string) bool {
 	if !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
 		return true
 	}
-	if stratuxClock.Since(outSockets[k].lastUnreachable) < (5 * time.Second) {
+	if stratuxClock.Since(outSockets[k].LastUnreachable) < (5 * time.Second) {
 		return true
 	}
 	return false
@@ -105,25 +106,31 @@ func isSleeping(k string) bool {
 // Throttle mode for testing port open and giving some start-up time to the app.
 // Throttling is 0.1% data rate for first 15 seconds.
 func isThrottled(k string) bool {
-	return (rand.Int()%1000 != 0) && stratuxClock.Since(outSockets[k].lastUnreachable) < (15*time.Second)
+	return (rand.Int()%1000 != 0) && stratuxClock.Since(outSockets[k].LastUnreachable) < (15*time.Second)
 }
 
 func sendToAllConnectedClients(msg networkMessage) {
 	netMutex.Lock()
 	defer netMutex.Unlock()
 	for k, netconn := range outSockets {
+		sleepFlag := isSleeping(k)
+
+		netconn.SleepFlag = sleepFlag
+		outSockets[k] = netconn
+
 		// Check if this port is able to accept the type of message we're sending.
 		if (netconn.Capability & msg.msgType) == 0 {
 			continue
 		}
 		// Send non-queueable messages immediately, or discard if the client is in sleep mode.
+
 		if !msg.queueable {
-			if !isSleeping(k) {
+			if !sleepFlag {
 				netconn.Conn.Write(msg.msg) // Write immediately.
 				totalNetworkMessagesSent++
 			}
 		} else {
-			if !isSleeping(k) {
+			if !sleepFlag {
 				netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
 			}
 			// Queue the message if the message is "queueable".
@@ -342,7 +349,7 @@ func sleepMonitor() {
 			netMutex.Unlock()
 			continue
 		}
-		p.lastUnreachable = stratuxClock.Time
+		p.LastUnreachable = stratuxClock.Time
 		outSockets[ipAndPort] = p
 		netMutex.Unlock()
 	}
