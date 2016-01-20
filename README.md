@@ -28,5 +28,7 @@ Tested weather/traffic displays:
 * Avare
 * iFly 740 - weather & traffic.
 
+Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 
+http://stratux.me/
 https://www.reddit.com/r/stratux
