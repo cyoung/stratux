@@ -22,6 +22,11 @@ setup_stratux_bootconfig() {
 	echo "dtparam=i2c1=on" >>boot/config.txt
 	echo "dtparam=i2c1_baudrate=400000" >>boot/config.txt
 	echo "dtparam=i2c_arm_baudrate=400000" >>boot/config.txt
+	#fixed arm/sdram/core freq.
+	echo "arm_freq=900" >>boot/config.txt
+	echo "sdram_freq=450" >>boot/config.txt
+	echo "core_freq=450" >>boot/config.txt
+	
 	#disable serial console
     sed -i boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 }
@@ -164,6 +169,14 @@ ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 #i2c
 echo "i2c-bcm2708" >>/etc/modules
 echo "i2c-dev" >>/etc/modules
+
+
+#sysctl tweaks
+
+echo "net.core.rmem_max = 167772160" >>/etc/sysctl.conf
+echo "net.core.rmem_default = 167772160" >>/etc/sysctl.conf
+echo "net.core.wmem_max = 167772160" >>/etc/sysctl.conf
+echo "net.core.wmem_default = 167772160" >>/etc/sysctl.conf
 
 
 
