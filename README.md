@@ -31,4 +31,5 @@ Tested weather/traffic displays:
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 
 http://stratux.me/
+
 https://www.reddit.com/r/stratux
