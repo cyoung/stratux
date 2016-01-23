@@ -201,6 +201,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":
 						globalSettings.AHRS_Enabled = val.(bool)
+					case "PowerSave":
+						globalSettings.PowerSave = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "ReplayLog":
