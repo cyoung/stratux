@@ -297,10 +297,6 @@ func sdrKill() {
 
 // Watch for config/device changes.
 func sdrWatcher() {
-	stopCheckingUATUntil := time.Time{}
-
-	lastUATCheck := stratuxClock.Time
-
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
@@ -346,22 +342,10 @@ func sdrWatcher() {
 		}
 
 		// UAT specific handling
-
-		// Shutdown UAT for 50 seconds, check every 60 seconds if the count is 0.
-		if stratuxClock.Since(lastUATCheck) >= 1*time.Minute {
-			if UATDev != nil && globalStatus.UAT_messages_last_minute == 0 {
-				log.Printf("Pausing UAT listening for 50 seconds - none received.\n")
-				UATDev.shutdown()
-				UATDev = nil
-				stopCheckingUATUntil = stratuxClock.Time.Add(50 * time.Second)
-			}
-			lastUATCheck = stratuxClock.Time
-		}
-
 		// When count is one, favor UAT in the case where the user
 		// has enabled both UAT and ES via the web interface.
 		id := 0
-		if globalSettings.UAT_Enabled && stratuxClock.Time.After(stopCheckingUATUntil) {
+		if globalSettings.UAT_Enabled {
 			// log.Println("globalSettings.UAT_Enabled == true")
 			if count == 1 {
 				if ESDev != nil {
