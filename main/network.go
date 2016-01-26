@@ -124,15 +124,15 @@ func sendToAllConnectedClients(msg networkMessage) {
 		}
 		// Send non-queueable messages immediately, or discard if the client is in sleep mode.
 
+		if sleepFlag {
+			continue
+		}
+		netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
+
 		if !msg.queueable {
-			if !sleepFlag {
-				netconn.Conn.Write(msg.msg) // Write immediately.
-				totalNetworkMessagesSent++
-			}
+			netconn.Conn.Write(msg.msg) // Write immediately.
+			totalNetworkMessagesSent++
 		} else {
-			if !sleepFlag {
-				netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
-			}
 			// Queue the message if the message is "queueable".
 			if len(netconn.messageQueue) >= maxUserMsgQueueSize { // Too many messages queued? Drop the oldest.
 				log.Printf("%s:%d - message queue overflow.\n", netconn.Ip, netconn.Port)
@@ -228,8 +228,8 @@ func messageQueueSender() {
 			if stratuxClock.Since(lastQueueTimeChange) >= 5*time.Second {
 				var pd float64
 				if averageSendableQueueSize > 0.0 && len(outSockets) > 0 {
-					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets))  // It's a total, not an average, up until this point.
-					pd = math.Max(float64(1.0/2500.0), float64(1.0/(4.0*averageSendableQueueSize))) // Say 250ms is enough to get through the whole queue.
+					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets)) // It's a total, not an average, up until this point.
+					pd = math.Max(float64(1.0/750.0), float64(1.0/(4.0*averageSendableQueueSize))) // Say 250ms is enough to get through the whole queue.
 				} else {
 					pd = float64(1.0 / 0.1) // 100ms.
 				}
