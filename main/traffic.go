@@ -116,7 +116,6 @@ func registerTrafficUpdate(ti TrafficInfo) {
 	if !ti.Position_valid { // Don't send unless a valid position exists.
 		return
 	}
-	makeTrafficReport(ti)
 
 	tiJSON, _ := json.Marshal(&ti)
 	trafficUpdate.Send(tiJSON)
