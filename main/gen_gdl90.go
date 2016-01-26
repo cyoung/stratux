@@ -1167,7 +1167,6 @@ func uatReplay(f ReadCloser, replaySpeed uint64) {
 			}
 
 			p := strings.Trim(linesplit[1], " ;\r\n")
-			log.Printf("%s;\n", p)
 			buf := fmt.Sprintf("%s;\n", p)
 			o, msgtype := parseInput(buf)
 			if o != nil && msgtype != 0 {
