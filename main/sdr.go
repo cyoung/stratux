@@ -348,7 +348,7 @@ func sdrWatcher() {
 		// UAT specific handling
 
 		// Shutdown UAT for 50 seconds, check every 60 seconds if the count is 0.
-		if globalSettings.PowerSave && stratuxClock.Since(lastUATCheck) >= 1*time.Minute {
+		if stratuxClock.Since(lastUATCheck) >= 1*time.Minute {
 			if UATDev != nil && globalStatus.UAT_messages_last_minute == 0 {
 				log.Printf("Pausing UAT listening for 50 seconds - none received.\n")
 				UATDev.shutdown()

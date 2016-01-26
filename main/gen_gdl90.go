@@ -989,7 +989,6 @@ type settings struct {
 	PPM            int
 	OwnshipModeS   string
 	WatchList      string
-	PowerSave      bool
 }
 
 type status struct {
