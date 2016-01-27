@@ -4,6 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
+	Modifications (c) 2016 AvSquirrel (https://github.com/AvSquirrel)
 	monotonic.go: Create monotonic clock using time.Timer - necessary because of real time clock changes on RPi.
 */
 
@@ -17,16 +18,16 @@ import (
 // Timer (since start).
 
 type monotonic struct {
-	Seconds uint64
-	Time    time.Time
-	ticker  *time.Ticker
+	Milliseconds uint64
+	Time         time.Time
+	ticker       *time.Ticker
 }
 
 func (m *monotonic) Watcher() {
 	for {
 		<-m.ticker.C
-		m.Seconds++
-		m.Time = m.Time.Add(1 * time.Second)
+		m.Milliseconds += 50
+		m.Time = m.Time.Add(50 * time.Millisecond)
 	}
 }
 
@@ -35,11 +36,11 @@ func (m *monotonic) Since(t time.Time) time.Duration {
 }
 
 func (m *monotonic) HumanizeTime(t time.Time) string {
-	return humanize.RelTime(m.Time, t, "ago", "from now")
+	return humanize.RelTime(t, m.Time, "ago", "from now")
 }
 
 func NewMonotonic() *monotonic {
-	t := &monotonic{Seconds: 0, Time: time.Time{}, ticker: time.NewTicker(1 * time.Second)}
+	t := &monotonic{Milliseconds: 0, Time: time.Time{}, ticker: time.NewTicker(50 * time.Millisecond)}
 	go t.Watcher()
 	return t
 }
