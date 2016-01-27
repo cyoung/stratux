@@ -729,7 +729,7 @@ func updateStatus() {
 	}
 
 	// Update Uptime value
-	globalStatus.Uptime = int64(stratuxClock.Seconds) * 1000
+	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 }
 
 type ReplayWriter struct {
