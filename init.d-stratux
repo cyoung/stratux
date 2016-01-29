@@ -29,6 +29,7 @@ DAEMON_OPTS=""
 case "$1" in
   start)
 	log_daemon_msg "Starting $DESC" "$NAME"
+	echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 	start-stop-daemon --start --background --oknodo --quiet --exec "$DAEMON_SBIN" \
 		--pidfile "$PIDFILE" --make-pidfile -- $DAEMON_OPTS >/dev/null
 	log_end_msg "$?"
