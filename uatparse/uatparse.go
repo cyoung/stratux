@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"strings"
 )
 
@@ -235,24 +236,24 @@ func (f *UATFrame) decodeAirmet() {
 
 	record_format := (uint8(f.FISB_data[0]) & 0xF0) >> 4
 	f.RecordFormat = record_format
-	fmt.Printf("record_format=%d\n", record_format)
+	fmt.Fprintf(ioutil.Discard, "record_format=%d\n", record_format)
 	product_version := (uint8(f.FISB_data[0]) & 0x0F)
-	fmt.Printf("product_version=%d\n", product_version)
+	fmt.Fprintf(ioutil.Discard, "product_version=%d\n", product_version)
 	record_count := (uint8(f.FISB_data[1]) & 0xF0) >> 4
-	fmt.Printf("record_count=%d\n", record_count)
+	fmt.Fprintf(ioutil.Discard, "record_count=%d\n", record_count)
 	location_identifier := dlac_decode(f.FISB_data[2:], 3)
-	fmt.Printf("%s\n", hex.Dump(f.FISB_data))
+	fmt.Fprintf(ioutil.Discard, "%s\n", hex.Dump(f.FISB_data))
 	f.LocationIdentifier = location_identifier
-	fmt.Printf("location_identifier=%s\n", location_identifier)
+	fmt.Fprintf(ioutil.Discard, "location_identifier=%s\n", location_identifier)
 	record_reference := (uint8(f.FISB_data[5])) //FIXME: Special values. 0x00 means "use location_identifier". 0xFF means "use different reference". (4-3).
-	fmt.Printf("record_reference=%d\n", record_reference)
+	fmt.Fprintf(ioutil.Discard, "record_reference=%d\n", record_reference)
 	// Not sure when this is even used.
 	// rwy_designator := (record_reference & FC) >> 4
 	// parallel_rwy_designator := record_reference & 0x03 // 0 = NA, 1 = R, 2 = L, 3 = C (Figure 4-2).
 
 	//FIXME: Assume one record.
 	if record_count != 1 {
-		fmt.Printf("record_count=%d, != 1\n", record_count)
+		fmt.Fprintf(ioutil.Discard, "record_count=%d, != 1\n", record_count)
 		return
 	}
 	/*
@@ -269,73 +270,73 @@ func (f *UATFrame) decodeAirmet() {
 	case 2:
 		record_length := (uint16(f.FISB_data[6]) << 8) | uint16(f.FISB_data[7])
 		if len(f.FISB_data)-int(record_length) < 6 {
-			fmt.Printf("FISB record not long enough: record_length=%d, len(f.FISB_data)=%d\n", record_length, len(f.FISB_data))
+			fmt.Fprintf(ioutil.Discard, "FISB record not long enough: record_length=%d, len(f.FISB_data)=%d\n", record_length, len(f.FISB_data))
 			return
 		}
-		fmt.Printf("record_length=%d\n", record_length)
+		fmt.Fprintf(ioutil.Discard, "record_length=%d\n", record_length)
 		// Report identifier = report number + report year.
 		report_number := (uint16(f.FISB_data[8]) << 6) | ((uint16(f.FISB_data[9]) & 0xFC) >> 2)
 		f.ReportNumber = report_number
-		fmt.Printf("report_number=%d\n", report_number)
+		fmt.Fprintf(ioutil.Discard, "report_number=%d\n", report_number)
 		report_year := ((uint16(f.FISB_data[9]) & 0x03) << 5) | ((uint16(f.FISB_data[10]) & 0xF8) >> 3)
 		f.ReportYear = report_year
-		fmt.Printf("report_year=%d\n", report_year)
+		fmt.Fprintf(ioutil.Discard, "report_year=%d\n", report_year)
 		report_status := (uint8(f.FISB_data[10]) & 0x04) >> 2 //TODO: 0 = cancelled, 1 = active.
-		fmt.Printf("report_status=%d\n", report_status)
-		fmt.Printf("record_length=%d,len=%d\n", record_length, len(f.FISB_data))
+		fmt.Fprintf(ioutil.Discard, "report_status=%d\n", report_status)
+		fmt.Fprintf(ioutil.Discard, "record_length=%d,len=%d\n", record_length, len(f.FISB_data))
 		text_data_len := record_length - 5
 		text_data := dlac_decode(f.FISB_data[11:], uint32(text_data_len))
-		fmt.Printf("text_data=%s\n", text_data)
+		fmt.Fprintf(ioutil.Discard, "text_data=%s\n", text_data)
 		f.Text_data = formatDLACData(text_data)
 	case 8:
 		// (6-1). (6.22 - Graphical Overlay Record Format).
 		record_data := f.FISB_data[6:] // Start after the record header.
 		record_length := (uint16(record_data[0]) << 2) | ((uint16(record_data[1]) & 0xC0) >> 6)
-		fmt.Printf("record_length=%d\n", record_length)
+		fmt.Fprintf(ioutil.Discard, "record_length=%d\n", record_length)
 		// Report identifier = report number + report year.
 		report_number := ((uint16(record_data[1]) & 0x3F) << 8) | uint16(record_data[2])
 		f.ReportNumber = report_number
-		fmt.Printf("report_number=%d\n", report_number)
+		fmt.Fprintf(ioutil.Discard, "report_number=%d\n", report_number)
 		report_year := (uint16(record_data[3]) & 0xFE) >> 1
 		f.ReportYear = report_year
-		fmt.Printf("report_year=%d\n", report_year)
+		fmt.Fprintf(ioutil.Discard, "report_year=%d\n", report_year)
 		overlay_record_identifier := ((uint8(record_data[4]) & 0x1E) >> 1) + 1 // Document instructs to add 1.
-		fmt.Printf("overlay_record_identifier=%d\n", overlay_record_identifier)
+		fmt.Fprintf(ioutil.Discard, "overlay_record_identifier=%d\n", overlay_record_identifier)
 		object_label_flag := uint8(record_data[4] & 0x01)
-		fmt.Printf("object_label_flag=%d\n", object_label_flag)
+		fmt.Fprintf(ioutil.Discard, "object_label_flag=%d\n", object_label_flag)
 
 		if object_label_flag == 0 { // Numeric index.
 			object_label := (uint8(record_data[5]) << 8) | uint8(record_data[6])
 			record_data = record_data[7:]
-			fmt.Printf("object_label=%d\n", object_label)
+			fmt.Fprintf(ioutil.Discard, "object_label=%d\n", object_label)
 		} else {
 			object_label := dlac_decode(record_data[5:], 9)
 			record_data = record_data[14:]
-			fmt.Printf("object_label=%s\n", object_label)
+			fmt.Fprintf(ioutil.Discard, "object_label=%s\n", object_label)
 		}
 
 		element_flag := (uint8(record_data[0]) & 0x80) >> 7
-		fmt.Printf("element_flag=%d\n", element_flag)
+		fmt.Fprintf(ioutil.Discard, "element_flag=%d\n", element_flag)
 		qualifier_flag := (uint8(record_data[0]) & 0x40) >> 6
-		fmt.Printf("qualifier_flag=%d\n", qualifier_flag)
+		fmt.Fprintf(ioutil.Discard, "qualifier_flag=%d\n", qualifier_flag)
 		param_flag := (uint8(record_data[0]) & 0x20) >> 5
-		fmt.Printf("param_flag=%d\n", param_flag)
+		fmt.Fprintf(ioutil.Discard, "param_flag=%d\n", param_flag)
 		object_element := uint8(record_data[0]) & 0x1F
-		fmt.Printf("object_element=%d\n", object_element)
+		fmt.Fprintf(ioutil.Discard, "object_element=%d\n", object_element)
 
 		object_type := (uint8(record_data[1]) & 0xF0) >> 4
-		fmt.Printf("object_type=%d\n", object_type)
+		fmt.Fprintf(ioutil.Discard, "object_type=%d\n", object_type)
 
 		object_status := uint8(record_data[1]) & 0x0F
-		fmt.Printf("object_status=%d\n", object_status)
+		fmt.Fprintf(ioutil.Discard, "object_status=%d\n", object_status)
 
 		//FIXME
 		if qualifier_flag == 0 { //TODO: Check.
 			record_data = record_data[2:]
 		} else {
 			object_qualifier := (uint32(record_data[2]) << 16) | (uint32(record_data[3]) << 8) | uint32(record_data[4])
-			fmt.Printf("object_qualifier=%d\n", object_qualifier)
-			fmt.Printf("%02x%02x%02x\n", record_data[2], record_data[3], record_data[4])
+			fmt.Fprintf(ioutil.Discard, "object_qualifier=%d\n", object_qualifier)
+			fmt.Fprintf(ioutil.Discard, "%02x%02x%02x\n", record_data[2], record_data[3], record_data[4])
 			record_data = record_data[5:]
 		}
 		//FIXME
@@ -347,17 +348,17 @@ func (f *UATFrame) decodeAirmet() {
 		//}
 
 		record_applicability_options := (uint8(record_data[0]) & 0xC0) >> 6
-		fmt.Printf("record_applicability_options=%d\n", record_applicability_options)
+		fmt.Fprintf(ioutil.Discard, "record_applicability_options=%d\n", record_applicability_options)
 		date_time_format := (uint8(record_data[0]) & 0x30) >> 4
-		fmt.Printf("date_time_format=%d\n", date_time_format)
+		fmt.Fprintf(ioutil.Discard, "date_time_format=%d\n", date_time_format)
 		geometry_overlay_options := uint8(record_data[0]) & 0x0F
-		fmt.Printf("geometry_overlay_options=%d\n", geometry_overlay_options)
+		fmt.Fprintf(ioutil.Discard, "geometry_overlay_options=%d\n", geometry_overlay_options)
 
 		overlay_operator := (uint8(record_data[1]) & 0xC0) >> 6
-		fmt.Printf("overlay_operator=%d\n", overlay_operator)
+		fmt.Fprintf(ioutil.Discard, "overlay_operator=%d\n", overlay_operator)
 
 		overlay_vertices_count := (uint8(record_data[1]) & 0x3F) + 1 // Document instructs to add 1. (6.20).
-		fmt.Printf("overlay_vertices_count=%d\n", overlay_vertices_count)
+		fmt.Fprintf(ioutil.Discard, "overlay_vertices_count=%d\n", overlay_vertices_count)
 
 		// Parse all of the dates.
 		switch record_applicability_options {
@@ -379,18 +380,18 @@ func (f *UATFrame) decodeAirmet() {
 		switch geometry_overlay_options {
 		case 3: // Extended Range 3D Polygon (MSL).
 			points := make([]GeoPoint, 0) // Slice containing all of the points.
-			fmt.Printf("%d\n", len(record_data))
+			fmt.Fprintf(ioutil.Discard, "%d\n", len(record_data))
 			for i := 0; i < int(overlay_vertices_count); i++ {
 				lng_raw := (int32(record_data[6*i]) << 11) | (int32(record_data[6*i+1]) << 3) | (int32(record_data[6*i+2]) & 0xE0 >> 5)
 				lat_raw := ((int32(record_data[6*i+2]) & 0x1F) << 14) | (int32(record_data[6*i+3]) << 6) | ((int32(record_data[6*i+4]) & 0xFC) >> 2)
 				alt_raw := ((int32(record_data[6*i+4]) & 0x03) << 8) | int32(record_data[6*i+5])
 
-				fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
+				fmt.Fprintf(ioutil.Discard, "lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
 				lat, lng := airmetLatLng(lat_raw, lng_raw, false)
 
 				alt := alt_raw * 100
-				fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
-				fmt.Printf("coord:%f,%f\n", lat, lng)
+				fmt.Fprintf(ioutil.Discard, "lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
+				fmt.Fprintf(ioutil.Discard, "coord:%f,%f\n", lat, lng)
 				var point GeoPoint
 				point.Lat = lat
 				point.Lon = lng
@@ -403,12 +404,12 @@ func (f *UATFrame) decodeAirmet() {
 			lat_raw := ((int32(record_data[2]) & 0x1F) << 14) | (int32(record_data[3]) << 6) | ((int32(record_data[4]) & 0xFC) >> 2)
 			alt_raw := ((int32(record_data[4]) & 0x03) << 8) | int32(record_data[5])
 
-			fmt.Printf("lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
+			fmt.Fprintf(ioutil.Discard, "lat_raw=%d, lng_raw=%d, alt_raw=%d\n", lat_raw, lng_raw, alt_raw)
 			lat, lng := airmetLatLng(lat_raw, lng_raw, false)
 
 			alt := alt_raw * 100
-			fmt.Printf("lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
-			fmt.Printf("coord:%f,%f\n", lat, lng)
+			fmt.Fprintf(ioutil.Discard, "lat=%f,lng=%f,alt=%d\n", lat, lng, alt)
+			fmt.Fprintf(ioutil.Discard, "coord:%f,%f\n", lat, lng)
 			var point GeoPoint
 			point.Lat = lat
 			point.Lon = lng
@@ -436,26 +437,26 @@ func (f *UATFrame) decodeAirmet() {
 			r_lng := float64(r_lng_raw) * float64(0.2)
 			r_lat := float64(r_lat_raw) * float64(0.2)
 
-			fmt.Printf("lat_bot, lng_bot = %f, %f\n", lat_bot, lng_bot)
-			fmt.Printf("lat_top, lng_top = %f, %f\n", lat_top, lng_top)
+			fmt.Fprintf(ioutil.Discard, "lat_bot, lng_bot = %f, %f\n", lat_bot, lng_bot)
+			fmt.Fprintf(ioutil.Discard, "lat_top, lng_top = %f, %f\n", lat_top, lng_top)
 
 			if geometry_overlay_options == 8 {
-				fmt.Printf("alt_bot, alt_top = %d AGL, %d AGL\n", alt_bot, alt_top)
+				fmt.Fprintf(ioutil.Discard, "alt_bot, alt_top = %d AGL, %d AGL\n", alt_bot, alt_top)
 			} else {
-				fmt.Printf("alt_bot, alt_top = %d MSL, %d MSL\n", alt_bot, alt_top)
+				fmt.Fprintf(ioutil.Discard, "alt_bot, alt_top = %d MSL, %d MSL\n", alt_bot, alt_top)
 			}
-			fmt.Printf("r_lng, r_lat = %f, %f\n", r_lng, r_lat)
+			fmt.Fprintf(ioutil.Discard, "r_lng, r_lat = %f, %f\n", r_lng, r_lat)
 
-			fmt.Printf("alpha=%d\n", alpha)
+			fmt.Fprintf(ioutil.Discard, "alpha=%d\n", alpha)
 
 		default:
-			fmt.Printf("unknown geometry: %d\n", geometry_overlay_options)
+			fmt.Fprintf(ioutil.Discard, "unknown geometry: %d\n", geometry_overlay_options)
 		}
 	//case 1: // Unformatted ASCII Text.
 	default:
-		fmt.Printf("unknown record format: %d\n", record_format)
+		fmt.Fprintf(ioutil.Discard, "unknown record format: %d\n", record_format)
 	}
-	fmt.Printf("\n\n\n")
+	fmt.Fprintf(ioutil.Discard, "\n\n\n")
 }
 
 func (f *UATFrame) decodeInfoFrame() {
@@ -474,7 +475,7 @@ func (f *UATFrame) decodeInfoFrame() {
 	case 8, 11, 13:
 		f.decodeAirmet()
 	default:
-		fmt.Printf("don't know what to do with product id: %d\n", f.Product_id)
+		fmt.Fprintf(ioutil.Discard, "don't know what to do with product id: %d\n", f.Product_id)
 	}
 
 	//	logger.Printf("pos=%d,len=%d,t_opt=%d,product_id=%d, time=%d:%d\n", frame_start, frame_len, t_opt, product_id, fisb_hours, fisb_minutes)
