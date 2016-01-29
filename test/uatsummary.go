@@ -1,15 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"../uatparse"
-	"os"
 	"bufio"
+	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
-
-
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
@@ -30,13 +28,13 @@ func main() {
 		uatMsg.DecodeUplink()
 
 		/*
-		p, _ := uatMsg.GetTextReports()
-		for _, r := range p {
-			fmt.Printf("!!!!%s!!!!\n", r)
-		}
+			p, _ := uatMsg.GetTextReports()
+			for _, r := range p {
+				fmt.Printf("!!!!%s!!!!\n", r)
+			}
 		*/
 
-		fmt.Printf("(%f,%f) says: ", uatMsg.Lat, uatMsg.Lon)
+		fmt.Printf("(%f,%f,%d,%d) says: ", uatMsg.Lat, uatMsg.Lon, uatMsg.RS_Err, uatMsg.SignalStrength)
 		types := make(map[string]int)
 		for _, uatframe := range uatMsg.Frames {
 			if uatframe.Product_id == 413 {
@@ -65,9 +63,9 @@ func main() {
 				fmt.Printf("%s(%d) ", thisType, thisNum)
 			}
 			fmt.Printf("\n")
-//			fmt.Printf("%s\n", buf)
-//			k, _ := uatMsg.GetTextReports()
-//			fmt.Printf("%v\n", k)
+			//			fmt.Printf("%s\n", buf)
+			//			k, _ := uatMsg.GetTextReports()
+			//			fmt.Printf("%v\n", k)
 		}
 	}
 }

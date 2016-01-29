@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 )
 
@@ -63,8 +64,11 @@ type UATFrame struct {
 }
 
 type UATMsg struct {
-	msg     []byte
-	decoded bool
+	// Metadata from demodulation.
+	RS_Err         int
+	SignalStrength int
+	msg            []byte
+	decoded        bool
 	// Station location for uplink frames, aircraft position for downlink frames.
 	Lat    float64
 	Lon    float64
@@ -581,6 +585,27 @@ func New(buf string) (*UATMsg, error) {
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
 	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 
+	/*
+		RS_Err         int
+		SignalStrength int
+	*/
+	ret.SignalStrength = -1
+	ret.RS_Err = -1
+	for _, f := range x[1:] {
+		x2 := strings.Split(f, "=")
+		if len(x2) != 2 {
+			continue
+		}
+		i, err := strconv.Atoi(x2[1])
+		if err != nil {
+			continue
+		}
+		if x2[0] == "ss" {
+			ret.SignalStrength = i
+		} else if x2[0] == "rs" {
+			ret.RS_Err = i
+		}
+	}
 	s := x[0]
 
 	// Only want "long" uplink messages.
