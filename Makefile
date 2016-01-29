@@ -62,6 +62,9 @@ www:
 	mkdir -p /var/www/plates/js
 	cp web/plates/js/*.js /var/www/plates/js
 	cp web/index.html /var/www
+	cp web/stratux.appcache /var/www
+	# Mark the manifest with the git hash.
+	echo "# Stratux build: " `git log -n 1 --pretty=%H` >>/var/www/stratux.appcache
 
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
