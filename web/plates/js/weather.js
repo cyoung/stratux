@@ -154,16 +154,16 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.socket = socket; // store socket in scope for enter/exit usage
 		}
 
-		$scope.ConnectState = "Not Receiving";
+		$scope.ConnectState = "Disconnected";
 
 		socket.onopen = function (msg) {
 			// $scope.ConnectStyle = "label-success";
-			$scope.ConnectState = "Receiving";
+			$scope.ConnectState = "Connected";
 		};
 
 		socket.onclose = function (msg) {
 			// $scope.ConnectStyle = "label-danger";
-			$scope.ConnectState = "Not Receiving";
+			$scope.ConnectState = "Disconnected";
 			$scope.$apply();
 			setTimeout(connect, 1000);
 		};
