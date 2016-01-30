@@ -601,18 +601,54 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
-			sendGDL90(makeHeartbeat(), false)
-			sendGDL90(makeStratuxHeartbeat(), false)
-			sendGDL90(makeStratuxStatus(), false)
-			//		sendGDL90(makeTrafficReport())
-			makeOwnshipReport()
-			makeOwnshipGeometricAltitudeReport()
+			if globalSettings.ForeFlightSimMode == false {
+				//log.Printf("Sending GDL90; FFSM = %t\n",globalSettings.ForeFlightSimMode)
+				sendGDL90(makeHeartbeat(), false)
+				sendGDL90(makeStratuxHeartbeat(), false)
+				sendGDL90(makeStratuxStatus(), false)
+				makeOwnshipReport()
+				makeOwnshipGeometricAltitudeReport()
+			} else {
+				//log.Printf("Sending FFSim message; FFSM = %t\n",globalSettings.ForeFlightSimMode)
+				sendFFSimLocation()
+			}
+
+			if globalSettings.DemoMode == true {
+				//updateDemoTraffic(icao int32, tail string, relAlt float 64, gs float64, offset float64)
+				updateDemoTraffic(0xAFFFFF, "DEMO1234", 5000, 500, 0)
+				updateDemoTraffic(0xAFFFFE, "DEMO5678", 1000, 150, 90)
+				updateDemoTraffic(0xAFFFFD, "DEMO9012", 500, 60, 180)
+			}
+
 			sendTrafficUpdates()
+			if globalSettings.FLARMTraffic == true {
+				sendGPRMCString()
+			}
 			updateStatus()
 		case <-timerMessageStats.C:
 			// Save a bit of CPU by not pruning the message log every 1 second.
 			updateMessageStats()
 		}
+	}
+}
+
+func sendFFSimLocation() {
+	if isGPSValid() {
+		s := fmt.Sprintf("XGPSStratux,%.5f,%.5f,%.1f,%.f,%.1f", mySituation.Lng, mySituation.Lat, float32(mySituation.Alt)/3.2808, float32(mySituation.TrueCourse), float32(mySituation.GroundSpeed)/3.2808)
+		sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
+		/*
+			XGPSMy Sim,-80.11,34.55,1200.1,359.05,55.6
+
+			The "words" are separated by a comma (no word may contain a comma). The required words are:
+
+			XGPS followed by a name/ID of the simulator type sending the data (that might be "My Sim" without quotes)
+
+			Longitude
+			Latitude
+			Altitude in meters MSL
+			Track-along-ground from true north
+			Groundspeed in meters/sec
+		*/
 	}
 }
 
@@ -979,16 +1015,19 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled    bool
-	ES_Enabled     bool
-	GPS_Enabled    bool
-	NetworkOutputs []networkConnection
-	AHRS_Enabled   bool
-	DEBUG          bool
-	ReplayLog      bool
-	PPM            int
-	OwnshipModeS   string
-	WatchList      string
+	UAT_Enabled       bool
+	ES_Enabled        bool
+	GPS_Enabled       bool
+	NetworkOutputs    []networkConnection
+	AHRS_Enabled      bool
+	DEBUG             bool
+	ReplayLog         bool
+	PPM               int
+	OwnshipModeS      string
+	WatchList         string
+	ForeFlightSimMode bool
+	DemoMode          bool
+	FLARMTraffic      bool
 }
 
 type status struct {
@@ -1020,12 +1059,15 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
-		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
+		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.ForeFlightSimMode = false
+	globalSettings.DemoMode = false
+	globalSettings.FLARMTraffic = false
 }
 
 func readSettings() {
@@ -1226,6 +1268,9 @@ func main() {
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
+	ffSimFlag := flag.Bool("ffsim", false, "ForeFlight simulator mode")
+	demoFlag := flag.Bool("demo", false, "Demo mode -- use for simulated traffic, weather, etc... ")
+	flarmFlag := flag.Bool("flarm", false, "Enable output of FLARM NMEA messages on serial port")
 
 	flag.Parse()
 
@@ -1308,6 +1353,30 @@ func main() {
 
 	// Mark the files (whether we're logging or not).
 	replayMark(globalSettings.ReplayLog)
+
+	if *ffSimFlag == true {
+		globalSettings.ForeFlightSimMode = true
+		log.Printf("ForeFlight simulator mode enabled\n")
+	} else {
+		globalSettings.ForeFlightSimMode = false
+		log.Printf("ForeFlight simulator mode disabled\n")
+	}
+
+	if *demoFlag == true {
+		globalSettings.DemoMode = true
+		log.Printf("Traffic demo mode enabled")
+	} else {
+		globalSettings.DemoMode = false
+		log.Printf("Traffic demo mode disabled")
+	}
+
+	if *flarmFlag == true {
+		globalSettings.FLARMTraffic = true
+		log.Printf("FLARM NMEA output enabled")
+	} else {
+		globalSettings.FLARMTraffic = false
+		log.Printf("FLARM NMEA output disabled")
+	}
 
 	initRY835AI()
 

@@ -12,6 +12,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,10 +35,10 @@ type SituationData struct {
 	mu_GPS *sync.Mutex
 
 	// From GPS.
-	lastFixSinceMidnightUTC uint32
-	Lat                     float32
-	Lng                     float32
-	quality                 uint8
+	lastFixSinceMidnightUTC float32 // Time of most recent GPS fix time, UTC seconds
+	Lat                     float32 // decimal latitude DD.dddddd (North is positive)
+	Lng                     float32 // decimal longitude DDD.dddddd (East is positive)
+	quality                 uint8   // 0 = no fix; 1 = GPS/GLONASS; 2 = differential GPS (e.g. WAAS); 6 = dead reckoning
 	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
 	Satellites              uint16  // satellites used in solution
 	SatellitesTracked       uint16  // satellites tracked (almanac data received)
@@ -382,21 +383,21 @@ func processNMEALine(l string) bool {
 			}
 			hr, err1 := strconv.Atoi(x[2][0:2])
 			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.Atoi(x[2][4:6])
+			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
 
-			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+			mySituation.lastFixSinceMidnightUTC = float32((hr*60*60)+(min*60)) + float32(sec)
 
 			// field 3-4 = lat
 
-			if len(x[3]) < 10 {
+			if len(x[3]) < 4 {
 				return false
 			}
 
 			hr, err1 = strconv.Atoi(x[3][0:2])
-			minf, err2 := strconv.ParseFloat(x[3][2:10], 32)
+			minf, err2 := strconv.ParseFloat(x[3][2:], 32)
 			if err1 != nil || err2 != nil {
 				return false
 			}
@@ -407,11 +408,11 @@ func processNMEALine(l string) bool {
 			}
 
 			// field 5-6 = lon
-			if len(x[5]) < 11 {
+			if len(x[5]) < 5 {
 				return false
 			}
 			hr, err1 = strconv.Atoi(x[5][0:3])
-			minf, err2 = strconv.ParseFloat(x[5][3:11], 32)
+			minf, err2 = strconv.ParseFloat(x[5][3:], 32)
 			if err1 != nil || err2 != nil {
 				return false
 			}
@@ -559,18 +560,18 @@ func processNMEALine(l string) bool {
 			}
 			hr, err1 := strconv.Atoi(x[2][0:2])
 			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.Atoi(x[2][4:6])
+			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
-			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+			mySituation.lastFixSinceMidnightUTC = float32((3600*hr)+(60*min)) + float32(sec)
 
 			// field 3 is date
 
 			if len(x[3]) == 6 {
 				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[3], hr, min, sec)
-				gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
+				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 				if err == nil {
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
@@ -630,12 +631,12 @@ func processNMEALine(l string) bool {
 		}
 		hr, err1 := strconv.Atoi(x[1][0:2])
 		min, err2 := strconv.Atoi(x[1][2:4])
-		sec, err3 := strconv.Atoi(x[1][4:6])
+		sec, err3 := strconv.ParseFloat(x[1][4:], 32)
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
 
-		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+		mySituation.lastFixSinceMidnightUTC = float32((3600*hr)+(60*min)) + float32(sec)
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -745,16 +746,16 @@ func processNMEALine(l string) bool {
 		}
 		hr, err1 := strconv.Atoi(x[1][0:2])
 		min, err2 := strconv.Atoi(x[1][2:4])
-		sec, err3 := strconv.Atoi(x[1][4:6])
+		sec, err3 := strconv.ParseFloat(x[1][4:], 32)
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
-		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+		mySituation.lastFixSinceMidnightUTC = float32((3600*hr)+(60*min)) + float32(sec)
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[9], hr, min, sec)
-			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
+			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			if err == nil {
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
@@ -867,6 +868,101 @@ func processNMEALine(l string) bool {
 		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
 	}
 	return true
+}
+
+func sendGPRMCString() {
+	msg := makeGPRMCString()
+	log.Printf("FLARM GPRMC String: %s\n", msg) // TO-DO: Send this to /dev/ttyAMA0
+}
+
+func makeGPRMCString() string {
+	/*
+				 RMC          Recommended Minimum sentence C
+			     123519       Fix taken at 12:35:19 UTC
+			     A            Status A=active or V=Void.
+			     4807.038,N   Latitude 48 deg 07.038' N
+			     01131.000,E  Longitude 11 deg 31.000' E
+			     022.4        Speed over the ground in knots
+			     084.4        Track angle in degrees True
+			     230394       Date - 23rd of March 1994
+			     003.1,W      Magnetic Variation
+			     D				mode field (nmea 2.3 and higher)
+			     *6A          The checksum data, always begins with *
+
+		lastFixSinceMidnightUTC uint32
+		Lat                     float32
+		Lng                     float32
+		quality                 uint8
+		GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+		Satellites              uint16  // satellites used in solution
+		SatellitesTracked       uint16  // satellites tracked (almanac data received)
+		SatellitesSeen          uint16  // satellites seen (signal received)
+		Accuracy                float32 // 95% confidence for horizontal position, meters.
+		NACp                    uint8   // NACp categories are defined in AC 20-165A
+		Alt                     float32 // Feet MSL
+		AccuracyVert            float32 // 95% confidence for vertical position, meters
+		GPSVertVel              float32 // GPS vertical velocity, feet per second
+		LastFixLocalTime        time.Time
+		TrueCourse              uint16
+		GroundSpeed             uint16
+		LastGroundTrackTime     time.Time
+
+
+	*/
+
+	lastFix := float64(mySituation.lastFixSinceMidnightUTC)
+	hr := math.Floor(lastFix / 3600)
+	lastFix -= 3600 * hr
+	mins := math.Floor(lastFix / 60)
+	sec := lastFix - mins*60
+
+	status := "V"
+	if isGPSValid() && mySituation.quality > 0 {
+		status = "A"
+	}
+
+	lat := float64(mySituation.Lat)
+	deg := math.Floor(lat)
+	min := (lat - deg) * 60
+	lat = deg*100 + min
+
+	ns := "N"
+	if lat < 0 {
+		lat = -lat
+		ns = "S"
+	}
+
+	lng := float64(mySituation.Lng)
+	deg = math.Floor(lng)
+	min = (lng - deg) * 60
+	lng = deg*100 + min
+
+	ew := "E"
+	if lng < 0 {
+		lng = -lng
+		ew = "W"
+	}
+
+	gs := float32(mySituation.GroundSpeed)
+	trueCourse := float32(mySituation.TrueCourse)
+	yy, mm, dd := time.Now().UTC().Date()
+	yy = yy % 100
+	var magVar, mvEW string
+	mode := "N"
+	if mySituation.quality == 1 {
+		mode = "A"
+	} else if mySituation.quality == 2 {
+		mode = "D"
+	}
+
+	msg := fmt.Sprintf("GPRMC,%02.f%02.f%05.2f,%s,%010.5f,%s,%011.5f,%s,%.1f,%.1f,%02d,%02d,%02d,%s,%s,%s\n", hr, mins, sec, status, lat, ns, lng, ew, gs, trueCourse, dd, mm, yy, magVar, mvEW, mode)
+
+	var checksum byte
+	for i := range msg {
+		checksum = checksum ^ byte(msg[i])
+	}
+	msg = fmt.Sprintf("$%s*%X", msg, checksum)
+	return msg
 }
 
 func gpsSerialReader() {
@@ -1013,8 +1109,11 @@ func attitudeReaderSender() {
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
-		makeFFAHRSSimReport()
-		makeAHRSGDL90Report()
+		if globalSettings.ForeFlightSimMode == true {
+			makeFFAHRSSimReport()
+		} else {
+			makeAHRSGDL90Report()
+		}
 
 		mySituation.mu_Attitude.Unlock()
 	}
@@ -1058,7 +1157,7 @@ func initAHRS() error {
 }
 
 func pollRY835AI() {
-	timer := time.NewTicker(10 * time.Second)
+	timer := time.NewTicker(5 * time.Second)
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?

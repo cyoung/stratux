@@ -4,6 +4,10 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
+	Support for ForeFlight simulator mode, ownship details parsing,
+	and FLARM NMEA message generation (c) 2016 AvSquirrel
+	(https://github.com/AvSquirrel)
+
 	traffic.go: Target management, UAT downlink message processing, 1090ES source input, GDL90 traffic reports.
 */
 
@@ -13,6 +17,8 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"log"
 	"math"
 	"net"
 	"strconv"
@@ -200,7 +206,184 @@ func makeTrafficReport(ti TrafficInfo) {
 		msg[19+i] = c
 	}
 
-	sendGDL90(prepareMessage(msg), false)
+	if globalSettings.ForeFlightSimMode == false {
+		sendGDL90(prepareMessage(msg), false)
+		fmt.Printf("Sending GDL traffic message\n")
+	} else {
+		airborne := 0
+		if !ti.OnGround {
+			airborne = 1
+		}
+
+		ffmsg := fmt.Sprintf("XTRAFFICStratux,%v,%.4f,%.4f,%.f,%.f,%b,%.f,%.f,%s %03d", ti.Icao_addr, ti.Lat, ti.Lng, float32(ti.Alt), float32(ti.Vvel), airborne, float32(ti.Track), float32(ti.Speed), ti.Tail, int16(ti.Alt/100))
+
+		sendMsg([]byte(ffmsg), NETWORK_AHRS_FFSIM, false)
+		fmt.Printf("Sending FF traffic message %s\n", ffmsg)
+
+		/*  Documentation of FF Flight Sim format from https://www.foreflight.com/support/network-gps/
+		For traffic data, the simulator will need to send packets in the form of a string message like this:
+
+		XTRAFFICMy Sim,,33.85397339,-118.32486725,3749.9,-213.0,1,68.2,126.0,KS6
+
+		The "words" are separated by a comma (no word may contain a comma). The required words are:
+
+		XTRAFFIC followed by a name/ID of the simulator type sending the data (that might be "My Sim" without quotes)
+		ICAO address, an integer ID
+		Traffic latitude - float
+		Traffic longitude - float
+		Traffic geometric altitude - float (feet)
+		Traffic vertical speed - float (ft/min)
+		Airborne boolean flag - 1 or 0: 1=airborne; 0=surface
+		Heading - float, degrees true
+		Velocity knots - float
+		Callsign - string
+		*/
+	}
+
+	if globalSettings.FLARMTraffic == true && isGPSValid() {
+		flarmmsg, valid := makeFlarmNMEAString(ti)
+		fmt.Printf("FLARM string valid: %t\n", valid)
+		// if valid {
+		log.Printf("FLARM String: %s\n", flarmmsg) // TO-DO: Send this to /dev/ttyAMA0
+		//}
+
+	}
+}
+
+func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
+
+	/*	Format: $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>*<checksum>
+		            $PFLAA,0,-10687,-22561,-10283,1,A4F2EE,136,0,269,0.0,0*4E
+
+			<AlarmLevel>  Decimal integer value. Range: from 0 to 3.
+							Alarm level as assessed by FLARM:
+							0 = no alarm (also used for no-alarm traffic information)
+							1 = alarm, 13-18 seconds to impact
+							2 = alarm, 9-12 seconds to impact
+							3 = alarm, 0-8 seconds to impact
+
+			<RelativeNorth>,<RelativeEast>,<RelativeVertical> are distances in meters. Decimal integer value. Range: from -32768 to 32767.
+
+			<IDType>: 1 = official ICAO 24-bit aircraft address; 2 = stable FLARM ID (chosen by FLARM) 3 = anonymous ID, used if stealth mode is activated.
+			For ADS-B traffic, we'll always pick 1.
+
+			<ID>: 6-digit hexadecimal value (e.g. “5A77B1”) as configured in the target’s PFLAC,,ID sentence. For ADS-B targets always use reported 24-bit ICAO address.
+
+			<Track>: Decimal integer value. Range: from 0 to 359. The target’s true ground track in degrees.
+
+			<TurnRate>: Not used. Empty field.
+
+			<GroundSpeed>: Decimal integer value. Range: from 0 to 32767. The target’s ground speed in m/s
+
+			<ClimbRate>: Decimal fixed point number with one digit after the radix point (dot). Range: from -32.7 to 32.7. The target’s climb rate in m/s.
+			Positive values indicate a climbing aircraft.
+
+			<AcftType>: Hexadecimal value. Range: from 0 to F.
+							Aircraft types:
+							0 = unknown
+							1 = glider / motor glider
+							2 = tow / tug plane
+							3 = helicopter / rotorcraft
+							4 = skydiver
+							5 = drop plane for skydivers
+							6 = hang glider (hard)
+							7 = paraglider (soft)
+							8 = aircraft with reciprocating engine(s)
+							9 = aircraft with jet/turboprop engine(s)
+							A = unknown
+							B = balloon
+							C = airship
+							D = unmanned aerial vehicle (UAV)
+							E = unknown
+							F = static object
+
+
+	*/
+
+	var alarmLevel, idType, checksum uint8
+	var relativeNorth, relativeEast, relativeVertical, groundSpeed int16
+	var climbRate float32
+
+	idType = 1
+
+	// determine distance and bearing to target
+	dist, bearing, distN, distE := distRect(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+	fmt.Printf("ICAO target %X (%s) is %.1f meters away at %.1f degrees\n", ti.Icao_addr, ti.Tail, dist, bearing)
+
+	if distN > 32767 || distN < -32767 || distE > 32767 || distE < -32767 {
+		msg = ""
+		valid = false
+		return
+	} else {
+		relativeNorth = int16(distN)
+		relativeEast = int16(distE)
+	}
+
+	relativeVertical = int16(float64(ti.Alt)*0.3048 - mySituation.Pressure_alt*0.3048) // convert to meters
+
+	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
+		alarmLevel = 2
+	} else if (dist < 1852) && (relativeVertical < 304) && (relativeVertical > -304) { // 1852 m = 1.0 NM ; 304 m = 1000'
+		alarmLevel = 1
+	}
+
+	if ti.Speed_valid {
+		groundSpeed = int16(float32(ti.Speed) * 0.5144) // convert to m/s
+	}
+
+	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
+	for i := range msg {
+		checksum = checksum ^ byte(msg[i])
+	}
+	msg = fmt.Sprintf("$%s*%X", msg, checksum)
+	valid = true
+	return
+}
+
+// Create fake traffic targets for demonstration purpose. Targets will circle clockwise about current GPS position once every 5 minutes
+// Parameters are ICAO 24-bit address, tail number (8-byte max), speed in knots, and degree offset from initial position.
+
+func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset float64) {
+	var ti TrafficInfo
+
+	hdg := float64((stratuxClock.Milliseconds/1000)%360) + offset
+	// gs := float64(220) // knots
+	radius := gs * 0.1 / (2 * math.Pi)
+	x := radius * math.Cos(hdg*math.Pi/180.0)
+	y := radius * math.Sin(hdg*math.Pi/180.0)
+	// default traffic location is Oshkosh if GPS not detected
+	lat := 43.99
+	lng := -88.56
+	if isGPSValid() {
+		lat = float64(mySituation.Lat)
+		lng = float64(mySituation.Lng)
+	}
+	traffRelLat := y / 60
+	traffRelLng := -x / (60 * math.Cos(lat*math.Pi/180.0))
+
+	ti.Icao_addr = icao
+	ti.OnGround = false
+	ti.addr_type = 0
+	ti.emitter_category = 1
+	ti.Lat = float32(lat + traffRelLat)
+	ti.Lng = float32(lng + traffRelLng)
+	ti.Position_valid = true
+	ti.Alt = int32(mySituation.Alt + relAlt)
+	ti.Track = uint16(hdg)
+	ti.Speed = uint16(gs)
+	ti.Speed_valid = true
+	ti.Vvel = 0
+	ti.Tail = tail // "DEMO1234"
+	ti.Last_seen = stratuxClock.Time
+	ti.Last_source = 1
+
+	// now insert this into the traffic map...
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	traffic[ti.Icao_addr] = ti
+	registerTrafficUpdate(ti)
+	seenTraffic[ti.Icao_addr] = true
 }
 
 func parseDownlinkReport(s string) {
