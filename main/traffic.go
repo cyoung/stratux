@@ -240,6 +240,10 @@ func makeTrafficReport(ti TrafficInfo) {
 		*/
 	}
 
+	/*
+		Prototype for FLARM-formatted traffic output.
+	*/
+
 	if globalSettings.FLARMTraffic == true && isGPSValid() {
 		flarmmsg, valid := makeFlarmNMEAString(ti)
 		fmt.Printf("FLARM string valid: %t\n", valid)
@@ -249,6 +253,36 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	}
 }
+
+/*
+parseOwnshipADSBMessage scans the traffic map for the ownship ICAO address. If found, it
+will feed that data into mySituation.x
+
+Return value is a byte indicating status of the message
+
+ Bit 0: 0 if code not found; 1 if code found
+ Bit
+ Bit 1-6: Age of message
+
+ 7 6 5 4 3 2 1 0
+
+*/
+
+func parseOwnshipADSBMessage() uint8 {
+	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
+	ti, present := traffic[uint32(code)]
+	if !present { // address isn't in the map
+		fmt.Printf("Address %X not seen in the traffic map.\n", code)
+		return 0
+	}
+
+	fmt.Printf("Address %X found in the traffic map with tail number %s.\n", code, ti.Tail)
+	return 1
+}
+
+/*
+makeFlarmNMEAString creates a NMEA-formatted PFLAA string (FLARM traffic format) with checksum.
+*/
 
 func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 
@@ -344,11 +378,10 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 // Create fake traffic targets for demonstration purpose. Targets will circle clockwise about current GPS position once every 5 minutes
 // Parameters are ICAO 24-bit address, tail number (8-byte max), speed in knots, and degree offset from initial position.
 
-func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset float64) {
+func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
 
-	hdg := float64((stratuxClock.Milliseconds/1000)%360) + offset
-	// gs := float64(220) // knots
+	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 360)
 	radius := gs * 0.1 / (2 * math.Pi)
 	x := radius * math.Cos(hdg*math.Pi/180.0)
 	y := radius * math.Sin(hdg*math.Pi/180.0)

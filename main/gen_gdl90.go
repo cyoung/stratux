@@ -612,6 +612,7 @@ func heartBeatSender() {
 				//log.Printf("Sending FFSim message; FFSM = %t\n",globalSettings.ForeFlightSimMode)
 				sendFFSimLocation()
 			}
+			parseOwnshipADSBMessage()
 
 			if globalSettings.DemoMode == true {
 				//updateDemoTraffic(icao int32, tail string, relAlt float 64, gs float64, offset float64)
