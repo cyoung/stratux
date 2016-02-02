@@ -112,10 +112,22 @@ func makeUBXCFG(class, id byte, msglen uint16, msg []byte) []byte {
 
 func initGPSSerial() bool {
 	var device string
-	if _, err := os.Stat("/dev/ttyACM0"); err == nil {
+	baudrate := int(9600)
+	isSirfIV := bool(false)
+
+	log.Printf("Configuring GPS\n")
+
+	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
+                isSirfIV = true
+                baudrate = 4800
+                device = "/dev/ttyUSB0"
+	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
 		device = "/dev/ttyACM0"
-	} else {
+	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
 		device = "/dev/ttyAMA0"
+	} else {
+		log.Printf("No suitable device found.\n");
+		return false;
 	}
 	log.Printf("Using %s for GPS\n", device)
 
@@ -167,114 +179,122 @@ func initGPSSerial() bool {
 
 		-- End developer option */
 
-	// Open port at 9600 baud for config.
-	serialConfig = &serial.Config{Name: device, Baud: 9600}
+	// Open port at default baud for config.
+	serialConfig = &serial.Config{Name: device, Baud: baudrate}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
 		return false
 	}
 
-	// Set 10Hz update. Little endian order.
-	p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
+	if isSirfIV {
+		log.Printf("Using SiRFIV config.\n");
+		// Enable VTG: $PSRF103,05,00,01,01*20
+		p.Write([]byte{0x24, 0x50, 0x53, 0x52, 0x46, 0x31, 0x30, 0x33, 0x2C, 0x30, 0x35, 0x2C, 0x30, 0x30, 0x2C, 0x30, 0x31, 0x2C, 0x30, 0x31, 0x2A, 0x32, 0x30, 0x0d, 0x0a})
+		// Disable GSV: $PSRF103,03,00,00,01*27
+		p.Write([]byte{0x24, 0x50, 0x53, 0x52, 0x46, 0x31, 0x30, 0x33, 0x2C, 0x30, 0x33, 0x2C, 0x30, 0x30, 0x2C, 0x30, 0x30, 0x2C, 0x30, 0x31, 0x2A, 0x32, 0x37, 0x0d, 0x0a})
+        } else {
+		// Set 10Hz update. Little endian order.
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
 
-	// Set navigation settings.
-	nav := make([]byte, 36)
-	nav[0] = 0x05 // Set dyn and fixMode only.
-	nav[1] = 0x00
-	// dyn.
-	nav[2] = 0x07 // "Airborne with >2g Acceleration".
-	nav[3] = 0x02 // 3D only.
+		// Set navigation settings.
+		nav := make([]byte, 36)
+		nav[0] = 0x05 // Set dyn and fixMode only.
+		nav[1] = 0x00
+		// dyn.
+		nav[2] = 0x07 // "Airborne with >2g Acceleration".
+		nav[3] = 0x02 // 3D only.
+	
+		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
-	p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
+		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
+		//
+		// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
+		// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
+		// for SBAS (WAAS), so little real-world impact.
 
-	// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
-	//
-	// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
-	// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
-	// for SBAS (WAAS), so little real-world impact.
+		cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
+		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
+		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
+		beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
+		qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
+		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
+		cfgGnss = append(cfgGnss, gps...)
+		cfgGnss = append(cfgGnss, sbas...)
+		cfgGnss = append(cfgGnss, beidou...)
+		cfgGnss = append(cfgGnss, qzss...)
+		cfgGnss = append(cfgGnss, glonass...)
+		p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 
-	cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
-	gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
-	sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
-	beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
-	qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-	glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
-	cfgGnss = append(cfgGnss, gps...)
-	cfgGnss = append(cfgGnss, sbas...)
-	cfgGnss = append(cfgGnss, beidou...)
-	cfgGnss = append(cfgGnss, qzss...)
-	cfgGnss = append(cfgGnss, glonass...)
-	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
+		// SBAS configuration for ublox 6 and higher
+		p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
-	// SBAS configuration for ublox 6 and higher
-	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
+		// Message output configuration -- disable standard NMEA messages except 1Hz GGA
+		//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
+	
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
+	
+		// Reconfigure serial port.
+		cfg := make([]byte, 20)
+		cfg[0] = 0x01 // portID.
+		cfg[1] = 0x00 // res0.
+		cfg[2] = 0x00 // res1.
+		cfg[3] = 0x00 // res1.
+	
+		//      [   7   ] [   6   ] [   5   ] [   4   ]
+		//	0000 0000 0000 0000 0000 10x0 1100 0000
+		// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
+		cfg[4] = 0xC0
+		cfg[5] = 0x08
+		cfg[6] = 0x00
+		cfg[7] = 0x00
+	
+		// Baud rate. Little endian order.
+		bdrt := uint32(38400)
+		cfg[11] = byte((bdrt >> 24) & 0xFF)
+		cfg[10] = byte((bdrt >> 16) & 0xFF)
+		cfg[9] = byte((bdrt >> 8) & 0xFF)
+		cfg[8] = byte(bdrt & 0xFF)
+	
+		// inProtoMask. NMEA and UBX. Little endian.
+		cfg[12] = 0x03
+		cfg[13] = 0x00
+	
+		// outProtoMask. NMEA. Little endian.
+		cfg[14] = 0x02
+		cfg[15] = 0x00
 
-	// Message output configuration -- disable standard NMEA messages except 1Hz GGA
-	//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
+		cfg[16] = 0x00 // flags.
+		cfg[17] = 0x00 // flags.
 
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
-
-	// Reconfigure serial port.
-	cfg := make([]byte, 20)
-	cfg[0] = 0x01 // portID.
-	cfg[1] = 0x00 // res0.
-	cfg[2] = 0x00 // res1.
-	cfg[3] = 0x00 // res1.
-
-	//      [   7   ] [   6   ] [   5   ] [   4   ]
-	//	0000 0000 0000 0000 0000 10x0 1100 0000
-	// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
-	cfg[4] = 0xC0
-	cfg[5] = 0x08
-	cfg[6] = 0x00
-	cfg[7] = 0x00
-
-	// Baud rate. Little endian order.
-	bdrt := uint32(38400)
-	cfg[11] = byte((bdrt >> 24) & 0xFF)
-	cfg[10] = byte((bdrt >> 16) & 0xFF)
-	cfg[9] = byte((bdrt >> 8) & 0xFF)
-	cfg[8] = byte(bdrt & 0xFF)
-
-	// inProtoMask. NMEA and UBX. Little endian.
-	cfg[12] = 0x03
-	cfg[13] = 0x00
-
-	// outProtoMask. NMEA. Little endian.
-	cfg[14] = 0x02
-	cfg[15] = 0x00
-
-	cfg[16] = 0x00 // flags.
-	cfg[17] = 0x00 // flags.
-
-	cfg[18] = 0x00 //pad.
-	cfg[19] = 0x00 //pad.
-
-	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
-	//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
-
+		cfg[18] = 0x00 //pad.
+		cfg[19] = 0x00 //pad.
+	
+		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
+		baudrate = 38400
+	}	
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
-	// Re-open port at 38400 baud so we can read messages. TO-DO: Fault detection / fallback to 9600 baud after failed config
-	serialConfig = &serial.Config{Name: device, Baud: 38400}
+	// Re-open port at newly configured baud so we can read messages. TO-DO: Fault detection / fallback to 9600 baud after failed config
+	serialConfig = &serial.Config{Name: device, Baud: baudrate}
 	p, err = serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -817,7 +837,9 @@ func processNMEALine(l string) bool {
 		}
 
 		// field 1: operation mode
-		if x[1] != "A" { // invalid fix
+		// M: manual forced to 2D or 3D mode
+		// A: automatic switching between 2D and 3D modes
+		if (x[1] != "A") && (x[1] != "M") { // invalid fix
 			return false
 		}
 
@@ -877,7 +899,12 @@ func gpsSerialReader() {
 		for scanner.Scan() {
 			s := scanner.Text()
 			// log.Printf("Output: %s\n", s)
-			processNMEALine(s)
+			ok := processNMEALine(s)
+			if (ok) {
+			//	log.Printf("OK\n")
+			} else {
+			//	log.Printf("FAIL\n")
+			}
 		}
 		if err := scanner.Err(); err != nil {
 			log.Printf("reading standard input: %s\n", err.Error())
