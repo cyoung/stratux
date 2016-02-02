@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./uatparse"
+	"../uatparse"
 	"bufio"
 	"encoding/json"
 	"flag"
