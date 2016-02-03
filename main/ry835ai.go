@@ -204,7 +204,7 @@ func initGPSSerial() bool {
 		// dyn.
 		nav[2] = 0x07 // "Airborne with >2g Acceleration".
 		nav[3] = 0x02 // 3D only.
-	
+
 		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
 		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
@@ -245,18 +245,18 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
-	
+
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
-	
+
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
 		cfg[0] = 0x01 // portID.
 		cfg[1] = 0x00 // res0.
 		cfg[2] = 0x00 // res1.
 		cfg[3] = 0x00 // res1.
-	
+
 		//      [   7   ] [   6   ] [   5   ] [   4   ]
 		//	0000 0000 0000 0000 0000 10x0 1100 0000
 		// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
@@ -264,18 +264,18 @@ func initGPSSerial() bool {
 		cfg[5] = 0x08
 		cfg[6] = 0x00
 		cfg[7] = 0x00
-	
+
 		// Baud rate. Little endian order.
 		bdrt := uint32(38400)
 		cfg[11] = byte((bdrt >> 24) & 0xFF)
 		cfg[10] = byte((bdrt >> 16) & 0xFF)
 		cfg[9] = byte((bdrt >> 8) & 0xFF)
 		cfg[8] = byte(bdrt & 0xFF)
-	
+
 		// inProtoMask. NMEA and UBX. Little endian.
 		cfg[12] = 0x03
 		cfg[13] = 0x00
-	
+
 		// outProtoMask. NMEA. Little endian.
 		cfg[14] = 0x02
 		cfg[15] = 0x00
@@ -285,11 +285,11 @@ func initGPSSerial() bool {
 
 		cfg[18] = 0x00 //pad.
 		cfg[19] = 0x00 //pad.
-	
+
 		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 		baudrate = 38400
-	}	
+	}
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
@@ -899,12 +899,7 @@ func gpsSerialReader() {
 		for scanner.Scan() {
 			s := scanner.Text()
 			// log.Printf("Output: %s\n", s)
-			ok := processNMEALine(s)
-			if (ok) {
-			//	log.Printf("OK\n")
-			} else {
-			//	log.Printf("FAIL\n")
-			}
+			processNMEALine(s)
 		}
 		if err := scanner.Err(); err != nil {
 			log.Printf("reading standard input: %s\n", err.Error())
