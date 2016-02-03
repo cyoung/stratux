@@ -1328,7 +1328,7 @@ func gpsAttitudeSender() {
 			if globalSettings.ForeFlightSimMode == true {
 				makeFFAHRSSimReport()
 			} else {
-			makeAHRSGDL90Report()
+				makeAHRSGDL90Report()
 			}
 		}
 		mySituation.mu_Attitude.Unlock()

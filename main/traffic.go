@@ -208,7 +208,9 @@ func makeTrafficReport(ti TrafficInfo) {
 
 	if globalSettings.ForeFlightSimMode == false {
 		sendGDL90(prepareMessage(msg), false)
+
 		//fmt.Printf("Sending GDL traffic message\n")
+
 	} else {
 		airborne := 0
 		if !ti.OnGround {
@@ -275,6 +277,7 @@ func parseOwnshipADSBMessage() uint8 {
 		fmt.Printf("Address %X not seen in the traffic map.\n", code)
 		return 0
 	}
+
 	mySituation.OwnshipTail = ti.Tail
 	mySituation.OwnshipPressureAlt = ti.Alt
 	mySituation.OwnshipLat = ti.Lat
@@ -283,6 +286,7 @@ func parseOwnshipADSBMessage() uint8 {
 
 	fmt.Printf("Address %X found in the traffic map at %.3f° LAT and %.3f° LNG with tail number %s at %d' MSL.\n", code, mySituation.OwnshipLat, mySituation.OwnshipLng, mySituation.OwnshipTail, mySituation.OwnshipPressureAlt)
 	// do all the things!
+
 	return 1
 }
 

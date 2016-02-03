@@ -637,9 +637,10 @@ func heartBeatSender() {
 
 			if globalSettings.DemoMode == true {
 				//updateDemoTraffic(icao int32, tail string, relAlt float 64, gs float64, offset float64)
-				updateDemoTraffic(0xF00001, "DEMO1234", 400, 500, 0)
-				updateDemoTraffic(0xF00002, "DEMO5678", 1500, 150, 90)
+				updateDemoTraffic(0xF00001, "DEMO1234", 10000, 500, 0)
+				updateDemoTraffic(0xF00002, "DEMO5678", 400, 150, 90)
 				updateDemoTraffic(0xF00003, "DEMO9012", 3500, 60, 180)
+
 			}
 
 			sendTrafficUpdates()
