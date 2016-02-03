@@ -250,7 +250,7 @@ func makeOwnshipReport() bool {
 	// See p.16.
 	msg[0] = 0x0A // Message type "Ownship".
 
-	msg[1] = 0x01 // Alert status, address type.
+	msg[1] = 0x00 // Alert status, address type.
 
 	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
 	if len(code) != 3 {
@@ -264,6 +264,7 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
+	fmt.Printf("Code is %X, %X, %X\n", msg[2], msg[3], msg[4])
 	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
@@ -281,11 +282,16 @@ func makeOwnshipReport() bool {
 	var alt uint16
 	var altf float64
 
-	if isTempPressValid() {
-		altf = float64(mySituation.Pressure_alt)
+	if isOwnshipPressureAltValid() {
+		altf = float64(mySituation.OwnshipPressureAlt) // use Mode S pressure altitude
+		fmt.Printf("Using Mode S altitude of %.f' MSL\n", altf)
+	} else if isTempPressValid() {
+		altf = float64(mySituation.Pressure_alt) // otherwise, onboard sensor
 	} else {
 		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
+	fmt.Printf("Using altitude of %.f' MSL\n", altf)
+
 	altf = (altf + 1000) / 25
 
 	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
@@ -324,15 +330,29 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	// Create callsign "Stratux".
-	msg[19] = 0x53
-	msg[20] = 0x74
-	msg[21] = 0x72
-	msg[22] = 0x61
-	msg[23] = 0x74
-	msg[24] = 0x75
-	msg[25] = 0x78
+	if isOwnshipPressureAltValid() && len(mySituation.OwnshipTail) > 0 {
+		tail := mySituation.OwnshipTail
+		if len(tail) > 8 {
+			tail = tail[:8]
+		}
 
+		fmt.Printf("Ownship tail message is %d bytes long\n", len(tail))
+		for i := range tail {
+			msg[i+19] = tail[i]
+		}
+		//fmt.Printf("Made ownship tail message: %X %X %X %X %X %X %X %X\n", msg[19], msg[20], msg[21], msg[22], msg[23], msg[24], msg[25], msg[26])
+	} else {
+		// Create callsign "Stratux".
+		msg[19] = 0x53
+		msg[20] = 0x74
+		msg[21] = 0x72
+		msg[22] = 0x61
+		msg[23] = 0x74
+		msg[24] = 0x75
+		msg[25] = 0x78
+	}
+
+	fmt.Printf("Sending GDL message %v\n", msg)
 	sendGDL90(prepareMessage(msg), false)
 	return true
 }
@@ -601,6 +621,8 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
+			parseOwnshipADSBMessage()
+
 			if globalSettings.ForeFlightSimMode == false {
 				//log.Printf("Sending GDL90; FFSM = %t\n",globalSettings.ForeFlightSimMode)
 				sendGDL90(makeHeartbeat(), false)
@@ -612,13 +634,12 @@ func heartBeatSender() {
 				//log.Printf("Sending FFSim message; FFSM = %t\n",globalSettings.ForeFlightSimMode)
 				sendFFSimLocation()
 			}
-			parseOwnshipADSBMessage()
 
 			if globalSettings.DemoMode == true {
 				//updateDemoTraffic(icao int32, tail string, relAlt float 64, gs float64, offset float64)
-				updateDemoTraffic(0xAFFFFF, "DEMO1234", 5000, 500, 0)
-				updateDemoTraffic(0xAFFFFE, "DEMO5678", 1000, 150, 90)
-				updateDemoTraffic(0xAFFFFD, "DEMO9012", 500, 60, 180)
+				updateDemoTraffic(0xF00001, "DEMO1234", 400, 500, 0)
+				updateDemoTraffic(0xF00002, "DEMO5678", 1500, 150, 90)
+				updateDemoTraffic(0xF00003, "DEMO9012", 3500, 60, 180)
 			}
 
 			sendTrafficUpdates()
@@ -1032,22 +1053,25 @@ type settings struct {
 }
 
 type status struct {
-	Version                  string
-	Devices                  uint32
-	Connected_Users          uint
-	UAT_messages_last_minute uint
-	uat_products_last_minute map[string]uint32
-	UAT_messages_max         uint
-	ES_messages_last_minute  uint
-	ES_messages_max          uint
-	GPS_satellites_locked    uint16
-	GPS_satellites_seen      uint16
-	GPS_satellites_tracked   uint16
-	GPS_connected            bool
-	GPS_solution             string
-	RY835AI_connected        bool
-	Uptime                   int64
-	CPUTemp                  float32
+	Version                      string
+	Devices                      uint32
+	Connected_Users              uint
+	UAT_messages_last_minute     uint
+	uat_products_last_minute     map[string]uint32
+	UAT_messages_max             uint
+	ES_messages_last_minute      uint
+	ES_messages_max              uint
+	GPS_satellites_locked        uint16
+	GPS_satellites_seen          uint16
+	GPS_msgs_last_minute         uint
+	GPS_invalid_msgs_last_minute uint
+	GPS_pos_msgs_last_minute     uint
+	GPS_satellites_tracked       uint16
+	GPS_connected                bool
+	GPS_solution                 string
+	RY835AI_connected            bool
+	Uptime                       int64
+	CPUTemp                      float32
 }
 
 var globalSettings settings
