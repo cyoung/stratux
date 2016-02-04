@@ -264,7 +264,7 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
-	fmt.Printf("Code is %X, %X, %X\n", msg[2], msg[3], msg[4])
+	//fmt.Printf("Code is %X, %X, %X\n", msg[2], msg[3], msg[4])
 	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
@@ -284,13 +284,13 @@ func makeOwnshipReport() bool {
 
 	if isOwnshipPressureAltValid() {
 		altf = float64(mySituation.OwnshipPressureAlt) // use Mode S pressure altitude
-		fmt.Printf("Using Mode S altitude of %.f' MSL\n", altf)
+		//fmt.Printf("Using Mode S altitude of %.f' MSL\n", altf)
 	} else if isTempPressValid() {
 		altf = float64(mySituation.Pressure_alt) // otherwise, onboard sensor
 	} else {
 		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
-	fmt.Printf("Using altitude of %.f' MSL\n", altf)
+	//fmt.Printf("Using altitude of %.f' MSL\n", altf)
 
 	altf = (altf + 1000) / 25
 
@@ -336,7 +336,7 @@ func makeOwnshipReport() bool {
 			tail = tail[:8]
 		}
 
-		fmt.Printf("Ownship tail message is %d bytes long\n", len(tail))
+		//fmt.Printf("Ownship tail message is %d bytes long\n", len(tail))
 		for i := range tail {
 			msg[i+19] = tail[i]
 		}
@@ -352,7 +352,7 @@ func makeOwnshipReport() bool {
 		msg[25] = 0x78
 	}
 
-	fmt.Printf("Sending GDL message %v\n", msg)
+	//fmt.Printf("Sending GDL message %v\n", msg)
 	sendGDL90(prepareMessage(msg), false)
 	return true
 }
@@ -513,8 +513,8 @@ func makeStratuxStatus() []byte {
 	msg[20] = byte((es_traffic_targets & 0xFF00) >> 8)
 	msg[21] = byte(es_traffic_targets & 0xFF)
 
-	// Number of UAT messages per minute.
 	msg[22] = byte((globalStatus.UAT_messages_last_minute & 0xFF00) >> 8)
+	// Number of UAT messages per minute.
 	msg[23] = byte(globalStatus.UAT_messages_last_minute & 0xFF)
 	// Number of 1090ES messages per minute.
 	msg[24] = byte((globalStatus.ES_messages_last_minute & 0xFF00) >> 8)
@@ -622,7 +622,8 @@ func heartBeatSender() {
 		select {
 		case <-timer.C:
 			parseOwnshipADSBMessage()
-
+			fmt.Printf("globalStatus.GPS_connected status = %t\n", globalStatus.GPS_connected)
+			fmt.Printf("isGPSConnected() status: = %t\n", isGPSConnected())
 			if globalSettings.ForeFlightSimMode == false {
 				//log.Printf("Sending GDL90; FFSM = %t\n",globalSettings.ForeFlightSimMode)
 				sendGDL90(makeHeartbeat(), false)
@@ -772,19 +773,26 @@ func cpuTempMonitor() {
 }
 
 func updateStatus() {
+	if !isGPSConnected() {
+		mySituation.Satellites = 0
+		mySituation.SatellitesSeen = 0
+		mySituation.SatellitesTracked = 0
+		mySituation.quality = 0
+		globalStatus.GPS_connected = false
+	}
+
 	globalStatus.GPS_satellites_locked = mySituation.Satellites
 	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
 	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
-	if isGPSValid() {
-		if mySituation.quality == 2 {
-			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
-		} else if mySituation.quality == 1 {
-			globalStatus.GPS_solution = "3D GPS"
-		} else if mySituation.quality == 6 {
-			globalStatus.GPS_solution = "Dead Reckoning"
-		} else {
-			globalStatus.GPS_solution = "No Fix"
-		}
+
+	if mySituation.quality == 2 {
+		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+	} else if mySituation.quality == 1 {
+		globalStatus.GPS_solution = "3D GPS"
+	} else if mySituation.quality == 6 {
+		globalStatus.GPS_solution = "Dead Reckoning"
+	} else {
+		globalStatus.GPS_solution = "No Fix"
 	}
 
 	// Update Uptime value

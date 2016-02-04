@@ -54,6 +54,7 @@ type SituationData struct {
 	GPSTurnRate             float32 // calculated GPS rate of turn, degrees per second
 	GroundSpeed             uint16  // knots
 	LastGroundTrackTime     time.Time
+	LastNMEAMessage         time.Time // time valid NMEA message last seen
 
 	mu_Attitude *sync.Mutex
 
@@ -98,6 +99,7 @@ type gpsMsgStats struct {
 	stratuxTime uint64 // time since Stratux start, msec
 	msgType     string // NMEA message type
 	msgValid    bool   // was message verified by NMEAChecksum()
+
 }
 
 var gpsPerf gpsPerfStats
@@ -569,6 +571,7 @@ func processNMEALine(l string) bool {
 	}
 	x := strings.Split(l_valid, ",")
 
+	mySituation.LastNMEAMessage = stratuxClock.Time
 	myGPSMsgStats[indexGPSMsgStats].msgValid = true
 	myGPSMsgStats[indexGPSMsgStats].msgType = x[0]
 	if x[0] == "PUBX" { // UBX proprietary message
@@ -1192,18 +1195,26 @@ func makeGPRMCString() string {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
+	//var i, j uint32
+	//for globalSettings.GPS_Enabled && globalStatus.GPS_connected { // taking this loop out, since we get stuck in the scanner.Scan() loop unless something goes wonky with the serial port at the system level. Disconnecting the GPS or messing with baud rates won't do it.
+	//i++
+	//fmt.Printf("gpsSerial loop iteration %d\n",i)
+	scanner := bufio.NewScanner(serialPort)
+	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
+		//j++
+		s := scanner.Text()
+		// log.Printf("Output: %s\n", s)
+		processNMEALine(s)
+		//if (j%25 == 0) {
+		//	fmt.Printf("gpsSerial scanner loop iteration %d\n",j)
 
-		scanner := bufio.NewScanner(serialPort)
-		for scanner.Scan() {
-			s := scanner.Text()
-			// log.Printf("Output: %s\n", s)
-			processNMEALine(s)
-		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("reading standard input: %s\n", err.Error())
-		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("reading standard input: %s\n", err.Error())
+	}
+
+	//}
+	log.Printf("Exiting gpsSerialReader()\n")
 	globalStatus.GPS_connected = false
 }
 
@@ -1372,8 +1383,12 @@ func isOwnshipPressureAltValid() bool {
 	return stratuxClock.Since(mySituation.OwnshipLastSeen) < 10*time.Second
 }
 
+func isGPSConnected() bool {
+	return stratuxClock.Since(mySituation.LastNMEAMessage) < 5*time.Second
+}
+
 func isGPSValid() bool {
-	return stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second
+	return (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && isGPSConnected()
 }
 
 func isGPSGroundTrackValid() bool {
@@ -1409,7 +1424,7 @@ func initAHRS() error {
 }
 
 func pollRY835AI() {
-	timer := time.NewTicker(5 * time.Second)
+	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
