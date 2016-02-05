@@ -51,6 +51,7 @@ type SituationData struct {
 	TrueCourse              uint16
 	GroundSpeed             uint16
 	LastGroundTrackTime     time.Time
+	LastNMEAMessage         time.Time // time valid NMEA message last seen
 
 	mu_Attitude *sync.Mutex
 
@@ -366,6 +367,8 @@ func processNMEALine(l string) bool {
 		return false
 	}
 	x := strings.Split(l_valid, ",")
+
+	mySituation.LastNMEAMessage = stratuxClock.Time
 
 	if x[0] == "PUBX" { // UBX proprietary message
 		if x[1] == "00" { // position message
@@ -871,18 +874,19 @@ func processNMEALine(l string) bool {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
+	//for globalSettings.GPS_Enabled && globalStatus.GPS_connected { // we never break out of the 'for scanner.Scan()...' loop. Remove to keep multiple instances from running
 
-		scanner := bufio.NewScanner(serialPort)
-		for scanner.Scan() {
-			s := scanner.Text()
-			// log.Printf("Output: %s\n", s)
-			processNMEALine(s)
-		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("reading standard input: %s\n", err.Error())
-		}
+	scanner := bufio.NewScanner(serialPort)
+	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
+		s := scanner.Text()
+		// log.Printf("Output: %s\n", s)
+		processNMEALine(s)
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("reading standard input: %s\n", err.Error())
+	}
+	//}
+	log.Printf("Exiting gpsSerialReader()\n")
 	globalStatus.GPS_connected = false
 }
 
@@ -1019,6 +1023,10 @@ func attitudeReaderSender() {
 		mySituation.mu_Attitude.Unlock()
 	}
 	globalStatus.RY835AI_connected = false
+}
+
+func isGPSConnected() bool {
+	return stratuxClock.Since(mySituation.LastNMEAMessage) < 5*time.Second
 }
 
 func isGPSValid() bool {
