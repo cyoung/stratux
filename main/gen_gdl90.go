@@ -713,20 +713,27 @@ func cpuTempMonitor() {
 }
 
 func updateStatus() {
+	if mySituation.quality == 2 {
+		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+	} else if mySituation.quality == 1 {
+		globalStatus.GPS_solution = "3D GPS"
+	} else if mySituation.quality == 6 {
+		globalStatus.GPS_solution = "Dead Reckoning"
+	} else {
+		globalStatus.GPS_solution = "No Fix"
+	}
+	if !isGPSConnected() {
+		mySituation.Satellites = 0
+		mySituation.SatellitesSeen = 0
+		mySituation.SatellitesTracked = 0
+		mySituation.quality = 0
+		globalStatus.GPS_solution = "Disconnected"
+		globalStatus.GPS_connected = false
+	}
+
 	globalStatus.GPS_satellites_locked = mySituation.Satellites
 	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
 	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
-	if isGPSValid() {
-		if mySituation.quality == 2 {
-			globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
-		} else if mySituation.quality == 1 {
-			globalStatus.GPS_solution = "3D GPS"
-		} else if mySituation.quality == 6 {
-			globalStatus.GPS_solution = "Dead Reckoning"
-		} else {
-			globalStatus.GPS_solution = "No Fix"
-		}
-	}
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
