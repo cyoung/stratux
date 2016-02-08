@@ -10,7 +10,18 @@ import (
 )
 
 func main() {
-	reader := bufio.NewReader(os.Stdin)
+	if len(os.Args) < 2 {
+		fmt.Printf("%s <uat log>\n", os.Args[0])
+		return
+	}
+	fp, err := os.Open(os.Args[1])
+	if err != nil {
+		fmt.Printf("can't open '%s'.\n", os.Args[1])
+		return
+	}
+	defer fp.Close()
+
+	reader := bufio.NewReader(fp)
 
 	for {
 		buf, err := reader.ReadString('\n')
@@ -19,9 +30,11 @@ func main() {
 			break
 		}
 
-		uatMsg, err := uatparse.New(buf)
+		x := strings.Split(buf, ",")
+
+		uatMsg, err := uatparse.New(x[1])
 		if err != nil {
-			fmt.Printf("err %s\n", err.Error())
+			//			fmt.Printf("err %s\n", err.Error())
 			continue
 		}
 
@@ -34,7 +47,7 @@ func main() {
 			}
 		*/
 
-		fmt.Printf("(%f,%f,%d,%d) says: ", uatMsg.Lat, uatMsg.Lon, uatMsg.RS_Err, uatMsg.SignalStrength)
+		fmt.Printf("%s,%f,%f,%d,%d, says: ", x[0], uatMsg.Lat, uatMsg.Lon, uatMsg.RS_Err, uatMsg.SignalStrength)
 		types := make(map[string]int)
 		for _, uatframe := range uatMsg.Frames {
 			if uatframe.Product_id == 413 {
@@ -57,7 +70,7 @@ func main() {
 		}
 
 		if len(types) == 0 {
-			fmt.Printf("nothing\n")
+			fmt.Printf("(unimplemented)\n")
 		} else {
 			for thisType, thisNum := range types {
 				fmt.Printf("%s(%d) ", thisType, thisNum)
