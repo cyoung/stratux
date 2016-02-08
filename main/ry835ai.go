@@ -112,11 +112,11 @@ func makeUBXCFG(class, id byte, msglen uint16, msg []byte) []byte {
 }
 
 func makeNMEACmd(cmd string) []byte {
-  chk_sum := byte(0)
-  for i := range cmd {
-    chk_sum = chk_sum ^ byte(cmd[i])
-  }
-  return []byte(fmt.Sprintf("$%s*%02x\x0d\x0a", cmd, chk_sum))
+	chk_sum := byte(0)
+	for i := range cmd {
+		chk_sum = chk_sum ^ byte(cmd[i])
+	}
+	return []byte(fmt.Sprintf("$%s*%02x\x0d\x0a", cmd, chk_sum))
 }
 
 func initGPSSerial() bool {
@@ -127,16 +127,16 @@ func initGPSSerial() bool {
 	log.Printf("Configuring GPS\n")
 
 	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
-                isSirfIV = true
-                baudrate = 4800
-                device = "/dev/ttyUSB0"
+		isSirfIV = true
+		baudrate = 4800
+		device = "/dev/ttyUSB0"
 	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
 		device = "/dev/ttyACM0"
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
 		device = "/dev/ttyAMA0"
 	} else {
-		log.Printf("No suitable device found.\n");
-		return false;
+		log.Printf("No suitable device found.\n")
+		return false
 	}
 	log.Printf("Using %s for GPS\n", device)
 
@@ -197,7 +197,7 @@ func initGPSSerial() bool {
 	}
 
 	if isSirfIV {
-		log.Printf("Using SiRFIV config.\n");
+		log.Printf("Using SiRFIV config.\n")
 		// Enable 38400 baud.
 		p.Write(makeNMEACmd("PSRF100,1,38400,8,1,0"))
 		baudrate = 38400
@@ -221,7 +221,7 @@ func initGPSSerial() bool {
 		p.Write(makeNMEACmd("PSRF103,05,00,01,01"))
 		// Disable GSV.
 		p.Write(makeNMEACmd("PSRF103,03,00,00,01"))
-        } else {
+	} else {
 		// Set 10Hz update. Little endian order.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
 
