@@ -1247,24 +1247,29 @@ func makeGPRMCString() string {
 }
 
 func gpsSerialReader() {
-	defer serialPort.Close()
+	for /*globalSettings.GPS_Enabled && globalStatus.GPS_connected  */ {
+		for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
+			defer serialPort.Close()
 
-	//for globalSettings.GPS_Enabled && globalStatus.GPS_connected { // we never break out of the 'for scanner.Scan()...' loop. Remove to keep multiple instances from running
+			//for globalSettings.GPS_Enabled && globalStatus.GPS_connected { // we never break out of the 'for scanner.Scan()...' loop. Remove to keep multiple instances from running
 
-	scanner := bufio.NewScanner(serialPort)
-	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
-		s := scanner.Text()
-		// log.Printf("Output: %s\n", s)
-		processNMEALine(s)
+			scanner := bufio.NewScanner(serialPort)
+			for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
+				s := scanner.Text()
+				// log.Printf("Output: %s\n", s)
+				processNMEALine(s)
+
+			}
+			globalStatus.GPS_connected = false
+			if err := scanner.Err(); err != nil {
+				log.Printf("reading standard input: %s\n", err.Error())
+			}
+		}
+		//}
+		log.Printf("Exiting gpsSerialReader()\n")
 
 	}
-	if err := scanner.Err(); err != nil {
-		log.Printf("reading standard input: %s\n", err.Error())
-	}
 
-	//}
-	log.Printf("Exiting gpsSerialReader()\n")
-	globalStatus.GPS_connected = false
 }
 
 var i2cbus embd.I2CBus
@@ -1474,15 +1479,16 @@ func initAHRS() error {
 
 func pollRY835AI() {
 	timer := time.NewTicker(1 * time.Second)
+	go gpsSerialReader()
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
 		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected {
 			globalStatus.GPS_connected = initGPSSerial() // via USB for now.
-			if globalStatus.GPS_connected {
-				go gpsSerialReader()
-				go gpsAttitudeSender()
-			}
+			//if globalStatus.GPS_connected {
+			//	go gpsSerialReader()
+			//	go gpsAttitudeSender()
+			//}
 		}
 		// RY835AI I2C enabled, was not connected previously?
 		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
