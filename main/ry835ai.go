@@ -70,6 +70,8 @@ type SituationData struct {
 var serialConfig *serial.Config
 var serialPort *serial.Port
 
+var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
+
 /*
 file:///Users/c/Downloads/u-blox5_Referenzmanual.pdf
 Platform settings
@@ -321,8 +323,8 @@ func initGPSSerial() bool {
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
-	// Re-open port at newly configured baud so we can read messages. TO-DO: Fault detection / fallback to 9600 baud after failed config
-	serialConfig = &serial.Config{Name: device, Baud: baudrate}
+	// Re-open port at newly configured baud so we can read messages. ReadTimeout is set to keep from blocking the gpsSerialReader() on misconfigures or ttyAMA disconnects
+	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
 	p, err = serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -923,20 +925,28 @@ func processNMEALine(l string) bool {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	//for globalSettings.GPS_Enabled && globalStatus.GPS_connected { // we never break out of the 'for scanner.Scan()...' loop. Remove to keep multiple instances from running
+	readyToInitGPS = false // TO-DO: replace with channel control to terminate goroutine when complete
 
+	i := 0 //debug monitor
 	scanner := bufio.NewScanner(serialPort)
 	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
+		i++
+		if i%50 == 0 {
+			fmt.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
+		}
+
 		s := scanner.Text()
-		// log.Printf("Output: %s\n", s)
+		//fmt.Printf("Output: %s\n", s)
 		processNMEALine(s)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("reading standard input: %s\n", err.Error())
 	}
-	//}
-	log.Printf("Exiting gpsSerialReader()\n")
+
+	fmt.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
 	globalStatus.GPS_connected = false
+	readyToInitGPS = true // TO-DO: replace with channel control to terminate goroutine when complete
+	return
 }
 
 var i2cbus embd.I2CBus
@@ -1115,12 +1125,13 @@ func initAHRS() error {
 }
 
 func pollRY835AI() {
-	timer := time.NewTicker(10 * time.Second)
+	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+	timer := time.NewTicker(4 * time.Second)
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
-		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected {
-			globalStatus.GPS_connected = initGPSSerial() // via USB for now.
+		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+			globalStatus.GPS_connected = initGPSSerial()
 			if globalStatus.GPS_connected {
 				go gpsSerialReader()
 			}
