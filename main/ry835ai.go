@@ -642,7 +642,7 @@ func processNMEALine(l string) bool {
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
-		if len(x) < 10 {
+		if len(x) < 9 { // Reduce from 10 to 9 to allow parsing by devices pre-NMEA v2.3
 			return false
 		}
 		trueCourse := uint16(0)
