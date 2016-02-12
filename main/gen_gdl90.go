@@ -722,7 +722,8 @@ func updateStatus() {
 	} else {
 		globalStatus.GPS_solution = "No Fix"
 	}
-	if !isGPSConnected() {
+
+	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
 		mySituation.SatellitesTracked = 0
