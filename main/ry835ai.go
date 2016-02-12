@@ -812,6 +812,8 @@ func processNMEALine(l string) bool {
 		if x[2] != "A" { // invalid fix
 			mySituation.quality = 0
 			return false
+		} else if mySituation.quality == 0 {
+			mySituation.quality = 1 // fallback option; indicate if the position fix is valid even if GGA or PUBX,00 aren't received
 		}
 
 		// Timestamp.
@@ -971,9 +973,9 @@ func gpsSerialReader() {
 
 		s := scanner.Text()
 		//fmt.Printf("Output: %s\n", s)
-		//if !(processNMEALine(s)) {
-		//	fmt.Printf("processNMEALine() exited early -- %s\n",s) //debug code. comment out before pushing to github
-		//}
+		if !(processNMEALine(s)) {
+			//	fmt.Printf("processNMEALine() exited early -- %s\n",s) //debug code. comment out before pushing to github
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("reading standard input: %s\n", err.Error())
