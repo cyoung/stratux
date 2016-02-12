@@ -521,26 +521,22 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
+			mySituation.GroundSpeed = uint16(groundspeed)
 
 			// field 12 = track, deg
 			trueCourse := uint16(0)
-			if len(x[12]) > 0 && groundspeed > 3 {
-				tc, err := strconv.ParseFloat(x[12], 32)
-				if err != nil {
-					return false
-				}
-				trueCourse = uint16(tc)
-			} else {
-				// No movement.
-				mySituation.TrueCourse = 0
-				mySituation.GroundSpeed = 0
-				mySituation.LastGroundTrackTime = time.Time{}
+			tc, err := strconv.ParseFloat(x[12], 32)
+			if err != nil {
+				return false
 			}
-
-			setTrueCourse(uint16(groundspeed), trueCourse)
-
-			mySituation.TrueCourse = uint16(trueCourse)
-			mySituation.GroundSpeed = uint16(groundspeed)
+			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+				trueCourse = uint16(tc)
+				setTrueCourse(uint16(groundspeed), trueCourse)
+				mySituation.TrueCourse = uint16(trueCourse)
+			} else {
+				// Negligible movement. Don't update course, but do use the slow speed.
+				// TO-DO: use average course over last n seconds?
+			}
 			mySituation.LastGroundTrackTime = stratuxClock.Time
 
 			// field 13 = vertical velocity, m/s
@@ -638,36 +634,33 @@ func processNMEALine(l string) bool {
 			}
 		}
 
-		// otherwise parse the NMEA standard messages as a fall-back / compatibility option
+		// otherwise parse the NMEA standard messages as a compatibility option for SIRF, generic NMEA, etc.
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
-		mySituation.mu_GPS.Lock()
-		defer mySituation.mu_GPS.Unlock()
 		if len(x) < 9 { // Reduce from 10 to 9 to allow parsing by devices pre-NMEA v2.3
 			return false
 		}
-		trueCourse := uint16(0)
-		if len(x[1]) > 0 {
-			tc, err := strconv.ParseFloat(x[1], 32)
-			if err != nil {
-				return false
-			}
-			trueCourse = uint16(tc)
-		} else {
-			// No movement.
-			mySituation.TrueCourse = 0
-			mySituation.GroundSpeed = 0
-			mySituation.LastGroundTrackTime = time.Time{}
-			return true
-		}
-		groundSpeed, err := strconv.ParseFloat(x[5], 32) // Knots.
+		mySituation.mu_GPS.Lock()
+		defer mySituation.mu_GPS.Unlock()
+
+		groundspeed, err := strconv.ParseFloat(x[5], 32) // Knots.
 		if err != nil {
 			return false
 		}
+		mySituation.GroundSpeed = uint16(groundspeed)
 
-		setTrueCourse(uint16(groundSpeed), trueCourse)
-
-		mySituation.TrueCourse = uint16(trueCourse)
-		mySituation.GroundSpeed = uint16(groundSpeed)
+		trueCourse := uint16(0)
+		tc, err := strconv.ParseFloat(x[1], 32)
+		if err != nil {
+			return false
+		}
+		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+			trueCourse = uint16(tc)
+			setTrueCourse(uint16(groundspeed), trueCourse)
+			mySituation.TrueCourse = uint16(trueCourse)
+		} else {
+			// Negligible movement. Don't update course, but do use the slow speed.
+			// TO-DO: use average course over last n seconds?
+		}
 		mySituation.LastGroundTrackTime = stratuxClock.Time
 
 	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // GPS fix.
