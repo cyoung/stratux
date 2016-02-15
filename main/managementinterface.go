@@ -290,7 +290,7 @@ func setNoCache(w http.ResponseWriter) {
 }
 
 func defaultServer(w http.ResponseWriter, r *http.Request) {
-	setNoCache(w)
+	//	setNoCache(w)
 
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
