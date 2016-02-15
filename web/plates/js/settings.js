@@ -110,12 +110,12 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		}
 	};
 
-       $scope.postShutdown = function () {
-                $http.post('/shutdown');
-        };
+	$scope.postShutdown = function () {
+		$http.post('/shutdown');
+	};
 
-       $scope.postReboot = function () {
-                $http.post('/reboot');
-        };
+	$scope.postReboot = function () {
+		$http.post('/reboot');
+	};
 
 };
