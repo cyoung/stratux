@@ -124,14 +124,20 @@ func sendToAllConnectedClients(msg networkMessage) {
 		}
 		// Send non-queueable messages immediately, or discard if the client is in sleep mode.
 
-		if sleepFlag {
-			continue
+		if !sleepFlag {
+			netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
 		}
-		netconn.numOverflows = 0 // Reset the overflow counter whenever the client is not sleeping so that we're not penalizing future sleepmodes.
 
 		if !msg.queueable {
+			if sleepFlag {
+				continue
+			}
 			netconn.Conn.Write(msg.msg) // Write immediately.
 			totalNetworkMessagesSent++
+			globalStatus.NetworkDataMessagesSent++
+			globalStatus.NetworkDataMessagesSentNonqueueable++
+			globalStatus.NetworkDataBytesSent += uint64(len(msg.msg))
+			globalStatus.NetworkDataBytesSentNonqueueable += uint64(len(msg.msg))
 		} else {
 			// Queue the message if the message is "queueable".
 			if len(netconn.messageQueue) >= maxUserMsgQueueSize { // Too many messages queued? Drop the oldest.
@@ -220,6 +226,8 @@ func messageQueueSender() {
 					tmpConn := netconn
 					tmpConn.Conn.Write(tmpConn.messageQueue[0])
 					totalNetworkMessagesSent++
+					globalStatus.NetworkDataMessagesSent++
+					globalStatus.NetworkDataBytesSent += uint64(len(tmpConn.messageQueue[0]))
 					tmpConn.messageQueue = tmpConn.messageQueue[1:]
 					outSockets[k] = tmpConn
 				}
@@ -355,6 +363,28 @@ func sleepMonitor() {
 	}
 }
 
+func networkStatsCounter() {
+	timer := time.NewTicker(1 * time.Second)
+	var previousNetworkMessagesSent, previousNetworkBytesSent, previousNetworkMessagesSentNonqueueable, previousNetworkBytesSentNonqueueable uint64
+
+	for {
+		<-timer.C
+		globalStatus.NetworkDataMessagesSentLastSec = globalStatus.NetworkDataMessagesSent - previousNetworkMessagesSent
+		globalStatus.NetworkDataBytesSentLastSec = globalStatus.NetworkDataBytesSent - previousNetworkBytesSent
+		globalStatus.NetworkDataMessagesSentNonqueueableLastSec = globalStatus.NetworkDataMessagesSentNonqueueable - previousNetworkMessagesSentNonqueueable
+		globalStatus.NetworkDataBytesSentNonqueueableLastSec = globalStatus.NetworkDataBytesSentNonqueueable - previousNetworkBytesSentNonqueueable
+
+		// debug option. Uncomment to log per-second network statistics. Useful for debugging WiFi instability.
+		//log.Printf("Network data messages sent: %d total, %d last second.  Network data bytes sent: %d total, %d last second.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentLastSec, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentLastSec)
+
+		previousNetworkMessagesSent = globalStatus.NetworkDataMessagesSent
+		previousNetworkBytesSent = globalStatus.NetworkDataBytesSent
+		previousNetworkMessagesSentNonqueueable = globalStatus.NetworkDataMessagesSentNonqueueable
+		previousNetworkBytesSentNonqueueable = globalStatus.NetworkDataBytesSentNonqueueable
+	}
+
+}
+
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
 	outSockets = make(map[string]networkConnection)
@@ -364,4 +394,5 @@ func initNetwork() {
 	go monitorDHCPLeases()
 	go messageQueueSender()
 	go sleepMonitor()
+	go networkStatsCounter()
 }
