@@ -604,9 +604,25 @@ func heartBeatSender() {
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
-			//		sendGDL90(makeTrafficReport())
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
+			/* --- debug code: traffic demo* --- /
+			/* Uncomment and compile to display huge number of artificial traffic targets
+			numTargets := uint32(1000)
+			hexCode := uint32(0xFF0000)
+
+			for i := uint32(0); i < numTargets; i++ {
+				tail := fmt.Sprintf("DEMO%d", i)
+				alt := float32((i*117%2000)*25 + 2000)
+				hdg := float64((i * 37) % 360)
+				spd := float64(100 + ((i*7)%61)*13)
+
+				updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+
+			}
+
+			*/
+			/* ---end traffic demo code ---*/
 			sendTrafficUpdates()
 			updateStatus()
 		case <-timerMessageStats.C:
@@ -1000,22 +1016,30 @@ type settings struct {
 }
 
 type status struct {
-	Version                  string
-	Devices                  uint32
-	Connected_Users          uint
-	UAT_messages_last_minute uint
-	uat_products_last_minute map[string]uint32
-	UAT_messages_max         uint
-	ES_messages_last_minute  uint
-	ES_messages_max          uint
-	GPS_satellites_locked    uint16
-	GPS_satellites_seen      uint16
-	GPS_satellites_tracked   uint16
-	GPS_connected            bool
-	GPS_solution             string
-	RY835AI_connected        bool
-	Uptime                   int64
-	CPUTemp                  float32
+	Version                                    string
+	Devices                                    uint32
+	Connected_Users                            uint
+	UAT_messages_last_minute                   uint
+	uat_products_last_minute                   map[string]uint32
+	UAT_messages_max                           uint
+	ES_messages_last_minute                    uint
+	ES_messages_max                            uint
+	GPS_satellites_locked                      uint16
+	GPS_satellites_seen                        uint16
+	GPS_satellites_tracked                     uint16
+	GPS_connected                              bool
+	GPS_solution                               string
+	RY835AI_connected                          bool
+	Uptime                                     int64
+	CPUTemp                                    float32
+	NetworkDataMessagesSent                    uint64
+	NetworkDataMessagesSentNonqueueable        uint64
+	NetworkDataBytesSent                       uint64
+	NetworkDataBytesSentNonqueueable           uint64
+	NetworkDataMessagesSentLastSec             uint64
+	NetworkDataMessagesSentNonqueueableLastSec uint64
+	NetworkDataBytesSentLastSec                uint64
+	NetworkDataBytesSentNonqueueableLastSec    uint64
 }
 
 var globalSettings settings
@@ -1135,6 +1159,7 @@ func printStats() {
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
+		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)

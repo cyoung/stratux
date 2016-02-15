@@ -146,11 +146,9 @@ cp -f dump1090/dump1090 /usr/bin/
 
 mv /tmp/gen_gdl90 /usr/bin/gen_gdl90
 chmod +x /usr/bin/gen_gdl90
-cp start_uat.sh /usr/bin/start_uat
+
+#Startup script.
 cp init.d-stratux /etc/init.d/stratux
-cp start_stratux.sh /usr/sbin/stratux
-chmod 755 /usr/bin/start_uat
-chmod 755 /usr/sbin/stratux
 chmod 755 /etc/init.d/stratux
 ln -s /etc/init.d/stratux /etc/rc2.d/S01stratux
 ln -s /etc/init.d/stratux /etc/rc6.d/K01stratux

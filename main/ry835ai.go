@@ -1114,7 +1114,7 @@ func attitudeReaderSender() {
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
-		makeFFAHRSSimReport()
+		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()

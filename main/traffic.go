@@ -104,10 +104,15 @@ func sendTrafficUpdates() {
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
-	for _, ti := range traffic {
+	var msg []byte
+	for _, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around 500-1000 aircraft
 		if ti.Position_valid {
-			makeTrafficReport(ti)
+			msg = append(msg, makeTrafficReportMsg(ti)...)
 		}
+	}
+
+	if len(msg) > 0 {
+		sendGDL90(msg, false)
 	}
 }
 
@@ -121,7 +126,7 @@ func registerTrafficUpdate(ti TrafficInfo) {
 	trafficUpdate.Send(tiJSON)
 }
 
-func makeTrafficReport(ti TrafficInfo) {
+func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	msg := make([]byte, 28)
 	// See p.16.
 	msg[0] = 0x14 // Message type "Traffic Report".
@@ -200,7 +205,7 @@ func makeTrafficReport(ti TrafficInfo) {
 		msg[19+i] = c
 	}
 
-	sendGDL90(prepareMessage(msg), false)
+	return prepareMessage(msg)
 }
 
 func parseDownlinkReport(s string) {
@@ -565,6 +570,56 @@ func esListen() {
 			trafficMutex.Unlock()
 		}
 	}
+}
+
+/*
+updateDemoTraffic creates / updates a simulated traffic target for demonstration / debugging
+purpose. Target will circle clockwise around the current GPS position (if valid) or around
+KOSH, once every five minutes.
+
+Inputs are ICAO 24-bit hex code, tail number (8 chars max), relative altitude in feet,
+groundspeed in knots, and bearing offset from 0 deg initial position.
+*/
+func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset float64) {
+	var ti TrafficInfo
+
+	hdg := float64((stratuxClock.Milliseconds/1000)%360) + offset
+	// gs := float64(220) // knots
+	radius := gs * 0.1 / (2 * math.Pi)
+	x := radius * math.Cos(hdg*math.Pi/180.0)
+	y := radius * math.Sin(hdg*math.Pi/180.0)
+	// default traffic location is Oshkosh if GPS not detected
+	lat := 43.99
+	lng := -88.56
+	if isGPSValid() {
+		lat = float64(mySituation.Lat)
+		lng = float64(mySituation.Lng)
+	}
+	traffRelLat := y / 60
+	traffRelLng := -x / (60 * math.Cos(lat*math.Pi/180.0))
+
+	ti.Icao_addr = icao
+	ti.OnGround = false
+	ti.addr_type = 0
+	ti.emitter_category = 1
+	ti.Lat = float32(lat + traffRelLat)
+	ti.Lng = float32(lng + traffRelLng)
+	ti.Position_valid = true
+	ti.Alt = int32(mySituation.Alt + relAlt)
+	ti.Track = uint16(hdg)
+	ti.Speed = uint16(gs)
+	ti.Speed_valid = true
+	ti.Vvel = 0
+	ti.Tail = tail // "DEMO1234"
+	ti.Last_seen = stratuxClock.Time
+	ti.Last_source = 1
+
+	// now insert this into the traffic map...
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	traffic[ti.Icao_addr] = ti
+	registerTrafficUpdate(ti)
+	seenTraffic[ti.Icao_addr] = true
 }
 
 func initTraffic() {
