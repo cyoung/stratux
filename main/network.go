@@ -215,7 +215,7 @@ func refreshConnectedClients() {
 }
 
 func messageQueueSender() {
-	secondTimer := time.NewTicker(5 * time.Second)
+	secondTimer := time.NewTicker(15 * time.Second)
 	queueTimer := time.NewTicker(100 * time.Millisecond)
 
 	var lastQueueTimeChange time.Time // Reevaluate	send frequency every 5 seconds.

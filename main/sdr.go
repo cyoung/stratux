@@ -321,7 +321,7 @@ func sdrWatcher() {
 
 		// cleanup if necessary
 		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			log.Println("count == 0, doing cleanup if necessary...")
+			//			log.Println("count == 0, doing cleanup if necessary...")
 			if UATDev != nil {
 				UATDev.shutdown()
 				UATDev = nil
