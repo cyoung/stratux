@@ -17,6 +17,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -262,6 +263,26 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
 
+// Upload an update file.
+func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
+	file, handler, err := r.FormFile("update_file")
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer file.Close()
+	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
+	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer f.Close()
+	io.Copy(f, file)
+	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, updateFile)
+}
+
 func setNoCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -313,6 +334,7 @@ func managementInterface() {
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
+	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

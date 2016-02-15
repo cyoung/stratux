@@ -118,4 +118,20 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		$http.post('/reboot');
 	};
 
+	$scope.uploadFile = function(files) {
+		var fd = new FormData();
+		//Take the first selected file
+		fd.append("update_file", files[0]);
+
+		$http.post("/updateUpload", fd, {
+			withCredentials: true,
+			headers: {'Content-Type': undefined },
+			transformRequest: angular.identity
+		}).success(function (data) {
+			alert("success");
+		}).error(function (data) {
+			alert("error");
+		});
+
+	};
 };

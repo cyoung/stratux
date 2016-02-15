@@ -86,8 +86,8 @@
 			<div class="panel-body">
 				<div class="form-group">				
 					<div class="col-xs-5">
-	  				  <button ui-turn-on="modalShutdown">Shutdown</button> 				
-	  				 </div>
+						<button ui-turn-on="modalShutdown">Shutdown</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -104,6 +104,21 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Upload. Temporary. -->
+	<div class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">Update</div>
+			<div class="panel-body">
+				<div class="form-group">				
+					<div class="col-xs-5">
+						<input class="col-xs-7" type="file" name="update_file" onChange="angular.element(this).scope().uploadFile(this.files)"/>
+	  				 </div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 </div>
 
 
