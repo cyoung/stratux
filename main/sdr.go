@@ -126,29 +126,28 @@ func (u *UAT) read() {
 	}
 }
 
-func (e *ES) sdrConfig() (err error) {
-	log.Printf("===== ES Device Serial: %s =====\n", e.serial)
+func getPPM(serial string) int {
 	r, _ := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
-	arr := r.FindStringSubmatch(e.serial)
-	if ppm, err := strconv.Atoi(arr[1]); err != nil {
-		e.ppm = globalSettings.PPM
-	} else {
-		e.ppm = ppm
+        arr := r.FindStringSubmatch(e.serial)
+	if arr == nil {
+		return globalSettings.PPM
 	}
 
+        if ppm, err := strconv.Atoi(arr[1]); err != nil {
+                return globalSettings.PPM
+        } else {
+                return ppm
+        }
+}
+
+func (e *ES) sdrConfig() (err error) {
+	e.ppm = getPPM(e.serial)
 	return
 }
 
 func (u *UAT) sdrConfig() (err error) {
 	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
-
-	r, _ := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
-	arr := r.FindStringSubmatch(u.serial)
-	if ppm, err := strconv.Atoi(arr[1]); err != nil {
-		u.ppm = globalSettings.PPM
-	} else {
-		u.ppm = ppm
-	}
+	u.ppm = getPPM(u.serial)
 
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
 		log.Printf("\tUAT Open Failed...\n")
