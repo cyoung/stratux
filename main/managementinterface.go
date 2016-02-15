@@ -249,9 +249,13 @@ func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
 }
 
-func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+func doReboot() {
 	syscall.Sync()
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+	doReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -261,6 +265,11 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	clientsJSON, _ := json.Marshal(&outSockets)
 	fmt.Fprintf(w, "%s\n", clientsJSON)
+}
+
+func delayReboot() {
+	time.Sleep(1 * time.Second)
+	doReboot()
 }
 
 // Upload an update file.
@@ -281,6 +290,8 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	io.Copy(f, file)
 	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, updateFile)
+	// Successful update upload. Now reboot.
+	go delayReboot()
 }
 
 func setNoCache(w http.ResponseWriter) {

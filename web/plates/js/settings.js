@@ -128,7 +128,8 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 			headers: {'Content-Type': undefined },
 			transformRequest: angular.identity
 		}).success(function (data) {
-			alert("success");
+			alert("success. wait 60 seconds and refresh home page to verify new version.");
+			window.location.replace("/");
 		}).error(function (data) {
 			alert("error");
 		});
