@@ -150,14 +150,22 @@ func sendToAllConnectedClients(msg networkMessage) {
 					netconn.messageQueue = netconn.messageQueue[s:]
 				}
 			}
-			netconn.messageQueue = append(netconn.messageQueue, msg.msg)
+			netconn.messageQueue = append(netconn.messageQueue, msg.msg) // each netconn.messageQueue is therefore an array (well, a slice) of formatted GDL90 messages
 			outSockets[k] = netconn
 		}
 	}
 }
 
-// Just returns the number of DHCP leases for now.
+// Returns the number of DHCP leases and prints queue lengths
 func getNetworkStats() uint {
+	for _, netconn := range outSockets {
+		queueBytes := 0
+		for _, msg := range netconn.messageQueue {
+			queueBytes += len(msg)
+		}
+		log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
+	}
+
 	ret := uint(len(dhcpLeases))
 	globalStatus.Connected_Users = ret
 	return ret
@@ -223,13 +231,49 @@ func messageQueueSender() {
 				if len(netconn.messageQueue) > 0 && !isSleeping(k) && !isThrottled(k) {
 					averageSendableQueueSize += float64(len(netconn.messageQueue)) // Add num sendable messages.
 
-					tmpConn := netconn
-					tmpConn.Conn.Write(tmpConn.messageQueue[0])
+					var queuedMsg []byte
+
+					// Combine the first 256 entries in netconn.messageQueue to avoid flooding wlan0 with too many IOPS.
+					// Need to play nice with non-queued messages, so this limits the number of entries to combine.
+					// UAT uplink block is 432 bytes, so transmit block size shouldn't be larger than 108 KiB. 10 Mbps per device would therefore be needed to send within a 100 ms window.
+
+					mqDepth := len(netconn.messageQueue)
+					if mqDepth > 256 {
+						mqDepth = 256
+					}
+
+					for j := 0; j < mqDepth; j++ {
+						queuedMsg = append(queuedMsg, netconn.messageQueue[j]...)
+					}
+
+					/*
+						for j, _ := range netconn.messageQueue {
+							queuedMsg = append(queuedMsg, netconn.messageQueue[j]...)
+						}
+					*/
+
+					netconn.Conn.Write(queuedMsg)
 					totalNetworkMessagesSent++
 					globalStatus.NetworkDataMessagesSent++
-					globalStatus.NetworkDataBytesSent += uint64(len(tmpConn.messageQueue[0]))
-					tmpConn.messageQueue = tmpConn.messageQueue[1:]
-					outSockets[k] = tmpConn
+					globalStatus.NetworkDataBytesSent += uint64(len(queuedMsg))
+
+					//netconn.messageQueue = [][]byte{}
+					if mqDepth < len(netconn.messageQueue) {
+						netconn.messageQueue = netconn.messageQueue[mqDepth:]
+					} else {
+						netconn.messageQueue = [][]byte{}
+					}
+					outSockets[k] = netconn
+
+					/*
+						tmpConn := netconn
+						tmpConn.Conn.Write(tmpConn.messageQueue[0])
+						totalNetworkMessagesSent++
+						globalStatus.NetworkDataMessagesSent++
+						globalStatus.NetworkDataBytesSent += uint64(len(tmpConn.messageQueue[0]))
+						tmpConn.messageQueue = tmpConn.messageQueue[1:]
+						outSockets[k] = tmpConn
+					*/
 				}
 			}
 
@@ -381,6 +425,7 @@ func networkStatsCounter() {
 		previousNetworkBytesSent = globalStatus.NetworkDataBytesSent
 		previousNetworkMessagesSentNonqueueable = globalStatus.NetworkDataMessagesSentNonqueueable
 		previousNetworkBytesSentNonqueueable = globalStatus.NetworkDataBytesSentNonqueueable
+
 	}
 
 }
