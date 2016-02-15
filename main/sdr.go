@@ -128,7 +128,7 @@ func (u *UAT) read() {
 
 func getPPM(serial string) int {
 	r, _ := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
-        arr := r.FindStringSubmatch(e.serial)
+        arr := r.FindStringSubmatch(serial)
 	if arr == nil {
 		return globalSettings.PPM
 	}
