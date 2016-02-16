@@ -12,3 +12,10 @@ allow-hotplug wlan0
 iface wlan0 inet static
   address 192.168.10.1
   netmask 255.255.255.0
+  
+allow-hotplug wlan1
+iface wlan1 inet static
+  address 192.168.1.50
+  netmask 255.255.255.0
+  gateway 192.168.1.1
+  wireless-essid 6719
