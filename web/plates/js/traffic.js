@@ -41,7 +41,6 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.lon = dmsString(obj.Lng);
 		var n = Math.round(obj.Alt / 25) * 25;
 		new_traffic.alt = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-		new_traffic.heading = Math.round(obj.Track / 5) * 5;
 		var s = Math.round(obj.Speed / 5) * 5;
 		if (obj.Speed_valid) {
 			new_traffic.speed = s.toString();
@@ -51,7 +50,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			new_traffic.heading = "---";
 		}
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
-		new_traffic.age = Date.parse(obj.Last_seen);
+		new_traffic.age = Date.parse(obj.Timestamp);
 		new_traffic.time = utcTimeString(new_traffic.age);
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;

@@ -82,8 +82,8 @@ type TrafficInfo struct {
 
 	Vvel int16
 
-	Tail string
-
+	Tail        string
+	Timestamp   time.Time
 	Last_seen   time.Time
 	Last_source uint8
 }
@@ -367,6 +367,8 @@ func parseDownlinkReport(s string) {
 	//OK.
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
+	ti.Timestamp = time.Now() // TODO: Parse from downlink message.
+
 	ti.Last_source = TRAFFIC_SOURCE_UAT
 	ti.Last_seen = stratuxClock.Time
 
@@ -549,6 +551,8 @@ func esListen() {
 				}
 			}
 
+			ti.Timestamp = time.Now() // TODO: Parse from x[8] and x[9]
+
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
 			ti.Last_seen = stratuxClock.Time
@@ -608,9 +612,10 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Alt = int32(mySituation.Alt + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
-	ti.Speed_valid = true
+	ti.Speed_valid = false
 	ti.Vvel = 0
 	ti.Tail = tail // "DEMO1234"
+	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_source = 1
 
