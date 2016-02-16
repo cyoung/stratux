@@ -1236,14 +1236,39 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
+// Close replay log file handles.
+func closeReplayLogs() {
+	if uatReplayWriter != nil {
+		uatReplayWriter.Close()
+	}
+	if esReplayWriter != nil {
+		esReplayWriter.Close()
+	}
+	if gpsReplayWriter != nil {
+		gpsReplayWriter.Close()
+	}
+	if ahrsReplayWriter != nil {
+		ahrsReplayWriter.Close()
+	}
+	if dump1090ReplayWriter != nil {
+		dump1090ReplayWriter.Close()
+	}
+
+}
+
 // Graceful shutdown.
-func signalWatcher() {
-	sig := <-sigs
-	log.Printf("signal caught: %s - shutting down.\n", sig.String())
+func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	//TODO: Any other graceful shutdown functions.
+	closeReplayLogs()
 	os.Exit(1)
+}
+
+func signalWatcher() {
+	sig := <-sigs
+	log.Printf("signal caught: %s - shutting down.\n", sig.String())
+	gracefulShutdown()
 }
 
 func main() {

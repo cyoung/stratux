@@ -1,3 +1,7 @@
+ifeq ($(statuxBuild),)
+stratuxBuild=`git log -n 1 --pretty=%H`
+endif
+
 all:
 	mkdir -p /var/www
 	mkdir -p /var/www/css
@@ -30,4 +34,4 @@ all:
 	cp index.html /var/www
 	cp stratux.appcache /var/www
 	# Mark the manifest with the git hash.
-	echo "# Stratux build: " `git log -n 1 --pretty=%H` >>/var/www/stratux.appcache
+	echo "# Stratux build: " ${stratuxBuild} >>/var/www/stratux.appcache

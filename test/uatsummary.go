@@ -32,6 +32,10 @@ func main() {
 
 		x := strings.Split(buf, ",")
 
+		if len(x) < 2 {
+			continue
+		}
+
 		uatMsg, err := uatparse.New(x[1])
 		if err != nil {
 			//			fmt.Printf("err %s\n", err.Error())

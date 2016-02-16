@@ -20,12 +20,21 @@ cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
 cp init.d-stratux work/bin/
 cp dump1090/dump1090 work/bin/
+cp -r web work/bin/
 #TODO: librtlsdr.
 cd work/
 cat ../selfupdate/update_header.sh >update.sh
+
+echo "stratuxVersion=${stratuxVersion}" >>update.sh
+echo "stratuxBuild=${stratuxBuild}" >>update.sh
+
+
+find bin/ -type d | sed -e 's/^bin\///' | grep -v '^$' | while read dn; do
+	echo "mkdir -p $dn" >>update.sh
+done
 find bin/ -type f | while read fn; do
 	echo -n "packaging $fn... "
-	UPFN=`echo $fn | cut -d/ -f2`
+	UPFN=`echo $fn | sed -e 's/^bin\///'`
 	echo "cat >${UPFN}.b64 <<__EOF__" >>update.sh
 	gzip -c $fn | base64 >>update.sh
 	echo "__EOF__" >>update.sh
@@ -37,7 +46,7 @@ cat ../selfupdate/update_footer.sh >>update.sh
 
 chmod +x update.sh
 
-OUTF="update-${stratuxVersion}.sh"
+OUTF="update-${stratuxVersion}-${stratuxBuild:0:10}.sh"
 mv update.sh $OUTF
 
 

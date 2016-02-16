@@ -82,6 +82,17 @@ func getDHCPLeases() (map[string]string, error) {
 			hostname := strings.TrimRight(strings.TrimLeft(strings.Join(spaced[3:], " "), "\""), "\";")
 			ret[block_ip] = hostname
 			open_block = false
+		} else if open_block && len(spaced) >= 4 && spaced[2] == "ends" {
+			end_time := spaced[4] + " " + strings.TrimRight(spaced[5], ";")
+			// Mon Jan 2 15:04:05 -0700 MST 2006.
+			// 2016/02/02 00:39:59.
+			t, err := time.Parse("2006/01/02 15:04:05", end_time) // "In the absence of a time zone indicator, Parse returns a time in UTC."
+			if err == nil && t.Before(time.Now()) {
+				log.Printf("lease expired for %s (%s) - skipping.\n", block_ip, end_time)
+				open_block = false
+				delete(ret, block_ip)
+				block_ip = ""
+			}
 		} else if open_block && strings.HasPrefix(spaced[0], "}") { // No hostname.
 			open_block = false
 			ret[block_ip] = ""
@@ -215,7 +226,7 @@ func refreshConnectedClients() {
 }
 
 func messageQueueSender() {
-	secondTimer := time.NewTicker(5 * time.Second)
+	secondTimer := time.NewTicker(15 * time.Second)
 	queueTimer := time.NewTicker(100 * time.Millisecond)
 
 	var lastQueueTimeChange time.Time // Reevaluate	send frequency every 5 seconds.

@@ -17,6 +17,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -248,9 +249,13 @@ func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
 }
 
-func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+func doReboot() {
 	syscall.Sync()
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+	doReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -262,6 +267,33 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
 
+func delayReboot() {
+	time.Sleep(1 * time.Second)
+	doReboot()
+}
+
+// Upload an update file.
+func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
+	file, handler, err := r.FormFile("update_file")
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer file.Close()
+	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
+	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer f.Close()
+	io.Copy(f, file)
+	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, updateFile)
+	// Successful update upload. Now reboot.
+	go delayReboot()
+}
+
 func setNoCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -269,7 +301,7 @@ func setNoCache(w http.ResponseWriter) {
 }
 
 func defaultServer(w http.ResponseWriter, r *http.Request) {
-	setNoCache(w)
+	//	setNoCache(w)
 
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
@@ -313,6 +345,7 @@ func managementInterface() {
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
+	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
