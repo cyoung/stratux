@@ -7,6 +7,9 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
 
+
+	
+	
 	function utcTimeString(epoc) {
 		var time = "";
 		var val;
@@ -42,8 +45,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		var s = Math.round(obj.Speed / 5) * 5;
 		if (obj.Speed_valid) {
 			new_traffic.speed = s.toString();
+			new_traffic.heading = Math.round(obj.Track / 5) * 5;
 		} else {
 			new_traffic.speed = "---";
+			new_traffic.heading = "---";
 		}
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		new_traffic.age = Date.parse(obj.Last_seen);
