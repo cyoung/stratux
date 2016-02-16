@@ -331,7 +331,7 @@ func sdrWatcher() {
 	rUAT, err := regexp.Compile("str?a?t?u?x:978")
 	if err != nil {
 		rUAT = nil
-		log.Println("failed to compile ES regexp because %s", err.Error())
+		log.Println("failed to compile UAT regexp because %s", err.Error())
 	}
 
 	for {
