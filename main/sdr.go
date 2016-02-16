@@ -13,11 +13,12 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"regexp"
 
 	"../godump978"
 	rtl "github.com/jpoirier/gortlsdr"
@@ -127,8 +128,12 @@ func (u *UAT) read() {
 }
 
 func getPPM(serial string) int {
-	r, _ := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
-        arr := r.FindStringSubmatch(serial)
+	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)"); 
+	if err != nil {
+		return globalSettings.PPM
+	}
+
+	arr := r.FindStringSubmatch(serial); 
 	if arr == nil {
 		return globalSettings.PPM
 	}
@@ -316,6 +321,19 @@ func sdrKill() {
 
 // Watch for config/device changes.
 func sdrWatcher() {
+	var doSkip bool
+	rES, err := regexp.Compile("str?a?t?u?x:1090")
+	if err != nil {
+		rES = nil
+		log.Println("failed to compile ES regexp because %s", err.Error())
+	}
+
+	rUAT, err := regexp.Compile("str?a?t?u?x:978")
+	if err != nil {
+		rUAT = nil
+		log.Println("failed to compile ES regexp because %s", err.Error())
+	}
+
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
@@ -385,8 +403,13 @@ func sdrWatcher() {
 					serial = ""
 				}
 
-				r, _ := regexp.Compile("str?a?t?u?x:1090")
-				if !r.MatchString(serial) {
+				if (rES == nil) {
+					doSkip = rES.MatchString(serial)
+				} else {
+					doSkip = strings.Compare(serial, "stratux:1090") == 0
+				}
+
+				if !doSkip {
 					UATDev = &UAT{indexID: id, serial: serial}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
@@ -428,8 +451,14 @@ func sdrWatcher() {
 				if err != nil {
 					serial = ""
 				}
-				r, _ := regexp.Compile("str?a?t?u?x:978")
-				if !r.MatchString(serial) {
+
+				if (rUAT == nil) {
+					doSkip = rUAT.MatchString(serial)
+				} else {
+					doSkip = strings.Compare(serial, "stratux:978") == 0
+				}
+
+				if !doSkip {
 					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
