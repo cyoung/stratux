@@ -589,10 +589,10 @@ KOSH, once every five minutes.
 Inputs are ICAO 24-bit hex code, tail number (8 chars max), relative altitude in feet,
 groundspeed in knots, and bearing offset from 0 deg initial position.
 */
-func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset float64) {
+func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
 
-	hdg := float64((stratuxClock.Milliseconds/1000)%360) + offset
+	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 360)
 	// gs := float64(220) // knots
 	radius := gs * 0.1 / (2 * math.Pi)
 	x := radius * math.Cos(hdg*math.Pi/180.0)
@@ -617,12 +617,19 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Alt = int32(mySituation.Alt + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
-	ti.Speed_valid = false
+	if hdg > 180 && hdg < 195 {
+		ti.Speed_valid = false
+	} else {
+		ti.Speed_valid = true
+	}
 	ti.Vvel = 0
 	ti.Tail = tail // "DEMO1234"
 	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_source = 1
+	if icao%7 == 1 { // make some of the traffic UAT sourced
+		ti.Last_source = 2
+	}
 
 	// now insert this into the traffic map...
 	trafficMutex.Lock()

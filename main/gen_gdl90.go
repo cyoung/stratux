@@ -606,23 +606,25 @@ func heartBeatSender() {
 			sendGDL90(makeStratuxStatus(), false)
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
-			/* --- debug code: traffic demo* --- /
-			/* Uncomment and compile to display huge number of artificial traffic targets
-			numTargets := uint32(1000)
-			hexCode := uint32(0xFF0000)
 
-			for i := uint32(0); i < numTargets; i++ {
-				tail := fmt.Sprintf("DEMO%d", i)
-				alt := float32((i*117%2000)*25 + 2000)
-				hdg := float64((i * 37) % 360)
-				spd := float64(100 + ((i*7)%61)*13)
+			// --- debug code: traffic demo ---
+			// Uncomment and compile to display large number of artificial traffic targets
+			/*
+				numTargets := uint32(40)
+				hexCode := uint32(0xFF0000)
 
-				updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+				for i := uint32(0); i < numTargets; i++ {
+					tail := fmt.Sprintf("DEMO%d", i)
+					alt := float32((i*117%2000)*25 + 2000)
+					hdg := int32((i * 149) % 360)
+					spd := float64(50 + ((i*23)%13)*17)
 
-			}
+					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+
+				}
 
 			*/
-			/* ---end traffic demo code ---*/
+			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
 		case <-timerMessageStats.C:
