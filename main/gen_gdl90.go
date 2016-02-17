@@ -735,8 +735,10 @@ func updateStatus() {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.quality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else {
+	} else if mySituation.quality == 0 {
 		globalStatus.GPS_solution = "No Fix"
+	} else {
+		globalStatus.GPS_solution = "Unknown"
 	}
 
 	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
@@ -754,6 +756,8 @@ func updateStatus() {
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
+	globalStatus.UptimeClock = stratuxClock.Time
+	globalStatus.Clock = time.Now()
 }
 
 type ReplayWriter struct {
@@ -1031,6 +1035,8 @@ type status struct {
 	GPS_solution                               string
 	RY835AI_connected                          bool
 	Uptime                                     int64
+	Clock                                      time.Time
+	UptimeClock                                time.Time
 	CPUTemp                                    float32
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64

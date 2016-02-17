@@ -237,6 +237,11 @@ func parseDownlinkReport(s string) {
 	// OK.
 	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.Icao_addr)
 
+	// TO-DO: Parse time from downlink message
+	if !isGPSClockValid() {
+		// this is where we'd update the RPi clock if GPS isn't connected
+	}
+
 	nic := uint8(frame[11]) & 15 //TODO: Meaning?
 
 	raw_lat := (uint32(frame[4]) << 15) | (uint32(frame[5]) << 7) | (uint32(frame[6]) >> 1)
