@@ -55,6 +55,21 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;
 	}
+/*
+	function getStratuxTime() {
+		// Simple GET request example (note: response is asynchronous)
+		$http.get(URL_STATUS_GET).
+		then(function (response) {
+			globalStatus = angular.fromJson(response.data);
+			$scope.UptimeClock = globalStatus.UptimeClock;
+			$scope.Clock = globalStatus.Clock;
+			$scope.LocalClock = new Date();
+		}, function (response) {
+			// nop
+		});
+	};
+*/	
+	
 
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
@@ -86,8 +101,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 
 		socket.onmessage = function (msg) {
+			
+			
 			console.log('Received traffic update.')
-
+			
 			var message = JSON.parse(msg.data);
 			$scope.raw_data = angular.toJson(msg.data, true);
 
@@ -111,6 +128,33 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 	}
 
+	var getClock = $interval(function () {
+		$http.get(URL_STATUS_GET).
+		then(function (response) {
+			globalStatus = angular.fromJson(response.data);
+				
+			var tempClock = new Date(Date.parse(globalStatus.Clock));
+			var clockString = tempClock.toUTCString();
+			$scope.Clock = clockString;
+
+			var tempUptimeClock = new Date(Date.parse(globalStatus.UptimeClock));
+			var uptimeClockString = tempUptimeClock.toUTCString();
+			$scope.UptimeClock = uptimeClockString;
+
+			var tempLocalClock = new Date;
+			$scope.LocalClock = tempLocalClock.toUTCString();
+			$scope.SecondsFast = (tempClock-tempLocalClock)/1000;
+						
+		}, function (response) {
+			// nop
+		});
+	}, 500, 0, false);
+		
+		
+		
+		
+
+	
 	// perform cleanup every 60 seconds
 	var clearStaleTraffic = $interval(function () {
 		// remove stale aircraft = anything more than 180 seconds without an update
