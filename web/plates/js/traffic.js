@@ -113,7 +113,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	// perform cleanup every 60 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stail aircraft = anything more than 180 seconds without and update
+		// remove stale aircraft = anything more than 180 seconds without an update
 		var dirty = false;
 		var cutoff = Date.now() - (180 * 1000);
 

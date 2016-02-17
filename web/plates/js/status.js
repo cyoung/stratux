@@ -54,7 +54,14 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.RY835AI_connected = status.RY835AI_connected;
-
+			var tempClock = new Date(Date.parse(status.Clock));
+			var clockString = tempClock.toUTCString();
+			$scope.Clock = clockString;
+			var tempLocalClock = new Date;
+			$scope.LocalClock = tempLocalClock.toUTCString();
+			$scope.SecondsFast = (tempClock-tempLocalClock)/1000;
+			
+			
 			var uptime = status.Uptime;
 			if (uptime != undefined) {
 				var up_s = parseInt((uptime / 1000) % 60),
