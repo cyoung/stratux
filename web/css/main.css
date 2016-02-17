@@ -199,6 +199,24 @@
 	padding: 1px 2px 1px 3px;
 }
 
+.fake-btn {
+	background-color:#ccc;
+	margin-bottom:0;
+	font-weight:400; 
+	text-align:center;
+	vertical-align:middle;
+	cursor:pointer;
+	border:1px solid transparent;
+	white-space:nowrap;
+	padding: 6px 12px;
+	line-height: 1.43;
+	border-radius:4px;
+}
+.fake-btn-block {
+	display:inline-block;
+	width: 100%;
+}
+
 
 /* ***************************************************************************
 everything below this comment represents tweeks to the mobile-angular-uis CSS
