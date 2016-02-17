@@ -632,12 +632,12 @@ func processNMEALine(l string) bool {
 			} */
 
 			// field 2 is UTC time
-			if len(x[2]) < 9 {
+			if len(x[2]) < 7 {
 				return false
 			}
 			hr, err1 := strconv.Atoi(x[2][0:2])
 			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.Atoi(x[2][4:6])
+			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
@@ -647,8 +647,8 @@ func processNMEALine(l string) bool {
 
 			if len(x[3]) == 6 {
 				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[3], hr, min, sec)
-				gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
+				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 				if err == nil {
 					mySituation.LastGPSTimeTime = stratuxClock.Time
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
@@ -839,8 +839,8 @@ func processNMEALine(l string) bool {
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[9], hr, min, sec)
-			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:06.3f", x[9], hr, min, sec)
+			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			if err == nil {
 				mySituation.LastGPSTimeTime = stratuxClock.Time
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
