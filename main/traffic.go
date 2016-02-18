@@ -246,11 +246,6 @@ func parseDownlinkReport(s string) {
 	// OK.
 	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.Icao_addr)
 
-	// TO-DO: Parse time from downlink message
-	if !isGPSClockValid() {
-		// this is where we'd update the RPi clock if GPS isn't connected
-	}
-
 	nic := uint8(frame[11]) & 15 //TODO: Meaning?
 
 	raw_lat := (uint32(frame[4]) << 15) | (uint32(frame[5]) << 7) | (uint32(frame[6]) >> 1)
@@ -381,7 +376,7 @@ func parseDownlinkReport(s string) {
 	//OK.
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
-	ti.Timestamp = time.Now() // TODO: Parse from downlink message.
+	ti.Timestamp = time.Now()
 
 	ti.Last_source = TRAFFIC_SOURCE_UAT
 	ti.Last_seen = stratuxClock.Time
@@ -566,7 +561,7 @@ func esListen() {
 				}
 			}
 
-			ti.Timestamp = time.Now() // TODO: Parse from x[8] and x[9]
+			ti.Timestamp = time.Now()
 
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
