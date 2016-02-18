@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,12 +27,14 @@ import (
 type UAT struct {
 	dev     *rtl.Context
 	indexID int
+	ppm     int
 	serial  string
 }
 
 type ES struct {
 	dev     *rtl.Context
 	indexID int
+	ppm     int
 	serial  string
 }
 
@@ -61,7 +64,7 @@ func readToChan(fp io.ReadCloser, ch chan []byte) {
 func (e *ES) read() {
 	defer es_wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID))
+	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -124,12 +127,33 @@ func (u *UAT) read() {
 	}
 }
 
+func getPPM(serial string) int {
+	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)"); 
+	if err != nil {
+		return globalSettings.PPM
+	}
+
+	arr := r.FindStringSubmatch(serial); 
+	if arr == nil {
+		return globalSettings.PPM
+	}
+
+        if ppm, err := strconv.Atoi(arr[1]); err != nil {
+                return globalSettings.PPM
+        } else {
+                return ppm
+        }
+}
+
 func (e *ES) sdrConfig() (err error) {
+	e.ppm = getPPM(e.serial)
 	return
 }
 
 func (u *UAT) sdrConfig() (err error) {
 	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
+	u.ppm = getPPM(u.serial)
+
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
 		log.Printf("\tUAT Open Failed...\n")
 		return
@@ -223,13 +247,13 @@ func (u *UAT) sdrConfig() (err error) {
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = u.dev.SetFreqCorrection(globalSettings.PPM)
+	err = u.dev.SetFreqCorrection(u.ppm)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
+		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", u.ppm, err)
 		return
 	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
+		log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
 	}
 	return
 }
@@ -297,6 +321,19 @@ func sdrKill() {
 
 // Watch for config/device changes.
 func sdrWatcher() {
+	var doSkip bool
+	rES, err := regexp.Compile("str?a?t?u?x:1090")
+	if err != nil {
+		rES = nil
+		log.Println("failed to compile ES regexp because %s", err.Error())
+	}
+
+	rUAT, err := regexp.Compile("str?a?t?u?x:978")
+	if err != nil {
+		rUAT = nil
+		log.Println("failed to compile UAT regexp because %s", err.Error())
+	}
+
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
@@ -365,7 +402,14 @@ func sdrWatcher() {
 				if err != nil {
 					serial = ""
 				}
-				if strings.Compare(serial, "stratux:1090") != 0 {
+
+				if (rES == nil) {
+					doSkip = rES.MatchString(serial)
+				} else {
+					doSkip = strings.Compare(serial, "stratux:1090") == 0
+				}
+
+				if !doSkip {
 					UATDev = &UAT{indexID: id, serial: serial}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
@@ -407,7 +451,14 @@ func sdrWatcher() {
 				if err != nil {
 					serial = ""
 				}
-				if strings.Compare(serial, "stratux:978") != 0 {
+
+				if (rUAT == nil) {
+					doSkip = rUAT.MatchString(serial)
+				} else {
+					doSkip = strings.Compare(serial, "stratux:978") == 0
+				}
+
+				if !doSkip {
 					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)

@@ -11,7 +11,8 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
 	}
-
+	$scope.update_files = '';
+	
 	function loadSettings(data) {
 		settings = angular.fromJson(data);
 		// consider using angular.extend()
@@ -39,7 +40,6 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 			for (i = 0; i < toggles.length; i++) {
 				settings[toggles[i]] = false;
 			}
-
 		});
 	};
 
@@ -88,7 +88,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
-	
+
 	$scope.updatewatchlist = function () {
 		if ($scope.WatchList !== settings["WatchList"]) {
 			settings["WatchList"] = $scope.WatchList.toUpperCase();
@@ -118,14 +118,38 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		$http.post('/reboot');
 	};
 
-	$scope.uploadFile = function(files) {
+	$scope.setUploadFile = function (files) {
+		$scope.update_files = files;
+		$scope.$apply();
+	}
+	$scope.resetUploadFile = function () {
+		$scope.update_files = '';
+		$scope.$apply();
+	}
+	$scope.uploadFile = function () {
 		var fd = new FormData();
 		//Take the first selected file
-		fd.append("update_file", files[0]);
+		var file = $scope.update_files[0];
+		// check for empty string
+		if (file === undefined || file === null) {
+			alert ("update file not selected")
+			return;
+		}
+		var filename = file.name;
+		// check for expected file naming convention
+		var re = /^update.*\.sh$/;
+		if (!re.exec(filename)) {
+			alert ("file does not appear to be an update")
+			return;
+		}
+		
+		fd.append("update_file", file);
 
 		$http.post("/updateUpload", fd, {
 			withCredentials: true,
-			headers: {'Content-Type': undefined },
+			headers: {
+				'Content-Type': undefined
+			},
 			transformRequest: angular.identity
 		}).success(function (data) {
 			alert("success. wait 60 seconds and refresh home page to verify new version.");

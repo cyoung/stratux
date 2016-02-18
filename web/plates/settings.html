@@ -50,8 +50,11 @@
 				</div>
 			</div>
 		</div>
-
-
+	</div>
+</div>
+	
+<div class="col-sm-12">
+	<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
 			<div class="panel-heading">Configuration</div>
 			<div class="panel-body">
@@ -80,40 +83,32 @@
 			</div>
 		</div>
 	</div>
+	
 	<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading">Shutdown</div>
+			<div class="panel-heading">Commands</div>
 			<div class="panel-body">
-				<div class="form-group">				
-					<div class="col-xs-5">
-						<button ui-turn-on="modalShutdown">Shutdown</button>
+				<!-- Upload. Temporary. -->
+				<div class="col-xs-12">
+					<span ng-show="update_files == ''">
+						<span style="position:relative; overflow: hidden;">
+							<span class="fake-btn fake-btn-block">Click to select System Update file</span>
+							<input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
+						</span>
+					</span>
+					<span ng-hide="update_files == ''">
+						<button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
+					</span>
+				</div>
+				<div class="form-group reset-flow">
+					<div class="col-xs-12">
+	  				  <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button> 				
+	  				 </div>
+				</div>
+				<div class="form-group reset-flow">
+					<div class="col-xs-12">
+						<button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
 					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="panel-group col-sm-6">
-		<div class="panel panel-default">
-			<div class="panel-heading">Reboot</div>
-			<div class="panel-body">
-				<div class="form-group">				
-					<div class="col-xs-5">
-	  				  <button ui-turn-on="modalReboot">Reboot</button> 				
-	  				 </div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Upload. Temporary. -->
-	<div class="panel-group col-sm-6">
-		<div class="panel panel-default">
-			<div class="panel-heading">Update</div>
-			<div class="panel-body">
-				<div class="form-group">				
-					<div class="col-xs-5">
-						<input class="col-xs-7" type="file" name="update_file" onChange="angular.element(this).scope().uploadFile(this.files)"/>
-	  				 </div>
 				</div>
 			</div>
 		</div>
