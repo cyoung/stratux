@@ -39,6 +39,10 @@ func (m *monotonic) HumanizeTime(t time.Time) string {
 	return humanize.RelTime(t, m.Time, "ago", "from now")
 }
 
+func (m *monotonic) Unix() int64 {
+	return int64(m.Since(time.Time{}).Seconds())
+}
+
 func NewMonotonic() *monotonic {
 	t := &monotonic{Milliseconds: 0, Time: time.Time{}, ticker: time.NewTicker(50 * time.Millisecond)}
 	go t.Watcher()
