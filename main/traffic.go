@@ -108,7 +108,7 @@ func sendTrafficUpdates() {
 	cleanupOldEntries()
 	var msg []byte
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
-		ti.Age = stratuxClock.Time.Sub(ti.Last_seen).Seconds()
+		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		traffic[icao] = ti
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
