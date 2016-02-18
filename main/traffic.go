@@ -620,7 +620,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Alt = int32(mySituation.Alt + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
-	if hdg > 180 && hdg < 195 {
+	if hdg > 100 && hdg < 150 {
 		ti.Speed_valid = false
 	} else {
 		ti.Speed_valid = true
@@ -629,7 +629,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Tail = tail // "DEMO1234"
 	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
-	ti.Age = 0
+	ti.Age = hdg / 1000
 	ti.Last_source = 1
 	if icao%7 == 1 { // make some of the traffic UAT sourced
 		ti.Last_source = 2

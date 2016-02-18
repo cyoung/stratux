@@ -50,8 +50,9 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			new_traffic.heading = "---";
 		}
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
-		new_traffic.age = Date.parse(obj.Timestamp);
-		new_traffic.time = utcTimeString(new_traffic.age);
+		var timestamp = Date.parse(obj.Timestamp);
+		new_traffic.time = utcTimeString(timestamp);
+		new_traffic.age = obj.Age;
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;
 	}
