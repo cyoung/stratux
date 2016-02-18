@@ -83,8 +83,9 @@ type TrafficInfo struct {
 	Vvel int16
 
 	Tail        string
-	Timestamp   time.Time
-	Last_seen   time.Time
+	Timestamp   time.Time // time traffic last seen, UTC
+	Age         float64   // seconds ago traffic last seen
+	Last_seen   time.Time // time traffic last seen, relative to Stratux startup
 	Last_source uint8
 }
 
@@ -94,7 +95,7 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds...
 			delete(traffic, icao_addr)
 		}
 	}
@@ -106,7 +107,7 @@ func sendTrafficUpdates() {
 	cleanupOldEntries()
 	var msg []byte
 	for _, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around 500-1000 aircraft
-		if ti.Position_valid {
+		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			msg = append(msg, makeTrafficReportMsg(ti)...)
 		}
 	}
@@ -376,6 +377,7 @@ func parseDownlinkReport(s string) {
 
 	ti.Last_source = TRAFFIC_SOURCE_UAT
 	ti.Last_seen = stratuxClock.Time
+	ti.Age = 0
 
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
@@ -561,6 +563,7 @@ func esListen() {
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
 			ti.Last_seen = stratuxClock.Time
+			ti.Age = 0
 
 			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
 			ti.emitter_category = 0x01 //FIXME. "Light"
@@ -626,17 +629,20 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Tail = tail // "DEMO1234"
 	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
+	ti.Age = 0
 	ti.Last_source = 1
 	if icao%7 == 1 { // make some of the traffic UAT sourced
 		ti.Last_source = 2
 	}
 
-	// now insert this into the traffic map...
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
-	traffic[ti.Icao_addr] = ti
-	registerTrafficUpdate(ti)
-	seenTraffic[ti.Icao_addr] = true
+	if hdg < 120 || hdg > 240 {
+		// now insert this into the traffic map...
+		trafficMutex.Lock()
+		defer trafficMutex.Unlock()
+		traffic[ti.Icao_addr] = ti
+		registerTrafficUpdate(ti)
+		seenTraffic[ti.Icao_addr] = true
+	}
 }
 
 func initTraffic() {
