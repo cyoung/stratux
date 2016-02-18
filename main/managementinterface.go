@@ -310,7 +310,7 @@ func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
 
-	http.HandleFunc("/", defaultServer)
+	// http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
