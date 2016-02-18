@@ -211,7 +211,7 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	// perform cleanup every 5 minutes
 	var clearStaleMessages = $interval(function () {
-		// remove stail data = anything more than 30 minutes old
+		// remove stale data = anything more than 30 minutes old
 		var dirty = false;
 		var cutoff = Date.now() - (30 * 60 * 1000);
 
