@@ -11,12 +11,12 @@
 					<span class="col-xs-3"><strong>Flight</strong></span>
 					<span class="col-xs-3 text-right">Speed</span>
 					<span class="col-xs-3 text-right">Altitude</span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
-					<span class="col-xs-2 text-right">Hdg</span>
+					<span class="col-xs-2 text-right">Course</span>
 				</div>
 				<div class="col-sm-6">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-7">Location</span>
-					<span class="col-xs-3 text-right">Age [sec]</span>
+					<span class="col-xs-3 text-right">Age</span>
 				</div>
 			</div>
 
@@ -44,24 +44,22 @@
 				</div>
 			</div>
 		</div>
+		<div class="panel-body traffic-footer">
+			<div class="separator"></div>
+			<div class="row">
+				<div class="col-sm-6 label_adj">
+					<span class="col-xs-4"><strong>Stratux Clock:</strong></span>
+					<span class="col-xs-8">{{Clock}}</span>
+				</div>
+				<div class="col-sm-6 label_adj">
+					<span class="col-xs-4"><strong>Device Clock:</strong></span>
+					<span class="col-xs-8">{{LocalClock}}</span>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
-				<div class="separator"></div>
-				<div class="row">
-					<div class="col-sm-4 label_adj">
-						<strong class="col-xs-5">Stratux Clock:</strong>
-						<span class="col-xs-7">{{Clock}}</span>
-					</div>
-					<div class="col-sm-4 label_adj">
-						<strong class="col-xs-5">Device Clock:</strong>
-						<span class="col-xs-7">{{LocalClock}}</span>
-					</div>
-					<div class="col-sm-4 label_adj">
-						<strong class="col-xs-5">Uptime Clock</strong>
-						<span class="col-xs-7">{{UptimeClock}}</span>
-					</div>
-					
-				</div>
+
 
 <!--
 <div class="col-sm-12">

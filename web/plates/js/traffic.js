@@ -52,25 +52,11 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		var timestamp = Date.parse(obj.Timestamp);
 		new_traffic.time = utcTimeString(timestamp);
-		new_traffic.age = obj.Age;
+		new_traffic.age = (Math.round(obj.Age * 10)/10).toFixed(1);
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;
 	}
-/*
-	function getStratuxTime() {
-		// Simple GET request example (note: response is asynchronous)
-		$http.get(URL_STATUS_GET).
-		then(function (response) {
-			globalStatus = angular.fromJson(response.data);
-			$scope.UptimeClock = globalStatus.UptimeClock;
-			$scope.Clock = globalStatus.Clock;
-			$scope.LocalClock = new Date();
-		}, function (response) {
-			// nop
-		});
-	};
-*/	
-	
+
 
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
@@ -155,15 +141,14 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		
 		
 
-	
-	// perform cleanup every 60 seconds
+	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stale aircraft = anything more than 180 seconds without an update
+		// remove stale aircraft = anything more than 60 seconds without an update
 		var dirty = false;
-		var cutoff = Date.now() - (180 * 1000);
+		var cutoff =60;
 
 		for (var i = len = $scope.data_list.length; i > 0; i--) {
-			if ($scope.data_list[i - 1].age < cutoff) {
+			if ($scope.data_list[i - 1].age > cutoff) {
 				$scope.data_list.splice(i - 1, 1);
 				dirty = true;
 			}
@@ -172,7 +157,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.raw_data = "";
 			$scope.$apply();
 		}
-	}, (1000 * 60), 0, false);
+	}, (1000 * 10), 0, false);
 
 
 	$state.get('traffic').onEnter = function () {
