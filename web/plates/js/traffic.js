@@ -7,6 +7,9 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
 
+
+	
+	
 	function utcTimeString(epoc) {
 		var time = "";
 		var val;
@@ -38,19 +41,22 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.lon = dmsString(obj.Lng);
 		var n = Math.round(obj.Alt / 25) * 25;
 		new_traffic.alt = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-		new_traffic.heading = Math.round(obj.Track / 5) * 5;
 		var s = Math.round(obj.Speed / 5) * 5;
 		if (obj.Speed_valid) {
 			new_traffic.speed = s.toString();
+			new_traffic.heading = Math.round(obj.Track / 5) * 5;
 		} else {
 			new_traffic.speed = "---";
+			new_traffic.heading = "---";
 		}
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
-		new_traffic.age = Date.parse(obj.Last_seen);
-		new_traffic.time = utcTimeString(new_traffic.age);
+		var timestamp = Date.parse(obj.Timestamp);
+		new_traffic.time = utcTimeString(timestamp);
+		new_traffic.age = (Math.round(obj.Age * 10)/10).toFixed(1);
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		// return new_aircraft;
 	}
+
 
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
@@ -82,8 +88,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 
 		socket.onmessage = function (msg) {
+			
+			
 			console.log('Received traffic update.')
-
+			
 			var message = JSON.parse(msg.data);
 			$scope.raw_data = angular.toJson(msg.data, true);
 
@@ -107,14 +115,40 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 	}
 
-	// perform cleanup every 60 seconds
+	var getClock = $interval(function () {
+		$http.get(URL_STATUS_GET).
+		then(function (response) {
+			globalStatus = angular.fromJson(response.data);
+				
+			var tempClock = new Date(Date.parse(globalStatus.Clock));
+			var clockString = tempClock.toUTCString();
+			$scope.Clock = clockString;
+
+			var tempUptimeClock = new Date(Date.parse(globalStatus.UptimeClock));
+			var uptimeClockString = tempUptimeClock.toUTCString();
+			$scope.UptimeClock = uptimeClockString;
+
+			var tempLocalClock = new Date;
+			$scope.LocalClock = tempLocalClock.toUTCString();
+			$scope.SecondsFast = (tempClock-tempLocalClock)/1000;
+						
+		}, function (response) {
+			// nop
+		});
+	}, 500, 0, false);
+		
+		
+		
+		
+
+	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stale aircraft = anything more than 180 seconds without an update
+		// remove stale aircraft = anything more than 60 seconds without an update
 		var dirty = false;
-		var cutoff = Date.now() - (180 * 1000);
+		var cutoff =60;
 
 		for (var i = len = $scope.data_list.length; i > 0; i--) {
-			if ($scope.data_list[i - 1].age < cutoff) {
+			if ($scope.data_list[i - 1].age > cutoff) {
 				$scope.data_list.splice(i - 1, 1);
 				dirty = true;
 			}
@@ -123,7 +157,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.raw_data = "";
 			$scope.$apply();
 		}
-	}, (1000 * 60), 0, false);
+	}, (1000 * 10), 0, false);
 
 
 	$state.get('traffic').onEnter = function () {

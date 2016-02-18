@@ -34,10 +34,11 @@ type SituationData struct {
 	mu_GPS *sync.Mutex
 
 	// From GPS.
-	lastFixSinceMidnightUTC uint32
+	lastFixSinceMidnightUTC float32
 	Lat                     float32
 	Lng                     float32
 	quality                 uint8
+	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
 	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
 	Satellites              uint16  // satellites used in solution
 	SatellitesTracked       uint16  // satellites tracked (almanac data received)
@@ -51,6 +52,7 @@ type SituationData struct {
 	TrueCourse              uint16
 	GroundSpeed             uint16
 	LastGroundTrackTime     time.Time
+	LastGPSTimeTime         time.Time
 	LastNMEAMessage         time.Time // time valid NMEA message last seen
 
 	mu_Attitude *sync.Mutex
@@ -223,6 +225,8 @@ func initGPSSerial() bool {
 		p.Write(makeNMEACmd("PSRF103,05,00,01,01"))
 		// Disable GSV.
 		p.Write(makeNMEACmd("PSRF103,03,00,00,01"))
+
+		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 	} else {
 		// Set 10Hz update. Little endian order.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
@@ -319,6 +323,8 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 		baudrate = 38400
+
+		log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 	}
 	p.Close()
 
@@ -332,7 +338,6 @@ func initGPSSerial() bool {
 	}
 
 	serialPort = p
-	log.Printf("GPS configuration complete\n")
 	return true
 }
 
@@ -482,17 +487,17 @@ func processNMEALine(l string) bool {
 			}
 
 			// field 2 = time
-			if len(x[2]) < 9 {
+			if len(x[2]) < 8 {
 				return false
 			}
 			hr, err1 := strconv.Atoi(x[2][0:2])
 			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.Atoi(x[2][4:6])
+			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
 
-			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3-4 = lat
 
@@ -501,7 +506,7 @@ func processNMEALine(l string) bool {
 			}
 
 			hr, err1 = strconv.Atoi(x[3][0:2])
-			minf, err2 := strconv.ParseFloat(x[3][2:10], 32)
+			minf, err2 := strconv.ParseFloat(x[3][2:], 32)
 			if err1 != nil || err2 != nil {
 				return false
 			}
@@ -516,7 +521,7 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			hr, err1 = strconv.Atoi(x[5][0:3])
-			minf, err2 = strconv.ParseFloat(x[5][3:11], 32)
+			minf, err2 = strconv.ParseFloat(x[5][3:], 32)
 			if err1 != nil || err2 != nil {
 				return false
 			}
@@ -532,7 +537,8 @@ func processNMEALine(l string) bool {
 			if err1 != nil {
 				return false
 			}
-			alt := float32(hae*3.28084) - mySituation.GeoidSep // convert to feet and offset by geoid separation
+			alt := float32(hae*3.28084) - mySituation.GeoidSep        // convert to feet and offset by geoid separation
+			mySituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
 			mySituation.Alt = alt
 
 			mySituation.LastFixLocalTime = stratuxClock.Time
@@ -626,24 +632,25 @@ func processNMEALine(l string) bool {
 			} */
 
 			// field 2 is UTC time
-			if len(x[2]) < 9 {
+			if len(x[2]) < 7 {
 				return false
 			}
 			hr, err1 := strconv.Atoi(x[2][0:2])
 			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.Atoi(x[2][4:6])
+			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
-			mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3 is date
 
 			if len(x[3]) == 6 {
 				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[3], hr, min, sec)
-				gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
+				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 				if err == nil {
+					mySituation.LastGPSTimeTime = stratuxClock.Time
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
@@ -656,6 +663,7 @@ func processNMEALine(l string) bool {
 					}
 				}
 			}
+
 		}
 
 		// otherwise parse the NMEA standard messages as a compatibility option for SIRF, generic NMEA, etc.
@@ -702,17 +710,17 @@ func processNMEALine(l string) bool {
 		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
 		// Timestamp.
-		if len(x[1]) < 9 {
+		if len(x[1]) < 7 {
 			return false
 		}
 		hr, err1 := strconv.Atoi(x[1][0:2])
 		min, err2 := strconv.Atoi(x[1][2:4])
-		sec, err3 := strconv.Atoi(x[1][4:6])
+		sec, err3 := strconv.ParseFloat(x[1][4:], 32)
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
 
-		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -783,6 +791,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
+		mySituation.HeightAboveEllipsoid = mySituation.GeoidSep + mySituation.Alt
 
 		// Timestamp.
 		mySituation.LastFixLocalTime = stratuxClock.Time
@@ -803,7 +812,7 @@ func processNMEALine(l string) bool {
 		     D				mode field (nmea 2.3 and higher)
 		     *6A          The checksum data, always begins with *
 		*/
-		if len(x) < 12 {
+		if len(x) < 11 {
 			return false
 		}
 		mySituation.mu_GPS.Lock()
@@ -817,22 +826,23 @@ func processNMEALine(l string) bool {
 		}
 
 		// Timestamp.
-		if len(x[1]) < 9 {
+		if len(x[1]) < 7 {
 			return false
 		}
 		hr, err1 := strconv.Atoi(x[1][0:2])
 		min, err2 := strconv.Atoi(x[1][2:4])
-		sec, err3 := strconv.Atoi(x[1][4:6])
+		sec, err3 := strconv.ParseFloat(x[1][4:], 32)
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
-		mySituation.lastFixSinceMidnightUTC = uint32((hr * 60 * 60) + (min * 60) + sec)
+		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%02d", x[9], hr, min, sec)
-			gpsTime, err := time.Parse("020106 15:04:05", gpsTimeStr)
+			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:06.3f", x[9], hr, min, sec)
+			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			if err == nil {
+				mySituation.LastGPSTimeTime = stratuxClock.Time
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)
@@ -1132,6 +1142,10 @@ func isGPSValid() bool {
 
 func isGPSGroundTrackValid() bool {
 	return stratuxClock.Since(mySituation.LastGroundTrackTime) < 15*time.Second
+}
+
+func isGPSClockValid() bool {
+	return stratuxClock.Since(mySituation.LastGPSTimeTime) < 15*time.Second
 }
 
 func isAHRSValid() bool {

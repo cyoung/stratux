@@ -1,17 +1,14 @@
 <div class="section text-left help-page">
     <p>The <strong>Status</strong> page provides an overview of your Stratux device.</p>
-    <p>The current state of you device is shown at th top - <code>Connected</code> in green or <code>Disconected</code>in red.</p>
+    <p>The current state of you device is shown at the top - <code>Connected</code> in green or <code>Disconected</code>in red.</p>
 
-    <p>Depending on the hardware you have installed in your Stratux, you will have status for the following:</p>
+    <p>Depending on the hardware you have installed in your Stratux, status messages will be shown for the following:</p>
     <ul class="list-simple">
-        <li><strong>SDR</strong> (software defined radio) dongle tuned to 978 MHz for UAT (universal access transceiver) traffic and weather</li>
-        <li><strong>SDR</strong> (software defined radio) dongle tuned to 1090 MHz for ES (extended squitter) traffic</li>
-        <li><strong>GPS</strong> the RY835AI module receiving GPS data from satellites</li>
-        <li><strong>AHRS</strong> the RY835AI module generating attitude data from its pressure sensor, gyroscope, accelerometer, and magnetometer.</li>
+        <li><strong>Messages</strong> is the number of messages received by the UAT (978 MHz) and 1090 MHz radios. "Current" is the 60-second rolling total for each receiver; "Peak" is the maximum 60-second total. The 1090 total includes all 1090 MHz Mode S messages received, including all-call and TCAS interrogations that do not carry ADS-B position information. If a UAT radio is receiving uplinks from one or more ground-based transceivers (GBT), this will be indicated under <strong>UAT Towers</strong>, with more details available on the Towers page.</li>
+        <li><strong>GPS</strong> indicates the connection status of any attached GPS receivers. Reported data includes the type of position solution, the number of satellites used in that solution, the number of satellites being received, and the number of satellites tracked in the GPS almanac data. Position and accuracy details can be viewed on the <strong>GPS/AHRS</strong> page.</li>
+        <li><strong>AHRS</strong> indicates whether the pressure sensor and gyro on an RY835AI or similar 10-axis module are connected and enabled. If connected, attitude and pressure altitude can be viewed on the <strong>GPS/AHRS</strong> page.</li>
     </ul>
-    <p class="text-warning">NOTE: This page only shows devices you have installed and turned on (via the <strong>Settings</strong> page.</p>
+    <p class="text-warning">Devices must be manually enabled on the <strong>Settings</strong> page.</p>
 
-    <p>The <strong>Messages</strong> section gives you details for messages received. There are statistics for the rolling average for the past 60 seconds as well as the peak average.</p>
-    <p>For GPS and AHRS you can view the number of satellites being received and if AHRS is configured and operating.</p>
-    <p>The <strong>Status</strong> page also gives you an indication of how long your Stratux devices has been operating since you turned it on, as well as reporting the on-board temperature sensor of the Raspberry Pi.</p>
+    <p>Additional statistics include the number of detected software-defined radios (SDRs), number of current DHCP network clients, uptime, temperature of the Raspberry Pi CPU, and the current clock settings on both the Raspberry Pi and the device / browser used to view this page.</p>
 </div>

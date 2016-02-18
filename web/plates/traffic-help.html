@@ -1,18 +1,18 @@
 <div class="section text-left help-page">
-	<p>The <strong>Traffic</strong> page provides a list of recent aircraft received. Each time a new aircraft is reported, it is added to the list. Each time a new report is received for an existing aircraft, the list is updated. If a report for an aircraft is not received for 3 minutes (180 seconds), the aircraft is removed from the list.</p>
+	<p>The <strong>Traffic</strong> page provides a list of all aircraft position reports received within the last 60 seconds. Each time a new aircraft is reported, it is added to the list. Each time a new report is received for an existing aircraft, the list is updated. If a report for an aircraft has not been received within the last 60 seconds, the aircraft is removed from the list.</p>
 	<p>For each aircraft, the list includes the following details:</p>
 	<ul class="list-simple">
-		<li><strong>Flight</strong> - either the aircraft tail number / ATC call sign or the ICAO number. When the ICAO number is used, it is displayed in grey.
+		<li><strong>Flight</strong> is aircraft tail number / call sign (when available) or the ICAO 24-bit code. When the ICAO code is used, it is displayed in gray.
 			<ul class="list-simple">
-				<li><span class="label traffic-style1">1090 ES</span> is displayed with a light blue background.</li>
-				<li><span class="label traffic-style2">978 UAT</span> is displayed with a light tan background.</li>
+				<li><span class="label traffic-style1">1090 ES</span> traffic is displayed with a light blue background.</li>
+				<li><span class="label traffic-style2">978 UAT</span> traffic is displayed with a light tan background.</li>
 			</ul>
 		</li>
-		<li><strong>Speed</strong> - current reported speed in knots</li>
-		<li><strong>Altitude</strong> - current reported altitude and climb/decent rate if when not reporting level flight</li>
-		<li><strong>Heading</strong> - direction of reported flight</li>
-		<li><strong>Location</strong> - the latitude and longitude reported</li>
-		<li><strong>Time</strong> - the last time (UTC) a report was received</li>
+		<li><strong>Speed</strong> - Reported ground speed, rounded to the nearest 5 knots. Invalid or missing values are shown as '---'.</li>
+		<li><strong>Altitude</strong> - Reported pressure altitude, feet MSL. Climb or descent rate is also shown if not in level flight.</li>
+		<li><strong>Course</strong> - Reported true course, rounded to the nearest 5°. Invalid or missing values are shown as '---'</li>
+		<li><strong>Location</strong> - Reported latitude and longitude, DD° mm' ss''.</li>
+		<li><strong>Age</strong> - Age of the last traffic report, seconds.</li>
 	</ul>
-	<p class="text-warning">NOTE: When this page becomes active (aka it is selected from the menu) it will display only new traffic. Older traffic and existing traffic will not appear until their next report.</p>
+	<p><strong>Stratux Clock</strong> and <strong>Device Clock</strong> are the UTC timestamps reported by the Stratux and by the web browser on your mobile device, respectively.</p>
 </div>

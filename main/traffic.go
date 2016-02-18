@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	//"log"
 	"math"
 	"net"
 	"strconv"
@@ -82,9 +83,10 @@ type TrafficInfo struct {
 
 	Vvel int16
 
-	Tail string
-
-	Last_seen   time.Time
+	Tail        string
+	Timestamp   time.Time // time traffic last seen, UTC
+	Age         float64   // seconds ago traffic last seen
+	Last_seen   time.Time // time traffic last seen, relative to Stratux startup
 	Last_source uint8
 }
 
@@ -94,7 +96,7 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { //FIXME: 60 seconds with no update on this address - stop displaying.
+		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds...
 			delete(traffic, icao_addr)
 		}
 	}
@@ -105,8 +107,15 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
-	for _, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around 500-1000 aircraft
-		if ti.Position_valid {
+	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+		ti.Age = stratuxClock.Time.Sub(ti.Last_seen).Seconds()
+		traffic[icao] = ti
+		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
+		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
+			tiJSON, _ := json.Marshal(&ti)
+			trafficUpdate.Send(tiJSON)
+		}
+		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			msg = append(msg, makeTrafficReportMsg(ti)...)
 		}
 	}
@@ -116,7 +125,7 @@ func sendTrafficUpdates() {
 	}
 }
 
-// Send update to attached client.
+// Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
 	if !ti.Position_valid { // Don't send unless a valid position exists.
 		return
@@ -367,8 +376,11 @@ func parseDownlinkReport(s string) {
 	//OK.
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
+	ti.Timestamp = time.Now()
+
 	ti.Last_source = TRAFFIC_SOURCE_UAT
 	ti.Last_seen = stratuxClock.Time
+	//ti.Age = 0
 
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
@@ -549,9 +561,12 @@ func esListen() {
 				}
 			}
 
+			ti.Timestamp = time.Now()
+
 			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
 			ti.Last_seen = stratuxClock.Time
+			//ti.Age = 0
 
 			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
 			ti.emitter_category = 0x01 //FIXME. "Light"
@@ -579,11 +594,16 @@ KOSH, once every five minutes.
 
 Inputs are ICAO 24-bit hex code, tail number (8 chars max), relative altitude in feet,
 groundspeed in knots, and bearing offset from 0 deg initial position.
+
+Traffic on headings 150-240 (bearings 060-150) is intentionally suppressed from updating to allow
+for testing of EFB and webUI response. Additionally, the "on ground" flag is set for headings 240-270,
+and speed invalid flag is set for headings 135-150 to allow testing of response to those conditions.
+
 */
-func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset float64) {
+func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
 
-	hdg := float64((stratuxClock.Milliseconds/1000)%360) + offset
+	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 360)
 	// gs := float64(220) // knots
 	radius := gs * 0.1 / (2 * math.Pi)
 	x := radius * math.Cos(hdg*math.Pi/180.0)
@@ -608,18 +628,32 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Alt = int32(mySituation.Alt + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
-	ti.Speed_valid = true
+	if hdg >= 240 && hdg < 270 {
+		ti.OnGround = true
+	}
+	if hdg > 135 && hdg < 150 {
+		ti.Speed_valid = false
+	} else {
+		ti.Speed_valid = true
+	}
 	ti.Vvel = 0
 	ti.Tail = tail // "DEMO1234"
+	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
+	//ti.Age = math.Floor(ti.Age) + hdg / 1000
 	ti.Last_source = 1
+	if icao%7 == 1 { // make some of the traffic UAT sourced
+		ti.Last_source = 2
+	}
 
-	// now insert this into the traffic map...
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
-	traffic[ti.Icao_addr] = ti
-	registerTrafficUpdate(ti)
-	seenTraffic[ti.Icao_addr] = true
+	if hdg < 150 || hdg > 240 {
+		// now insert this into the traffic map...
+		trafficMutex.Lock()
+		defer trafficMutex.Unlock()
+		traffic[ti.Icao_addr] = ti
+		registerTrafficUpdate(ti)
+		seenTraffic[ti.Icao_addr] = true
+	}
 }
 
 func initTraffic() {
