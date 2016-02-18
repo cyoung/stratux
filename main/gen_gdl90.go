@@ -241,7 +241,6 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
-//TODO
 func makeOwnshipReport() bool {
 	if !isGPSValid() {
 		return false
@@ -337,7 +336,6 @@ func makeOwnshipReport() bool {
 	return true
 }
 
-//TODO
 func makeOwnshipGeometricAltitudeReport() bool {
 	if !isGPSValid() {
 		return false
@@ -374,7 +372,6 @@ func makeStratuxStatus() []byte {
 	msg[3] = 1 // "message version".
 
 	// Version code. Messy parsing to fit into four bytes.
-	//FIXME: This is why we can't have nice things.
 	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
 	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
 	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
@@ -767,7 +764,6 @@ type ReplayWriter struct {
 }
 
 func (r ReplayWriter) Write(p []byte) (n int, err error) {
-	//TODO.
 	return r.fp.Write(p)
 }
 

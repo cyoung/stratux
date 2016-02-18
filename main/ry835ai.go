@@ -1069,10 +1069,10 @@ func makeAHRSGDL90Report() {
 
 	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
 	roll := int16(float64(mySituation.Roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0)) //TODO.
-	slip_skid := int16(float64(0) * float64(10.0))                   //TODO.
-	yaw_rate := int16(float64(0) * float64(10.0))                    //TODO.
-	g := int16(float64(1.0) * float64(10.0))                         //TODO.
+	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
+	slip_skid := int16(float64(0) * float64(10.0))
+	yaw_rate := int16(float64(0) * float64(10.0))
+	g := int16(float64(1.0) * float64(10.0))
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
