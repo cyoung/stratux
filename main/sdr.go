@@ -403,7 +403,7 @@ func sdrWatcher() {
 					serial = ""
 				}
 
-				if (rES == nil) {
+				if (rES != nil) {
 					doSkip = rES.MatchString(serial)
 				} else {
 					doSkip = strings.Compare(serial, "stratux:1090") == 0
@@ -452,7 +452,7 @@ func sdrWatcher() {
 					serial = ""
 				}
 
-				if (rUAT == nil) {
+				if (rUAT != nil) {
 					doSkip = rUAT.MatchString(serial)
 				} else {
 					doSkip = strings.Compare(serial, "stratux:978") == 0
