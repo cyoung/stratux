@@ -17,8 +17,9 @@ iface wlan0 inet static
 ##   Second Wifi Dongle for local work and internet access
 ##     wifi mist be open for these settings to work
 ##
-allow-hotplug wlan1
-iface wlan1 inet static
+## uncomment the next two lines to activate the service as well as modify the settings and comments below
+#allow-hotplug wlan1
+#iface wlan1 inet static
 
 # The SSID you want to connect to
 # uncomment the next line and modify if necessary
