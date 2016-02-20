@@ -15,15 +15,20 @@ iface wlan0 inet static
 
 ##
 ##   Second Wifi Dongle for local work and internet access
+##     wifi mist be open for these settings to work
 ##
 allow-hotplug wlan1
 iface wlan1 inet static
 
 # The SSID you want to connect to
-  wireless-essid 6719
+# uncomment the next line and modify if necessary
+#  wireless-essid 6719
 # The address you want to use on your network
-  address 192.168.1.50
+# uncomment the next line and modify if necessary
+#  address 192.168.1.50
 # The address of your netmask
+# uncomment the next line and modify if necessary
   netmask 255.255.255.0
 # The gateway of your router that you are connecting to
-  gateway 192.168.1.1
+# uncomment the next line and modify
+#  gateway 192.168.1.1
