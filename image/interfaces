@@ -28,7 +28,7 @@ iface wlan1 inet static
 #  address 192.168.1.50
 # The address of your netmask
 # uncomment the next line and modify if necessary
-  netmask 255.255.255.0
+#  netmask 255.255.255.0
 # The gateway of your router that you are connecting to
 # uncomment the next line and modify
 #  gateway 192.168.1.1
