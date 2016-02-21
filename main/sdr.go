@@ -34,8 +34,16 @@ type Device struct {
 	hasID   bool
 }
 
-var UATDev *Device
-var ESDev *Device
+type UAT struct {
+	Device
+}
+
+type ES struct {
+	Device
+}
+
+var UATDev *UAT
+var ESDev *ES
 
 func readToChan(fp io.ReadCloser, ch chan []byte) {
 	for {
