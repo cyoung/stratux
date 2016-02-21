@@ -77,7 +77,7 @@ type TrafficInfo struct {
 	OnGround         bool
 	Addr_type        uint8 // UAT address qualifier... not directly applicable to ES. Deprecate in favor of TargetType?
 	TargetType       uint8
-	emitter_category uint8 // Need to verify / harmonize defs between UAT and BDS 0,8 messages
+	Emitter_category uint8 // Need to verify / harmonize defs between UAT and BDS 0,8 messages
 	Position_valid   bool	// set when position report received. Unset after n seconds? (To-do)
 	Lat              float32
 	Lng              float32
@@ -146,6 +146,9 @@ func sendTrafficUpdates() {
 	var msg []byte
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
+		if (stratuxClock.Since(ti.Last_speed) > 6*time.Second) {
+			ti.Speed_valid = false
+		}
 		traffic[icao] = ti
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
@@ -240,7 +243,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	trk := uint8(float32(ti.Track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 	msg[17] = byte(trk)
 
-	msg[18] = ti.emitter_category
+	msg[18] = ti.Emitter_category
 
 	// msg[19] to msg[26] are "call sign" (tail).
 	for i := 0; i < len(ti.Tail) && i < 8; i++ {
@@ -266,7 +269,7 @@ func parseDownlinkReport(s string) {
 	// Extract emitter category.
 	if msg_type == 1 || msg_type == 3 {
 		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
-		ti.emitter_category = uint8((v / 1600) % 40)
+		ti.Emitter_category = uint8((v / 1600) % 40)
 	}
 
 	icao_addr := (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
@@ -659,8 +662,11 @@ func esListen() {
 
 			ti.NACp = ti.NIC // Hack. TO-DO - Parse from DF 17/18 TC 19 messages
 
-			ti.emitter_category = 0x01 //FIXME. "Light" - Parse from DF 17/18 TC 1-4 messages
-
+			
+			if newTi.Emitter_category != nil {
+					ti.Emitter_category = uint8(*newTi.Emitter_category)
+			} 
+			
 			if newTi.OnGround != nil { // DF=11 messages don't report "on ground" status
 				ti.OnGround = bool(*newTi.OnGround)
 			}
@@ -734,7 +740,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	if ti.Addr_type == 1 {         //reserved value
 		ti.Addr_type = 0
 	}
-	ti.emitter_category = 1
+	ti.Emitter_category = 1
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
 	ti.Position_valid = true
