@@ -13,10 +13,10 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	//"log"
+	"log"
 	"math"
 	"net"
-	"strconv"
+	//"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -62,32 +62,69 @@ AUXSV:
 const (
 	TRAFFIC_SOURCE_1090ES = 1
 	TRAFFIC_SOURCE_UAT    = 2
+	TARGET_TYPE_MODE_S    = 0
+	TARGET_TYPE_ADSB      = 1
+	TARGET_TYPE_ADSR      = 2
+	TARGET_TYPE_TISB      = 3
+	// Assign next type to UAT messages with address qualifier == 2
+	// (these have Mode S addresses it is indeterminate if these are
+	// ADS-R or TIS-B messages
+	TARGET_TYPE_TISB_S    = 4
 )
 
 type TrafficInfo struct {
 	Icao_addr        uint32
 	OnGround         bool
-	Addr_type        uint8
-	emitter_category uint8
+	Addr_type        uint8 // UAT address qualifier... not directly applicable to ES. Deprecate in favor of TargetType?
+	TargetType       uint8
+	emitter_category uint8 // Need to verify / harmonize defs between UAT and BDS 0,8 messages
+	Position_valid   bool	// set when position report received. Unset after n seconds? (To-do)
+	Lat              float32
+	Lng              float32
+	Alt              int32 // Pressure altitude
+	GnssAlt          int32 // GNSS altitude above WGS84 datum. Reported in TC 20-22 messages
+	AltSource        uint8 // Pressure alt = 0; GNSS alt = 1
+	NIC              int   // navigation integrity category
+	NACp             int   // Navigation Accuracy Category for Position
+	Track            uint16
+	Speed            uint16
+	Speed_valid      bool  // set when speed report received. Unset after n seconds?
+	Vvel             int16
+	Tail             string
+	Timestamp        time.Time // timestamp of traffic message, UTC
+	// Parameters starting at 'Age' are calculated after message receipt.
+	// Mode S transmits position and track in separate messages, and altitude can also be
+	// received from interrogations.
+	Age              float64   // seconds ago traffic last seen
+	Last_seen        time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
+	Last_alt         time.Time // time of last altitude update, relative to Stratux startup
+	Last_speed       time.Time // time of last velocity / track update, relative to Stratux startup
+	Last_source      uint8     // last SDR on which this target was observed
+}
 
-	Lat float32
-	Lng float32
-
-	Position_valid bool
-
-	Alt int32
-
-	Track       uint16
-	Speed       uint16
-	Speed_valid bool
-
-	Vvel int16
-
-	Tail        string
-	Timestamp   time.Time // time traffic last seen, UTC
-	Age         float64   // seconds ago traffic last seen
-	Last_seen   time.Time // time traffic last seen, relative to Stratux startup
-	Last_source uint8
+type dump1090Data struct {
+	Icao_addr        uint32
+	// Mode S specific
+	DF               int // Mode S downlink format
+	CA               int // Lowest 3 bits of first byte of Mode S message (DF11 and DF17 capability; DF18 control field, zero for all other DF types)
+	TypeCode         int // Mode S type code
+	SubtypeCode      int // Mode S subtype code
+	SBS_MsgType      int // type of SBS message (compatibility check with old Stratux)
+	// General
+	OnGround         *bool
+	Emitter_category *int
+	Position_valid   bool
+	Lat              *float32
+	Lng              *float32
+	Alt              *int32
+	GnssAlt          *int32 // GNSS altitude above WGS84 datum. Reported in TC 20-22 messages
+	Speed_valid      bool
+	Speed            *uint16
+	Track            *uint16
+	Vvel             *int16
+	Tail             *string
+	Timestamp        time.Time // time traffic last seen, UTC
+	Squawk           *int      // 12-bit squawk code in octal format
 }
 
 var traffic map[uint32]TrafficInfo
@@ -421,7 +458,7 @@ func esListen() {
 			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
 			continue
 		}
-		dump1090Addr := "127.0.0.1:30003"
+		dump1090Addr := "127.0.0.1:30006"
 		inConn, err := net.Dial("tcp", dump1090Addr)
 		if err != nil { // Local connection failed.
 			time.Sleep(1 * time.Second)
@@ -429,160 +466,233 @@ func esListen() {
 		}
 		rdr := bufio.NewReader(inConn)
 		for globalSettings.ES_Enabled {
+			//log.Printf("ES enabled. Ready to read next message from dump1090\n")
 			buf, err := rdr.ReadString('\n')
+			//log.Printf("String read from dump1090\n")
 			if err != nil { // Must have disconnected?
 				break
 			}
 			buf = strings.Trim(buf, "\r\n")
 			//log.Printf("%s\n", buf)
-			replayLog(buf, MSGCLASS_ES) // Log the raw message.
-			x := strings.Split(buf, ",")
-			if len(x) < 22 {
-				continue
-			}
-			icao := x[4]
-			icaoDecf, err := strconv.ParseInt(icao, 16, 32)
+			replayLog(buf, MSGCLASS_ES) // Log the raw message to nnnn-ES.log
+
+			var newTi *dump1090Data
+			err = json.Unmarshal([]byte(buf), &newTi)
 			if err != nil {
+				log.Printf("can't read ES traffic information: %s\n", err.Error())
 				continue
 			}
 
-			// Log the message after we've determined that it at least meets some requirements on the fields.
+			// Log the message to the message counter as a valid ES if it unmarshalles.
 			var thisMsg msg
 			thisMsg.MessageClass = MSGCLASS_ES
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = []byte(buf)
 			MsgLog = append(MsgLog, thisMsg)
 
-			// Begin to parse the message.
-			icaoDec := uint32(icaoDecf)
-			trafficMutex.Lock()
+			trafficMutex.Lock() //  Comment out this (and the unlock) to verify "this iteration" messages
+
 			// Retrieve previous information on this ICAO code.
 			var ti TrafficInfo
-			if val, ok := traffic[icaoDec]; ok {
+			if val, ok := traffic[newTi.Icao_addr]; ok { // if we've already seen it, copy it in to do updates
 				ti = val
 			}
+			ti.Icao_addr = newTi.Icao_addr
 
-			ti.Icao_addr = icaoDec
+			// generate human readable summary of message types for debug
+			// TO-DO: Use ES message statistics?
+			var s1 string
+			if newTi.DF == 17 {
+				s1 = "ADS-B"
+			}
+			if newTi.DF == 18 {
+				s1 = "ADS-R / TIS-B"
+			}
 
-			//FIXME: Some stale information will be renewed.
-			valid_change := true
-			if x[1] == "3" { // ES airborne position message. DF17 BDS 0,5.
-				//MSG,3,111,11111,AC2BB7,111111,2015/07/28,03:59:12.363,2015/07/28,03:59:12.353,,5550,,,42.35847,-83.42212,,,,,,0
-				//MSG,3,111,11111,A5D007,111111,          ,            ,          ,            ,,35000,,,42.47454,-82.57433,,,0,0,0,0
-				alt := x[11]
-				lat := x[14]
-				lng := x[15]
+			if newTi.DF == 4 || newTi.DF == 20 {
+				s1 = "Surveillance, Alt. Reply"
+			}
 
-				if len(alt) == 0 || len(lat) == 0 || len(lng) == 0 { //FIXME.
-					valid_change = false
+			if newTi.DF == 5 || newTi.DF == 21 {
+				s1 = "Surveillance, Ident. Reply"
+			}
+
+			if newTi.DF == 11 {
+				s1 = "All-call Reply"
+			}
+
+			if newTi.DF == 0 {
+				s1 = "Short Air-Air Surv."
+			}
+
+			if newTi.DF == 16 {
+				s1 = "Long Air-Air Surv."
+			}
+
+			// developer debug. Comment out for release.
+			log.Printf("Mode S message from icao=%X, DF=%02d, CA=%02d, TC=%02d (%s)\n", ti.Icao_addr, newTi.DF, newTi.CA, newTi.TypeCode, s1)
+
+			// Altitude will be sent by dump1090 for ES ADS-B/TIS-B (DF=17 and DF=18)
+			// and Mode S messages (DF=0, DF = 4, and DF = 20).
+
+			if newTi.Alt != nil {
+				ti.Alt = int32(*newTi.Alt)
+				ti.AltSource = 0
+				ti.Last_alt = stratuxClock.Time
+			}
+
+			if newTi.GnssAlt != nil {
+				ti.GnssAlt = int32(*newTi.GnssAlt)
+				ti.AltSource = 1
+				ti.Last_alt = stratuxClock.Time
+			}
+
+			// Position updates are provided only by ES messages (DF=17 and DF=18; multiple TCs)
+
+			if newTi.Position_valid { // i.e. DF17 or DF18 message decoded successfully by dump1090
+				valid_position := true
+				var lat, lng float32
+
+				if newTi.Lat != nil {
+					lat = float32(*newTi.Lat)
+				} else { // dump1090 send a valid message, but Stratux couldn't figure it out for some reason.
+					valid_position = false
+					log.Printf("Missing latitude in DF=17/18 airborne position message\n")
 				}
 
-				altFloat, err := strconv.ParseFloat(alt, 32)
-				if err != nil {
-					//					log.Printf("err parsing alt (%s): %s\n", alt, err.Error())
-					valid_change = false
+				if newTi.Lng != nil {
+					lng = float32(*newTi.Lng)
+				} else { //
+					valid_position = false
+					log.Printf("Missing longitude in DF=17 airborne position message\n")
 				}
 
-				latFloat, err := strconv.ParseFloat(lat, 32)
-				if err != nil {
-					//					log.Printf("err parsing lat (%s): %s\n", lat, err.Error())
-					valid_change = false
-				}
-				lngFloat, err := strconv.ParseFloat(lng, 32)
-				if err != nil {
-					//					log.Printf("err parsing lng (%s): %s\n", lng, err.Error())
-					valid_change = false
-				}
-
-				//log.Printf("icao=%s, icaoDec=%d, alt=%s, lat=%s, lng=%s\n", icao, icaoDec, alt, lat, lng)
-				if valid_change {
-					ti.Alt = int32(altFloat)
-					ti.Lat = float32(latFloat)
-					ti.Lng = float32(lngFloat)
+				if valid_position {
+					ti.Lat = lat
+					ti.Lng = lng
 					ti.Position_valid = true
+					ti.Last_seen = stratuxClock.Time // only update "last seen" data on position updates
 				}
 			}
-			if x[1] == "4" { // ES airborne velocity message. DF17 BDS 0,9.
-				// MSG,4,111,11111,A3B557,111111,2015/07/28,06:13:36.417,2015/07/28,06:13:36.398,,,414,278,,,-64,,,,,0
-				// MSG,4,111,11111,ABE287,111111,2016/01/03,19:44:43.440,2016/01/03,19:44:43.401,,,469,88,,,0,,,,,0
-				speed := x[12]
-				track := x[13]
-				vvel := x[16]
 
-				if len(speed) == 0 || len(track) == 0 || len(vvel) == 0 {
-					valid_change = false
+			// TO-DO: Add track / speed / vertical speed here
+			if newTi.Speed_valid { // i.e. DF17 or DF18, TC 19 message decoded successfully by dump1090
+				valid_speed := true
+				var speed, track uint16
+
+				if newTi.Track != nil {
+					track = uint16(*newTi.Track)
+				} else { // dump1090 send a valid message, but Stratux couldn't figure it out for some reason.
+					valid_speed = false
+					log.Printf("Missing track in DF=17/18 TC19 airborne velocity message\n")
 				}
 
-				speedFloat, err := strconv.ParseFloat(speed, 32)
-				if err != nil {
-					//					log.Printf("err parsing speed (%s): %s\n", speed, err.Error())
-					valid_change = false
+				if newTi.Speed != nil {
+					speed = uint16(*newTi.Speed)
+				} else { //
+					valid_speed = false
+					log.Printf("Missing speed in DF=17/18 TC19 airborne velocity message\n")
 				}
 
-				trackFloat, err := strconv.ParseFloat(track, 32)
-				if err != nil {
-					//					log.Printf("err parsing track (%s): %s\n", track, err.Error())
-					valid_change = false
-				}
-				vvelFloat, err := strconv.ParseFloat(vvel, 32)
-				if err != nil {
-					//					log.Printf("err parsing vvel (%s): %s\n", vvel, err.Error())
-					valid_change = false
+				if newTi.Vvel != nil {
+					ti.Vvel = int16(*newTi.Vvel)
+				} else { // we'll still make the message without a valid vertical speed.
+					log.Printf("Missing vertical speed in DF=17/18 TC19 airborne velocity message\n")
 				}
 
-				//log.Printf("icao=%s, icaoDec=%d, vel=%s, hdg=%s, vr=%s\n", icao, icaoDec, vel, hdg, vr)
-				if valid_change {
-					ti.Speed = uint16(speedFloat)
-					ti.Track = uint16(trackFloat)
-					ti.Vvel = int16(vvelFloat)
+				if valid_speed {
+					ti.Track = track
+					ti.Speed = speed
 					ti.Speed_valid = true
-				}
-			}
-			if x[1] == "1" { // ES identification and category. DF17 BDS 0,8.
-				// MSG,1,,,%02X%02X%02X,,,,,,%s,,,,,,,,0,0,0,0
-				tail := x[10]
-
-				if len(tail) == 0 {
-					valid_change = false
-				}
-
-				if valid_change {
-					ti.Tail = tail
-				}
-			}
-			if x[1] == "5" { // Surveillance alt message. DF4, DF20.
-				// MSG,5,,,%02X%02X%02X,,,,,,,%d,,,,,,,%d,%d,%d,%d
-				// MSG,5,111,11111,AB5F1B,111111,2016/01/03,04:43:52.028,2016/01/03,04:43:52.006,,13050,,,,,,,0,,0,0
-				alt := x[11]
-
-				altFloat, err := strconv.ParseFloat(alt, 32)
-				if len(alt) != 0 && err == nil {
-					ti.Alt = int32(altFloat)
+					ti.Last_speed = stratuxClock.Time // only update "last seen" data on position updates
 				}
 			}
 
-			ti.Timestamp = time.Now()
+			// Set the target type. DF=18 messages are sent by ground station, so we look at CA
+			// (repurposed to Control Field in DF18) to determine if it's ADS-R or TIS-B.
+			if newTi.DF == 17 {
+				ti.TargetType = TARGET_TYPE_ADSB
+			} else if newTi.DF == 18 {
+				if newTi.CA == 6 {
+					ti.TargetType = TARGET_TYPE_ADSR
+				} else if newTi.CA == 2 || newTi.CA == 5 {
+					ti.TargetType = TARGET_TYPE_TISB
+				}
+			}
 
-			// Update "last seen" (any type of message, as long as the ICAO addr can be parsed).
+			// Determine NIC (navigation integrity category) from type code and subtype code
+
+			if ((newTi.DF == 17) || (newTi.DF == 18)) && (newTi.TypeCode >= 5 && newTi.TypeCode <= 22) && (newTi.TypeCode != 19) {
+				nic := 0 // default for unknown or missing NIC
+				switch newTi.TypeCode {
+				case 0, 8, 18, 22:
+					nic = 0
+				case 17:
+					nic = 1
+				case 16:
+					if newTi.SubtypeCode == 1 {
+						nic = 3
+					} else {
+						nic = 2
+					}
+				case 15:
+					nic = 4
+				case 14:
+					nic = 5
+				case 13:
+					nic = 6
+				case 12:
+					nic = 7
+				case 11:
+					if newTi.SubtypeCode == 1 {
+						nic = 9
+					} else {
+						nic = 8
+					}
+				case 10, 21:
+					nic = 10
+				case 9, 20:
+					nic = 11
+				}
+				ti.NIC = nic
+			}
+
+			ti.NACp = ti.NIC // Hack. TO-DO - Parse from DF 17/18 TC 19 messages
+
+			ti.emitter_category = 0x01 //FIXME. "Light" - Parse from DF 17/18 TC 1-4 messages
+
+			if newTi.OnGround != nil { // DF=11 messages don't report "on ground" status
+				ti.OnGround = bool(*newTi.OnGround)
+			}
+
+			if newTi.Tail != nil { // DF=17 or DF=18, Type Code 1-4
+				ti.Tail = *newTi.Tail
+				// This is a hack to show the source of the traffic in ForeFlight.
+				ti.Tail = strings.Trim(ti.Tail, " ")
+				if globalSettings.DEBUG {
+					if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
+						ti.Tail = "e" + ti.Tail
+					}
+				}
+			}
+
+			//log.Printf("Parsed Airborne position: %f, %f, at %d (%d GNSS) with NIC=%d\n",ti.Lat,ti.Lng,ti.Alt,ti.GnssAlt, ti.NIC)
+
+			ti.Timestamp = newTi.Timestamp // only update "last seen" data on position updates
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
-			ti.Last_seen = stratuxClock.Time
-			//ti.Age = 0
 
-			ti.Addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
-			ti.emitter_category = 0x01 //FIXME. "Light"
-
-			// This is a hack to show the source of the traffic in ForeFlight.
-			ti.Tail = strings.Trim(ti.Tail, " ")
-			if globalSettings.DEBUG {
-				if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
-					ti.Tail = "e" + ti.Tail
-				}
+			s_out, err := json.Marshal(ti)
+			if err != nil {
+				log.Printf("Error generating output: %s\n", err.Error())
+			} else {
+				log.Printf("Updated this ti as follows: %s\n", string(s_out))
 			}
 
-			traffic[icaoDec] = ti // Update information on this ICAO code.
+			traffic[newTi.Icao_addr] = ti // Update information on this ICAO code.
 			registerTrafficUpdate(ti)
-			seenTraffic[icaoDec] = true // Mark as seen.
+			seenTraffic[newTi.Icao_addr] = true // Mark as seen.
 			trafficMutex.Unlock()
+
 		}
 	}
 }
@@ -643,6 +753,12 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Tail = tail // "DEMO1234"
 	ti.Timestamp = time.Now()
 	ti.Last_seen = stratuxClock.Time
+	ti.Last_alt = stratuxClock.Time
+	ti.Last_speed = stratuxClock.Time
+	ti.TargetType = 1
+	ti.NACp = 8
+	ti.NIC = 8
+
 	//ti.Age = math.Floor(ti.Age) + hdg / 1000
 	ti.Last_source = 1
 	if icao%7 == 1 { // make some of the traffic UAT sourced
