@@ -414,7 +414,7 @@ func sdrWatcher() {
 				}
 
 				if !rES.hasID(serial) {
-					UATDev = &Device{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
+					UATDev = &UAT{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
 						UATDev = nil
@@ -456,7 +456,7 @@ func sdrWatcher() {
 				}
 
 				if !rUAT.hasID(serial) {
-					ESDev = &Device{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
+					ESDev = &ES{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
 						ESDev = nil
