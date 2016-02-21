@@ -67,7 +67,7 @@ const (
 type TrafficInfo struct {
 	Icao_addr        uint32
 	OnGround         bool
-	addr_type        uint8
+	Addr_type        uint8
 	emitter_category uint8
 
 	Lat float32
@@ -140,7 +140,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// See p.16.
 	msg[0] = 0x14 // Message type "Traffic Report".
 
-	msg[1] = 0x10 | ti.addr_type // Alert status, address type.
+	msg[1] = 0x10 | ti.Addr_type // Alert status, address type.
 
 	// ICAO Address.
 	msg[2] = byte((ti.Icao_addr & 0x00FF0000) >> 16)
@@ -241,10 +241,10 @@ func parseDownlinkReport(s string) {
 	}
 	ti.Icao_addr = icao_addr
 
-	ti.addr_type = uint8(frame[0]) & 0x07
+	ti.Addr_type = uint8(frame[0]) & 0x07
 
 	// OK.
-	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.addr_type, ti.Icao_addr)
+	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.Addr_type, ti.Icao_addr)
 
 	nic := uint8(frame[11]) & 15 //TODO: Meaning?
 
@@ -568,7 +568,7 @@ func esListen() {
 			ti.Last_seen = stratuxClock.Time
 			//ti.Age = 0
 
-			ti.addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
+			ti.Addr_type = 0           //FIXME: ADS-B with ICAO address. Not recognized by ForeFlight.
 			ti.emitter_category = 0x01 //FIXME. "Light"
 
 			// This is a hack to show the source of the traffic in ForeFlight.
@@ -620,7 +620,10 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	ti.Icao_addr = icao
 	ti.OnGround = false
-	ti.addr_type = 0
+	ti.Addr_type = uint8(icao % 4) // 0 == ADS-B; 1 == reserved; 2 == TIS-B with ICAO address; 3 == TIS-B without ICAO address.
+	if ti.Addr_type == 1 {         //reserved value
+		ti.Addr_type = 0
+	}
 	ti.emitter_category = 1
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
