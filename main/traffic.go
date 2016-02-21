@@ -133,7 +133,7 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds...
+		if stratuxClock.Since(ti.Last_seen) > 120*time.Second { // keep it in the database for up to 120 seconds, so we don't lose tail number, etc...
 			delete(traffic, icao_addr)
 		}
 	}
@@ -146,9 +146,6 @@ func sendTrafficUpdates() {
 	var msg []byte
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
-		if (stratuxClock.Since(ti.Last_speed) > 6*time.Second) {
-			ti.Speed_valid = false
-		}
 		traffic[icao] = ti
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
@@ -492,16 +489,26 @@ func esListen() {
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = []byte(buf)
 			MsgLog = append(MsgLog, thisMsg)
+			
+			
+			icao := uint32(newTi.Icao_addr)
 
-			trafficMutex.Lock() //  Comment out this (and the unlock) to verify "this iteration" messages
-
-			// Retrieve previous information on this ICAO code.
 			var ti TrafficInfo
-			if val, ok := traffic[newTi.Icao_addr]; ok { // if we've already seen it, copy it in to do updates
+			
+			trafficMutex.Lock()
+			//defer trafficMutex.Unlock()
+		
+			// Retrieve previous information on this ICAO code.
+				
+			if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
 				ti = val
+				log.Printf("Existing target %X imported\n", icao)
+			} else {
+				log.Printf("New target: %X\n",newTi.Icao_addr)
+				ti.Last_seen = stratuxClock.Time
+				ti.Icao_addr = icao
 			}
-			ti.Icao_addr = newTi.Icao_addr
-
+			
 			// generate human readable summary of message types for debug
 			// TO-DO: Use ES message statistics?
 			var s1 string
@@ -542,6 +549,7 @@ func esListen() {
 				ti.Alt = int32(*newTi.Alt)
 				ti.AltSource = 0
 				ti.Last_alt = stratuxClock.Time
+				log.Printf("Set altitude to %d\n",ti.Alt)
 			}
 
 			if newTi.GnssAlt != nil {
@@ -578,6 +586,7 @@ func esListen() {
 				}
 			}
 
+
 			// TO-DO: Add track / speed / vertical speed here
 			if newTi.Speed_valid { // i.e. DF17 or DF18, TC 19 message decoded successfully by dump1090
 				valid_speed := true
@@ -608,8 +617,11 @@ func esListen() {
 					ti.Speed = speed
 					ti.Speed_valid = true
 					ti.Last_speed = stratuxClock.Time // only update "last seen" data on position updates
-				}
+				} 
+			} else if (((newTi.DF == 17) || (newTi.DF == 18)) && (newTi.TypeCode == 19)) { // invalid speed on velocity message only
+				ti.Speed_valid = false
 			}
+
 
 			// Set the target type. DF=18 messages are sent by ground station, so we look at CA
 			// (repurposed to Control Field in DF18) to determine if it's ADS-R or TIS-B.
@@ -660,6 +672,7 @@ func esListen() {
 				ti.NIC = nic
 			}
 
+
 			ti.NACp = ti.NIC // Hack. TO-DO - Parse from DF 17/18 TC 19 messages
 
 			
@@ -682,21 +695,20 @@ func esListen() {
 				}
 			}
 
-			//log.Printf("Parsed Airborne position: %f, %f, at %d (%d GNSS) with NIC=%d\n",ti.Lat,ti.Lng,ti.Alt,ti.GnssAlt, ti.NIC)
-
 			ti.Timestamp = newTi.Timestamp // only update "last seen" data on position updates
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
-
+			
 			s_out, err := json.Marshal(ti)
 			if err != nil {
 				log.Printf("Error generating output: %s\n", err.Error())
 			} else {
 				log.Printf("Updated this ti as follows: %s\n", string(s_out))
 			}
-
-			traffic[newTi.Icao_addr] = ti // Update information on this ICAO code.
+									
+			traffic[ti.Icao_addr] = ti // Update information on this ICAO code.
 			registerTrafficUpdate(ti)
-			seenTraffic[newTi.Icao_addr] = true // Mark as seen.
+			seenTraffic[ti.Icao_addr] = true // Mark as seen.
+			//log.Printf("%v\n",traffic)
 			trafficMutex.Unlock()
 
 		}
