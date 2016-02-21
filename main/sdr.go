@@ -34,13 +34,8 @@ type Device struct {
 	hasID   bool
 }
 
-type UAT struct {
-	Device
-}
-
-type ES struct {
-	Device
-}
+type UAT Device
+type ES Device
 
 var UATDev *UAT
 var ESDev *ES
@@ -316,31 +311,36 @@ func sdrKill() {
 	}
 }
 
-type rUAT regexp.Regexp
+func reCompile(s string) *regexp.Regexp {
+	// Compile returns a nil pointer when there's an error
+	r, _ := regexp.Compile(s)
+	return r
+}
+
+type regexUAT regexp.Regexp
+
+var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
 
 func (r *rUAT) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:978")
 	}
-	return r.MatchString(serial)
+	return (*regexp.Regexp)(r).MatchString(serial)
 }
 
-type rES regexp.Regexp
+type regexES regexp.Regexp
+
+var rES = (*regexUAT)(reCompile("str?a?t?u?x:1090"))
 
 func (r *rES) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:1090")
 	}
-	return r.MatchString(serial)
+	return (*regexp.Regexp)(r).MatchString(serial)
 }
 
 // Watch for config/device changes.
 func sdrWatcher() {
-	// Compile returns a nil pointer when it fails and
-	// we do the nil check in the hasID method
-	rES, _ = regexp.Compile("str?a?t?u?x:1090")
-	rUAT, _ = regexp.Compile("str?a?t?u?x:978")
-
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
