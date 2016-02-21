@@ -320,7 +320,7 @@ type rUAT regexp.Regexp
 
 func (r *rUAT) hasID(serial string) bool {
 	if r == nil {
-		return !strings.HasPrefix(serial, "stratux:978")
+		return strings.HasPrefix(serial, "stratux:978")
 	}
 	return r.MatchString(serial)
 }
