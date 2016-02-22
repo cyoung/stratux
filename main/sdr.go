@@ -313,7 +313,7 @@ func sdrKill() {
 }
 
 func reCompile(s string) *regexp.Regexp {
-	// Compile returns a nil pointer when there's an error
+	// note , compile returns a nil pointer on error
 	r, _ := regexp.Compile(s)
 	return r
 }
@@ -324,14 +324,14 @@ type regexES regexp.Regexp
 var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
 var rES = (*regexUAT)(reCompile("str?a?t?u?x:1090"))
 
-func (r *rUAT) hasID(serial string) bool {
+func (r *regexUAT) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:978")
 	}
 	return (*regexp.Regexp)(r).MatchString(serial)
 }
 
-func (r *rES) hasID(serial string) bool {
+func (r *regexES) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:1090")
 	}
