@@ -372,67 +372,10 @@ func createESDev(id int, serial string, idSet bool) error {
 
 func configDevices(count int, es_enabled, uat_enabled bool) {
 	// entry to this function is only valid when both UATDev and ESDev are nil
+	// TODO: refactor and optimize
 
-	// (A = Anonymous, UAT = 978 id, ES = 1090 id, "->" = configured to...)
-
-	// es_enabled == true and uat_enabled == true
-	//
-	// ID      0      1
-	// -------------------------------------------------------------------------
-	//         A      A     id 0 -> UAT first  pass loop 2, id 1 -> ES  second pass loop 2
-	//         A      ES	id 1 -> ES  second pass loop 1, id 0 -> UAT first  pass loop 2
-	//         ES     A     id 0 -> ES  first  pass loop 1, id 1 -> UAT first  pass loop 2
-	//         A      UAT   id 1 -> UAT second pass loop 1, id 0 -> ES  first  pass loop 2
-	//         UAT    A     id 0 -> UAT first  pass loop 1, id 1 -> ES  first  pass loop 2
-	//         ES     UAT   id 0 -> ES  first  pass loop 1, id 1 -> UAT second pass loop 1
-	//         UAT    ES    id 0 -> UAT first  pass loop 1, id 1 -> ES  second pass loop 1
-	//         ES     ES    id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
-	//         UAT    UAT   id 0 -> UAT first  pass loop 1, id 1 -> Unconfigured
-
-	// es_enabled == true and uat_enabled == false
-	//
-	// ID      0      1
-	// -------------------------------------------------------------------------
-	//         A      A     id 0 -> ES  first  pass loop 2, id 1 -> Unconfigured
-	//         A      ES	id 1 -> ES  second pass loop 1, id 0 -> Unconfigured
-	//         ES     A     id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
-	//         A      UAT   id 0 -> ES  first  pass loop 2, id 1 -> Unconfigured
-	//         UAT    A     id 1 -> ES  second pass loop 2, id 1 -> Unconfigured
-	//         ES     UAT   id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
-	//         UAT    ES    id 1 -> ES  second pass loop 1, id 0 -> Unconfigured
-	//         ES     ES    id 0 -> ES  first  pass loop 1, id 1 -> unconfigured
-	//         UAT    UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
-
-	// es_enabled == false and uat_enabled == true
-	//
-	// ID      0      1
-	// -------------------------------------------------------------------------
-	//         A      A     id 0 -> UAT first  pass loop 2, id 1 -> Unconfigured
-	//         A      ES	id 0 -> UAT first  pass loop 2, id 1 -> Unconfigured
-	//         ES     A     id 1 -> UAT second pass loop 2, id 0 -> Unconfigured
-	//         A      UAT   id 1 -> UAT second pass loop 1, id 0 -> Unconfigured
-	//         UAT    A     id 0 -> UAT first  pass loop 1, id 1 -> Unconfigured
-	//         ES     UAT   id 1 -> UAT second pass loop 1, id 0 -> Unconfigured
-	//         UAT    ES    id 0 -> UAT first  pass loop 1, id 1 -> Unconfigured
-	//         ES     ES    id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         UAT    UAT   id 0 -> UAT first  pass loop 1, id 1 -> unconfigured
-
-	// es_enabled == false and uat_enabled == false
-	//
-	// ID      0      1
-	// -------------------------------------------------------------------------
-	//         A      A     id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         A      ES	id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         ES     A     id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         A      UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         UAT    A     id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         ES     UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         UAT    ES    id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         ES     ES    id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         UAT    UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
-
-	// once the tagged dongles have been assigned explicitly range over
-	// the remaining IDs and assign then to any anonymous dongles
+	// once the tagged dongles have been assigned, explicitly range over
+	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make([]int, 0, count)
 
 	// loop 1: assign tagged dongles
@@ -451,13 +394,16 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 		}
 	}
 
-	// loop 2; assign anonymous dongles
+	// loop 2; assign anonymous dongles, but sanity check the serial ids
+	// so we don't cross config for dual assigned dongles. E.g. when two
+	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
+	// dongle makes it to this loop.
 	for _, v := range unusedIDs {
 		_, _, s, err := rtl.GetDeviceUsbStrings(v)
 		if err == nil {
-			if uat_enabled && UATDev == nil {
+			if uat_enabled && UATDev == nil && !rES.hasID(s) {
 				createUATDev(v, s, false)
-			} else if es_enabled && ESDev == nil {
+			} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
 				createESDev(v, s, false)
 			}
 		} else {
