@@ -404,6 +404,23 @@ func sdrWatcher() {
 						id = 1
 					}
 				}
+
+				/* Address #275. If both devices are nil, but
+			 	 * id 1 matches the rUAT string, we need to
+				 * force the UAT to id 1, so that UAT doesn't
+				 * consume a flexible id 0 and leave ES bound
+				 * to an undesired, fixed 978.
+				 * A parallel fix is not installed in the ES
+				 * code, because both cases are already handled:
+				 * id 0 flex, id 1 1090, then 0 bound to UAT
+				 * id 1 flex, id 0 1090, then 0 bound to ES
+				 */
+				if UATDev == nil && ESDev == nil && rUAT {
+					_, _, serial, err := rtl.GetDeviceUsbStrings(1)
+					if err == nil && rUAT.MatchSerial(serial) {
+						id = 1
+					}
+				}
 			}
 
 			if UATDev == nil {
