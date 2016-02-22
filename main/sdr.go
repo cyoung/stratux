@@ -136,6 +136,7 @@ func getPPM(serial string) int {
 
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
+	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
 	return
 }
 
@@ -149,7 +150,8 @@ const (
 )
 
 func (u *UAT) sdrConfig() (err error) {
-	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
+	log.Printf("===== UAT Device index: %s =====\n", rtl.GetDeviceName(u.indexID))
+	log.Printf("===== UAT Device Serial: %s=====\n", u.serial)
 
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
 		log.Printf("\tUAT Open Failed...\n")
@@ -322,7 +324,7 @@ type regexUAT regexp.Regexp
 type regexES regexp.Regexp
 
 var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
-var rES = (*regexUAT)(reCompile("str?a?t?u?x:1090"))
+var rES = (*regexES)(reCompile("str?a?t?u?x:1090"))
 
 func (r *regexUAT) hasID(serial string) bool {
 	if r == nil {
