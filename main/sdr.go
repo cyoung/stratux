@@ -415,9 +415,9 @@ func sdrWatcher() {
 				 * id 0 flex, id 1 1090, then 0 bound to UAT
 				 * id 1 flex, id 0 1090, then 0 bound to ES
 				 */
-				if UATDev == nil && ESDev == nil && rUAT {
+				if UATDev == nil && ESDev == nil && rUAT != nil {
 					_, _, serial, err := rtl.GetDeviceUsbStrings(1)
-					if err == nil && rUAT.MatchSerial(serial) {
+					if err == nil && rUAT.MatchString(serial) {
 						id = 1
 					}
 				}
