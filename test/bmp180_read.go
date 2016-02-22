@@ -7,7 +7,6 @@ import (
 	"github.com/kidoman/embd/sensor/bmp180"
 )
 
-
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
@@ -23,7 +22,6 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	}
 	return temp, altitude, nil
 }
-
 
 func initBMP180() error {
 	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
@@ -43,11 +41,9 @@ func tempAndPressureReader() {
 	if err_bmp180 != nil {
 		fmt.Printf("readBMP180(): %s\n", err_bmp180.Error())
 	} else {
-		fmt.Printf("Temp %f Alt %f\n",temp,alt)
+		fmt.Printf("Temp %f Alt %f\n", temp, alt)
 	}
 }
-
-
 
 func initAHRS() error {
 	if err := initI2C(); err != nil { // I2C bus.
@@ -61,7 +57,6 @@ func initAHRS() error {
 
 	return nil
 }
-
 
 func main() {
 	fmt.Printf("Hello world!\n")

@@ -241,7 +241,6 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
-//TODO
 func makeOwnshipReport() bool {
 	if !isGPSValid() {
 		return false
@@ -337,7 +336,6 @@ func makeOwnshipReport() bool {
 	return true
 }
 
-//TODO
 func makeOwnshipGeometricAltitudeReport() bool {
 	if !isGPSValid() {
 		return false
@@ -374,7 +372,6 @@ func makeStratuxStatus() []byte {
 	msg[3] = 1 // "message version".
 
 	// Version code. Messy parsing to fit into four bytes.
-	//FIXME: This is why we can't have nice things.
 	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
 	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
 	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
@@ -606,23 +603,25 @@ func heartBeatSender() {
 			sendGDL90(makeStratuxStatus(), false)
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
-			/* --- debug code: traffic demo* --- /
-			/* Uncomment and compile to display huge number of artificial traffic targets
-			numTargets := uint32(1000)
-			hexCode := uint32(0xFF0000)
 
-			for i := uint32(0); i < numTargets; i++ {
-				tail := fmt.Sprintf("DEMO%d", i)
-				alt := float32((i*117%2000)*25 + 2000)
-				hdg := float64((i * 37) % 360)
-				spd := float64(100 + ((i*7)%61)*13)
+			// --- debug code: traffic demo ---
+			// Uncomment and compile to display large number of artificial traffic targets
+			/*
+				numTargets := uint32(40)
+				hexCode := uint32(0xFF0000)
 
-				updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+				for i := uint32(0); i < numTargets; i++ {
+					tail := fmt.Sprintf("DEMO%d", i)
+					alt := float32((i*117%2000)*25 + 2000)
+					hdg := int32((i * 149) % 360)
+					spd := float64(50 + ((i*23)%13)*17)
 
-			}
+					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+
+				}
 
 			*/
-			/* ---end traffic demo code ---*/
+			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
 		case <-timerMessageStats.C:
@@ -735,8 +734,10 @@ func updateStatus() {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.quality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else {
+	} else if mySituation.quality == 0 {
 		globalStatus.GPS_solution = "No Fix"
+	} else {
+		globalStatus.GPS_solution = "Unknown"
 	}
 
 	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
@@ -754,6 +755,8 @@ func updateStatus() {
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
+	globalStatus.UptimeClock = stratuxClock.Time
+	globalStatus.Clock = time.Now()
 }
 
 type ReplayWriter struct {
@@ -761,7 +764,6 @@ type ReplayWriter struct {
 }
 
 func (r ReplayWriter) Write(p []byte) (n int, err error) {
-	//TODO.
 	return r.fp.Write(p)
 }
 
@@ -1031,6 +1033,8 @@ type status struct {
 	GPS_solution                               string
 	RY835AI_connected                          bool
 	Uptime                                     int64
+	Clock                                      time.Time
+	UptimeClock                                time.Time
 	CPUTemp                                    float32
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64

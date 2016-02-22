@@ -316,7 +316,6 @@ func sendGDL90(msg []byte, queueable bool) {
 }
 
 func monitorDHCPLeases() {
-	//TODO: inotify or dhcp event hook.
 	timer := time.NewTicker(30 * time.Second)
 	for {
 		select {
