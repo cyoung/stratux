@@ -79,6 +79,7 @@ func (e *ES) read() {
 		return
 	}
 	log.Println("Executed /usr/bin/dump1090 successfully...")
+	globalStatus.Connected_Devices++
 
 	for {
 		select {
@@ -104,6 +105,7 @@ func (e *ES) read() {
 
 func (u *UAT) read() {
 	defer uat_wg.Done()
+	globalStatus.Connected_Devices++
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
 
@@ -147,12 +149,14 @@ func getPPM(serial string) int {
 
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
+	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
 	return
 }
 
 func (u *UAT) sdrConfig() (err error) {
 	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
 	u.ppm = getPPM(u.serial)
+	log.Printf("===== UAT Device Serial: %s PPM %d =====\n", u.serial, u.ppm)
 
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
 		log.Printf("\tUAT Open Failed...\n")
@@ -289,6 +293,7 @@ func (e *ES) writeID() error {
 }
 
 func (u *UAT) shutdown() {
+	globalStatus.Connected_Devices--
 	log.Println("Entered UAT shutdown() ...")
 	close(uat_shutdown) // signal to shutdown
 	log.Println("UAT shutdown(): calling uat_wg.Wait() ...")
@@ -299,6 +304,7 @@ func (u *UAT) shutdown() {
 }
 
 func (e *ES) shutdown() {
+	globalStatus.Connected_Devices--
 	log.Println("Entered ES shutdown() ...")
 	close(es_shutdown) // signal to shutdown
 	log.Println("ES shutdown(): calling es_wg.Wait() ...")
@@ -322,6 +328,9 @@ func sdrKill() {
 // Watch for config/device changes.
 func sdrWatcher() {
 	var doSkip bool
+
+	globalStatus.Connected_Devices = 0
+
 	rES, err := regexp.Compile("str?a?t?u?x:1090")
 	if err != nil {
 		rES = nil
@@ -395,6 +404,23 @@ func sdrWatcher() {
 						id = 1
 					}
 				}
+
+				/* Address #275. If both devices are nil, but
+			 	 * id 1 matches the rUAT string, we need to
+				 * force the UAT to id 1, so that UAT doesn't
+				 * consume a flexible id 0 and leave ES bound
+				 * to an undesired, fixed 978.
+				 * A parallel fix is not installed in the ES
+				 * code, because both cases are already handled:
+				 * id 0 flex, id 1 1090, then 0 bound to UAT
+				 * id 1 flex, id 0 1090, then 0 bound to ES
+				 */
+				if UATDev == nil && ESDev == nil && rUAT != nil {
+					_, _, serial, err := rtl.GetDeviceUsbStrings(1)
+					if err == nil && rUAT.MatchString(serial) {
+						id = 1
+					}
+				}
 			}
 
 			if UATDev == nil {
@@ -409,7 +435,7 @@ func sdrWatcher() {
 					doSkip = strings.Compare(serial, "stratux:1090") == 0
 				}
 
-				if !doSkip {
+				if ESDev != nil || !doSkip {
 					UATDev = &UAT{indexID: id, serial: serial}
 					if err := UATDev.sdrConfig(); err != nil {
 						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
@@ -458,7 +484,7 @@ func sdrWatcher() {
 					doSkip = strings.Compare(serial, "stratux:978") == 0
 				}
 
-				if !doSkip {
+				if UATDev != nil || !doSkip {
 					ESDev = &ES{indexID: id, serial: serial}
 					if err := ESDev.sdrConfig(); err != nil {
 						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)

@@ -1021,6 +1021,7 @@ type status struct {
 	Version                                    string
 	Devices                                    uint32
 	Connected_Users                            uint
+	Connected_Devices			   uint
 	UAT_messages_last_minute                   uint
 	uat_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint

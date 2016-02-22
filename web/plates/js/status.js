@@ -44,6 +44,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.Version = status.Version;
 			$scope.Devices = status.Devices;
 			$scope.Connected_Users = status.Connected_Users;
+			$scope.Connected_Devices = status.Connected_Devices;
 			$scope.UAT_messages_last_minute = status.UAT_messages_last_minute;
 			// $scope.UAT_products_last_minute = JSON.stringify(status.UAT_products_last_minute);
 			$scope.UAT_messages_max = status.UAT_messages_max;
