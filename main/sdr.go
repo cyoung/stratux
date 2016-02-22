@@ -379,7 +379,7 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	//
 	// ID      0      1
 	// -------------------------------------------------------------------------
-	//         A      A	    id 0 -> UAT first  pass loop 2, id 1 -> ES  second pass loop 2
+	//         A      A     id 0 -> UAT first  pass loop 2, id 1 -> ES  second pass loop 2
 	//         A      ES	id 1 -> ES  second pass loop 1, id 0 -> UAT first  pass loop 2
 	//         ES     A     id 0 -> ES  first  pass loop 1, id 1 -> UAT first  pass loop 2
 	//         A      UAT   id 1 -> UAT second pass loop 1, id 0 -> ES  first  pass loop 2
