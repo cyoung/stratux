@@ -452,7 +452,7 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	}
 
 	// loop 2; assign anonymous dongles
-	for _, v := range a {
+	for _, v := range unusedIDs {
 		_, _, s, err := rtl.GetDeviceUsbStrings(i)
 		if err == nil {
 			if uat_enabled && UATDev == nil {
