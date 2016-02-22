@@ -379,9 +379,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	//
 	// ID      0      1
 	// -------------------------------------------------------------------------
-	//         A      A		id 0 -> UAT first  pass loop 2, id 1 -> ES  second pass loop 2
+	//         A      A	    id 0 -> UAT first  pass loop 2, id 1 -> ES  second pass loop 2
 	//         A      ES	id 1 -> ES  second pass loop 1, id 0 -> UAT first  pass loop 2
-	//         ES     A		id 0 -> ES  first  pass loop 1, id 1 -> UAT first  pass loop 2
+	//         ES     A     id 0 -> ES  first  pass loop 1, id 1 -> UAT first  pass loop 2
 	//         A      UAT   id 1 -> UAT second pass loop 1, id 0 -> ES  first  pass loop 2
 	//         UAT    A     id 0 -> UAT first  pass loop 1, id 1 -> ES  first  pass loop 2
 	//         ES     UAT   id 0 -> ES  first  pass loop 1, id 1 -> UAT second pass loop 1
@@ -393,9 +393,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	//
 	// ID      0      1
 	// -------------------------------------------------------------------------
-	//         A      A		id 0 -> ES  first  pass loop 2, id 1 -> Unconfigured
+	//         A      A     id 0 -> ES  first  pass loop 2, id 1 -> Unconfigured
 	//         A      ES	id 1 -> ES  second pass loop 1, id 0 -> Unconfigured
-	//         ES     A		id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
+	//         ES     A     id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
 	//         A      UAT   id 0 -> ES  first  pass loop 2, id 1 -> Unconfigured
 	//         UAT    A     id 1 -> ES  second pass loop 2, id 1 -> Unconfigured
 	//         ES     UAT   id 0 -> ES  first  pass loop 1, id 1 -> Unconfigured
@@ -407,9 +407,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	//
 	// ID      0      1
 	// -------------------------------------------------------------------------
-	//         A      A		id 0 -> UAT first  pass loop 2, id 1 -> Unconfigured
+	//         A      A     id 0 -> UAT first  pass loop 2, id 1 -> Unconfigured
 	//         A      ES	id 0 -> UAT first  pass loop 2, id 1 -> Unconfigured
-	//         ES     A		id 1 -> UAT second pass loop 2, id 0 -> Unconfigured
+	//         ES     A     id 1 -> UAT second pass loop 2, id 0 -> Unconfigured
 	//         A      UAT   id 1 -> UAT second pass loop 1, id 0 -> Unconfigured
 	//         UAT    A     id 0 -> UAT first  pass loop 1, id 1 -> Unconfigured
 	//         ES     UAT   id 1 -> UAT second pass loop 1, id 0 -> Unconfigured
@@ -421,9 +421,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	//
 	// ID      0      1
 	// -------------------------------------------------------------------------
-	//         A      A		id 0 -> Unconfigured          , id 1 -> Unconfigured
+	//         A      A     id 0 -> Unconfigured          , id 1 -> Unconfigured
 	//         A      ES	id 0 -> Unconfigured          , id 1 -> Unconfigured
-	//         ES     A		id 0 -> Unconfigured          , id 1 -> Unconfigured
+	//         ES     A     id 0 -> Unconfigured          , id 1 -> Unconfigured
 	//         A      UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
 	//         UAT    A     id 0 -> Unconfigured          , id 1 -> Unconfigured
 	//         ES     UAT   id 0 -> Unconfigured          , id 1 -> Unconfigured
