@@ -31,7 +31,7 @@ type Device struct {
 	indexID int
 	ppm     int
 	serial  string
-	hasID   bool
+	idSet   bool
 }
 
 type UAT Device
@@ -240,6 +240,7 @@ func (u *UAT) sdrConfig() (err error) {
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
+
 	u.ppm = getPPM(u.serial)
 	err = u.dev.SetFreqCorrection(u.ppm)
 	if err != nil {
@@ -318,8 +319,10 @@ func reCompile(s string) *regexp.Regexp {
 }
 
 type regexUAT regexp.Regexp
+type regexES regexp.Regexp
 
 var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
+var rES = (*regexUAT)(reCompile("str?a?t?u?x:1090"))
 
 func (r *rUAT) hasID(serial string) bool {
 	if r == nil {
@@ -328,10 +331,6 @@ func (r *rUAT) hasID(serial string) bool {
 	return (*regexp.Regexp)(r).MatchString(serial)
 }
 
-type regexES regexp.Regexp
-
-var rES = (*regexUAT)(reCompile("str?a?t?u?x:1090"))
-
 func (r *rES) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:1090")
@@ -339,8 +338,71 @@ func (r *rES) hasID(serial string) bool {
 	return (*regexp.Regexp)(r).MatchString(serial)
 }
 
+func createUATDev(id int, serial string, idSet bool) error {
+	UATDev = &UAT{indexID: id, serial: serial}
+	if err := UATDev.sdrConfig(); err != nil {
+		log.Printf("UATDev.sdrConfig() failed: %s\n", err)
+		UATDev = nil
+		return err
+	}
+	UATDev.wg = &sync.WaitGroup{}
+	UATDev.idSet = idSet
+	UATDev.closeCh = make(chan int)
+	UATDev.wg.Add(1)
+	go UATDev.read()
+	return nil
+}
+
+func createESDev(id int, serial string, idSet bool) error {
+	ESDev = &ES{indexID: id, serial: serial}
+	if err := ESDev.sdrConfig(); err != nil {
+		log.Printf("ESDev.sdrConfig() failed: %s\n", err)
+		ESDev = nil
+		return err
+	}
+	ESDev.wg = &sync.WaitGroup{}
+	ESDev.idSet = idSet
+	ESDev.closeCh = make(chan int)
+	ESDev.wg.Add(1)
+	go ESDev.read()
+	return nil
+}
+
+func configDevices(count int, es_enabled, uat_enabled bool) {
+	// entry to this function is only valid when both UATDev and ESDev are nil
+	for i := 0; i < count; i++ {
+		_, _, s, err := rtl.GetDeviceUsbStrings(i)
+		if err == nil {
+			if uat_enabled && UATDev == nil && rUAT.hasID(s) {
+				createUATDev(i, s, true)
+				continue
+			}
+			if es_enabled && ESDev == nil && rES.hasID(s) {
+				createESDev(i, s, true)
+				continue
+			}
+
+			// we only get here when it's an anonymous dongle
+			if uat_enabled && UATDev == nil {
+				createUATDev(i, s, false)
+				continue
+			}
+			if es_enabled && ESDev == nil {
+				createESDev(i, s, false)
+				continue
+			}
+		} else {
+			log.Printf("rtl.GetDeviceUsbStrings id %d: %s\n", i, err)
+		}
+	}
+}
+
 // Watch for config/device changes.
 func sdrWatcher() {
+	prevCount := 0
+	prevUAT_Enabled := false
+	prevES_Enabled := false
+
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
@@ -354,6 +416,7 @@ func sdrWatcher() {
 			}
 			return
 		}
+
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
@@ -362,7 +425,7 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		// cleanup if necessary
+		// check for either no dongles or none enabled
 		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
 			if UATDev != nil {
 				UATDev.shutdown()
@@ -372,109 +435,35 @@ func sdrWatcher() {
 				ESDev.shutdown()
 				ESDev = nil
 			}
+			prevCount = count
+			prevUAT_Enabled = false
+			prevES_Enabled = false
 			continue
 		}
 
-		if count == 1 {
-			if UATDev != nil && ESDev != nil {
-				// this is a bit heavy handed but we shouldn't be in this state
-				ESDev.shutdown()
-				ESDev = nil
+		// if the device count or the global settings change, do a reconfig.
+		// both events are significant and the least convoluted way to handle it
+		// is to reconfigure all dongle/s across the board. The reconfig
+		// should happen fairly quick so the user shouldn't notice any
+		// major disruption; if it is significant we can split the dongle
+		// count check from the global settings check where the gloabl settings
+		// check won't do a reconfig.
+		if count != prevCount || prevES_Enabled != globalSettings.ES_Enabled ||
+			prevUAT_Enabled != globalSettings.UAT_Enabled {
+			if UATDev != nil {
 				UATDev.shutdown()
 				UATDev = nil
-			} else if UATDev != nil && ESDev == nil {
-				UATDev.indexID = 0
-			} else if UATDev == nil && ESDev != nil {
-				ESDev.indexID = 0
 			}
+			if ESDev != nil {
+				ESDev.shutdown()
+				ESDev = nil
+			}
+			configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
 		}
 
-		// UAT specific handling
-		// When count is one, favor UAT in the case where the user
-		// has enabled both UAT and ES via the web interface.
-		if globalSettings.UAT_Enabled {
-			id := 0
-			if count == 1 {
-				if ESDev != nil {
-					ESDev.shutdown()
-					ESDev = nil
-				}
-			} else { // count == 2
-				if UATDev == nil && ESDev != nil {
-					if ESDev.indexID == 0 {
-						id = 1
-					}
-				}
-			}
-
-			if UATDev == nil {
-				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
-				if err != nil {
-					serial = ""
-				}
-
-				if !rES.hasID(serial) {
-					UATDev = &UAT{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
-					if err := UATDev.sdrConfig(); err != nil {
-						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
-						UATDev = nil
-					} else {
-						UATDev.closeCh = make(chan int)
-						UATDev.wg.Add(1)
-						go UATDev.read()
-					}
-				}
-			}
-		} else if UATDev != nil {
-			UATDev.shutdown()
-			UATDev = nil
-			if count == 1 && ESDev != nil {
-				ESDev.indexID = 0
-			}
-		}
-
-		// ES specific handling
-		if globalSettings.ES_Enabled {
-			id := 0
-			if count == 1 {
-				if globalSettings.UAT_Enabled {
-					// defer to the UAT handler
-					goto End
-				}
-			} else { // count == 2
-				if ESDev == nil && UATDev != nil {
-					if UATDev.indexID == 0 {
-						id = 1
-					}
-				}
-			}
-
-			if ESDev == nil {
-				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
-				if err != nil {
-					serial = ""
-				}
-
-				if !rUAT.hasID(serial) {
-					ESDev = &ES{indexID: id, serial: serial, wg: &sync.WaitGroup{}}
-					if err := ESDev.sdrConfig(); err != nil {
-						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
-						ESDev = nil
-					} else {
-						ESDev.closeCh = make(chan int)
-						ESDev.wg.Add(1)
-						go ESDev.read()
-					}
-				}
-			}
-		} else if ESDev != nil {
-			ESDev.shutdown()
-			ESDev = nil
-			if count == 1 && UATDev != nil {
-				UATDev.indexID = 0
-			}
-		}
-	End:
+		prevCount = count
+		prevUAT_Enabled = globalSettings.UAT_Enabled
+		prevES_Enabled = globalSettings.ES_Enabled
 	}
 }
 
