@@ -850,9 +850,10 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	var thisSignalStrength int
 
-	if isUplink && len(x) >= 3 {
+	if /*isUplink* &&*/ len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
+		//log.Printf("x[2] = %s\n",ss)
 		if strings.HasPrefix(ss, "ss=") {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
@@ -860,6 +861,8 @@ func parseInput(buf string) ([]byte, uint16) {
 				if ssInt > maxSignalStrength {
 					maxSignalStrength = ssInt
 				}
+			} else {
+				//log.Printf("Error was %s\n",err.Error())
 			}
 		}
 	}
