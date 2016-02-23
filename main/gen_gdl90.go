@@ -606,8 +606,8 @@ func heartBeatSender() {
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
-			/*
-				numTargets := uint32(40)
+			
+				numTargets := uint32(1)
 				hexCode := uint32(0xFF0000)
 
 				for i := uint32(0); i < numTargets; i++ {
@@ -620,7 +620,7 @@ func heartBeatSender() {
 
 				}
 
-			*/
+			
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
@@ -848,10 +848,6 @@ func parseInput(buf string) ([]byte, uint16) {
 		isUplink = true
 	}
 
-	if s[0] == '-' {
-		parseDownlinkReport(s)
-	}
-
 	var thisSignalStrength int
 
 	if isUplink && len(x) >= 3 {
@@ -868,6 +864,11 @@ func parseInput(buf string) ([]byte, uint16) {
 		}
 	}
 
+	if s[0] == '-' {
+		parseDownlinkReport(s, int32(thisSignalStrength))
+	}
+	
+	
 	s = s[1:]
 	msglen := len(s) / 2
 
