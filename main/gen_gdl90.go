@@ -606,8 +606,8 @@ func heartBeatSender() {
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
-			
-				numTargets := uint32(1)
+			/*
+				numTargets := uint32(18)
 				hexCode := uint32(0xFF0000)
 
 				for i := uint32(0); i < numTargets; i++ {
@@ -619,7 +619,7 @@ func heartBeatSender() {
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-
+			*/
 			
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
