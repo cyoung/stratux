@@ -67,44 +67,44 @@ const (
 	TARGET_TYPE_ADSR      = 2
 	TARGET_TYPE_TISB      = 3
 	// Assign next type to UAT messages with address qualifier == 2
-	// (code corresponds to and UAT GBT targets with Mode S addresses.. 
+	// (code corresponds to and UAT GBT targets with Mode S addresses..
 	// for we'll treat them as ADS-R in the UI. Might be able to assign as TYPE_ADSR if we see a proper emitter category and NIC > 7.
-	TARGET_TYPE_TISB_S    = 4
+	TARGET_TYPE_TISB_S = 4
 )
 
 type TrafficInfo struct {
-	Icao_addr        uint32
-	Tail             string
-	Emitter_category uint8 // Formatted using GDL90 standard, e.g. in a Mode ES report, A7 becomes 0x07, B0 becomes 0x08, etc. 
-	OnGround         bool // Air-ground status. On-ground is "true".
-	Addr_type        uint8 // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
-	TargetType       uint8 // types decribed in const above
-	SignalLevel		 int32 // Arbitrary signal level reported by dump1090 and dump978. 
-	Position_valid      bool	// set when position report received. Unset after n seconds? (To-do)
-	Lat                 float32 // decimal degrees, north positive
-	Lng                 float32 // decimal degrees, east positive
-	Alt                 int32 // Pressure altitude, feet
-	GnssDiffFromBaroAlt int32 // GNSS altitude above WGS84 datum. Reported in TC 20-22 messages
-	AltIsGNSS           bool  // Pressure alt = 0; GNSS alt = 1
-	NIC                 int   // Navigation Integrity Category.
-	NACp                int   // Navigation Accuracy Category for Position.
-	Track               uint16 // degrees true
-	Speed               uint16 // knots
-	Speed_valid         bool  // set when speed report received.
-	Vvel                int16  // feet per minute
-	Timestamp        time.Time // timestamp of traffic message, UTC
+	Icao_addr           uint32
+	Tail                string
+	Emitter_category    uint8     // Formatted using GDL90 standard, e.g. in a Mode ES report, A7 becomes 0x07, B0 becomes 0x08, etc.
+	OnGround            bool      // Air-ground status. On-ground is "true".
+	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
+	TargetType          uint8     // types decribed in const above
+	SignalLevel         int32     // Arbitrary signal level reported by dump1090 and dump978.
+	Position_valid      bool      // set when position report received. Unset after n seconds? (To-do)
+	Lat                 float32   // decimal degrees, north positive
+	Lng                 float32   // decimal degrees, east positive
+	Alt                 int32     // Pressure altitude, feet
+	GnssDiffFromBaroAlt int32     // GNSS altitude above WGS84 datum. Reported in TC 20-22 messages
+	AltIsGNSS           bool      // Pressure alt = 0; GNSS alt = 1
+	NIC                 int       // Navigation Integrity Category.
+	NACp                int       // Navigation Accuracy Category for Position.
+	Track               uint16    // degrees true
+	Speed               uint16    // knots
+	Speed_valid         bool      // set when speed report received.
+	Vvel                int16     // feet per minute
+	Timestamp           time.Time // timestamp of traffic message, UTC
 
 	// Parameters starting at 'Age' are calculated after message receipt.
 	// Mode S transmits position and track in separate messages, and altitude can also be
 	// received from interrogations.
-	Age              float64   // seconds ago traffic last seen
-	Last_seen        time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
-	Last_alt         time.Time // time of last altitude update, relative to Stratux startup
-	Last_speed       time.Time // time of last velocity / track update, relative to Stratux startup
-	Last_source      uint8     // last SDR on which this target was observed
-	ExtrapolatedPosition bool // TO-DO: True if Stratux is "coasting" the target from last known position.
-	Bearing	float64  // TO-DO: Bearing in degrees true to traffic from ownship
-	Distance float64 // TO-DO: Distance to traffic from ownship
+	Age                  float64   // seconds ago traffic last seen
+	Last_seen            time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
+	Last_alt             time.Time // time of last altitude update, relative to Stratux startup
+	Last_speed           time.Time // time of last velocity / track update, relative to Stratux startup
+	Last_source          uint8     // last SDR on which this target was observed
+	ExtrapolatedPosition bool      // TO-DO: True if Stratux is "coasting" the target from last known position.
+	Bearing              float64   // TO-DO: Bearing in degrees true to traffic from ownship
+	Distance             float64   // TO-DO: Distance to traffic from ownship
 }
 
 type dump1090Data struct {
@@ -116,7 +116,7 @@ type dump1090Data struct {
 	SBS_MsgType         int // type of SBS message (used in "old" 1090 parsing)
 	SignalLevel         int // 0-255
 	Tail                *string
-	Squawk              *int      // 12-bit squawk code in octal format
+	Squawk              *int // 12-bit squawk code in octal format
 	Emitter_category    *int
 	OnGround            *bool
 	Lat                 *float32
@@ -124,13 +124,13 @@ type dump1090Data struct {
 	Position_valid      bool
 	NACp                *int
 	Alt                 *int
-	AltIsGNSS           bool // 
+	AltIsGNSS           bool   //
 	GnssDiffFromBaroAlt *int16 // GNSS height above baro altitude in feet; valid range is -3125 to 3125. +/- 3138 indicates larger difference.
 	Vvel                *int16
 	Speed_valid         bool
 	Speed               *uint16
 	Track               *uint16
-	Timestamp        time.Time // time traffic last seen, UTC
+	Timestamp           time.Time // time traffic last seen, UTC
 }
 
 var traffic map[uint32]TrafficInfo
@@ -150,7 +150,19 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
+	log.Printf("List of all aircraft being tracked:\n")
+	log.Printf("===================================\n")
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+
+		// DEBUG: Print the list of all tracked targets to the log each second
+		s_out, err := json.Marshal(ti)
+		if err != nil {
+			log.Printf("Error generating output: %s\n", err.Error())
+		} else {
+			log.Printf("%X => %s\n", ti.Icao_addr, string(s_out))
+		}
+		// end of debug block
+
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		traffic[icao] = ti
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
@@ -224,7 +236,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	}
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
-	
+
 	// "m" field. Lower four bits define indicator bits:
 	// - - 0 0   "tt" (msg[17]) is not valid
 	// - - 0 1   "tt" is true track
@@ -234,22 +246,22 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// - 1 - -   Report is extrapolated
 	// 0 - - -   On ground
 	// 1 - - -   Airborne
-	
+
 	// Define tt type / validity
 	if ti.Speed_valid {
-		msg[12] = msg[12] | 0x01  // assume true track
+		msg[12] = msg[12] | 0x01 // assume true track
 	}
-	
+
 	if ti.ExtrapolatedPosition {
 		msg[12] = msg[12] | 0x04
 	}
-	
+
 	if !ti.OnGround {
 		msg[12] = msg[12] | 0x08 // Airborne.
 	}
 
 	// Position containment / navigational accuracy
-	msg[13] = ((byte(ti.NIC) << 4) & 0xF0) | ((byte(ti.NACp) & 0x0F))
+	msg[13] = ((byte(ti.NIC) << 4) & 0xF0) | (byte(ti.NACp) & 0x0F)
 
 	// Horizontal velocity (speed).
 
@@ -290,10 +302,10 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	msg_type := (uint8(frame[0]) >> 3) & 0x1f
 	addr_type := uint8(frame[0]) & 0x07
 	icao_addr := (uint32(frame[1]) << 16) | (uint32(frame[2]) << 8) | uint32(frame[3])
-	
+
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
-		
+
 	// Retrieve previous information on this ICAO code.
 	if val, ok := traffic[icao_addr]; ok { // if we've already seen it, copy it in to do updates as it may contain some useful information like "tail" from 1090ES.
 		ti = val
@@ -304,9 +316,9 @@ func parseDownlinkReport(s string, signalLevel int32) {
 		ti.Icao_addr = icao_addr
 		ti.ExtrapolatedPosition = false
 	}
-	
+
 	ti.Addr_type = addr_type
-	
+
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
 		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRTSUVWXYZ  ..")
@@ -334,7 +346,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 			ti.Tail = "u" + ti.Tail
 		}
 	}
-		
+
 	// Extract emitter category.
 	if msg_type == 1 || msg_type == 3 {
 		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
@@ -345,11 +357,11 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	//	fmt.Printf("%d, %d, %06X\n", msg_type, ti.Addr_type, ti.Icao_addr)
 
 	ti.NIC = int(frame[11] & 0x0F)
-		
-	if ((msg_type == 1) || (msg_type == 3)) { // Since NACp is passed with normal UATreports, no need to use our ES hack.
-		ti.NACp = int((frame[25] >> 4) & 0x0F) 
+
+	if (msg_type == 1) || (msg_type == 3) { // Since NACp is passed with normal UATreports, no need to use our ES hack.
+		ti.NACp = int((frame[25] >> 4) & 0x0F)
 	}
-		
+
 	ti.SignalLevel = signalLevel
 
 	if ti.Addr_type == 0 {
@@ -360,11 +372,11 @@ func parseDownlinkReport(s string, signalLevel int32) {
 		ti.TargetType = TARGET_TYPE_ADSR
 	} else if ti.Addr_type == 2 {
 		ti.TargetType = TARGET_TYPE_TISB_S
-		if ((ti.NIC >= 7) && (ti.Emitter_category > 0)) { // If NIC is sufficiently and emitter type is transmitted, we'll assume it's ADS-R.
+		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently and emitter type is transmitted, we'll assume it's ADS-R.
 			ti.TargetType = TARGET_TYPE_ADSR
 		}
 	}
-	
+
 	raw_lat := (uint32(frame[4]) << 15) | (uint32(frame[5]) << 7) | (uint32(frame[6]) >> 1)
 	raw_lon := ((uint32(frame[6]) & 0x01) << 23) | (uint32(frame[7]) << 15) | (uint32(frame[8]) << 7) | (uint32(frame[9]) >> 1)
 
@@ -401,7 +413,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	ti.Alt = alt
 	ti.AltIsGNSS = alt_geo
 	ti.Last_alt = stratuxClock.Time
-	
+
 	//OK.
 	//	fmt.Printf("%d, %t, %f, %f, %t, %d\n", nic, position_valid, lat, lng, alt_geo, alt)
 
@@ -485,7 +497,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	if ti.Speed_valid {
 		ti.Last_speed = stratuxClock.Time
 	}
-	
+
 	//OK.
 	//	fmt.Printf("ns_vel %d, ew_vel %d, track %d, speed_valid %t, speed %d, vvel_geo %t, vvel %d\n", ns_vel, ew_vel, track, speed_valid, speed, vvel_geo, vvel)
 
@@ -504,7 +516,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	//	fmt.Printf("tisb_site_id %d, utc_coupled %t\n", tisb_site_id, utc_coupled)
 
 	ti.Timestamp = time.Now()
-		
+
 	ti.Last_source = TRAFFIC_SOURCE_UAT
 
 	traffic[ti.Icao_addr] = ti
@@ -549,55 +561,55 @@ func esListen() {
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = []byte(buf)
 			MsgLog = append(MsgLog, thisMsg)
-						
+
 			icao := uint32(newTi.Icao_addr)
 			var ti TrafficInfo
-			
+
 			trafficMutex.Lock()
-		
+
 			// Retrieve previous information on this ICAO code.
 			if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
 				ti = val
 				log.Printf("Existing target %X imported for ES update\n", icao)
 			} else {
-				log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
+				log.Printf("New target %X created for ES update\n", newTi.Icao_addr)
 				ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
 			}
-			
+
 			ti.SignalLevel = int32(newTi.SignalLevel)
-			
+
 			// generate human readable summary of message types for debug
 			// TO-DO: Use for ES message statistics?
 			/*
-			var s1 string
-			if newTi.DF == 17 {
-				s1 = "ADS-B"
-			}
-			if newTi.DF == 18 {
-				s1 = "ADS-R / TIS-B"
-			}
+				var s1 string
+				if newTi.DF == 17 {
+					s1 = "ADS-B"
+				}
+				if newTi.DF == 18 {
+					s1 = "ADS-R / TIS-B"
+				}
 
-			if newTi.DF == 4 || newTi.DF == 20 {
-				s1 = "Surveillance, Alt. Reply"
-			}
+				if newTi.DF == 4 || newTi.DF == 20 {
+					s1 = "Surveillance, Alt. Reply"
+				}
 
-			if newTi.DF == 5 || newTi.DF == 21 {
-				s1 = "Surveillance, Ident. Reply"
-			}
+				if newTi.DF == 5 || newTi.DF == 21 {
+					s1 = "Surveillance, Ident. Reply"
+				}
 
-			if newTi.DF == 11 {
-				s1 = "All-call Reply"
-			}
+				if newTi.DF == 11 {
+					s1 = "All-call Reply"
+				}
 
-			if newTi.DF == 0 {
-				s1 = "Short Air-Air Surv."
-			}
+				if newTi.DF == 0 {
+					s1 = "Short Air-Air Surv."
+				}
 
-			if newTi.DF == 16 {
-				s1 = "Long Air-Air Surv."
-			}
+				if newTi.DF == 16 {
+					s1 = "Long Air-Air Surv."
+				}
 			*/
 			//log.Printf("Mode S message from icao=%X, DF=%02d, CA=%02d, TC=%02d (%s)\n", ti.Icao_addr, newTi.DF, newTi.CA, newTi.TypeCode, s1)
 
@@ -605,16 +617,16 @@ func esListen() {
 			// and Mode S messages (DF=0, DF = 4, and DF = 20).
 
 			ti.AltIsGNSS = newTi.AltIsGNSS
-			
+
 			if newTi.Alt != nil {
 				ti.Alt = int32(*newTi.Alt)
 				ti.Last_alt = stratuxClock.Time
 			}
-			
+
 			if newTi.GnssDiffFromBaroAlt != nil {
 				ti.GnssDiffFromBaroAlt = int32(*newTi.GnssDiffFromBaroAlt) // we can estimate pressure altitude from GNSS height with this parameter!
 			}
-			
+
 			// Position updates are provided only by ES messages (DF=17 and DF=18; multiple TCs)
 			if newTi.Position_valid { // i.e. DF17 or DF18 message decoded successfully by dump1090
 				valid_position := true
@@ -672,8 +684,8 @@ func esListen() {
 					ti.Speed = speed
 					ti.Speed_valid = true
 					ti.Last_speed = stratuxClock.Time // only update "last seen" data on position updates
-				} 
-			} else if (((newTi.DF == 17) || (newTi.DF == 18)) && (newTi.TypeCode == 19)) { // invalid speed on velocity message only
+				}
+			} else if ((newTi.DF == 17) || (newTi.DF == 18)) && (newTi.TypeCode == 19) { // invalid speed on velocity message only
 				ti.Speed_valid = false
 			}
 
@@ -711,20 +723,20 @@ func esListen() {
 					nic = 11
 				}
 				ti.NIC = nic
-				
-				if ((ti.NACp < 7) && (ti.NACp < ti.NIC)) {
+
+				if (ti.NACp < 7) && (ti.NACp < ti.NIC) {
 					ti.NACp = ti.NIC // initialize to NIC, since NIC is sent with every position report, and not all emitters report NACp.
 				}
 			}
-	
+
 			if newTi.NACp != nil {
 				ti.NACp = *newTi.NACp
 			}
-									
+
 			if newTi.Emitter_category != nil {
-					ti.Emitter_category = uint8(*newTi.Emitter_category) // validate dump1090 on live traffic
-			} 
-			
+				ti.Emitter_category = uint8(*newTi.Emitter_category) // validate dump1090 on live traffic
+			}
+
 			// Set the target type. DF=18 messages are sent by ground station, so we look at CA
 			// (repurposed to Control Field in DF18) to determine if it's ADS-R or TIS-B.
 			if newTi.DF == 17 {
@@ -734,15 +746,15 @@ func esListen() {
 				if newTi.CA == 6 {
 					ti.TargetType = TARGET_TYPE_ADSR
 					ti.Addr_type = 2
-				} else if (newTi.CA == 2) { // 2 = TIS-B with ICAO address, 5 = TIS-B without ICAO address
+				} else if newTi.CA == 2 { // 2 = TIS-B with ICAO address, 5 = TIS-B without ICAO address
 					ti.TargetType = TARGET_TYPE_TISB
 					ti.Addr_type = 2
-				} else if (newTi.CA == 5) {
+				} else if newTi.CA == 5 {
 					ti.TargetType = TARGET_TYPE_TISB
 					ti.Addr_type = 3
 				}
 			}
-			
+
 			if newTi.OnGround != nil { // DF=11 messages don't report "on ground" status so we need to check for valid values.
 				ti.OnGround = bool(*newTi.OnGround)
 			}
@@ -761,14 +773,14 @@ func esListen() {
 			ti.Timestamp = newTi.Timestamp // only update "last seen" data on position updates
 			ti.Last_source = TRAFFIC_SOURCE_1090ES
 			/*
-			s_out, err := json.Marshal(ti)
-			if err != nil {
-				log.Printf("Error generating output: %s\n", err.Error())
-			} else {
-				log.Printf("%X (DF%d) => %s\n", ti.Icao_addr, newTi.DF, string(s_out))
-			}
+				s_out, err := json.Marshal(ti)
+				if err != nil {
+					log.Printf("Error generating output: %s\n", err.Error())
+				} else {
+					log.Printf("%X (DF%d) => %s\n", ti.Icao_addr, newTi.DF, string(s_out))
+				}
 			*/
-			
+
 			traffic[ti.Icao_addr] = ti // Update information on this ICAO code.
 			registerTrafficUpdate(ti)
 			seenTraffic[ti.Icao_addr] = true // Mark as seen.
