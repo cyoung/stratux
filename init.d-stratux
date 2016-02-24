@@ -31,8 +31,8 @@ case "$1" in
 	log_daemon_msg "Starting $DESC" "$NAME"
 	echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 	# Check if we need to run an update.
-	if [ -e /root/update*.sh ] ; then
-		UPDATE_SCRIPT=`ls -1t /root/update*.sh | head -1`
+	if [ -e /root/update*stratux*v*.sh ] ; then
+		UPDATE_SCRIPT=`ls -1t /root/update*stratux*v*.sh | head -1`
 		if [ -n "$UPDATE_SCRIPT" ] ; then
 			# Execute the script, remove it, then reboot.
 			echo
