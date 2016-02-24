@@ -850,7 +850,7 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	var thisSignalStrength int
 
-	if /*isUplink* &&*/ len(x) >= 3 {
+	if /*isUplink &&*/ len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
 		//log.Printf("x[2] = %s\n",ss)
@@ -858,7 +858,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
 				thisSignalStrength = ssInt
-				if ssInt > maxSignalStrength {
+				if ssInt > isUplink && maxSignalStrength { // only look at uplinks; ignore ADS-B and TIS-B/ADS-R messages
 					maxSignalStrength = ssInt
 				}
 			} else {
