@@ -372,22 +372,24 @@ func createESDev(id int, serial string, idSet bool) error {
 
 func configDevices(count int, es_enabled, uat_enabled bool) {
 	// entry to this function is only valid when both UATDev and ESDev are nil
-	// TODO: refactor and optimize
 
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
-	unusedIDs := make([]int, 0, count)
+	unusedIDs := make([int]string)
 
 	// loop 1: assign tagged dongles
 	for i := 0; i < count; i++ {
 		_, _, s, err := rtl.GetDeviceUsbStrings(i)
 		if err == nil {
+			// no need to check if createXDev returned an error; if it
+			// failed to config the error is logged and we can ignore
+			// it here so it doesn't get queued up again
 			if uat_enabled && UATDev == nil && rUAT.hasID(s) {
 				createUATDev(i, s, true)
 			} else if es_enabled && ESDev == nil && rES.hasID(s) {
 				createESDev(i, s, true)
 			} else {
-				unusedIDs = append(unusedIDs, i)
+				unusedIDs[i] = s
 			}
 		} else {
 			log.Printf("rtl.GetDeviceUsbStrings id %d: %s\n", i, err)
@@ -398,16 +400,11 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	// so we don't cross config for dual assigned dongles. E.g. when two
 	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
 	// dongle makes it to this loop.
-	for _, v := range unusedIDs {
-		_, _, s, err := rtl.GetDeviceUsbStrings(v)
-		if err == nil {
-			if uat_enabled && UATDev == nil && !rES.hasID(s) {
-				createUATDev(v, s, false)
-			} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
-				createESDev(v, s, false)
-			}
-		} else {
-			log.Printf("rtl.GetDeviceUsbStrings id %d: %s\n", v, err)
+	for i, s := range unusedIDs {
+		if uat_enabled && UATDev == nil && !rES.hasID(s) {
+			createUATDev(i, s, false)
+		} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
+			createESDev(i, s, false)
 		}
 	}
 }
