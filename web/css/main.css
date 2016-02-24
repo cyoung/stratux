@@ -152,15 +152,31 @@
 }
 
 .paperairplane_left,
-.traffic-style1 {
+.traffic-style1,
+.traffic-style10,
+.traffic-style11 {
 	color: #000000;
 	background-color: cornflowerblue;
 }
 
+.traffic-style12,
+.traffic-style13 {
+	color: #000000;
+	background-color: skyblue;
+}
+
 .paperairplane_right,
-.traffic-style2 {
+.traffic-style2,
+.traffic-style20,
+.traffic-style21 {
 	color: #000000;
 	background-color: darkkhaki
+}
+
+.traffic-style22,
+.traffic-style23 {
+	color: #000000;
+	background-color: khaki
 }
 
 .icon-red {

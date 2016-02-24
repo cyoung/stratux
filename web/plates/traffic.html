@@ -24,8 +24,8 @@
 				<div class="separator"></div>
 				<div class="col-sm-6">
 					<span class="col-xs-3">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src"><strong>{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src"><strong class="text-muted">{{aircraft.icao}}</strong></span>
+						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.addr_type"><strong>{{aircraft.addr_symb}}&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.addr_type"><strong class="text-muted">{{aircraft.addr_symb}}&nbsp;{{aircraft.icao}}</strong></span>
 					</span>
 
 					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
