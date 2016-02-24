@@ -375,7 +375,7 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
-	unusedIDs := make([int]string)
+	unusedIDs := make(map[int]string)
 
 	// loop 1: assign tagged dongles
 	for i := 0; i < count; i++ {
