@@ -64,7 +64,7 @@ func readToChan(fp io.ReadCloser, ch chan []byte) {
 func (e *ES) read() {
 	defer es_wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	cmd := exec.Command("/usr/bin/dump1090", "--oversample", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -128,21 +128,21 @@ func (u *UAT) read() {
 }
 
 func getPPM(serial string) int {
-	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)"); 
+	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
 	if err != nil {
 		return globalSettings.PPM
 	}
 
-	arr := r.FindStringSubmatch(serial); 
+	arr := r.FindStringSubmatch(serial)
 	if arr == nil {
 		return globalSettings.PPM
 	}
 
-        if ppm, err := strconv.Atoi(arr[1]); err != nil {
-                return globalSettings.PPM
-        } else {
-                return ppm
-        }
+	if ppm, err := strconv.Atoi(arr[1]); err != nil {
+		return globalSettings.PPM
+	} else {
+		return ppm
+	}
 }
 
 func (e *ES) sdrConfig() (err error) {
@@ -403,7 +403,7 @@ func sdrWatcher() {
 					serial = ""
 				}
 
-				if (rES != nil) {
+				if rES != nil {
 					doSkip = rES.MatchString(serial)
 				} else {
 					doSkip = strings.Compare(serial, "stratux:1090") == 0
@@ -452,7 +452,7 @@ func sdrWatcher() {
 					serial = ""
 				}
 
-				if (rUAT != nil) {
+				if rUAT != nil {
 					doSkip = rUAT.MatchString(serial)
 				} else {
 					doSkip = strings.Compare(serial, "stratux:978") == 0

@@ -19,8 +19,9 @@ function TowersCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setTower(obj, new_tower) {
 		new_tower.lat = dmsString(obj.Lat);
 		new_tower.lon = dmsString(obj.Lng);
-		new_tower.signal = obj.Signal_strength_last_minute;
-		// Signal_strength_max         int
+		new_tower.power = obj.Signal_strength_now.toFixed(2);
+		new_tower.power_last_min = obj.Signal_strength_last_minute.toFixed(2);
+		new_tower.power_max = obj.Signal_strength_max.toFixed(2);
 		// Messages_last_minute        uint64
 		new_tower.messages = obj.Messages_total;
 	}
@@ -57,7 +58,7 @@ function TowersCtrl($rootScope, $scope, $state, $http, $interval) {
 	var updateTowers = $interval(function () {
 		// refresh tower list once every 5 seconds (aka polling)
 		getTowers();
-	}, (5 * 1000), 0, false);
+	}, (2 * 1000), 0, false);
 
 	$state.get('towers').onEnter = function () {
 		// everything gets handled correctly by the controller
