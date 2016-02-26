@@ -174,7 +174,9 @@ func getNetworkStats() uint {
 		for _, msg := range netconn.messageQueue {
 			queueBytes += len(msg)
 		}
-		log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
+		if globalSettings.DEBUG {
+			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
+		}
 	}
 
 	ret := uint(len(dhcpLeases))

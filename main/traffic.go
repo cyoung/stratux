@@ -152,7 +152,7 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
-	if (stratuxClock.Time.Second() % 10) == 0 {
+	if (globalSettings.DEBUG && stratuxClock.Time.Second()%10) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
