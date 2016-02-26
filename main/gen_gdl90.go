@@ -609,7 +609,7 @@ func heartBeatSender() {
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
 			/*
-				numTargets := uint32(40)
+				numTargets := uint32(18)
 				hexCode := uint32(0xFF0000)
 
 				for i := uint32(0); i < numTargets; i++ {
@@ -621,8 +621,8 @@ func heartBeatSender() {
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-
 			*/
+			
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
@@ -850,26 +850,30 @@ func parseInput(buf string) ([]byte, uint16) {
 		isUplink = true
 	}
 
-	if s[0] == '-' {
-		parseDownlinkReport(s)
-	}
-
 	var thisSignalStrength int
 
-	if isUplink && len(x) >= 3 {
+	if /*isUplink &&*/ len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
+		//log.Printf("x[2] = %s\n",ss)
 		if strings.HasPrefix(ss, "ss=") {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
 				thisSignalStrength = ssInt
-				if ssInt > maxSignalStrength {
+				if isUplink && (ssInt > maxSignalStrength) { // only look at uplinks; ignore ADS-B and TIS-B/ADS-R messages
 					maxSignalStrength = ssInt
 				}
+			} else {
+				//log.Printf("Error was %s\n",err.Error())
 			}
 		}
 	}
 
+	if s[0] == '-' {
+		parseDownlinkReport(s, int32(thisSignalStrength))
+	}
+	
+	
 	s = s[1:]
 	msglen := len(s) / 2
 
