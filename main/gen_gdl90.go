@@ -436,6 +436,11 @@ func makeStratuxStatus() []byte {
 		msg[13] = msg[13] | (1 << 6)
 	}
 
+	// Ping provides ES and UAT
+	if globalSettings.Ping_Enabled {
+		msg[13] = msg[13] | (1 << 5) | (1 << 6)
+	}
+
 	// Valid/Enabled: GPS Enabled portion.
 	if globalSettings.GPS_Enabled {
 		msg[13] = msg[13] | (1 << 7)
