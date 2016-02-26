@@ -622,7 +622,7 @@ func heartBeatSender() {
 
 				}
 			*/
-			
+
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
@@ -872,8 +872,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	if s[0] == '-' {
 		parseDownlinkReport(s, int32(thisSignalStrength))
 	}
-	
-	
+
 	s = s[1:]
 	msglen := len(s) / 2
 
