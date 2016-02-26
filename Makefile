@@ -17,6 +17,7 @@ xgen_gdl90:
 	go build $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go
 
 xdump1090:
+	git rm --cached dump1090
 	git submodule update --init
 	cd dump1090 && make
 
@@ -25,6 +26,7 @@ xdump978:
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 xlinux-mpu9150:
+	git rm --cached linux-mpu9150
 	git submodule update --init
 	cd linux-mpu9150 && make -f Makefile-native-shared
 
