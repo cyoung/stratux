@@ -73,6 +73,8 @@ const (
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
+var maxSignalStrength int
+
 var uatReplayLog string
 var esReplayLog string
 var gpsReplayLog string
