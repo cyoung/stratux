@@ -393,7 +393,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 	lng := float32(0.0)
 
 	position_valid := false
-	if (ti.NIC != 0) && (raw_lat != 0) && (raw_lon != 0) {
+	if /*(ti.NIC != 0) && */(raw_lat != 0) && (raw_lon != 0) { // pass all traffic, and let the display determine if it will show NIC == 0. This will allow misconfigured or uncertified / portable emitters to be seen.
 		position_valid = true
 		lat = float32(raw_lat) * 360.0 / 16777216.0
 		if lat > 90 {
@@ -818,9 +818,9 @@ and speed invalid flag is set for headings 135-150 to allow testing of response 
 func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
 
-	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 360)
+	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 720)/2
 	// gs := float64(220) // knots
-	radius := gs * 0.1 / (2 * math.Pi)
+	radius := gs * 0.2 / (2 * math.Pi)
 	x := radius * math.Cos(hdg*math.Pi/180.0)
 	y := radius * math.Sin(hdg*math.Pi/180.0)
 	// default traffic location is Oshkosh if GPS not detected
