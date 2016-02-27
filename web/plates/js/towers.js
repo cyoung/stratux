@@ -23,7 +23,7 @@ function TowersCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_tower.power_last_min = obj.Signal_strength_last_minute.toFixed(2);
 		new_tower.power_max = obj.Signal_strength_max.toFixed(2);
 		// Messages_last_minute        uint64
-		new_tower.messages = obj.Messages_total;
+		new_tower.messages = obj.Messages_last_minute;
 	}
 
 	function loadTowers(data) {
