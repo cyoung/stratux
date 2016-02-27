@@ -1,6 +1,5 @@
 CACHE MANIFEST
-
-CACHE:
+/index.html
 /maui/fonts/fontawesome-webfont.woff
 /maui/js/mobile-angular-ui.gestures.min.js
 /maui/js/mobile-angular-ui.min.js
