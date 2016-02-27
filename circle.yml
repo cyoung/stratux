@@ -12,3 +12,9 @@ dependencies:
 test:
   override:
     - make test
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - cd selfupdate ; ./makeupdate.sh ; cd .. ; scp work/*.sh stratux-updates@updates.stratux.me:.
