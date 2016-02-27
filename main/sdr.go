@@ -10,7 +10,7 @@
 package main
 
 import (
-	"io"
+	"bufio"
 	"log"
 	"os/exec"
 	"regexp"
@@ -40,17 +40,6 @@ type ES Device
 var UATDev *UAT
 var ESDev *ES
 
-func readToChan(fp io.ReadCloser, ch chan []byte) {
-	for {
-		buf := make([]byte, 1024)
-		n, err := fp.Read(buf)
-		if n > 0 {
-			ch <- buf[:n]
-		} else if err != nil {
-			return
-		}
-	}
-}
 
 func (e *ES) read() {
 	defer e.wg.Done()
@@ -59,33 +48,46 @@ func (e *ES) read() {
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
-	outputChan := make(chan []byte, 1024)
-
-	go readToChan(stdout, outputChan)
-	go readToChan(stderr, outputChan)
-
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err.Error())
+		log.Printf("Error executing /usr/bin/dump1090: %s\n", err
 		return
 	}
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
+	scanStdout := bufio.NewScanner(stdout)
+	scanStderr := bufio.NewScanner(stderr)
+
 	for {
 		select {
-		case buf := <-outputChan:
-			replayLog(string(buf), MSGCLASS_DUMP1090)
 		case <-e.closeCh:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			err := cmd.Process.Kill()
 			if err != nil {
-				log.Println("\t couldn't kill dump1090: %s", err.Error)
+				log.Println("\t couldn't kill dump1090: %s", err)
 			} else {
 				cmd.Wait()
 				log.Println("\t kill successful...")
 			}
 			return
 		default:
+			for scanStdout.Scan() {
+				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+			}
+			if err := scanStdout.Err(); err != nil {
+        		log.Printf("scanStdout error: %s\n", err)
+    		}
+
+			for scanStderr.Scan() {
+				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+				if shutdownES != true {
+					shutdownES = true
+				}
+			}
+			if err := scanStderr.Err(); err != nil {
+        		log.Printf("scanStdout error: %s\n", err)
+    		}
+
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -104,9 +106,12 @@ func (u *UAT) read() {
 				if globalSettings.DEBUG {
 					log.Printf("\tReadSync Failed - error: %s\n", err)
 				}
+				if shutdownUAT != true {
+					shutdownUAT = true
+				}
 				break
 			}
-			// log.Printf("\tReadSync %d\n", nRead)
+
 			if nRead > 0 {
 				buf := buffer[:nRead]
 				godump978.InChan <- buf
@@ -411,6 +416,15 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	}
 }
 
+// chicken and egg - to gracefully shut down a read method we
+// check a channel for a close flag, but now we want to handle
+// catastrophic dongle failures (identified when ReadSync returns
+// an error) but we can't just bypass the channel check and
+// return directly from the goroutine because the close channel
+// call in shutdown will cause a runtime panic, hence these...
+var shutdownES bool
+var shutdownUAT bool
+
 // Watch for config/device changes.
 func sdrWatcher() {
 	prevCount := 0
@@ -429,6 +443,18 @@ func sdrWatcher() {
 				ESDev = nil
 			}
 			return
+		}
+
+		// set to true when a ReadSync call fails
+		if shutdownUAT {
+			UATDev.shutdown()
+			UATDev = nil
+			shutdownUAT = true
+		}
+		if shutdownES {
+			ESDev.shutdown()
+			ESDev = nil
+			shutdownES = false
 		}
 
 		count := rtl.GetDeviceCount()
