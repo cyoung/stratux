@@ -418,8 +418,8 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 
 // chicken and egg - to gracefully shut down a read method we
 // check a channel for a close flag, but now we want to handle
-// catastrophic dongle failures (identified when ReadSync returns
-// an error) but we can't just bypass the channel check and
+// catastrophic dongle failures (when ReadSync returns or we get
+// stderr ouput) but we can't just bypass the channel check and
 // return directly from the goroutine because the close channel
 // call in shutdown will cause a runtime panic, hence these...
 var shutdownES bool
