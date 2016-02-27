@@ -449,7 +449,7 @@ func sdrWatcher() {
 		if shutdownUAT {
 			UATDev.shutdown()
 			UATDev = nil
-			shutdownUAT = true
+			shutdownUAT = false
 		}
 		if shutdownES {
 			ESDev.shutdown()
