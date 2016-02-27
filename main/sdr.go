@@ -64,7 +64,7 @@ func (e *ES) read() {
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			err := cmd.Process.Kill()
 			if err != nil {
-				log.Println("\t couldn't kill dump1090: %s", err)
+				log.Printf("\t couldn't kill dump1090: %s\n", err)
 			} else {
 				cmd.Wait()
 				log.Println("\t kill successful...")
