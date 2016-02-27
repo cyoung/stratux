@@ -85,7 +85,7 @@ func (e *ES) read() {
 				}
 			}
 			if err := scanStderr.Err(); err != nil {
-				log.Printf("scanStdout error: %s\n", err)
+				log.Printf("scanStderr error: %s\n", err)
 			}
 
 			time.Sleep(1 * time.Second)
