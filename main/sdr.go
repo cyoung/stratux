@@ -445,12 +445,13 @@ func sdrWatcher() {
 			return
 		}
 
-		// set to true when a ReadSync call fails
+		// true when a ReadSync call fails
 		if shutdownUAT {
 			UATDev.shutdown()
 			UATDev = nil
 			shutdownUAT = false
 		}
+		// true when we get stderr output
 		if shutdownES {
 			ESDev.shutdown()
 			ESDev = nil
