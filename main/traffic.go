@@ -561,7 +561,12 @@ func esListen() {
 			var newTi *dump1090Data
 			err = json.Unmarshal([]byte(buf), &newTi)
 			if err != nil {
-				log.Printf("can't read ES traffic information: %s\n", err.Error())
+				log.Printf("can't read ES traffic information from %s: %s\n", buf, err.Error())
+				continue
+			}
+
+			if (newTi.Icao_addr & 0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
+				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
 				continue
 			}
 
