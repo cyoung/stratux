@@ -75,8 +75,8 @@ func (e *ES) read() {
 				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
 			}
 			if err := scanStdout.Err(); err != nil {
-        		log.Printf("scanStdout error: %s\n", err)
-    		}
+				log.Printf("scanStdout error: %s\n", err)
+			}
 
 			for scanStderr.Scan() {
 				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
@@ -85,8 +85,8 @@ func (e *ES) read() {
 				}
 			}
 			if err := scanStderr.Err(); err != nil {
-        		log.Printf("scanStdout error: %s\n", err)
-    		}
+				log.Printf("scanStdout error: %s\n", err)
+			}
 
 			time.Sleep(1 * time.Second)
 		}
