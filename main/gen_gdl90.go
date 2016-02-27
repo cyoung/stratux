@@ -904,7 +904,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = frame
 	thisMsg.Signal_amplitude = thisSignalStrength
-	thisMsg.Signal_strength = 10 * (math.Log10(float64((thisSignalStrength * thisSignalStrength))) - 6)
+	thisMsg.Signal_strength = 20 * math.Log10(float64(thisSignalStrength/1000))
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
