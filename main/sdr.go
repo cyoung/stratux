@@ -55,7 +55,7 @@ func readToChan(fp io.ReadCloser, ch chan []byte) {
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	cmd := exec.Command("/usr/bin/dump1090", "--oversample", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -467,6 +467,7 @@ func sdrWatcher() {
 			if UATDev != nil {
 				UATDev.shutdown()
 				UATDev = nil
+
 			}
 			if ESDev != nil {
 				ESDev.shutdown()
@@ -478,6 +479,7 @@ func sdrWatcher() {
 		prevCount = count
 		prevUAT_Enabled = globalSettings.UAT_Enabled
 		prevES_Enabled = globalSettings.ES_Enabled
+
 	}
 }
 

@@ -296,8 +296,10 @@ func messageQueueSender() {
 					averageSendableQueueSize = averageSendableQueueSize / float64(len(outSockets)) // It's a total, not an average, up until this point.
 					pd = math.Max(float64(1.0/750.0), float64(1.0/(4.0*averageSendableQueueSize))) // Say 250ms is enough to get through the whole queue.
 				} else {
-					pd = float64(1.0 / 0.1) // 100ms.
+					pd = float64(0.1) // 100ms.
 				}
+				log.Printf("Average sendable queue is %v messages. Changing queue timer to %f seconds\n", averageSendableQueueSize, pd)
+
 				queueTimer.Stop()
 				queueTimer = time.NewTicker(time.Duration(pd*1000000000.0) * time.Nanosecond)
 				lastQueueTimeChange = stratuxClock.Time
