@@ -841,19 +841,22 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	ti.Icao_addr = icao
 	ti.OnGround = false
-	ti.Addr_type = uint8(icao % 4) // 0 == ADS-B; 1 == reserved; 2 == TIS-B with ICAO address; 3 == TIS-B without ICAO address.
-	if ti.Addr_type == 1 {         //reserved value
-		ti.Addr_type = 0
+	ti.Addr_type = uint8(icao % 4) // 0 == ADS-B; 1 == reserved; 2 == TIS-B with ICAO address; 3 == TIS-B without ICAO address; 6 == ADS-R
+	if ti.Addr_type == 1 {         // reassign "reserved value" to ADS-R
+		ti.Addr_type = 6
 	}
 
 	if ti.Addr_type == 0 {
 		ti.TargetType = TARGET_TYPE_ADSB
-	}
-	if ti.Addr_type == 2 {
-		ti.TargetType = TARGET_TYPE_ADSR
-	}
-	if ti.Addr_type == 3 {
+	} else if ti.Addr_type == 3 {
 		ti.TargetType = TARGET_TYPE_TISB
+	} else if ti.Addr_type == 6 {
+		ti.TargetType = TARGET_TYPE_ADSR
+	} else if ti.Addr_type == 2 {
+		ti.TargetType = TARGET_TYPE_TISB_S
+		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently high and emitter type is transmitted, we'll assume it's ADS-R.
+			ti.TargetType = TARGET_TYPE_ADSR
+		}
 	}
 
 	ti.Emitter_category = 1
