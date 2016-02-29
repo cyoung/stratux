@@ -1,6 +1,6 @@
 /*
 	Copyright (c) 2016 AvSquirrel (https://github.com/AvSquirrel)
-	Distributable under the terms of The "BSD New"" License
+	Distributable under the terms of the "BSD New" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 

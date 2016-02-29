@@ -7,16 +7,20 @@
 		</div>
 		<div class="panel-body towers-page">
 			<div class="row">
-				<span class="col-xs-6"><strong>Location</strong></span>
-				<span class="col-xs-3 text-right">Signal</span>
-				<span class="col-xs-3 text-right">Msgs</span>
+				<span class="col-xs-3"><strong>Location</strong></span>
+				<span class="col-xs-2 text-right">Current Power (dB)</span>
+				<span class="col-xs-2 text-right">Avg Power (dB)</span>
+				<span class="col-xs-2 text-right">Max Power (dB)</span>
+				<span class="col-xs-2 text-right">Msgs Last Minute</span>
 			</div>
 
 			<div class="row" ng-repeat="tower in data_list | orderBy: messages">
 				<div class="separator"></div>
-				<span class="col-xs-6">{{tower.lat}} {{tower.lon}}</span>
-				<span class="col-xs-3 text-right">{{tower.signal}}</span>
-				<span class="col-xs-3 text-right">{{tower.messages}}</span>
+				<span class="col-xs-3">{{tower.lat}} {{tower.lon}}</span>
+				<span class="col-xs-2 text-right">{{tower.power}}</span>
+				<span class="col-xs-2 text-right">{{tower.power_last_min}}</span>
+				<span class="col-xs-2 text-right">{{tower.power_max}}</span>
+				<span class="col-xs-2 text-right">{{tower.messages}}</span>
 			</div>
 		</div>
 	</div>

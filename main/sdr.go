@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,28 +24,21 @@ import (
 	rtl "github.com/jpoirier/gortlsdr"
 )
 
-type UAT struct {
+type Device struct {
 	dev     *rtl.Context
+	wg      *sync.WaitGroup
+	closeCh chan int
 	indexID int
+	ppm     int
 	serial  string
+	idSet   bool
 }
 
-type ES struct {
-	dev     *rtl.Context
-	indexID int
-	serial  string
-}
+type UAT Device
+type ES Device
 
 var UATDev *UAT
 var ESDev *ES
-
-var uat_shutdown chan int
-var uat_wg *sync.WaitGroup = &sync.WaitGroup{}
-
-var es_shutdown chan int
-var es_wg *sync.WaitGroup = &sync.WaitGroup{}
-
-var maxSignalStrength int
 
 func readToChan(fp io.ReadCloser, ch chan []byte) {
 	for {
@@ -59,9 +53,9 @@ func readToChan(fp io.ReadCloser, ch chan []byte) {
 }
 
 func (e *ES) read() {
-	defer es_wg.Done()
+	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--net", "--device-index", strconv.Itoa(e.indexID))
+	cmd := exec.Command("/usr/bin/dump1090", "--oversample", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -81,8 +75,7 @@ func (e *ES) read() {
 		select {
 		case buf := <-outputChan:
 			replayLog(string(buf), MSGCLASS_DUMP1090)
-
-		case <-es_shutdown:
+		case <-e.closeCh:
 			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 			err := cmd.Process.Kill()
 			if err != nil {
@@ -94,13 +87,12 @@ func (e *ES) read() {
 			return
 		default:
 			time.Sleep(1 * time.Second)
-
 		}
 	}
 }
 
 func (u *UAT) read() {
-	defer uat_wg.Done()
+	defer u.wg.Done()
 	log.Println("Entered UAT read() ...")
 	var buffer = make([]uint8, rtl.DefaultBufLength)
 
@@ -109,7 +101,9 @@ func (u *UAT) read() {
 		default:
 			nRead, err := u.dev.ReadSync(buffer, rtl.DefaultBufLength)
 			if err != nil {
-				//log.Printf("\tReadSync Failed - error: %s\n", err)
+				if globalSettings.DEBUG {
+					log.Printf("\tReadSync Failed - error: %s\n", err)
+				}
 				break
 			}
 			// log.Printf("\tReadSync %d\n", nRead)
@@ -117,19 +111,50 @@ func (u *UAT) read() {
 				buf := buffer[:nRead]
 				godump978.InChan <- buf
 			}
-		case <-uat_shutdown:
+		case <-u.closeCh:
 			log.Println("UAT read(): shutdown msg received...")
 			return
 		}
 	}
 }
 
+func getPPM(serial string) int {
+	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
+	if err != nil {
+		return globalSettings.PPM
+	}
+
+	arr := r.FindStringSubmatch(serial)
+	if arr == nil {
+		return globalSettings.PPM
+	}
+
+	if ppm, err := strconv.Atoi(arr[1]); err != nil {
+		return globalSettings.PPM
+	} else {
+		return ppm
+	}
+}
+
 func (e *ES) sdrConfig() (err error) {
+	e.ppm = getPPM(e.serial)
+	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
 	return
 }
 
+const (
+	TunerGain    = 480
+	SampleRate   = 2083334
+	NewRTLFreq   = 28800000
+	NewTunerFreq = 28800000
+	CenterFreq   = 978000000
+	Bandwidth    = 1000000
+)
+
 func (u *UAT) sdrConfig() (err error) {
-	log.Printf("===== UAT Device name: %s =====\n", rtl.GetDeviceName(u.indexID))
+	log.Printf("===== UAT Device Name  : %s =====\n", rtl.GetDeviceName(u.indexID))
+	log.Printf("===== UAT Device Serial: %s=====\n", u.serial)
+
 	if u.dev, err = rtl.Open(u.indexID); err != nil {
 		log.Printf("\tUAT Open Failed...\n")
 		return
@@ -146,8 +171,7 @@ func (u *UAT) sdrConfig() (err error) {
 		log.Printf("\tSetTunerGainMode Successful\n")
 	}
 
-	tgain := 480
-	err = u.dev.SetTunerGain(tgain)
+	err = u.dev.SetTunerGain(TunerGain)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetTunerGain Failed - error: %s\n", err)
@@ -157,14 +181,13 @@ func (u *UAT) sdrConfig() (err error) {
 	}
 
 	//---------- Get/Set Sample Rate ----------
-	samplerate := 2083334
-	err = u.dev.SetSampleRate(samplerate)
+	err = u.dev.SetSampleRate(SampleRate)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetSampleRate Failed - error: %s\n", err)
 		return
 	} else {
-		log.Printf("\tSetSampleRate - rate: %d\n", samplerate)
+		log.Printf("\tSetSampleRate - rate: %d\n", SampleRate)
 	}
 	log.Printf("\tGetSampleRate: %d\n", u.dev.GetSampleRate())
 
@@ -178,20 +201,18 @@ func (u *UAT) sdrConfig() (err error) {
 		log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 	}
 
-	newRTLFreq := 28800000
-	newTunerFreq := 28800000
-	err = u.dev.SetXtalFreq(newRTLFreq, newTunerFreq)
+	err = u.dev.SetXtalFreq(NewRTLFreq, NewTunerFreq)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetXtalFreq Failed - error: %s\n", err)
 		return
 	} else {
 		log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
-			newRTLFreq, newTunerFreq)
+			NewRTLFreq, NewTunerFreq)
 	}
 
 	//---------- Get/Set Center Freq ----------
-	err = u.dev.SetCenterFreq(978000000)
+	err = u.dev.SetCenterFreq(CenterFreq)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetCenterFreq 978MHz Failed, error: %s\n", err)
@@ -203,14 +224,13 @@ func (u *UAT) sdrConfig() (err error) {
 	log.Printf("\tGetCenterFreq: %d\n", u.dev.GetCenterFreq())
 
 	//---------- Set Bandwidth ----------
-	bw := 1000000
-	log.Printf("\tSetting Bandwidth: %d\n", bw)
-	if err = u.dev.SetTunerBw(bw); err != nil {
+	log.Printf("\tSetting Bandwidth: %d\n", Bandwidth)
+	if err = u.dev.SetTunerBw(Bandwidth); err != nil {
 		u.dev.Close()
-		log.Printf("\tSetTunerBw %d Failed, error: %s\n", bw, err)
+		log.Printf("\tSetTunerBw %d Failed, error: %s\n", Bandwidth, err)
 		return
 	} else {
-		log.Printf("\tSetTunerBw %d Successful\n", bw)
+		log.Printf("\tSetTunerBw %d Successful\n", Bandwidth)
 	}
 
 	if err = u.dev.ResetBuffer(); err != nil {
@@ -220,16 +240,19 @@ func (u *UAT) sdrConfig() (err error) {
 	} else {
 		log.Printf("\tResetBuffer Successful\n")
 	}
+
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
 	log.Printf("\tGetFreqCorrection: %d\n", freqCorr)
-	err = u.dev.SetFreqCorrection(globalSettings.PPM)
+
+	u.ppm = getPPM(u.serial)
+	err = u.dev.SetFreqCorrection(u.ppm)
 	if err != nil {
 		u.dev.Close()
-		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", globalSettings.PPM, err)
+		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", u.ppm, err)
 		return
 	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", globalSettings.PPM)
+		log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
 	}
 	return
 }
@@ -266,23 +289,21 @@ func (e *ES) writeID() error {
 
 func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
-	close(uat_shutdown) // signal to shutdown
-	log.Println("UAT shutdown(): calling uat_wg.Wait() ...")
-	uat_wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("UAT shutdown(): uat_wg.Wait() returned...")
+	close(u.closeCh) // signal to shutdown
+	log.Println("UAT shutdown(): calling u.wg.Wait() ...")
+	u.wg.Wait() // Wait for the goroutine to shutdown
+	log.Println("UAT shutdown(): u.wg.Wait() returned...")
 	log.Println("UAT shutdown(): closing device ...")
 	u.dev.Close() // preempt the blocking ReadSync call
 }
 
 func (e *ES) shutdown() {
 	log.Println("Entered ES shutdown() ...")
-	close(es_shutdown) // signal to shutdown
-	log.Println("ES shutdown(): calling es_wg.Wait() ...")
-	es_wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("ES shutdown(): es_wg.Wait() returned...")
+	close(e.closeCh) // signal to shutdown
+	log.Println("ES shutdown(): calling e.wg.Wait() ...")
+	e.wg.Wait() // Wait for the goroutine to shutdown
+	log.Println("ES shutdown(): e.wg.Wait() returned...")
 }
-
-var devMap = map[int]string{0: "", 1: ""}
 
 var sdrShutdown bool
 
@@ -295,8 +316,107 @@ func sdrKill() {
 	}
 }
 
+func reCompile(s string) *regexp.Regexp {
+	// note , compile returns a nil pointer on error
+	r, _ := regexp.Compile(s)
+	return r
+}
+
+type regexUAT regexp.Regexp
+type regexES regexp.Regexp
+
+var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
+var rES = (*regexES)(reCompile("str?a?t?u?x:1090"))
+
+func (r *regexUAT) hasID(serial string) bool {
+	if r == nil {
+		return strings.HasPrefix(serial, "stratux:978")
+	}
+	return (*regexp.Regexp)(r).MatchString(serial)
+}
+
+func (r *regexES) hasID(serial string) bool {
+	if r == nil {
+		return strings.HasPrefix(serial, "stratux:1090")
+	}
+	return (*regexp.Regexp)(r).MatchString(serial)
+}
+
+func createUATDev(id int, serial string, idSet bool) error {
+	UATDev = &UAT{indexID: id, serial: serial}
+	if err := UATDev.sdrConfig(); err != nil {
+		log.Printf("UATDev.sdrConfig() failed: %s\n", err)
+		UATDev = nil
+		return err
+	}
+	UATDev.wg = &sync.WaitGroup{}
+	UATDev.idSet = idSet
+	UATDev.closeCh = make(chan int)
+	UATDev.wg.Add(1)
+	go UATDev.read()
+	return nil
+}
+
+func createESDev(id int, serial string, idSet bool) error {
+	ESDev = &ES{indexID: id, serial: serial}
+	if err := ESDev.sdrConfig(); err != nil {
+		log.Printf("ESDev.sdrConfig() failed: %s\n", err)
+		ESDev = nil
+		return err
+	}
+	ESDev.wg = &sync.WaitGroup{}
+	ESDev.idSet = idSet
+	ESDev.closeCh = make(chan int)
+	ESDev.wg.Add(1)
+	go ESDev.read()
+	return nil
+}
+
+func configDevices(count int, es_enabled, uat_enabled bool) {
+	// entry to this function is only valid when both UATDev and ESDev are nil
+
+	// once the tagged dongles have been assigned, explicitly range over
+	// the remaining IDs and assign them to any anonymous dongles
+	unusedIDs := make(map[int]string)
+
+	// loop 1: assign tagged dongles
+	for i := 0; i < count; i++ {
+		_, _, s, err := rtl.GetDeviceUsbStrings(i)
+		if err == nil {
+			// no need to check if createXDev returned an error; if it
+			// failed to config the error is logged and we can ignore
+			// it here so it doesn't get queued up again
+			if uat_enabled && UATDev == nil && rUAT.hasID(s) {
+				createUATDev(i, s, true)
+			} else if es_enabled && ESDev == nil && rES.hasID(s) {
+				createESDev(i, s, true)
+			} else {
+				unusedIDs[i] = s
+			}
+		} else {
+			log.Printf("rtl.GetDeviceUsbStrings id %d: %s\n", i, err)
+		}
+	}
+
+	// loop 2; assign anonymous dongles, but sanity check the serial ids
+	// so we don't cross config for dual assigned dongles. E.g. when two
+	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
+	// dongle makes it to this loop.
+	for i, s := range unusedIDs {
+		if uat_enabled && UATDev == nil && !rES.hasID(s) {
+			createUATDev(i, s, false)
+		} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
+			createESDev(i, s, false)
+		}
+	}
+}
+
 // Watch for config/device changes.
 func sdrWatcher() {
+	prevCount := 0
+	prevUAT_Enabled := false
+	prevES_Enabled := false
+
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
@@ -310,18 +430,17 @@ func sdrWatcher() {
 			}
 			return
 		}
+
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
-		// log.Println("DeviceCount...", count)
 
 		// support two and only two dongles
 		if count > 2 {
 			count = 2
 		}
 
-		// cleanup if necessary
+		// check for either no dongles or none enabled
 		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			log.Println("count == 0, doing cleanup if necessary...")
 			if UATDev != nil {
 				UATDev.shutdown()
 				UATDev = nil
@@ -330,103 +449,37 @@ func sdrWatcher() {
 				ESDev.shutdown()
 				ESDev = nil
 			}
+			prevCount = count
+			prevUAT_Enabled = false
+			prevES_Enabled = false
 			continue
 		}
 
-		if count == 1 {
-			if UATDev != nil && ESDev == nil {
-				UATDev.indexID = 0
-			} else if UATDev == nil && ESDev != nil {
-				ESDev.indexID = 0
+		// if the device count or the global settings change, do a reconfig.
+		// both events are significant and the least convoluted way to handle it
+		// is to reconfigure all dongle/s across the board. The reconfig
+		// should happen fairly quick so the user shouldn't notice any
+		// major disruption; if it is significant we can split the dongle
+		// count check from the global settings check where the gloabl settings
+		// check won't do a reconfig.
+		if count != prevCount || prevES_Enabled != globalSettings.ES_Enabled ||
+			prevUAT_Enabled != globalSettings.UAT_Enabled {
+			if UATDev != nil {
+				UATDev.shutdown()
+				UATDev = nil
+
 			}
+			if ESDev != nil {
+				ESDev.shutdown()
+				ESDev = nil
+			}
+			configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
 		}
 
-		// UAT specific handling
-		// When count is one, favor UAT in the case where the user
-		// has enabled both UAT and ES via the web interface.
-		id := 0
-		if globalSettings.UAT_Enabled {
-			// log.Println("globalSettings.UAT_Enabled == true")
-			if count == 1 {
-				if ESDev != nil {
-					ESDev.shutdown()
-					ESDev = nil
-				}
-			} else { // count == 2
-				if UATDev == nil && ESDev != nil {
-					if ESDev.indexID == 0 {
-						id = 1
-					}
-				}
-			}
+		prevCount = count
+		prevUAT_Enabled = globalSettings.UAT_Enabled
+		prevES_Enabled = globalSettings.ES_Enabled
 
-			if UATDev == nil {
-				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
-				if err != nil {
-					serial = ""
-				}
-				if strings.Compare(serial, "stratux:1090") != 0 {
-					UATDev = &UAT{indexID: id, serial: serial}
-					if err := UATDev.sdrConfig(); err != nil {
-						log.Printf("UATDev = &UAT{indexID: id} failed: %s\n", err)
-						UATDev = nil
-					} else {
-						uat_shutdown = make(chan int)
-						uat_wg.Add(1)
-						go UATDev.read()
-					}
-				}
-			}
-		} else if UATDev != nil {
-			UATDev.shutdown()
-			UATDev = nil
-			if count == 1 && ESDev != nil {
-				ESDev.indexID = 0
-			}
-		}
-
-		// ES specific handling
-		id = 0
-		if globalSettings.ES_Enabled {
-			// log.Println("globalSettings.ES_Enabled == true")
-			if count == 1 {
-				if globalSettings.UAT_Enabled {
-					// defer to the UAT handler
-					goto End
-				}
-			} else { // count == 2
-				if ESDev == nil && UATDev != nil {
-					if UATDev.indexID == 0 {
-						id = 1
-					}
-				}
-			}
-
-			if ESDev == nil {
-				_, _, serial, err := rtl.GetDeviceUsbStrings(id)
-				if err != nil {
-					serial = ""
-				}
-				if strings.Compare(serial, "stratux:978") != 0 {
-					ESDev = &ES{indexID: id, serial: serial}
-					if err := ESDev.sdrConfig(); err != nil {
-						log.Printf("ESDev = &ES{indexID: id} failed: %s\n", err)
-						ESDev = nil
-					} else {
-						es_shutdown = make(chan int)
-						es_wg.Add(1)
-						go ESDev.read()
-					}
-				}
-			}
-		} else if ESDev != nil {
-			ESDev.shutdown()
-			ESDev = nil
-			if count == 1 && UATDev != nil {
-				UATDev.indexID = 0
-			}
-		}
-	End:
 	}
 }
 

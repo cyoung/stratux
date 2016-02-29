@@ -17,6 +17,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -150,7 +151,10 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
-	towersJSON, _ := json.Marshal(&ADSBTowers)
+	towersJSON, err := json.Marshal(&ADSBTowers)
+	if err != nil {
+		log.Printf("Error sending tower JSON data: %s\n", err.Error())
+	}
 	// for testing purposes, we can return a fixed reply
 	// towersJSON = []byte(`{"(38.490880,-76.135554)":{"Lat":38.49087953567505,"Lng":-76.13555431365967,"Signal_strength_last_minute":100,"Signal_strength_max":67,"Messages_last_minute":1,"Messages_total":1059},"(38.978698,-76.309276)":{"Lat":38.97869825363159,"Lng":-76.30927562713623,"Signal_strength_last_minute":495,"Signal_strength_max":32,"Messages_last_minute":45,"Messages_total":83},"(39.179285,-76.668413)":{"Lat":39.17928457260132,"Lng":-76.66841268539429,"Signal_strength_last_minute":50,"Signal_strength_max":24,"Messages_last_minute":1,"Messages_total":16},"(39.666309,-74.315300)":{"Lat":39.66630935668945,"Lng":-74.31529998779297,"Signal_strength_last_minute":9884,"Signal_strength_max":35,"Messages_last_minute":4,"Messages_total":134}}`)
 	fmt.Fprintf(w, "%s\n", towersJSON)
@@ -254,9 +258,13 @@ func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
 }
 
-func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+func doReboot() {
 	syscall.Sync()
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
+func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
+	doReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -268,6 +276,33 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
 
+func delayReboot() {
+	time.Sleep(1 * time.Second)
+	doReboot()
+}
+
+// Upload an update file.
+func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
+	file, handler, err := r.FormFile("update_file")
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer file.Close()
+	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
+	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+		return
+	}
+	defer f.Close()
+	io.Copy(f, file)
+	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, updateFile)
+	// Successful update upload. Now reboot.
+	go delayReboot()
+}
+
 func setNoCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
@@ -275,7 +310,7 @@ func setNoCache(w http.ResponseWriter) {
 }
 
 func defaultServer(w http.ResponseWriter, r *http.Request) {
-	setNoCache(w)
+	//	setNoCache(w)
 
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
@@ -319,6 +354,7 @@ func managementInterface() {
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
+	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

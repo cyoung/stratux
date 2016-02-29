@@ -20,6 +20,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"runtime"
@@ -48,6 +49,13 @@ const (
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
 	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS / 8)
 	UPLINK_BLOCK_BYTES      = (UPLINK_BLOCK_BITS / 8)
+	GPS_TYPE_NMEA           = 0x01
+	GPS_TYPE_UBX            = 0x02
+	GPS_TYPE_SIRF           = 0x03
+	GPS_TYPE_MEDIATEK       = 0x04
+	GPS_TYPE_FLARM          = 0x05
+	GPS_TYPE_GARMIN         = 0x06
+	// other GPS types to be defined as needed
 
 	UPLINK_FRAME_BLOCKS     = 6
 	UPLINK_FRAME_DATA_BITS  = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_DATA_BITS)
@@ -72,6 +80,8 @@ const (
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
+
+var maxSignalStrength int
 
 var uatReplayLog string
 var esReplayLog string
@@ -108,12 +118,13 @@ var dump1090ReplayWriter WriteCloser
 var developerMode bool
 
 type msg struct {
-	MessageClass    uint
-	TimeReceived    time.Time
-	Data            []byte
-	Products        []uint32
-	Signal_strength int
-	ADSBTowerID     string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
+	MessageClass     uint
+	TimeReceived     time.Time
+	Data             []byte
+	Products         []uint32
+	Signal_amplitude int
+	Signal_strength  float64
+	ADSBTowerID      string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
 }
 
 // Raw inputs.
@@ -125,9 +136,10 @@ var timeStarted time.Time
 type ADSBTower struct {
 	Lat                         float64
 	Lng                         float64
-	Signal_strength_last_minute int
-	signal_power_last_minute    int64 // Over total messages.
-	Signal_strength_max         int
+	Signal_strength_now         float64 // Current RSSI (dB)
+	Signal_strength_max         float64 // all-time peak RSSI (dB) observed for this tower
+	Energy_last_minute          uint64  // Summation of power observed for this tower across all messages last minute
+	Signal_strength_last_minute float64 // Average RSSI (dB) observed for this tower last minute
 	Messages_last_minute        uint64
 	Messages_total              uint64
 }
@@ -241,7 +253,6 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
-//TODO
 func makeOwnshipReport() bool {
 	if !isGPSValid() {
 		return false
@@ -357,7 +368,6 @@ func makeOwnshipReport() bool {
 	return true
 }
 
-//TODO
 func makeOwnshipGeometricAltitudeReport() bool {
 	if !isGPSValid() {
 		return false
@@ -394,7 +404,6 @@ func makeStratuxStatus() []byte {
 	msg[3] = 1 // "message version".
 
 	// Version code. Messy parsing to fit into four bytes.
-	//FIXME: This is why we can't have nice things.
 	thisVers := stratuxVersion[1:]                       // Skip first character, should be 'v'.
 	m_str := thisVers[0:strings.Index(thisVers, ".")]    // Major version.
 	mib_str := thisVers[strings.Index(thisVers, ".")+1:] // Minor and build version.
@@ -617,36 +626,43 @@ func relayMessage(msgtype uint16, msg []byte) {
 
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
-	timerMessageStats := time.NewTicker(5 * time.Second)
+	timerMessageStats := time.NewTicker(2 * time.Second)
 	for {
 		select {
 		case <-timer.C:
 			parseOwnshipADSBMessage()
-			fmt.Printf("globalStatus.GPS_connected status = %t\n", globalStatus.GPS_connected)
-			fmt.Printf("isGPSConnected() status: = %t\n", isGPSConnected())
 			if globalSettings.ForeFlightSimMode == false {
-				//log.Printf("Sending GDL90; FFSM = %t\n",globalSettings.ForeFlightSimMode)
 				sendGDL90(makeHeartbeat(), false)
 				sendGDL90(makeStratuxHeartbeat(), false)
 				sendGDL90(makeStratuxStatus(), false)
 				makeOwnshipReport()
 				makeOwnshipGeometricAltitudeReport()
 			} else {
-				//log.Printf("Sending FFSim message; FFSM = %t\n",globalSettings.ForeFlightSimMode)
-				sendFFSimLocation()
+				sendFFSimLocation() // sends equivalent of ownship message in FFSIM format
+			}
+			// --- debug code: traffic demo ---
+			// Uncomment and compile to display large number of artificial traffic targets
+
+			if globalSettings.DemoMode {
+				numTargets := uint32(36)
+				hexCode := uint32(0xFF0000)
+
+				for i := uint32(0); i < numTargets; i++ {
+					tail := fmt.Sprintf("DEMO%d", i)
+					alt := float32((i*117%2000)*25 + 2000)
+					hdg := int32((i * 149) % 360)
+					spd := float64(50 + ((i*23)%13)*37)
+
+					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
+
+				}
 			}
 
-			if globalSettings.DemoMode == true {
-				//updateDemoTraffic(icao int32, tail string, relAlt float 64, gs float64, offset float64)
-				updateDemoTraffic(0xF00001, "DEMO1234", 10000, 500, 0)
-				updateDemoTraffic(0xF00002, "DEMO5678", 400, 150, 90)
-				updateDemoTraffic(0xF00003, "DEMO9012", 3500, 60, 180)
-
-			}
+			// ---end traffic demo code ---
 
 			sendTrafficUpdates()
 			if globalSettings.FLARMTraffic == true {
-				sendGPRMCString()
+				sendGPRMCString() // send equivalent of ownship message to FLARM units
 			}
 			updateStatus()
 		case <-timerMessageStats.C:
@@ -686,7 +702,7 @@ func updateMessageStats() {
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
 		tinf.Messages_last_minute = 0
-		tinf.Signal_strength_last_minute = 0
+		tinf.Energy_last_minute = 0
 		ADSBTowers[t] = tinf
 	}
 
@@ -701,8 +717,8 @@ func updateMessageStats() {
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
 					twr := ADSBTowers[tid]
+					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
-					twr.signal_power_last_minute += int64(MsgLog[i].Signal_strength)
 					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
 						twr.Signal_strength_max = MsgLog[i].Signal_strength
 					}
@@ -729,9 +745,9 @@ func updateMessageStats() {
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
 		if tinf.Messages_last_minute == 0 {
-			tinf.Signal_strength_last_minute = 0
+			tinf.Signal_strength_last_minute = -99
 		} else {
-			tinf.Signal_strength_last_minute = int(tinf.signal_power_last_minute / int64(tinf.Messages_last_minute))
+			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
 		}
 		ADSBTowers[t] = tinf
 	}
@@ -779,10 +795,13 @@ func updateStatus() {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.quality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else {
+	} else if mySituation.quality == 0 {
 		globalStatus.GPS_solution = "No Fix"
+	} else {
+		globalStatus.GPS_solution = "Unknown"
 	}
-	if !isGPSConnected() {
+
+	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
 		mySituation.SatellitesTracked = 0
@@ -797,6 +816,8 @@ func updateStatus() {
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
+	globalStatus.UptimeClock = stratuxClock.Time
+	globalStatus.Clock = time.Now()
 }
 
 type ReplayWriter struct {
@@ -804,7 +825,6 @@ type ReplayWriter struct {
 }
 
 func (r ReplayWriter) Write(p []byte) (n int, err error) {
-	//TODO.
 	return r.fp.Write(p)
 }
 
@@ -889,24 +909,27 @@ func parseInput(buf string) ([]byte, uint16) {
 		isUplink = true
 	}
 
-	if s[0] == '-' {
-		parseDownlinkReport(s)
-	}
-
 	var thisSignalStrength int
 
-	if isUplink && len(x) >= 3 {
+	if /*isUplink &&*/ len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
+		//log.Printf("x[2] = %s\n",ss)
 		if strings.HasPrefix(ss, "ss=") {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
 				thisSignalStrength = ssInt
-				if ssInt > maxSignalStrength {
+				if isUplink && (ssInt > maxSignalStrength) { // only look at uplinks; ignore ADS-B and TIS-B/ADS-R messages
 					maxSignalStrength = ssInt
 				}
+			} else {
+				//log.Printf("Error was %s\n",err.Error())
 			}
 		}
+	}
+
+	if s[0] == '-' {
+		parseDownlinkReport(s, int(thisSignalStrength))
 	}
 
 	s = s[1:]
@@ -938,7 +961,8 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = frame
-	thisMsg.Signal_strength = thisSignalStrength
+	thisMsg.Signal_amplitude = thisSignalStrength
+	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
@@ -951,10 +975,13 @@ func parseInput(buf string) ([]byte, uint16) {
 				var newTower ADSBTower
 				newTower.Lat = uatMsg.Lat
 				newTower.Lng = uatMsg.Lon
+				newTower.Signal_strength_now = thisMsg.Signal_strength
+				newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
 				ADSBTowers[towerid] = newTower
 			}
 			twr := ADSBTowers[towerid]
 			twr.Messages_total++
+			twr.Signal_strength_now = thisMsg.Signal_strength
 			ADSBTowers[towerid] = twr
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
@@ -1062,25 +1089,36 @@ type settings struct {
 }
 
 type status struct {
-	Version                      string
-	Devices                      uint32
-	Connected_Users              uint
-	UAT_messages_last_minute     uint
-	uat_products_last_minute     map[string]uint32
-	UAT_messages_max             uint
-	ES_messages_last_minute      uint
-	ES_messages_max              uint
-	GPS_satellites_locked        uint16
-	GPS_satellites_seen          uint16
-	GPS_msgs_last_minute         uint
-	GPS_invalid_msgs_last_minute uint
-	GPS_pos_msgs_last_minute     uint
-	GPS_satellites_tracked       uint16
-	GPS_connected                bool
-	GPS_solution                 string
-	RY835AI_connected            bool
-	Uptime                       int64
-	CPUTemp                      float32
+	Version                                    string
+	Devices                                    uint32
+	Connected_Users                            uint
+	UAT_messages_last_minute                   uint
+	uat_products_last_minute                   map[string]uint32
+	UAT_messages_max                           uint
+	ES_messages_last_minute                    uint
+	ES_messages_max                            uint
+	GPS_satellites_locked                      uint16
+	GPS_satellites_seen                        uint16
+	GPS_msgs_last_minute                       uint
+	GPS_invalid_msgs_last_minute               uint
+	GPS_pos_msgs_last_minute                   uint
+	GPS_satellites_tracked                     uint16
+	GPS_connected                              bool
+	GPS_solution                               string
+	GPS_detected_type                          uint
+	RY835AI_connected                          bool
+	Uptime                                     int64
+	Clock                                      time.Time
+	UptimeClock                                time.Time
+	CPUTemp                                    float32
+	NetworkDataMessagesSent                    uint64
+	NetworkDataMessagesSentNonqueueable        uint64
+	NetworkDataBytesSent                       uint64
+	NetworkDataBytesSentNonqueueable           uint64
+	NetworkDataMessagesSentLastSec             uint64
+	NetworkDataMessagesSentNonqueueableLastSec uint64
+	NetworkDataBytesSentLastSec                uint64
+	NetworkDataBytesSentNonqueueableLastSec    uint64
 }
 
 var globalSettings settings
@@ -1203,6 +1241,7 @@ func printStats() {
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
+		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
@@ -1279,14 +1318,39 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
+// Close replay log file handles.
+func closeReplayLogs() {
+	if uatReplayWriter != nil {
+		uatReplayWriter.Close()
+	}
+	if esReplayWriter != nil {
+		esReplayWriter.Close()
+	}
+	if gpsReplayWriter != nil {
+		gpsReplayWriter.Close()
+	}
+	if ahrsReplayWriter != nil {
+		ahrsReplayWriter.Close()
+	}
+	if dump1090ReplayWriter != nil {
+		dump1090ReplayWriter.Close()
+	}
+
+}
+
 // Graceful shutdown.
-func signalWatcher() {
-	sig := <-sigs
-	log.Printf("signal caught: %s - shutting down.\n", sig.String())
+func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	//TODO: Any other graceful shutdown functions.
+	closeReplayLogs()
 	os.Exit(1)
+}
+
+func signalWatcher() {
+	sig := <-sigs
+	log.Printf("signal caught: %s - shutting down.\n", sig.String())
+	gracefulShutdown()
 }
 
 func main() {
