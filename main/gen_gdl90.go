@@ -1090,6 +1090,7 @@ type settings struct {
 
 type status struct {
 	Version                                    string
+	Build                                      string
 	Devices                                    uint32
 	Connected_Users                            uint
 	UAT_messages_last_minute                   uint
@@ -1402,6 +1403,7 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
 
 	readSettings()
 
