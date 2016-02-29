@@ -49,9 +49,19 @@ func (e *ES) read() {
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err)
-		return
+		log.Printf("Error executing /usr/bin/dump1090: %s\n", err
+		// don't return immediately, use the proper shutdown procedure
+		shutdownES = true
+		for {
+			select {
+			case <-e.closeCh:
+				return
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
 	}
+
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
 	scanStdout := bufio.NewScanner(stdout)
@@ -505,7 +515,6 @@ func sdrWatcher() {
 		prevCount = count
 		prevUAT_Enabled = globalSettings.UAT_Enabled
 		prevES_Enabled = globalSettings.ES_Enabled
-
 	}
 }
 
