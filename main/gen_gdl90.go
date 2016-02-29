@@ -1078,6 +1078,7 @@ type settings struct {
 	GPS_Enabled       bool
 	NetworkOutputs    []networkConnection
 	AHRS_Enabled      bool
+	VerboseLogs       bool
 	DEBUG             bool
 	ReplayLog         bool
 	PPM               int
@@ -1135,6 +1136,7 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
+	globalSettings.VerboseLogs = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
@@ -1367,9 +1369,9 @@ func main() {
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
-	ffSimFlag := flag.Bool("ffsim", false, "ForeFlight simulator mode")
-	demoFlag := flag.Bool("demo", false, "Demo mode -- use for simulated traffic, weather, etc... ")
-	flarmFlag := flag.Bool("flarm", false, "Enable output of FLARM NMEA messages on serial port")
+	//ffSimFlag := flag.Bool("ffsim", false, "ForeFlight simulator mode")  // moved to settings page
+	//demoFlag := flag.Bool("demo", false, "Demo mode -- use for simulated traffic, weather, etc... ") // moved to settings page
+	//flarmFlag := flag.Bool("flarm", false, "Enable output of FLARM NMEA messages on serial port") // moved to settings page
 
 	flag.Parse()
 
@@ -1454,30 +1456,32 @@ func main() {
 	// Mark the files (whether we're logging or not).
 	replayMark(globalSettings.ReplayLog)
 
-	if *ffSimFlag == true {
-		globalSettings.ForeFlightSimMode = true
-		log.Printf("ForeFlight simulator mode enabled\n")
-	} else {
-		globalSettings.ForeFlightSimMode = false
-		log.Printf("ForeFlight simulator mode disabled\n")
-	}
+	// Moved the following options to the UI settings screen
+	/*
+		if *ffSimFlag == true {
+			globalSettings.ForeFlightSimMode = true
+			log.Printf("ForeFlight simulator mode enabled\n")
+		} else {
+			globalSettings.ForeFlightSimMode = false
+			log.Printf("ForeFlight simulator mode disabled\n")
+		}
 
-	if *demoFlag == true {
-		globalSettings.DemoMode = true
-		log.Printf("Traffic demo mode enabled")
-	} else {
-		globalSettings.DemoMode = false
-		log.Printf("Traffic demo mode disabled")
-	}
+		if *demoFlag == true {
+			globalSettings.DemoMode = true
+			log.Printf("Traffic demo mode enabled")
+		} else {
+			globalSettings.DemoMode = false
+			log.Printf("Traffic demo mode disabled")
+		}
 
-	if *flarmFlag == true {
-		globalSettings.FLARMTraffic = true
-		log.Printf("FLARM NMEA output enabled")
-	} else {
-		globalSettings.FLARMTraffic = false
-		log.Printf("FLARM NMEA output disabled")
-	}
-
+		if *flarmFlag == true {
+			globalSettings.FLARMTraffic = true
+			log.Printf("FLARM NMEA output enabled")
+		} else {
+			globalSettings.FLARMTraffic = false
+			log.Printf("FLARM NMEA output disabled")
+		}
+	*/
 	initRY835AI()
 
 	// Start the heartbeat message loop in the background, once per second.

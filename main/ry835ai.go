@@ -458,9 +458,8 @@ func calcGPSAttitude() bool {
 		return false
 	}
 
-	log.Printf("%v\n", myGPSPerfStats) // DEBUG REMOVE
 	// check if GPS data was put in the structure more than three seconds ago -- this shouldn't happen unless something is wrong.
-	if (stratuxClock.Milliseconds-myGPSPerfStats[index].stratuxTime)*1000 > 3000 {
+	if (stratuxClock.Milliseconds - myGPSPerfStats[index].stratuxTime) > 3000 {
 		myGPSPerfStats[index].gpsTurnRate = 0
 		myGPSPerfStats[index].gpsPitch = 0
 		myGPSPerfStats[index].gpsRoll = 0
@@ -584,7 +583,9 @@ func calcGPSAttitude() bool {
 		gpsRoll		float32 // estimated roll angle, deg. Assumes airplane in coordinated turns.
 	*/
 
-	//log.Printf("For GS = %0.1f kts, vertical speed %.1f ft/s and yaw rate %.2f deg/s. GPS Pitch = %.3f. GPS Roll = %.3f. GPS Load factor = %.3f.\n", myGPSPerfStats[index].gsf, myGPSPerfStats[index].vv, myGPSPerfStats[index].gpsTurnRate, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+	if globalSettings.VerboseLogs {
+		log.Printf("For GS = %0.1f kts, vertical speed %.1f ft/s and yaw rate %.2f deg/s. GPS Pitch = %.3f. GPS Roll = %.3f. GPS Load factor = %.3f.\n", myGPSPerfStats[index].gsf, myGPSPerfStats[index].vv, myGPSPerfStats[index].gpsTurnRate, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+	}
 	return true
 }
 

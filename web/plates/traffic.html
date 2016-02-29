@@ -15,7 +15,9 @@
 				</div>
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-5">Location</span>
+					<!--<span class="col-xs-5">Location</span>-->
+					<span class="col-xs-2">Dist (NM)</span>
+					<span class="col-xs-2">Bearing</span>
 					<span class="col-xs-2">Power (dB)</span>
 					<span class="col-xs-2 text-right">Age</span>
 				</div>
@@ -39,7 +41,9 @@
 				</div>
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-5">{{aircraft.lat}} {{aircraft.lon}}</span>
+					<!--<span class="col-xs-5">{{aircraft.lat}} {{aircraft.lon}}</span>-->
+					<span class="col-xs-2">{{aircraft.dist}}</span>
+					<span class="col-xs-2">{{aircraft.bearing}}&deg;</span>
 					<span class="col-xs-2">{{aircraft.signal}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
 					<span class="col-xs-2 text-right">{{aircraft.age}}s</span>

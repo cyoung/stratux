@@ -112,7 +112,7 @@ func (u *UAT) read() {
 		default:
 			nRead, err := u.dev.ReadSync(buffer, rtl.DefaultBufLength)
 			if err != nil {
-				if globalSettings.DEBUG {
+				if globalSettings.VerboseLogs {
 					log.Printf("\tReadSync Failed - error: %s\n", err)
 				}
 				if shutdownUAT != true {

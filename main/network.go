@@ -174,7 +174,7 @@ func getNetworkStats() uint {
 		for _, msg := range netconn.messageQueue {
 			queueBytes += len(msg)
 		}
-		if globalSettings.DEBUG {
+		if globalSettings.VerboseLogs {
 			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
 		}
 	}

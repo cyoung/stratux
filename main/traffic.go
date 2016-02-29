@@ -157,15 +157,22 @@ func sendTrafficUpdates() {
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
-	var msg, flarmmsg []byte
-	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+	var msg []byte
+	if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+		if isGPSValid() {
+			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
+			dist, bearing, _, _ := distRect(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			ti.Distance = dist
+			ti.Bearing = bearing
+		}
 
-		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
-		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
+		// Print the list of all tracked targets (with data) to the log every 15 seconds if "VerboseLogs" option is enabled
+		if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
 			if err != nil {
 				log.Printf("Error generating output: %s\n", err.Error())
@@ -174,8 +181,8 @@ func sendTrafficUpdates() {
 			}
 			// end of debug block
 		}
-		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
-		traffic[icao] = ti
+
+		traffic[icao] = ti // write the updated ti back to the map
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			tiJSON, _ := json.Marshal(&ti)
@@ -186,29 +193,24 @@ func sendTrafficUpdates() {
 			if globalSettings.ForeFlightSimMode == false {
 				msg = append(msg, makeTrafficReportMsg(ti)...)
 			} else {
-				msg = append(msg, makeFFTrafficReportMsg(ti)...)
+				sendFFTrafficReportMsg(ti) // without overhead of FIS-B, should be OK to send individual messages. May need to cap total targets.
 			}
 
 			if globalSettings.FLARMTraffic == true && isGPSValid() {
-				flarmmsgtemp, valid := makeFlarmNMEAString(ti)
-				fmt.Printf("FLARM string valid: %t\n", valid)
-				flarmmsg = append(flarmmsg, flarmmsgtemp...)
+				flarmmsg, valid := makeFlarmNMEAString(ti)
+				if valid {
+					log.Printf("Sending FLARM message %s\n", flarmmsg) // To-Do: Set up serial output channel
+				}
 			}
 		}
 	}
 
-	if len(msg) > 0 {
-		if globalSettings.ForeFlightSimMode == false {
+	if globalSettings.ForeFlightSimMode == false {
+		if len(msg) > 0 {
 			sendGDL90(msg, false)
-		} else {
-			sendMsg(msg, NETWORK_AHRS_FFSIM, false)
-			//fmt.Printf("Sending FF traffic message %s\n", msg)
-		}
-
-		if globalSettings.FLARMTraffic == true && isGPSValid() {
-			// send traffic to FLARM device on /dev/ttyUSBx or other serial device
 		}
 	}
+
 }
 
 // Send update to attached JSON client.
@@ -321,7 +323,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	return prepareMessage(msg)
 }
 
-func makeFFTrafficReportMsg(ti TrafficInfo) string {
+func sendFFTrafficReportMsg(ti TrafficInfo) {
 	/*  Documentation of FF Flight Sim format from https://www.foreflight.com/support/network-gps/
 	For traffic data, the simulator will need to send packets in the form of a string message like this:
 
@@ -348,8 +350,11 @@ func makeFFTrafficReportMsg(ti TrafficInfo) string {
 
 	// 11-character message, including altitude (since initial debug showed relative alt broken. Need to see if current FF supports either --- revert to 8-character tail?
 	// added cr-lf for batched messaging [TEST]
-	ffmsg := fmt.Sprintf("XTRAFFICStratux,%v,%.4f,%.4f,%.f,%.f,%b,%.f,%.f,%s %03d\r\n", ti.Icao_addr, ti.Lat, ti.Lng, float32(ti.Alt), float32(ti.Vvel), airborne, float32(ti.Track), float32(ti.Speed), ti.Tail, int16(ti.Alt/100))
-	return ffmsg
+	ffmsg := fmt.Sprintf("XTRAFFICStratux,%v,%.4f,%.4f,%.f,%.f,%b,%.f,%.f,%s\r\n", ti.Icao_addr, ti.Lat, ti.Lng, float32(ti.Alt), float32(ti.Vvel), airborne, float32(ti.Track), float32(ti.Speed), ti.Tail /*, int16(ti.Alt/100)*/)
+	sendMsg([]byte(ffmsg), NETWORK_AHRS_FFSIM, false)
+	if globalSettings.VerboseLogs {
+		log.Printf("Sent string for current ti: %s\n", ffmsg)
+	}
 }
 
 /*
@@ -448,7 +453,9 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 
 	// determine distance and bearing to target
 	dist, bearing, distN, distE := distRect(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
-	fmt.Printf("ICAO target %X (%s) is %.1f meters away at %.1f degrees\n", ti.Icao_addr, ti.Tail, dist, bearing)
+	if globalSettings.VerboseLogs {
+		log.Printf("FLARM - ICAO target %X (%s) is %.1f meters away at %.1f degrees\n", ti.Icao_addr, ti.Tail, dist, bearing)
+	}
 
 	if distN > 32767 || distN < -32767 || distE > 32767 || distE < -32767 {
 		msg = ""
@@ -472,11 +479,11 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 	}
 
 	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
-	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0\r\n", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}
-	msg = fmt.Sprintf("$%s*%X", msg, checksum)
+	msg = (fmt.Sprintf("$%s*%X", msg, checksum))
 	valid = true
 	return
 }
@@ -1007,6 +1014,17 @@ and speed invalid flag is set for headings 135-150 to allow testing of response 
 */
 func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
+
+	// Retrieve previous information on this ICAO code.
+	if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
+		ti = val
+		//log.Printf("Existing target %X imported for ES update\n", icao)
+	} else {
+		//log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
+		ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
+		ti.Icao_addr = icao
+		ti.ExtrapolatedPosition = false
+	}
 
 	hdg := float64((int32(stratuxClock.Milliseconds/1000)+offset)%720) / 2
 	// gs := float64(220) // knots

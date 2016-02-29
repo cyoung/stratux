@@ -207,6 +207,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.AHRS_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
+					case "VerboseLogs":
+						globalSettings.VerboseLogs = val.(bool)
 					case "ForeFlightSimMode":
 						globalSettings.ForeFlightSimMode = val.(bool)
 					case "DemoMode":

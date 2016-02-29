@@ -23,7 +23,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		time += "Z";
 		return time;
 	}
-
+/*
 	function dmsString(val) {
 		return [0 | val,
 				'° ',
@@ -32,7 +32,17 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 				0 | val * 60 % 1 * 60,
 				'"'].join('');
 	}
+*/
 
+// chop off seconds for space
+	function dmsString(val) {
+		return [0 | val,
+				'° ',
+				0 | (val < 0 ? val = -val : val) % 1 * 60,
+				"' "].join('');
+	}
+	
+	
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
@@ -60,6 +70,8 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.age = (Math.round(obj.Age * 10)/10).toFixed(1);
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
+		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
+		new_traffic.dist = (obj.Distance/1852).toFixed(1); // nautical miles
 		// return new_aircraft;
 	}
 

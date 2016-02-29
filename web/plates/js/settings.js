@@ -6,7 +6,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DEBUG', 'ReplayLog', 'ForeFlightSimMode', 'DemoMode', 'FLARMTraffic']; // DEBUG is 'DspTrafficSrc'
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DEBUG', 'VerboseLogs', 'ReplayLog', 'ForeFlightSimMode', 'DemoMode', 'FLARMTraffic']; // DEBUG is 'DspTrafficSrc'
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -23,6 +23,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		$scope.AHRS_Enabled = settings.AHRS_Enabled;
 		//$scope.PowerSave = settings.PowerSave
 		$scope.DEBUG = settings.DEBUG;
+		$scope.VerboseLogs = settings.VerboseLogs;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
