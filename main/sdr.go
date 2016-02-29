@@ -49,7 +49,7 @@ func (e *ES) read() {
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err
+		log.Printf("Error executing /usr/bin/dump1090: %s\n", err)
 		// don't return immediately, use the proper shutdown procedure
 		shutdownES = true
 		for {
