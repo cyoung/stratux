@@ -515,7 +515,6 @@ func sdrWatcher() {
 		prevCount = count
 		prevUAT_Enabled = globalSettings.UAT_Enabled
 		prevES_Enabled = globalSettings.ES_Enabled
-
 	}
 }
 
