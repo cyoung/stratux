@@ -621,7 +621,9 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret), true)
+	if !globalSettings.ForeFlightSimMode {
+		sendGDL90(prepareMessage(ret), true)
+	}
 }
 
 func heartBeatSender() {
