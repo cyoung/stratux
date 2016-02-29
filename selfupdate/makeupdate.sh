@@ -48,7 +48,7 @@ cat ../selfupdate/update_footer.sh >>update.sh
 
 chmod +x update.sh
 
-OUTF="update-${stratuxVersion}-${stratuxBuild:0:10}.sh"
+OUTF="update-stratux-${stratuxVersion}-${stratuxBuild:0:10}.sh"
 mv update.sh $OUTF
 
 
