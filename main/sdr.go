@@ -40,7 +40,6 @@ type ES Device
 var UATDev *UAT
 var ESDev *ES
 
-
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
