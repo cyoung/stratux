@@ -65,11 +65,12 @@ const (
 	TARGET_TYPE_MODE_S    = 0
 	TARGET_TYPE_ADSB      = 1
 	TARGET_TYPE_ADSR      = 2
-	TARGET_TYPE_TISB      = 3
 	// Assign next type to UAT messages with address qualifier == 2
-	// (code corresponds to and UAT GBT targets with Mode S addresses..
-	// for we'll treat them as ADS-R in the UI. Might be able to assign as TYPE_ADSR if we see a proper emitter category and NIC > 7.
-	TARGET_TYPE_TISB_S = 4
+	// (code corresponds to any UAT GBT targets with Mode S addresses.
+	// These will be displayed with the airplane icon on the traffic UI page.
+	// If we see a proper emitter category and NIC > 7, they'll be reassigned to TYPE_ADSR.
+	TARGET_TYPE_TISB_S = 3
+	TARGET_TYPE_TISB   = 4
 )
 
 type TrafficInfo struct {
@@ -79,7 +80,7 @@ type TrafficInfo struct {
 	OnGround            bool      // Air-ground status. On-ground is "true".
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
 	TargetType          uint8     // types decribed in const above
-	SignalLevel         int32     // Arbitrary signal level reported by dump1090 and dump978.
+	SignalLevel         float64   // Signal level, dB RSSI.
 	Position_valid      bool      // set when position report received. Unset after n seconds? (To-do)
 	Lat                 float32   // decimal degrees, north positive
 	Lng                 float32   // decimal degrees, east positive
@@ -111,12 +112,12 @@ type TrafficInfo struct {
 
 type dump1090Data struct {
 	Icao_addr           uint32
-	DF                  int // Mode S downlink format.
-	CA                  int // Lowest 3 bits of first byte of Mode S message (DF11 and DF17 capability; DF18 control field, zero for all other DF types)
-	TypeCode            int // Mode S type code
-	SubtypeCode         int // Mode S subtype code
-	SBS_MsgType         int // type of SBS message (used in "old" 1090 parsing)
-	SignalLevel         int // 0-255
+	DF                  int     // Mode S downlink format.
+	CA                  int     // Lowest 3 bits of first byte of Mode S message (DF11 and DF17 capability; DF18 control field, zero for all other DF types)
+	TypeCode            int     // Mode S type code
+	SubtypeCode         int     // Mode S subtype code
+	SBS_MsgType         int     // type of SBS message (used in "old" 1090 parsing)
+	SignalLevel         float64 // Decimal RSSI (0-1 nominal) as reported by dump1090-mutability. Convert to dB RSSI before setting in TrafficInfo.
 	Tail                *string
 	Squawk              *int // 12-bit squawk code in octal format
 	Emitter_category    *int
@@ -152,14 +153,14 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
-	if globalSettings.DEBUG && (stratuxClock.Time.Second()%10) == 0 {
+	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 
-		// DEBUG: Print the list of all tracked targets (with data) to the log every ten seconds
-		if (stratuxClock.Time.Second() % 10) == 0 {
+		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
+		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
 			if err != nil {
 				log.Printf("Error generating output: %s\n", err.Error())
@@ -296,7 +297,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	return prepareMessage(msg)
 }
 
-func parseDownlinkReport(s string, signalLevel int32) {
+func parseDownlinkReport(s string, signalLevel int) {
 
 	var ti TrafficInfo
 	s = s[1:]
@@ -326,7 +327,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 
 	// Parse tail number, if available.
 	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
-		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRTSUVWXYZ  ..")
+		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  ..")
 		tail := ""
 
 		v := (uint16(frame[17]) << 8) | uint16(frame[18])
@@ -367,7 +368,11 @@ func parseDownlinkReport(s string, signalLevel int32) {
 		ti.NACp = int((frame[25] >> 4) & 0x0F)
 	}
 
-	ti.SignalLevel = signalLevel
+	power := 20 * (math.Log10(float64(signalLevel) / 1000)) // reported amplitude is 0-1000. Normalize to max = 1 and do amplitude dB calculation (20 dB per decade)
+
+	//log.Printf("%s (%X) seen with amplitude of %d, corresponding to normalized power of %f.2 dB\n",ti.Tail,ti.Icao_addr,signalLevel,power)
+
+	ti.SignalLevel = power
 
 	if ti.Addr_type == 0 {
 		ti.TargetType = TARGET_TYPE_ADSB
@@ -377,7 +382,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 		ti.TargetType = TARGET_TYPE_ADSR
 	} else if ti.Addr_type == 2 {
 		ti.TargetType = TARGET_TYPE_TISB_S
-		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently and emitter type is transmitted, we'll assume it's ADS-R.
+		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently high and emitter type is transmitted, we'll assume it's ADS-R.
 			ti.TargetType = TARGET_TYPE_ADSR
 		}
 	}
@@ -389,7 +394,7 @@ func parseDownlinkReport(s string, signalLevel int32) {
 	lng := float32(0.0)
 
 	position_valid := false
-	if (ti.NIC != 0) && (raw_lat != 0) && (raw_lon != 0) {
+	if /*(ti.NIC != 0) && */ (raw_lat != 0) && (raw_lon != 0) { // pass all traffic, and let the display determine if it will show NIC == 0. This will allow misconfigured or uncertified / portable emitters to be seen.
 		position_valid = true
 		lat = float32(raw_lat) * 360.0 / 16777216.0
 		if lat > 90 {
@@ -556,7 +561,12 @@ func esListen() {
 			var newTi *dump1090Data
 			err = json.Unmarshal([]byte(buf), &newTi)
 			if err != nil {
-				log.Printf("can't read ES traffic information: %s\n", err.Error())
+				log.Printf("can't read ES traffic information from %s: %s\n", buf, err.Error())
+				continue
+			}
+
+			if (newTi.Icao_addr & 0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
+				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
 				continue
 			}
 
@@ -583,7 +593,7 @@ func esListen() {
 				ti.ExtrapolatedPosition = false
 			}
 
-			ti.SignalLevel = int32(newTi.SignalLevel)
+			ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
 
 			// generate human readable summary of message types for debug
 			// TO-DO: Use for ES message statistics?
@@ -814,9 +824,9 @@ and speed invalid flag is set for headings 135-150 to allow testing of response 
 func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
 
-	hdg := float64((int32(stratuxClock.Milliseconds/1000) + offset) % 360)
+	hdg := float64((int32(stratuxClock.Milliseconds/1000)+offset)%720) / 2
 	// gs := float64(220) // knots
-	radius := gs * 0.1 / (2 * math.Pi)
+	radius := gs * 0.2 / (2 * math.Pi)
 	x := radius * math.Cos(hdg*math.Pi/180.0)
 	y := radius * math.Sin(hdg*math.Pi/180.0)
 	// default traffic location is Oshkosh if GPS not detected
@@ -831,10 +841,24 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	ti.Icao_addr = icao
 	ti.OnGround = false
-	ti.Addr_type = uint8(icao % 4) // 0 == ADS-B; 1 == reserved; 2 == TIS-B with ICAO address; 3 == TIS-B without ICAO address.
-	if ti.Addr_type == 1 {         //reserved value
-		ti.Addr_type = 0
+	ti.Addr_type = uint8(icao % 4) // 0 == ADS-B; 1 == reserved; 2 == TIS-B with ICAO address; 3 == TIS-B without ICAO address; 6 == ADS-R
+	if ti.Addr_type == 1 {         // reassign "reserved value" to ADS-R
+		ti.Addr_type = 6
 	}
+
+	if ti.Addr_type == 0 {
+		ti.TargetType = TARGET_TYPE_ADSB
+	} else if ti.Addr_type == 3 {
+		ti.TargetType = TARGET_TYPE_TISB
+	} else if ti.Addr_type == 6 {
+		ti.TargetType = TARGET_TYPE_ADSR
+	} else if ti.Addr_type == 2 {
+		ti.TargetType = TARGET_TYPE_TISB_S
+		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently high and emitter type is transmitted, we'll assume it's ADS-R.
+			ti.TargetType = TARGET_TYPE_ADSR
+		}
+	}
+
 	ti.Emitter_category = 1
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
@@ -857,13 +881,12 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_alt = stratuxClock.Time
 	ti.Last_speed = stratuxClock.Time
-	ti.TargetType = TARGET_TYPE_ADSB
 	ti.NACp = 8
 	ti.NIC = 8
 
 	//ti.Age = math.Floor(ti.Age) + hdg / 1000
 	ti.Last_source = 1
-	if icao%7 == 1 { // make some of the traffic look like it came from UAT
+	if icao%5 == 1 { // make some of the traffic look like it came from UAT
 		ti.Last_source = 2
 	}
 
