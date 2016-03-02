@@ -20,6 +20,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"runtime"
@@ -73,6 +74,8 @@ const (
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
+var maxSignalStrength int
+
 var uatReplayLog string
 var esReplayLog string
 var gpsReplayLog string
@@ -108,12 +111,13 @@ var dump1090ReplayWriter WriteCloser
 var developerMode bool
 
 type msg struct {
-	MessageClass    uint
-	TimeReceived    time.Time
-	Data            []byte
-	Products        []uint32
-	Signal_strength int
-	ADSBTowerID     string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
+	MessageClass     uint
+	TimeReceived     time.Time
+	Data             []byte
+	Products         []uint32
+	Signal_amplitude int
+	Signal_strength  float64
+	ADSBTowerID      string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
 }
 
 // Raw inputs.
@@ -125,9 +129,10 @@ var timeStarted time.Time
 type ADSBTower struct {
 	Lat                         float64
 	Lng                         float64
-	Signal_strength_last_minute int
-	signal_power_last_minute    int64 // Over total messages.
-	Signal_strength_max         int
+	Signal_strength_now         float64 // Current RSSI (dB)
+	Signal_strength_max         float64 // all-time peak RSSI (dB) observed for this tower
+	Energy_last_minute          uint64  // Summation of power observed for this tower across all messages last minute
+	Signal_strength_last_minute float64 // Average RSSI (dB) observed for this tower last minute
 	Messages_last_minute        uint64
 	Messages_total              uint64
 }
@@ -594,7 +599,7 @@ func relayMessage(msgtype uint16, msg []byte) {
 
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
-	timerMessageStats := time.NewTicker(5 * time.Second)
+	timerMessageStats := time.NewTicker(2 * time.Second)
 	for {
 		select {
 		case <-timer.C:
@@ -607,20 +612,20 @@ func heartBeatSender() {
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
 			/*
-				numTargets := uint32(40)
+				numTargets := uint32(36)
 				hexCode := uint32(0xFF0000)
 
 				for i := uint32(0); i < numTargets; i++ {
 					tail := fmt.Sprintf("DEMO%d", i)
 					alt := float32((i*117%2000)*25 + 2000)
 					hdg := int32((i * 149) % 360)
-					spd := float64(50 + ((i*23)%13)*17)
+					spd := float64(50 + ((i*23)%13)*37)
 
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-
 			*/
+
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
 			updateStatus()
@@ -641,7 +646,7 @@ func updateMessageStats() {
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
 		tinf.Messages_last_minute = 0
-		tinf.Signal_strength_last_minute = 0
+		tinf.Energy_last_minute = 0
 		ADSBTowers[t] = tinf
 	}
 
@@ -656,8 +661,8 @@ func updateMessageStats() {
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
 					twr := ADSBTowers[tid]
+					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
-					twr.signal_power_last_minute += int64(MsgLog[i].Signal_strength)
 					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
 						twr.Signal_strength_max = MsgLog[i].Signal_strength
 					}
@@ -684,9 +689,9 @@ func updateMessageStats() {
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
 		if tinf.Messages_last_minute == 0 {
-			tinf.Signal_strength_last_minute = 0
+			tinf.Signal_strength_last_minute = -99
 		} else {
-			tinf.Signal_strength_last_minute = int(tinf.signal_power_last_minute / int64(tinf.Messages_last_minute))
+			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
 		}
 		ADSBTowers[t] = tinf
 	}
@@ -848,24 +853,27 @@ func parseInput(buf string) ([]byte, uint16) {
 		isUplink = true
 	}
 
-	if s[0] == '-' {
-		parseDownlinkReport(s)
-	}
-
 	var thisSignalStrength int
 
-	if isUplink && len(x) >= 3 {
+	if /*isUplink &&*/ len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
+		//log.Printf("x[2] = %s\n",ss)
 		if strings.HasPrefix(ss, "ss=") {
 			ssStr := ss[3:]
 			if ssInt, err := strconv.Atoi(ssStr); err == nil {
 				thisSignalStrength = ssInt
-				if ssInt > maxSignalStrength {
+				if isUplink && (ssInt > maxSignalStrength) { // only look at uplinks; ignore ADS-B and TIS-B/ADS-R messages
 					maxSignalStrength = ssInt
 				}
+			} else {
+				//log.Printf("Error was %s\n",err.Error())
 			}
 		}
+	}
+
+	if s[0] == '-' {
+		parseDownlinkReport(s, int(thisSignalStrength))
 	}
 
 	s = s[1:]
@@ -897,7 +905,8 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = frame
-	thisMsg.Signal_strength = thisSignalStrength
+	thisMsg.Signal_amplitude = thisSignalStrength
+	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
@@ -910,10 +919,13 @@ func parseInput(buf string) ([]byte, uint16) {
 				var newTower ADSBTower
 				newTower.Lat = uatMsg.Lat
 				newTower.Lng = uatMsg.Lon
+				newTower.Signal_strength_now = thisMsg.Signal_strength
+				newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
 				ADSBTowers[towerid] = newTower
 			}
 			twr := ADSBTowers[towerid]
 			twr.Messages_total++
+			twr.Signal_strength_now = thisMsg.Signal_strength
 			ADSBTowers[towerid] = twr
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
@@ -1019,6 +1031,7 @@ type settings struct {
 
 type status struct {
 	Version                                    string
+	Build                                      string
 	Devices                                    uint32
 	Connected_Users                            uint
 	UAT_messages_last_minute                   uint
@@ -1321,6 +1334,7 @@ func main() {
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
 
 	readSettings()
 

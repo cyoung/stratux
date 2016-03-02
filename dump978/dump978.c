@@ -131,7 +131,7 @@ void make_atan2_table(void) {
       double scaled_ang = round(32768 * ang / M_PI);
 
       double amp = sqrt(d_i * d_i + d_q * d_q);
-      uint16_t scaled_amp = amp * 1000.0 / 127.5 + .5;
+      uint16_t scaled_amp = amp * 1000.0 / 127.5;
 
       u.iq[0] = i;
       u.iq[1] = q;
@@ -150,13 +150,13 @@ static void convert_to_phi(uint16_t *dest, uint16_t *src, int n) {
     dest[i] = iqphase[src[i]];
 }
 
-static void calc_power(uint16_t *samples, int len) {
+static void calc_power(uint16_t *samples, int len) { // sets signal_strength to scaled amplitude. 0 = no signal, 1000 = saturated receiver on all samples in measurement.
   long avg = 0;
   int n = len;
   while (n--) {
     avg += iqamplitude[*samples++];
   }
-  signal_strength = (avg + len / 2) / len;
+  signal_strength = avg / len;
 }
 
 #ifndef BUILD_LIB

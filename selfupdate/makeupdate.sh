@@ -20,6 +20,8 @@ cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
 cp init.d-stratux work/bin/
 cp dump1090/dump1090 work/bin/
+cp image/rc.local work/bin/
+cp image/wifi_watch.sh work/bin/
 cp -r web work/bin/
 #TODO: librtlsdr.
 cd work/
@@ -46,7 +48,7 @@ cat ../selfupdate/update_footer.sh >>update.sh
 
 chmod +x update.sh
 
-OUTF="update-${stratuxVersion}-${stratuxBuild:0:10}.sh"
+OUTF="update-stratux-${stratuxVersion}-${stratuxBuild:0:10}.sh"
 mv update.sh $OUTF
 
 

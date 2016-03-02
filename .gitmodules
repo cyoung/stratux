@@ -3,4 +3,4 @@
 	url = git://github.com/cyoung/linux-mpu9150
 [submodule "dump1090"]
 	path = dump1090
-	url = https://github.com/MalcolmRobb/dump1090
+	url = https://github.com/AvSquirrel/dump1090
