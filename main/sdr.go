@@ -387,8 +387,6 @@ func createESDev(id int, serial string, idSet bool) error {
 }
 
 func configDevices(count int, es_enabled, uat_enabled bool) {
-	// entry to this function is only valid when both UATDev and ESDev are nil
-
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make(map[int]string)
