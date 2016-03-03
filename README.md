@@ -29,7 +29,6 @@ Apps with stratux recognition/support:
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
 * Avare
-* iFly 740 - weather & traffic.
 
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 
