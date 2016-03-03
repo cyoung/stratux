@@ -23,6 +23,7 @@ Apps with stratux recognition/support:
 * WingX Pro7 8.6.2+
 * FltPlan Go.
 * AerovieReports.
+* AvPlan EFB.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
