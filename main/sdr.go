@@ -412,10 +412,10 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 		}
 	}
 
-	// loop 2; assign anonymous dongles, but sanity check the serial ids
-	// so we don't cross config for dual assigned dongles. E.g. when two
-	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
-	// dongle makes it to this loop.
+	// loop 2: assign anonymous dongles but sanity check the serial ids
+	// so we don't cross config for dual assigned dongles. e.g. when two
+	// dongles are set to the same stratux id and the unconsumed,
+	// non-anonymous, dongle makes it to this loop.
 	for i, s := range unusedIDs {
 		if uat_enabled && UATDev == nil && !rES.hasID(s) {
 			createUATDev(i, s, false)
