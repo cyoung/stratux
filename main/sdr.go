@@ -423,12 +423,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	}
 }
 
-// to gracefully shut down a read method we check a channel for
-// a close flag, but now we want to handle catastrophic dongle
-// failures (when ReadSync returns an error or we get stderr
-// ouput) but we can't just bypass the channel check and return
-// directly from a goroutine because the close channel call in
-// the shutdown method will cause a runtime panic, hence these...
+// to keep our sync primitives synchronized, only exit a read
+// method's goroutine via the close flag channel check, to
+// include catastrophic dongle failures
 var shutdownES bool
 var shutdownUAT bool
 
