@@ -24,6 +24,7 @@ Apps with stratux recognition/support:
 * FltPlan Go.
 * AerovieReports.
 * AvPlan EFB.
+* iFly GPS 9.4+.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
