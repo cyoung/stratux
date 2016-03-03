@@ -475,42 +475,21 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		// check for either no dongles or none enabled
-		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			prevCount = count
-			prevUAT_Enabled = false
-			prevES_Enabled = false
+		if count == prevCount && prevES_Enabled == globalSettings.ES_Enabled &&
+			prevUAT_Enabled == globalSettings.UAT_Enabled {
 			continue
 		}
 
-		// if the device count or the global settings change, do a reconfig.
-		// both events are significant and the least convoluted way to handle it
-		// is to reconfigure all dongle/s across the board. The reconfig
-		// should happen fairly quick so the user shouldn't notice any
-		// major disruption; if it is significant we can split the dongle
-		// count check from the global settings check where the gloabl settings
-		// check won't do a reconfig.
-		if count != prevCount || prevES_Enabled != globalSettings.ES_Enabled ||
-			prevUAT_Enabled != globalSettings.UAT_Enabled {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		// the device count or the global settings have changed, reconfig
+		if UATDev != nil {
+			UATDev.shutdown()
+			UATDev = nil
 		}
+		if ESDev != nil {
+			ESDev.shutdown()
+			ESDev = nil
+		}
+		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
 
 		prevCount = count
 		prevUAT_Enabled = globalSettings.UAT_Enabled
