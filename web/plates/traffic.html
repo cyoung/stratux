@@ -15,9 +15,9 @@
 				</div>
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
-					<!--<span class="col-xs-5">Location</span>-->
-					<span class="col-xs-2"><strong>Dist (NM)</strong></span>
-					<span class="col-xs-2"><strong>Bearing</strong></span>
+					<span class="col-xs-4" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
+					<span class="col-xs-2" ng-show="GPS_connected && RelDist"><strong>Dist (NM)</strong></span>
+					<span class="col-xs-2" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
 					<span class="col-xs-2"><strong>Power (dB)</strong></span>
 					<span class="col-xs-2 text-right"><strong>Age</strong></span>
 				</div>
@@ -44,15 +44,35 @@
 				</div>
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
-					<!--<span class="col-xs-5">{{aircraft.lat}} {{aircraft.lon}}</span>-->
-					<span class="col-xs-2">{{aircraft.dist}}</span>
-					<span class="col-xs-2">{{aircraft.bearing}}&deg;</span>
+					<span class="col-xs-4" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
+					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.dist}}</span>
+					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
 					<span class="col-xs-2">{{aircraft.signal}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
 					<span class="col-xs-2 text-right">{{aircraft.age}}s</span>
 				</div>
 			</div>
 		</div>
+
+		<div class="panel-body traffic-footer">
+			<div class="separator"></div>
+			<div class="row">
+				<div class="col-sm-6">
+					<label class="control-label col-xs-8">GPS Connected:</label>
+					<div ng-class="GPS_connected ? 'fa fa-check-circle text-success' : 'fa fa-times-circle text-danger'"></div>
+				</div>
+				<div class="col-sm-6">
+					<label class="control-label col-xs-8">Show Relative Distance</label>
+					<div class="col-xs-4">
+						<ui-switch ng-model='RelDist' settings-change></ui-switch>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+
+
 		<!--
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
@@ -70,7 +90,6 @@
 		-->
 	</div>
 </div>
-
 
 <!--
 <div class="col-sm-12">

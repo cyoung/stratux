@@ -6,9 +6,6 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
-
-
-	
 	
 	function utcTimeString(epoc) {
 		var time = "";
@@ -149,6 +146,8 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			var tempLocalClock = new Date;
 			$scope.LocalClock = tempLocalClock.toUTCString();
 			$scope.SecondsFast = (tempClock-tempLocalClock)/1000;
+			
+			$scope.GPS_connected = globalStatus.GPS_connected;
 						
 		}, function (response) {
 			// nop
