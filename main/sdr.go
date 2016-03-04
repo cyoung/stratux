@@ -387,8 +387,6 @@ func createESDev(id int, serial string, idSet bool) error {
 }
 
 func configDevices(count int, es_enabled, uat_enabled bool) {
-	// entry to this function is only valid when both UATDev and ESDev are nil
-
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make(map[int]string)
@@ -412,10 +410,10 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 		}
 	}
 
-	// loop 2; assign anonymous dongles, but sanity check the serial ids
-	// so we don't cross config for dual assigned dongles. E.g. when two
-	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
-	// dongle makes it to this loop.
+	// loop 2: assign anonymous dongles but sanity check the serial ids
+	// so we don't cross config for dual assigned dongles. e.g. when two
+	// dongles are set to the same stratux id and the unconsumed,
+	// non-anonymous, dongle makes it to this loop.
 	for i, s := range unusedIDs {
 		if uat_enabled && UATDev == nil && !rES.hasID(s) {
 			createUATDev(i, s, false)
@@ -425,12 +423,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	}
 }
 
-// to gracefully shut down a read method we check a channel for
-// a close flag, but now we want to handle catastrophic dongle
-// failures (when ReadSync returns an error or we get stderr
-// ouput) but we can't just bypass the channel check and return
-// directly from a goroutine because the close channel call in
-// the shutdown method will cause a runtime panic, hence these...
+// to keep our sync primitives synchronized, only exit a read
+// method's goroutine via the close flag channel check, to
+// include catastrophic dongle failures
 var shutdownES bool
 var shutdownUAT bool
 
@@ -475,42 +470,21 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		// check for either no dongles or none enabled
-		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			prevCount = count
-			prevUAT_Enabled = false
-			prevES_Enabled = false
+		if count == prevCount && prevES_Enabled == globalSettings.ES_Enabled &&
+			prevUAT_Enabled == globalSettings.UAT_Enabled {
 			continue
 		}
 
-		// if the device count or the global settings change, do a reconfig.
-		// both events are significant and the least convoluted way to handle it
-		// is to reconfigure all dongle/s across the board. The reconfig
-		// should happen fairly quick so the user shouldn't notice any
-		// major disruption; if it is significant we can split the dongle
-		// count check from the global settings check where the gloabl settings
-		// check won't do a reconfig.
-		if count != prevCount || prevES_Enabled != globalSettings.ES_Enabled ||
-			prevUAT_Enabled != globalSettings.UAT_Enabled {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		// the device count or the global settings have changed, reconfig
+		if UATDev != nil {
+			UATDev.shutdown()
+			UATDev = nil
 		}
+		if ESDev != nil {
+			ESDev.shutdown()
+			ESDev = nil
+		}
+		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
 
 		prevCount = count
 		prevUAT_Enabled = globalSettings.UAT_Enabled
