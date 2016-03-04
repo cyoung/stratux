@@ -8,18 +8,18 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-5">
-					<span class="col-xs-3"><strong>Flight</strong></span>
-					<span class="col-xs-3 text-right">Speed</span>
-					<span class="col-xs-3 text-right">Altitude</span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
-					<span class="col-xs-2 text-right">Course</span>
+					<span class="col-xs-3"><strong>Callsign</strong></span>
+					<span class="col-xs-3 text-right"><strong>Speed</strong></span>
+					<span class="col-xs-3 text-right"><strong>Altitude</strong></span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
+					<span class="col-xs-2 text-right"><strong>Course</strong></span>
 				</div>
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<!--<span class="col-xs-5">Location</span>-->
-					<span class="col-xs-2">Dist (NM)</span>
-					<span class="col-xs-2">Bearing</span>
-					<span class="col-xs-2">Power (dB)</span>
-					<span class="col-xs-2 text-right">Age</span>
+					<span class="col-xs-2"><strong>Dist (NM)</strong></span>
+					<span class="col-xs-2"><strong>Bearing</strong></span>
+					<span class="col-xs-2"><strong>Power (dB)</strong></span>
+					<span class="col-xs-2 text-right"><strong>Age</strong></span>
 				</div>
 			</div>
 
@@ -27,8 +27,11 @@
 				<div class="separator"></div>
 				<div class="col-sm-5">
 					<span class="col-xs-3">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype"><strong>{{aircraft.addr_symb}}&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype"><strong class="text-muted">{{aircraft.addr_symb}}&nbsp;{{aircraft.icao}}</strong></span>
+						<div class="row">
+							<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+							<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong class="text-muted">&nbsp;[unknown]</strong></span>
+						</div>
+						<div class="row" style="margin:auto; font-size:70%">ICAO:&nbsp;{{aircraft.icao}}</div>
 					</span>
 
 					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
