@@ -65,10 +65,11 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			
 			var uptime = status.Uptime;
 			if (uptime != undefined) {
-				var up_s = parseInt((uptime / 1000) % 60),
-					up_m = parseInt((uptime / (1000 * 60)) % 60),
-					up_h = parseInt((uptime / (1000 * 60 * 60)) % 24);
-				$scope.Uptime = String(((up_h < 10) ? "0" + up_h : up_h) + "h" + ((up_m < 10) ? "0" + up_m : up_m) + "m" + ((up_s < 10) ? "0" + up_s : up_s) + "s");
+				var up_d = parseInt((uptime/1000) / 86400),
+				    up_h = parseInt((uptime/1000 - 86400*up_d) / 3600),
+				    up_m = parseInt((uptime/1000 - 86400*up_d - 3600*up_h) / 60),
+				    up_s = parseInt((uptime/1000 - 86400*up_d - 3600*up_h - 60*up_m));
+				$scope.Uptime = String(up_d + "/" + ((up_h < 10) ? "0" + up_h : up_h) + ":" + ((up_m < 10) ? "0" + up_m : up_m) + ":" + ((up_s < 10) ? "0" + up_s : up_s));
 			} else {
 				// $('#Uptime').text('unavailable');
 			}
