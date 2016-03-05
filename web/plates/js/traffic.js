@@ -6,6 +6,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
+	$scope.data_list_invalid = [];
 	
 	function utcTimeString(epoc) {
 		var time = "";
@@ -50,6 +51,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
+		new_traffic.squawk = obj.Squawk;
 		new_traffic.lat = dmsString(obj.Lat);
 		new_traffic.lon = dmsString(obj.Lng);
 		var n = Math.round(obj.Alt / 25) * 25;
@@ -66,6 +68,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		var timestamp = Date.parse(obj.Timestamp);
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.age = (Math.round(obj.Age * 10)/10).toFixed(1);
+		new_traffic.ageLastAlt = (Math.round(obj.AgeLastAlt * 10)/10).toFixed(1);
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
 		new_traffic.dist = (obj.Distance/1852).toFixed(1); // nautical miles
@@ -110,9 +113,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			var message = JSON.parse(msg.data);
 			$scope.raw_data = angular.toJson(msg.data, true);
 
-			if (message.Position_valid) {
+
 				// we need to use an array so AngularJS can perform sorting; it also means we need to loop to find an aircraft in the traffic set
 				var found = false;
+				var foundInvalid = false;
 				for (var i = 0, len = $scope.data_list.length; i < len; i++) {
 					if ($scope.data_list[i].icao_int === message.Icao_addr) {
 						setAircraft(message, $scope.data_list[i]);
@@ -120,13 +124,37 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 						break;
 					}
 				}
-				if (!found) {
+				
+				for (var i = 0, len = $scope.data_list_invalid.length; i < len; i++) {
+					if ($scope.data_list_invalid[i].icao_int === message.Icao_addr) {
+						setAircraft(message, $scope.data_list_invalid[i]);
+						foundInvalid = true;
+						break;
+					}
+				}
+				
+				if ((!found) && (message.Position_valid)) {
 					var new_traffic = {};
 					setAircraft(message, new_traffic);
-					$scope.data_list.unshift(new_traffic); // add to start of array
+					$scope.data_list.unshift(new_traffic); // add to start of main array if position is valid and removed from the invalid array
+					for (var i = 0, len = $scope.data_list_invalid.length; i < len; i++) {
+						if ($scope.data_list_invalid[i].icao_int === message.Icao_addr) {
+								$scope.data_list_invalid.splice(i, 1);
+						}
+					}
+					
+				} else if ((!foundInvalid) && (!message.Position_valid)) {
+					var new_traffic = {};
+					setAircraft(message, new_traffic);
+					$scope.data_list_invalid.unshift(new_traffic); // otherwise add to start of invalid array
 				}
+						
 				$scope.$apply();
-			}
+				
+			 
+			
+			
+			
 		};
 	}
 
@@ -154,14 +182,11 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		});
 	}, 500, 0, false);
 		
-		
-		
-		
-
 	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stale aircraft = anything more than 59 seconds without an update
+		// remove stale aircraft = anything more than 59 seconds without a position update
 		var dirty = false;
+		var dirtyInvalid = false;
 		var cutoff =59;
 
 		for (var i = len = $scope.data_list.length; i > 0; i--) {
@@ -174,8 +199,18 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.raw_data = "";
 			$scope.$apply();
 		}
+	
+		for (var i = len = $scope.data_list_invalid.length; i > 0; i--) {
+			if (($scope.data_list_invalid[i - 1].age >= cutoff) || ($scope.data_list_invalid[i - 1].ageLastAlt >= cutoff)) {
+				$scope.data_list_invalid.splice(i - 1, 1);
+				dirtyInvalid = true;
+			}
+		}
+		if (dirtyInvalid) {
+			$scope.raw_data = "";
+			$scope.$apply();
+		}
 	}, (1000 * 10), 0, false);
-
 
 	$state.get('traffic').onEnter = function () {
 		// everything gets handled correctly by the controller

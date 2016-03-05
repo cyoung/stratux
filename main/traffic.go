@@ -86,6 +86,7 @@ type TrafficInfo struct {
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
 	TargetType          uint8     // types decribed in const above
 	SignalLevel         float64   // Signal level, dB RSSI.
+	Squawk              int       // Squawk code
 	Position_valid      bool      // set when position report received. Unset after n seconds? (To-do)
 	Lat                 float32   // decimal degrees, north positive
 	Lng                 float32   // decimal degrees, east positive
@@ -103,7 +104,8 @@ type TrafficInfo struct {
 	// Parameters starting at 'Age' are calculated after message receipt.
 	// Mode S transmits position and track in separate messages, and altitude can also be
 	// received from interrogations.
-	Age                  float64   // seconds ago traffic last seen
+	Age                  float64   // Age of last valid position fix, seconds ago.
+	AgeLastAlt           float64   // Age of last altitude message, seconds ago.
 	Last_seen            time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
 	Last_alt             time.Time // time of last altitude update, relative to Stratux startup
 	Last_GnssDiff        time.Time // time of last GnssDiffFromBaroAlt update, relative to Stratux startup
@@ -171,6 +173,8 @@ func sendTrafficUpdates() {
 		}
 
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
+		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
+
 		// Print the list of all tracked targets (with data) to the log every 15 seconds if "VerboseLogs" option is enabled
 		if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
@@ -215,9 +219,11 @@ func sendTrafficUpdates() {
 
 // Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
-	if !ti.Position_valid { // Don't send unless a valid position exists.
-		return
-	}
+	/*
+		if !ti.Position_valid { // Don't send unless a valid position exists.
+			return
+		}
+	*/ // testing: send all traffic and let JS sort them out.
 
 	tiJSON, _ := json.Marshal(&ti)
 	trafficUpdate.Send(tiJSON)
@@ -780,6 +786,7 @@ func esListen() {
 			} else {
 				//log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
 				ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
+				ti.Last_alt = stratuxClock.Time  // ditto.
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
 			}
@@ -943,6 +950,10 @@ func esListen() {
 
 			if newTi.Emitter_category != nil {
 				ti.Emitter_category = uint8(*newTi.Emitter_category) // validate dump1090 on live traffic
+			}
+
+			if newTi.Squawk != nil {
+				ti.Squawk = int(*newTi.Squawk) // only provided by Mode S messages, so we don't do this in parseUAT.
 			}
 
 			// Set the target type. DF=18 messages are sent by ground station, so we look at CA
