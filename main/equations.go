@@ -288,10 +288,24 @@ More accurate over longer distances
 // distance calculates distance between two points
 // using law of cosines
 
-func distance(lat1, lon1, lat2, lon2 float64) (float64, bool) {
-	// radius_earth := 6371008.8 // meters; mean radius
+func distance(lat1, lon1, lat2, lon2 float64) (dist, bearing float64) {
+	radius_earth := 6371008.8 // meters; mean radius
 
-	// TODO: Distance = acos(SIN(lat1)*SIN(lat2)+COS(lat1)*COS(lat2)*COS(lon2-lon1))*radius_earth
-	// TODO: Bearing (different for origin, midpoint, and destination)
-	return 0, false
+	lat1 = radians(lat1)
+	lon1 = radians(lon1)
+	lat2 = radians(lat2)
+	lon2 = radians(lon2)
+
+	dist = math.Acos(math.Sin(lat1)*math.Sin(lat2)+math.Cos(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)) * radius_earth
+
+	// TODO: Bearing (different for origin, midpoint, and destination; report at origin)
+
+	var x, y float64
+
+	x = math.Cos(lat1)*math.Sin(lat2) - math.Sin(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)
+	y = math.Sin(lon2-lon1) * math.Cos(lat2)
+
+	bearing = degreesHdg(math.Atan2(y, x))
+
+	return
 }
