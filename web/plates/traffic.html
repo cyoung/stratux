@@ -23,7 +23,7 @@
 				</div>
 			</div>
 
-			<div class="row" ng-repeat="aircraft in data_list | orderBy: -age">
+			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
 				<div class="col-sm-5">
 					<span class="col-xs-3">
@@ -31,7 +31,8 @@
 							<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
 							<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong class="text-muted">&nbsp;[unknown]</strong></span>
 						</div>
-						<div class="row" style="margin:auto; font-size:70%">{{aircraft.addr_type == 3 ? "TFID" : "ICAO"}}:&nbsp;{{aircraft.icao}}</div>
+						<div class="row" style="margin:auto; font-size:70%" ng-hide="showSquawk">{{aircraft.addr_type == 3 ? "TFID" : "ICAO"}}:&nbsp;{{aircraft.icao}}</div>
+						<div class="row" style="margin:auto; font-size:70%" ng-show="showSquawk">Squawk:&nbsp;<span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</div>
 					</span>
 
 					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
@@ -45,11 +46,11 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
-					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.dist}}</span>
+					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}</span>
 					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
-					<span class="col-xs-2">{{aircraft.signal}}</span>
+					<span class="col-xs-2">{{aircraft.signal.toFixed(2)}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
-					<span class="col-xs-2 text-right">{{aircraft.age}}s</span>
+					<span class="col-xs-2 text-right">{{aircraft.age.toFixed(1)}}s</span>
 				</div>
 			</div>
 		</div>
@@ -57,19 +58,26 @@
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
 			<div class="row">
-				<div class="col-sm-6">
-					<label class="control-label col-xs-8">GPS Connected:</label>
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Squawk</label>
+					<div class="col-xs-1">
+						<ui-switch ng-model='showSquawk' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">GPS Connected:</label>
 					<div ng-class="GPS_connected ? 'fa fa-check-circle text-success' : 'fa fa-times-circle text-danger'"></div>
 				</div>
-				<div class="col-sm-6">
-					<label class="control-label col-xs-8">Show Relative Distance</label>
-					<div class="col-xs-4">
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Distance</label>
+					<div class="col-xs-1">
 						<ui-switch ng-model='RelDist' settings-change></ui-switch>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
+	
 	<div class="panel panel-default">
 		<div class="panel-heading">
 			<span class="panel_label">Non ADS-B Mode S Traffic (Altitude Only)</span> 
@@ -90,7 +98,7 @@
 				</div>
 			</div>
 
-			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: -age">
+			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
 				<div class="col-sm-5">
 					<span class="col-xs-3">
@@ -112,9 +120,9 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
-					<span class="col-xs-2">{{aircraft.signal}}</span>
+					<span class="col-xs-2">{{aircraft.signal.toFixed(2)}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
-					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt}}s</span>
+					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}s</span>
 				</div>
 			</div>
 		</div>

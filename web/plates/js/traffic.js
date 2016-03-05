@@ -44,7 +44,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
-		new_traffic.signal = obj.SignalLevel.toFixed(2);
+		new_traffic.signal = obj.SignalLevel;
 		new_traffic.addr_symb ='\u2708';
 		if (new_traffic.targettype > 3) {
 			new_traffic.addr_symb ='\ud83d\udce1';
@@ -68,11 +68,11 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		var timestamp = Date.parse(obj.Timestamp);
 		new_traffic.time = utcTimeString(timestamp);
-		new_traffic.age = (Math.round(obj.Age * 10)/10).toFixed(1);
-		new_traffic.ageLastAlt = (Math.round(obj.AgeLastAlt * 10)/10).toFixed(1);
+		new_traffic.age = obj.Age;
+		new_traffic.ageLastAlt = obj.AgeLastAlt;
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
-		new_traffic.dist = (obj.Distance/1852).toFixed(1); // nautical miles
+		new_traffic.dist = (obj.Distance/1852); // nautical miles
 		// return new_aircraft;
 	}
 

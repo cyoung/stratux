@@ -602,10 +602,14 @@ func parseDownlinkReport(s string, signalLevel int) {
 			lng = lng - 360
 		}
 	}
-	ti.Lat = lat
-	ti.Lng = lng
+
 	ti.Position_valid = position_valid
 	if ti.Position_valid {
+		ti.Lat = lat
+		ti.Lng = lng
+		if isGPSValid() {
+			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
 	}
@@ -864,6 +868,9 @@ func esListen() {
 				if valid_position {
 					ti.Lat = lat
 					ti.Lng = lng
+					if isGPSValid() {
+						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+					}
 					ti.Position_valid = true
 					ti.ExtrapolatedPosition = false
 					ti.Last_seen = stratuxClock.Time // only update "last seen" data on position updates
@@ -1075,6 +1082,9 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Emitter_category = 1
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
+
+	ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
 	ti.Alt = int32(mySituation.Alt + relAlt)
