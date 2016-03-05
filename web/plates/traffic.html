@@ -16,9 +16,9 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
-					<span class="col-xs-2" ng-show="GPS_connected && RelDist"><strong>Dist (NM)</strong></span>
-					<span class="col-xs-2" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
-					<span class="col-xs-2"><strong>Power (dB)</strong></span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Dist (NM)</strong></span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
+					<span class="col-xs-2 text-right"><strong>Power (dB)</strong></span>
 					<span class="col-xs-2 text-right"><strong>Fix Age</strong></span>
 				</div>
 			</div>
@@ -46,9 +46,9 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
-					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}</span>
-					<span class="col-xs-2" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
-					<span class="col-xs-2">{{aircraft.signal.toFixed(2)}}</span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}</span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
+					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
 					<span class="col-xs-2 text-right">{{aircraft.age.toFixed(1)}}s</span>
 				</div>
@@ -60,19 +60,16 @@
 			<div class="row">
 				<div class="col-sm-4">
 					<label class="control-label col-xs-6">Show Squawk</label>
-					<div class="col-xs-1">
-						<ui-switch ng-model='showSquawk' settings-change></ui-switch>
-					</div>
+					<span class="col-xs-3"><ui-switch ng-model='showSquawk' settings-change></ui-switch></span>
 				</div>
 				<div class="col-sm-4">
-					<label class="control-label col-xs-6">GPS Status:</label>
-					<div ng-class="GPS_connected ? 'fa fa-check-circle text-success' : 'fa fa-times-circle text-danger'"></div>
+					<label class="control-label col-xs-6">GPS Status</label>
+					<span ng-show="GPS_connected" class="label label-success col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">Valid</span>
+					<span ng-hide="GPS_connected" class="label label-danger col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">No Fix</span>
 				</div>
 				<div class="col-sm-4">
 					<label class="control-label col-xs-6">Show Distance</label>
-					<div class="col-xs-1">
-						<ui-switch ng-model='RelDist' settings-change></ui-switch>
-					</div>
+					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
 				</div>
 			</div>
 		</div>
@@ -93,7 +90,7 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4"><strong>Squawk</strong></span>
-					<span class="col-xs-2"><strong>Power (dB)</strong></span>
+					<span class="col-xs-2 text-right"><strong>Power (dB)</strong></span>
 					<span class="col-xs-2 text-right"><strong>Age</strong></span>
 				</div>
 			</div>
@@ -120,7 +117,7 @@
 				<div class="col-sm-7">
 					<span class="col-xs-2">&nbsp;</span>
 					<span class="col-xs-4"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
-					<span class="col-xs-2">{{aircraft.signal.toFixed(2)}}</span>
+					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}</span>
 					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
 					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}s</span>
 				</div>

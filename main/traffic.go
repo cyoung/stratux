@@ -985,7 +985,7 @@ func esListen() {
 				ti.OnGround = bool(*newTi.OnGround)
 			}
 
-			if newTi.Tail != nil { // DF=17 or DF=18, Type Code 1-4
+			if (newTi.Tail != nil) && ((newTi.DF == 17) || (newTi.DF == 18)) { // DF=17 or DF=18, Type Code 1-4
 				ti.Tail = *newTi.Tail
 				// This is a hack to show the source of the traffic in ForeFlight.
 				ti.Tail = strings.Trim(ti.Tail, " ")
