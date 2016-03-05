@@ -52,6 +52,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
 		new_traffic.squawk = obj.Squawk;
+		new_traffic.addr_type = obj.Addr_type;
 		new_traffic.lat = dmsString(obj.Lat);
 		new_traffic.lon = dmsString(obj.Lng);
 		var n = Math.round(obj.Alt / 25) * 25;

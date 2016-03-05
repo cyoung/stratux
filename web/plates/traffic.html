@@ -31,7 +31,7 @@
 							<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
 							<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong class="text-muted">&nbsp;[unknown]</strong></span>
 						</div>
-						<div class="row" style="margin:auto; font-size:70%">ICAO:&nbsp;{{aircraft.icao}}</div>
+						<div class="row" style="margin:auto; font-size:70%">{{aircraft.addr_type == 3 ? "TFID" : "ICAO"}}:&nbsp;{{aircraft.icao}}</div>
 					</span>
 
 					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
