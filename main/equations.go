@@ -15,7 +15,7 @@ import (
 	"math"
 )
 
-// linReg calculates slope, intercept, and R-sq statistics for a least squares linear regression of y[] vs x[]
+// linReg calculates slope and intercept for a least squares linear regression of y[] vs x[]
 // Returns error if fewer than two data points in each series, or if series lengths are different
 
 func linReg(x, y []float64) (slope, intercept float64, valid bool) {
@@ -55,7 +55,7 @@ func linReg(x, y []float64) (slope, intercept float64, valid bool) {
 	return
 }
 
-// linRegWeighted calculates slope, intercept, and R-sq statistics for a weighted least squares
+// linRegWeighted calculates slope and intercept for a weighted least squares
 // linear regression of y[] vs x[], given weights w[] for each point.
 // Returns error if fewer than two data points in each series, if series lengths are different,
 // if weights sum to zero, or if slope is infinite
@@ -110,8 +110,20 @@ func linRegWeighted(x, y, w []float64) (slope, intercept float64, valid bool) {
 	return
 }
 
-// arrayMin calculates the minimum value in array x
+// triCubeWeight returns the value of the tricube weight function
+// at point x, for the given center and halfwidth.
+func triCubeWeight(center, halfwidth, x float64) float64 {
+	var weight, x_t float64
+	x_t = math.Abs((x - center) / halfwidth)
+	if x_t < 1 {
+		weight = math.Pow((1 - math.Pow(x_t, 3)), 3)
+	} else {
+		weight = 0
+	}
+	return weight
+}
 
+// arrayMin calculates the minimum value in array x
 func arrayMin(x []float64) (float64, bool) {
 	if len(x) < 1 {
 		fmt.Printf("arrayMin: Length too short\n")
@@ -128,7 +140,6 @@ func arrayMin(x []float64) (float64, bool) {
 }
 
 // arrayMax calculates the maximum value in array x
-
 func arrayMax(x []float64) (float64, bool) {
 	if len(x) < 1 {
 		fmt.Printf("arrayMax: Length too short\n")
@@ -144,6 +155,7 @@ func arrayMax(x []float64) (float64, bool) {
 	return max, true
 }
 
+// arrayRange calculates the range of values in array x
 func arrayRange(x []float64) (float64, bool) {
 	max, err1 := arrayMax(x)
 	min, err2 := arrayMin(x)
@@ -157,7 +169,6 @@ func arrayRange(x []float64) (float64, bool) {
 }
 
 // mean returns the arithmetic mean of array x
-
 func mean(x []float64) (float64, bool) {
 	if len(x) < 1 {
 		fmt.Printf("mean: Length too short\n")
@@ -198,14 +209,17 @@ func stdev(x []float64) (float64, bool) {
 	return math.Pow(sumsq/(nf-1), 0.5), true
 }
 
+// radians converts angle from degrees, and returns its value in radians
 func radians(angle float64) float64 {
 	return angle * math.Pi / 180.0
 }
 
+// degrees converts angle from radians, and returns its value in degrees
 func degrees(angle float64) float64 {
 	return angle * 180.0 / math.Pi
 }
 
+// radiansRel converts angle from degrees, and returns its value in radians in the range -Pi to + Pi
 func radiansRel(angle float64) float64 {
 	for angle > 180 {
 		angle -= 360
@@ -216,6 +230,7 @@ func radiansRel(angle float64) float64 {
 	return angle * math.Pi / 180.0
 }
 
+// degreesRel converts angle from radians, and returns its value in the range of -180 to +180 degrees
 func degreesRel(angle float64) float64 {
 	for angle > math.Pi {
 		angle -= 2 * math.Pi
@@ -226,6 +241,7 @@ func degreesRel(angle float64) float64 {
 	return angle * 180.0 / math.Pi
 }
 
+// degreesHdg converts angle from radians, and returns its value in the range of 0+ to 360 degrees
 func degreesHdg(angle float64) float64 {
 	for angle < 0 {
 		angle += 2 * math.Pi
@@ -258,8 +274,7 @@ func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float
 }
 
 // distRectNorth returns north-south distance from point 1 to point 2.
-// Inputs are lat in decimal degrees. v
-
+// Inputs are lat in decimal degrees. Output is distance in meters (east positive)
 func distRectNorth(lat1, lat2 float64) float64 {
 	var dist float64
 	radius_earth := 6371008.8 // meters; mean radius
@@ -270,7 +285,6 @@ func distRectNorth(lat1, lat2 float64) float64 {
 
 // distRectEast returns east-west distance from point 1 to point 2.
 // Inputs are lat/lon in decimal degrees. Output is distance in meters (north positive)
-
 func distRectEast(lat1, lon1, lat2, lon2 float64) float64 {
 	var dist float64
 	radius_earth := 6371008.8 // meters; mean radius
@@ -285,9 +299,10 @@ func distRectEast(lat1, lon1, lat2, lon2 float64) float64 {
 Distance functions: Polar coordinate systems
 More accurate over longer distances
 */
-// distance calculates distance between two points
-// using law of cosines
 
+// distance calculates distance between two points using the law of cosines.
+// Inputs are lat / lon of both points in decimal degrees
+// Outputs are distance in meters and bearing to the target from origin in degrees (0° = north, 90° = east)
 func distance(lat1, lon1, lat2, lon2 float64) (dist, bearing float64) {
 	radius_earth := 6371008.8 // meters; mean radius
 
@@ -297,8 +312,6 @@ func distance(lat1, lon1, lat2, lon2 float64) (dist, bearing float64) {
 	lon2 = radians(lon2)
 
 	dist = math.Acos(math.Sin(lat1)*math.Sin(lat2)+math.Cos(lat1)*math.Cos(lat2)*math.Cos(lon2-lon1)) * radius_earth
-
-	// TODO: Bearing (different for origin, midpoint, and destination; report at origin)
 
 	var x, y float64
 
