@@ -321,7 +321,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// msg[19] to msg[26] are "call sign" (tail).
 	for i := 0; i < len(ti.Tail) && i < 8; i++ {
 		c := byte(ti.Tail[i])
-		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' { // See p.24, FAA ref.
+		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' && c != 'a' && c != 'r' && c != 't' { // See p.24, FAA ref.
 			c = byte(20)
 		}
 		msg[19+i] = c
@@ -543,13 +543,6 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Tail = tail
 	}
 
-	if globalSettings.DEBUG {
-		// This is a hack to show the source of the traffic in ForeFlight.
-		if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'U') {
-			ti.Tail = "u" + ti.Tail
-		}
-	}
-
 	// Extract emitter category.
 	if msg_type == 1 || msg_type == 3 {
 		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
@@ -581,6 +574,29 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.TargetType = TARGET_TYPE_TISB_S
 		if (ti.NIC >= 7) && (ti.Emitter_category > 0) { // If NIC is sufficiently high and emitter type is transmitted, we'll assume it's ADS-R.
 			ti.TargetType = TARGET_TYPE_ADSR
+		}
+	}
+
+	// This is a hack to show the source of the traffic on moving maps.
+	if globalSettings.DEBUG {
+		type_code := " "
+		switch ti.TargetType {
+		case TARGET_TYPE_ADSB:
+			type_code = "a"
+		case TARGET_TYPE_ADSR, TARGET_TYPE_TISB_S:
+			type_code = "r"
+		case TARGET_TYPE_TISB:
+			type_code = "t"
+		}
+
+		if len(ti.Tail) == 0 {
+			ti.Tail = "u" + type_code
+		} else if len(ti.Tail) < 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+			ti.Tail = "u" + type_code + ti.Tail
+		} else if len(ti.Tail) == 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+			ti.Tail = "u" + type_code + ti.Tail[1:]
+		} else if len(ti.Tail) > 1 { // bounds checking
+			ti.Tail = "u" + type_code + ti.Tail[2:]
 		}
 	}
 
@@ -793,6 +809,7 @@ func esListen() {
 				ti.Last_alt = stratuxClock.Time  // ditto.
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
+				ti.Last_source = TRAFFIC_SOURCE_1090ES
 			}
 
 			ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
@@ -987,17 +1004,38 @@ func esListen() {
 
 			if (newTi.Tail != nil) && ((newTi.DF == 17) || (newTi.DF == 18)) { // DF=17 or DF=18, Type Code 1-4
 				ti.Tail = *newTi.Tail
-				// This is a hack to show the source of the traffic in ForeFlight.
-				ti.Tail = strings.Trim(ti.Tail, " ")
-				if globalSettings.DEBUG {
-					if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
-						ti.Tail = "e" + ti.Tail
-					}
+				ti.Tail = strings.Trim(ti.Tail, " ") // remove extraneous spaces
+			}
+
+			// This is a hack to show the source of the traffic on moving maps.
+
+			if globalSettings.DEBUG {
+				type_code := " "
+				switch ti.TargetType {
+				case TARGET_TYPE_ADSB:
+					type_code = "a"
+				case TARGET_TYPE_ADSR:
+					type_code = "r"
+				case TARGET_TYPE_TISB:
+					type_code = "t"
+				}
+
+				if len(ti.Tail) == 0 {
+					ti.Tail = "e" + type_code
+				} else if len(ti.Tail) < 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+					ti.Tail = "e" + type_code + ti.Tail
+				} else if len(ti.Tail) == 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+					ti.Tail = "e" + type_code + ti.Tail[1:]
+				} else if len(ti.Tail) > 1 { // bounds checking
+					ti.Tail = "e" + type_code + ti.Tail[2:]
 				}
 			}
 
+			if newTi.DF == 17 || newTi.DF == 18 {
+				ti.Last_source = TRAFFIC_SOURCE_1090ES // only update traffic source on ADS-B messages. Prevents source on UAT ADS-B targets with Mode S transponders from "flickering" every time we get an altitude or DF11 update.
+			}
 			ti.Timestamp = newTi.Timestamp // only update "last seen" data on position updates
-			ti.Last_source = TRAFFIC_SOURCE_1090ES
+
 			/*
 				s_out, err := json.Marshal(ti)
 				if err != nil {

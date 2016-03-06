@@ -1,7 +1,7 @@
 <div class="col-sm-12">
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<span class="panel_label">ADS-B Traffic</span> 
+			<span class="panel_label">ADS-B and TIS-B Traffic</span> 
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
 			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
 		</div>
@@ -77,7 +77,7 @@
 	
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<span class="panel_label">Non-ADS-B Traffic</span> 
+			<span class="panel_label">Basic Mode S Messages and Other No-Position Traffic</span> 
 		</div>
 		<div class="panel-body traffic-page">
 			<div class="row">
@@ -126,7 +126,7 @@
 
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
-			<span class ="col-sm-12 small">Targets in this section are Mode S / UAT emitters, but are not transmitting a valid ADS-B position. They will not appear on your EFB map. See help page for details.</span>
+			<span class ="col-sm-12 small">Stratux has not received valid ADS-B position transmissions from the aircraft in this section. They will not appear on your EFB map. See help page for details.</span>
 		</div>
 		
 
