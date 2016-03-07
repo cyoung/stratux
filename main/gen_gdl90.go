@@ -676,7 +676,7 @@ func heartBeatSender() {
 
 func sendFFSimLocation() {
 	if isGPSValid() {
-		s := fmt.Sprintf("XGPSStratux,%.5f,%.5f,%.1f,%.f,%.1f", mySituation.Lng, mySituation.Lat, float32(mySituation.Alt)/3.2808, float32(mySituation.TrueCourse), float32(mySituation.GroundSpeed)/3.2808)
+		s := fmt.Sprintf("XGPSStratux,%.5f,%.5f,%.1f,%.f,%.1f", mySituation.Lng, mySituation.Lat, float32(mySituation.Alt)/3.2808, float32(mySituation.TrueCourse), float32(mySituation.GroundSpeed)*0.5144)
 		sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
 		/*
 			XGPSMy Sim,-80.11,34.55,1200.1,359.05,55.6
@@ -1075,20 +1075,21 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled       bool
-	ES_Enabled        bool
-	GPS_Enabled       bool
-	NetworkOutputs    []networkConnection
-	AHRS_Enabled      bool
-	VerboseLogs       bool
-	DEBUG             bool
-	ReplayLog         bool
-	PPM               int
-	OwnshipModeS      string
-	WatchList         string
-	ForeFlightSimMode bool
-	DemoMode          bool
-	FLARMTraffic      bool
+	UAT_Enabled         bool
+	ES_Enabled          bool
+	GPS_Enabled         bool
+	NetworkOutputs      []networkConnection
+	AHRS_Enabled        bool
+	VerboseLogs         bool
+	DEBUG               bool
+	ReplayLog           bool
+	PPM                 int
+	OwnshipModeS        string
+	WatchList           string
+	ForeFlightSimMode   bool
+	GPSAttitude_Enabled bool
+	DemoMode            bool
+	FLARMTraffic        bool
 }
 
 type status struct {
@@ -1143,6 +1144,7 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.ForeFlightSimMode = false
+	globalSettings.GPSAttitude_Enabled = false
 	globalSettings.DemoMode = false
 	globalSettings.FLARMTraffic = false
 }

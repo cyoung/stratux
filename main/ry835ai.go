@@ -32,8 +32,8 @@ import (
 )
 
 type SituationData struct {
-	mu_GPS *sync.Mutex
-
+	mu_GPS     *sync.Mutex
+	mu_GPSPerf *sync.Mutex
 	// From GPS.
 	lastFixSinceMidnightUTC float32 // Time of most recent GPS fix time, UTC seconds
 	Lat                     float32 // decimal latitude DD.dddddd (North is positive)
@@ -447,11 +447,16 @@ Pitch minimum ground speed = 15. Roll = 25. Turn rate is specified at parse (3-1
 
 func calcGPSAttitude() bool {
 	// check slice length. Return error if empty set or set zero values
-	index := len(myGPSPerfStats) - 1
-	if index == -1 {
-		log.Printf("myGPSPerfStats is empty set\n")
+	mySituation.mu_GPSPerf.Lock()
+	defer mySituation.mu_GPSPerf.Unlock()
+	length := len(myGPSPerfStats)
+	index := length - 1
+
+	if length == 0 {
+		log.Printf("myGPSPerfStats is empty set. Not calculating attitude.\n")
 		return false
-	} else if index == 0 {
+	} else if length == 1 {
+		log.Printf("myGPSPerfStats hase one data point. Setting statistics to zero.\n")
 		myGPSPerfStats[index].gpsTurnRate = 0
 		myGPSPerfStats[index].gpsPitch = 0
 		myGPSPerfStats[index].gpsRoll = 0
@@ -463,7 +468,7 @@ func calcGPSAttitude() bool {
 		myGPSPerfStats[index].gpsTurnRate = 0
 		myGPSPerfStats[index].gpsPitch = 0
 		myGPSPerfStats[index].gpsRoll = 0
-		log.Printf("myGPSPerfStats data is more than three seconds old.\n")
+		log.Printf("myGPSPerfStats data is more than three seconds old. Setting statistics to zero.\n")
 		return false
 	}
 
@@ -472,119 +477,218 @@ func calcGPSAttitude() bool {
 	t0 := myGPSPerfStats[index-1].nmeaTime
 	dt := t1 - t0
 
-	// first case: index is more than two seconds ahead of index-1
-	// TO-DO. This will eliminate problems with "old" data
-	if dt > 2 {
-		log.Printf("Can't calculate GPS attitude. Old reference data. dt = %v\n", dt)
+	// first time error case: index is more than three seconds ahead of index-1
+	if dt > 3 {
+		log.Printf("GPS attitude: Can't calculate GPS attitude. Reference data is old. dt = %v\n", dt)
 		return false
 	}
 
-	// second case: index is behind index-1. This could be result of day rollover. If time is within n seconds of UTC, we rebase the entire slice to the new day. Otherwise, we give up.
-	// TO-DO. This will fix 0000Z rollover.
+	// second case: index is behind index-1. This could be result of day rollover. If time is within n seconds of UTC, we rebase to the previous day, and will re-rebase the entire slice to the current day once all values roll over.
 	if dt < 0 {
-		log.Printf("Can't calculate GPS attitude. Negative time difference.\n")
-		return false
+		log.Printf("GPS attitude: Current GPS time is older than last GPS time. Checking for 0000Z rollover.\n")
+		if myGPSPerfStats[index-1].nmeaTime > 86300 && myGPSPerfStats[index].nmeaTime < 100 { // be generous with the time window at rollover
+			myGPSPerfStats[index].nmeaTime += 86400
+		} else {
+			// time decreased, but not due to a recent rollover. Something odd is going on.
+			log.Printf("GPS attitude: Time decrease not due to recent 0000Z rollover. Can't calculate GPS attitude.\n")
+			return false
+		}
+
+		// check time array to see if all timestamps are > 86401 seconds since midnight
+		var tempTime []float64
+		tempTime = make([]float64, length, length)
+		for i := 0; i < length; i++ {
+			tempTime[i] = float64(myGPSPerfStats[i].nmeaTime)
+		}
+		minTime, _ := arrayMin(tempTime)
+		if minTime > 86401.0 {
+			log.Printf("GPS attitude: All times-since-midnight in array are more than 1 day since midnight. Decrementing 86400 seconds and continuing process.\n")
+			for i := 0; i < length; i++ {
+				myGPSPerfStats[i].nmeaTime -= 86400
+			}
+		}
+
+		// Verify adjustment
+		dt = myGPSPerfStats[index].nmeaTime - myGPSPerfStats[index-1].nmeaTime
+		log.Printf("GPS attitude: New dt = %f\n", dt)
+		if dt > 3 {
+			log.Printf("GPS attitude: Can't calculate GPS attitude. Reference data is old. dt = %v\n", dt)
+			return false
+		} else if dt < 0 {
+			log.Printf("GPS attitude: Something went wrong rebasing the time.\n")
+			return false
+		}
+
 	}
 
 	// third case: index is equal to index-1. Could be due to multiple different NMEA messages with same timestamp, or same message being repeatedly parsed.
-	// TO-DO.
-	if dt == 0 {
-		log.Printf("Can't calculate GPS attitude. Two consective data points with same NMEA timestamp.\n")
-		return false
-	}
+	// Fix will be regression analysis -- just include values as extra "t" points.
+	/*
+		if dt == 0 {
+			log.Printf("Can't calculate GPS attitude. Two consective data points with same NMEA timestamp.\n")
+			//return false
+		}
+	*/
 
 	// otherwise if all bounds checks are good, process the data.
 
 	// temp vars
-	var h0, h1, dh, v_x, v_z, a_c, omega float64
+	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept float64
+	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
+	var valid bool
+	var lengthHeading int
 
-	v_x = float64(myGPSPerfStats[index].gsf * 1.687810) // units are knots, converted to feet/sec
-	v_z = float64(myGPSPerfStats[index].vv)             // units are feet per sec
+	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
+	halfwidth := float64(1.5)                         // width of regression evaluation window. Default of 1.5 seconds for 10 Hz sampling; can increase to 2.0 sec @ 5 Hz or 5 sec @ 1 Hz
+	//detectedFreq := float64(10.0)  // TODO
 
-	// turn rate
-	h1 = float64(myGPSPerfStats[index].coursef)
-	h0 = float64(myGPSPerfStats[index-1].coursef)
+	if globalStatus.GPS_detected_type == GPS_TYPE_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
+		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
+		tempSpeedTime = make([]float64, length, length) // all are length of original slice
+		tempSpeed = make([]float64, length, length)
+		tempVV = make([]float64, length, length)
+		tempRegWeights = make([]float64, length, length)
 
-	if (h1 < 0) || (h0 < 0) { // negative value indicates invalid heading
-		myGPSPerfStats[index].gpsTurnRate = 0 // should this be 0, or indicate something else for an invalid inputs?
-	} else {
-		// add validation for 360° crossing
-		dh = h1 - h0
-		if dh > 180 {
-			dh -= 360
-		} else if dh < -180 {
-			dh += 360
+		for i := 0; i < length; i++ {
+			tempSpeed[i] = float64(myGPSPerfStats[i].gsf)
+			tempVV[i] = float64(myGPSPerfStats[i].vv)
+			tempSpeedTime[i] = float64(myGPSPerfStats[i].nmeaTime)
+			tempRegWeights[i] = triCubeWeight(center, halfwidth, tempSpeedTime[i])
 		}
-		myGPSPerfStats[index].gpsTurnRate = dh / float64(dt)
+
+		// Groundspeed regression estimate.
+		slope, intercept, valid = linRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
+		if !valid {
+			log.Printf("GPS attitude: Error calculating speed regression from UBX position messages")
+			return false
+		} else {
+			v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
+		}
+
+		// Vertical speed regression estimate.
+		slope, intercept, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
+		if !valid {
+			log.Printf("GPS attitude: Error calculating vertical speed regression from UBX position messages")
+			return false
+		} else {
+			v_z = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) // units are feet per sec; no conversion needed
+		}
+
+	} else { // If we need to parse standard NMEA messages, determine if it's RMC or GGA, then fill the temporary slices accordingly. Need to pull from multiple message types since GGA doesn't do course; VTG / RMC don't do altitude, etc. Grrr.
+		// TODO
+		v_x = float64(myGPSPerfStats[index].gsf * 1.687810) //FIXME. Pull current value from RMC message and convert to ft/sec.
+		v_z = 0                                             // FIXME
 	}
 
+	// Heading.  Same method used for UBX and generic.
+
+	// First, walk through the PerfStats and parse only valid heading data.
+	//log.Printf("Raw heading data:")
+	for i := 0; i < length; i++ {
+		//log.Printf("%.1f,",myGPSPerfStats[i].coursef)
+		if myGPSPerfStats[i].coursef >= 0 { // negative values are used to flag invalid / unavailable course
+			tempHdg = append(tempHdg, float64(myGPSPerfStats[i].coursef))
+			tempHdgTime = append(tempHdgTime, float64(myGPSPerfStats[i].nmeaTime))
+		}
+	}
+	//log.Printf("\n")
+	//log.Printf("tempHdg: %v\n", tempHdg)
+
+	// Next, unwrap the heading so we don't mess up the regression by fitting a line across the 0/360 deg discontinutiy
+	lengthHeading = len(tempHdg)
+	tempHdgUnwrapped = make([]float64, lengthHeading, lengthHeading)
+	tempRegWeights = make([]float64, lengthHeading, lengthHeading)
+
+	if lengthHeading > 1 {
+		tempHdgUnwrapped[0] = tempHdg[0]
+		tempRegWeights[0] = triCubeWeight(center, halfwidth, tempHdgTime[0])
+		for i := 1; i < lengthHeading; i++ {
+			tempRegWeights[i] = triCubeWeight(center, halfwidth, tempHdgTime[i])
+			if math.Abs(tempHdg[i]-tempHdg[i-1]) < 180 { // case 1: if angle change is less than 180 degrees, use the same reference system
+				tempHdgUnwrapped[i] = tempHdgUnwrapped[i-1] + tempHdg[i] - tempHdg[i-1]
+			} else if tempHdg[i] > tempHdg[i-1] { // case 2: heading has wrapped around from NE to NW. Subtract 360 to keep consistent with previous data.
+				tempHdgUnwrapped[i] = tempHdgUnwrapped[i-1] + tempHdg[i] - tempHdg[i-1] - 360
+			} else { // case 3:  heading has wrapped around from NW to NE. Add 360 to keep consistent with previous data.
+				tempHdgUnwrapped[i] = tempHdgUnwrapped[i-1] + tempHdg[i] - tempHdg[i-1] + 360
+			}
+		}
+	} else {
+		if globalSettings.VerboseLogs {
+			log.Printf("GPS attitude: Can't calculate turn rate with less than two points.\n")
+		}
+		return false
+	}
+
+	// Finally, calculate turn rate as the slope of the weighted linear regression of unwrapped heading.
+	slope, intercept, valid = linRegWeighted(tempHdgTime, tempHdgUnwrapped, tempRegWeights)
+
+	if !valid {
+		log.Printf("GPS attitude: Regression error calculating turn rate")
+		return false
+	} else {
+		headingAvg = slope*float64(myGPSPerfStats[index].nmeaTime) + intercept
+		dh = slope // units are deg per sec; no conversion needed here
+		//log.Printf("Calculated heading and turn rate: %.3f degrees, %.3f deg/sec\n",headingAvg,dh)
+	}
+
+	myGPSPerfStats[index].gpsTurnRate = dh
+
 	// pitch angle -- or to be more pedantic, glide / climb angle
-	if (myGPSPerfStats[index].gsf) > 5 { // reduce nuiscance 'bounce' at low speeds. Reducing to taxi speeds for debug.
+	if v_x > 20 { // reduce nuisance 'bounce' at low speeds. 20 ft/sec = 11.9 knots.
 		myGPSPerfStats[index].gpsPitch = math.Atan2(v_z, v_x) * 180.0 / math.Pi
 	} else {
-		myGPSPerfStats[index].gpsPitch = 0 // again.... should this be flagged somehow if it's invalid?
+		myGPSPerfStats[index].gpsPitch = 0
 	}
 
 	// roll angle, based on turn rate and ground speed. Only valid for coordinated flight. Differences between airspeed and groundspeed will trip this up.
-	if (myGPSPerfStats[index].gsf) > 5 { // Reducing to taxi speeds for debug.
+	if v_x > 20 {
 		/*
-					Governing equations for roll calculations
+			Governing equations for roll calculations
 
-					Physics tells us that
-						a_z = g     (in steady-state flight -- climbing, descending, or level -- this is gravity. 9.81 m/s^2 or 32.2 ft/s^2)
-						a_c = v^2/r (centripetal acceleration)
+			Physics tells us that
+				a_z = g     (in steady-state flight -- climbing, descending, or level -- this is gravity. 9.81 m/s^2 or 32.2 ft/s^2)
+				a_c = v^2/r (centripetal acceleration)
 
-					We don't know r. However, we do know the tangential velocity (v) and angular velocity (omega). Express omega in radians per unit time, and
+			We don't know r. However, we do know the tangential velocity (v) and angular velocity (omega). Express omega in radians per unit time, and
 
-						v = omega*r
+				v = omega*r
 
-					By substituting and rearranging terms:
+			By substituting and rearranging terms:
 
-						a_c = v^2 / (v / omega)
-						a_c = v*omega
+				a_c = v^2 / (v / omega)
+				a_c = v*omega
 
-					Free body diagram time!
+			Free body diagram time!
 
-					       /|
-					  a_r / |  a_z
-					     /__|
-					   X   a_c
-					    \_________________ [For the purpose of this comment, " X" is an airplane in a 20 degree bank. Use your imagination, mkay?)
+				   /|
+			  a_r / |  a_z
+				 /__|
+			   X   a_c
+				\_________________ [For the purpose of this comment, " X" is an airplane in a 20 degree bank. Use your imagination, mkay?)
 
-					Resultant acceleration a_r is what the wings feel; a_r/a_z = load factor. Anyway, trig out the bank angle:
+			Resultant acceleration a_r is what the wings feel; a_r/a_z = load factor. Anyway, trig out the bank angle:
 
-						bank angle = atan(a_c/a_z)
-			                       = atan(v*omega/g)
+				bank angle = atan(a_c/a_z)
+						   = atan(v*omega/g)
 
-						wing loading = sqrt(a_c^2 + a_z^2) / g
+				wing loading = sqrt(a_c^2 + a_z^2) / g
 
 		*/
 
-		g := 32.174                                                 // ft-s^-2
-		omega = myGPSPerfStats[index].gpsTurnRate * math.Pi / 180.0 // need radians/sec
+		g := 32.174                                        // ft-s^-2
+		omega = radians(myGPSPerfStats[index].gpsTurnRate) // need radians/sec
 		a_c = v_x * omega
 		myGPSPerfStats[index].gpsRoll = math.Atan2(a_c, g) * 180 / math.Pi // output is degrees
 		myGPSPerfStats[index].gpsLoadFactor = math.Sqrt(a_c*a_c+g*g) / g
 	} else {
-		myGPSPerfStats[index].gpsRoll = 0       // Flagged if it's invalid?
-		myGPSPerfStats[index].gpsLoadFactor = 1 // Flagged if it's invalid?
+		myGPSPerfStats[index].gpsRoll = 0
+		myGPSPerfStats[index].gpsLoadFactor = 1
 	}
 
-	/*
-		stratuxTime uint64  // time since Stratux start
-		nmeaTime    float32 // timestamp from NMEA message
-		msgType     string  // NMEA message type
-		gsf         float32 // knots
-		coursef     float32 // true course [degrees]
-		alt         float32 // gps altitude, ft msl
-		vv          float32 // vertical velocity, ft/sec
-		gpsTurnRate	float32 // calculated turn rate, deg/sec. Right turn is positive.
-		gpsPitch	float32 // estimated pitch angle, deg. Calculated from gps ground speed and VV. Equal to flight path angle.
-		gpsRoll		float32 // estimated roll angle, deg. Assumes airplane in coordinated turns.
-	*/
-
 	if globalSettings.VerboseLogs {
-		log.Printf("For GS = %0.1f kts, vertical speed %.1f ft/s and yaw rate %.2f deg/s. GPS Pitch = %.3f. GPS Roll = %.3f. GPS Load factor = %.3f.\n", myGPSPerfStats[index].gsf, myGPSPerfStats[index].vv, myGPSPerfStats[index].gpsTurnRate, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+		// Output format:GPSAtttiude,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
+		log.Printf(",GPSAttitude,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+		//log.Printf("For GS = %0.3f kts, vertical speed %.3f ft/s and yaw rate %.2f deg/s. GPS Pitch = %.3f. GPS Roll = %.3f. GPS Load factor = %.3f.\n", v_x/*myGPSPerfStats[index].gsf*/, v_z/*myGPSPerfStats[index].vv*/, myGPSPerfStats[index].gpsTurnRate, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
 	}
 	return true
 }
@@ -639,6 +743,7 @@ func processNMEALine(l string) bool {
 		return false
 	}
 	if globalStatus.GPS_detected_type == 0 {
+		log.Printf("GPS dectected: NMEA messages seen.\n")
 		globalStatus.GPS_detected_type = GPS_TYPE_NMEA // If this is the first time we see a NMEA message, set our status flag
 	}
 
@@ -650,7 +755,11 @@ func processNMEALine(l string) bool {
 	myGPSMsgStats[indexGPSMsgStats].msgType = x[0]
 
 	if x[0] == "PUBX" { // UBX proprietary message
-		globalStatus.GPS_detected_type = GPS_TYPE_UBX // Only UBX GPS receivers sens UBX messages
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			globalStatus.GPS_detected_type = GPS_TYPE_UBX // Only UBX GPS receivers send UBX messages
+			log.Printf("GPS detected: u-blox NMEA position message seen.\n")
+		}
+
 		myGPSMsgStats[indexGPSMsgStats].msgType = myGPSMsgStats[indexGPSMsgStats].msgType + x[1]
 		if x[1] == "00" { // position message
 			if len(x) < 20 {
@@ -669,6 +778,7 @@ func processNMEALine(l string) bool {
 			indexGPSPerfStats := len(myGPSPerfStats) - 1
 			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing
 			myGPSPerfStats[indexGPSPerfStats].msgType = x[0] + x[1]
+			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
 
 			// Do the accuracy / quality fields first to prevent invalid position etc. from being sent downstream
 
@@ -788,12 +898,14 @@ func processNMEALine(l string) bool {
 			if err != nil {
 				return false
 			}
+
 			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
 				trueCourse = uint16(tc)
 				setTrueCourse(uint16(groundspeed), trueCourse)
 				mySituation.TrueCourse = uint16(trueCourse)
 				myGPSPerfStats[indexGPSPerfStats].coursef = float32(tc)
 			} else {
+				myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // regression will skip negative values
 				// Negligible movement. Don't update course, but do use the slow speed.
 				// TO-DO: use average course over last n seconds?
 			}
@@ -807,10 +919,12 @@ func processNMEALine(l string) bool {
 			mySituation.GPSVertVel = float32(vv * -3.28084) // convert to ft/sec and positive = up
 			myGPSPerfStats[indexGPSPerfStats].vv = mySituation.GPSVertVel
 
-			if !calcGPSAttitude() {
-				log.Printf("Error calculating GPS-based attitude statistics\n")
-			}
-
+			// move to GPS attitude sender
+			/*
+				if !calcGPSAttitude() {
+					log.Printf("Error calculating GPS-based attitude statistics\n")
+				}
+			*/
 			// field 14 = age of diff corrections
 
 			// field 18 = number of satellites
@@ -923,6 +1037,7 @@ func processNMEALine(l string) bool {
 		if err != nil {
 			return false
 		}
+
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = uint16(tc)
 			setTrueCourse(uint16(groundspeed), trueCourse)
@@ -1066,6 +1181,7 @@ func processNMEALine(l string) bool {
 			indexGPSPerfStats = len(myGPSPerfStats) - 1
 			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing. Replace with stratuxClock.Time?
 			myGPSPerfStats[indexGPSPerfStats].msgType = x[0]
+			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
 		}
 
 		if x[2] != "A" { // invalid fix
@@ -1154,6 +1270,7 @@ func processNMEALine(l string) bool {
 		if err != nil {
 			return false
 		}
+
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = uint16(tc)
 			setTrueCourse(uint16(groundspeed), trueCourse)
@@ -1162,6 +1279,10 @@ func processNMEALine(l string) bool {
 				myGPSPerfStats[indexGPSPerfStats].coursef = float32(tc)
 			}
 		} else {
+			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+				myGPSPerfStats[indexGPSPerfStats].coursef = -999.9
+			}
+
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
 		}
@@ -1459,25 +1580,34 @@ func makeAHRSGDL90Report() {
 
 func gpsAttitudeSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	for globalSettings.GPS_Enabled && globalStatus.GPS_connected && !(globalSettings.AHRS_Enabled) {
+	for {
 		<-timer.C
-		// Read pitch and roll.
+		for globalSettings.GPS_Enabled && globalStatus.GPS_connected && globalSettings.GPSAttitude_Enabled && !(globalSettings.AHRS_Enabled) {
+			<-timer.C
+			// Read pitch and roll.
 
-		mySituation.mu_Attitude.Lock()
+			//mySituation.mu_Attitude.Lock()
 
-		index := len(myGPSPerfStats) - 1
-		if index > 1 {
-			mySituation.Pitch = myGPSPerfStats[index].gpsPitch
-			mySituation.Roll = myGPSPerfStats[index].gpsRoll
-			mySituation.Gyro_heading = float64(mySituation.TrueCourse)
-			mySituation.LastAttitudeTime = stratuxClock.Time
-			if globalSettings.ForeFlightSimMode == true {
-				makeFFAHRSSimReport()
+			if !calcGPSAttitude() {
+				log.Printf("Error calculating GPS-based attitude statistics\n")
 			} else {
-				makeAHRSGDL90Report()
+				//mySituation.mu_GPSPerf.Lock()
+				//defer mySituation.mu_GPSPerf.Unlock()
+				index := len(myGPSPerfStats) - 1
+				if index > 1 {
+					mySituation.Pitch = myGPSPerfStats[index].gpsPitch
+					mySituation.Roll = myGPSPerfStats[index].gpsRoll
+					mySituation.Gyro_heading = float64(mySituation.TrueCourse)
+					mySituation.LastAttitudeTime = stratuxClock.Time
+					if globalSettings.ForeFlightSimMode == true {
+						makeFFAHRSSimReport()
+					} else {
+						makeAHRSGDL90Report()
+					}
+				}
 			}
+			//mySituation.mu_Attitude.Unlock()
 		}
-		mySituation.mu_Attitude.Unlock()
 	}
 }
 func attitudeReaderSender() {
@@ -1565,6 +1695,7 @@ func initAHRS() error {
 func pollRY835AI() {
 	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
+	go gpsAttitudeSender()
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
@@ -1619,6 +1750,8 @@ func pollRY835AI() {
 func initRY835AI() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_Attitude = &sync.Mutex{}
+	mySituation.mu_GPSPerf = &sync.Mutex{}
 
 	go pollRY835AI()
+
 }

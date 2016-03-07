@@ -211,6 +211,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.VerboseLogs = val.(bool)
 					case "ForeFlightSimMode":
 						globalSettings.ForeFlightSimMode = val.(bool)
+					case "GPSAttitude_Enabled":
+						globalSettings.GPSAttitude_Enabled = val.(bool)
 					case "DemoMode":
 						globalSettings.DemoMode = val.(bool)
 					case "FLARMTraffic":
