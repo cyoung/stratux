@@ -529,7 +529,7 @@ func calcGPSAttitude() bool {
 	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept float64
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
-	var lengthHeading int
+	var lengthHeading, lengthSpeed int
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
 	halfwidth := float64(1.5)                         // width of regression evaluation window. Default of 1.5 seconds for 10 Hz sampling; can increase to 2.0 sec @ 5 Hz or 5 sec @ 1 Hz
@@ -567,11 +567,65 @@ func calcGPSAttitude() bool {
 			v_z = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) // units are feet per sec; no conversion needed
 		}
 
-	} else { // If we need to parse standard NMEA messages, determine if it's RMC or GGA, then fill the temporary slices accordingly. Need to pull from multiple message types since GGA doesn't do course; VTG / RMC don't do altitude, etc. Grrr.
+	} else { // If we need to parse standard NMEA messages, determine if it's RMC or GGA, then fill the temporary slices accordingly. Need to pull from multiple message types since GGA doesn't do course or speed; VTG / RMC don't do altitude, etc. Grrr.
 		halfwidth = 2.5 // SIRF configuration is 5 Hz, so extend the timebase a bit. This will also allow basic calculation to be done for 1 Hz generic NMEA.
 		// TODO
 		v_x = float64(myGPSPerfStats[index].gsf * 1.687810) //FIXME. Pull current value from RMC message and convert to ft/sec.
 		v_z = 0                                             // FIXME
+
+		// first, parse groundspeed from RMC messages.
+		tempSpeedTime = make([]float64, 0)
+		tempSpeed = make([]float64, 0)
+		tempRegWeights = make([]float64, 0)
+
+		for i := 0; i < length; i++ {
+			if myGPSPerfStats[i].msgType == "GPRMC" || myGPSPerfStats[i].msgType == "GNRMC" {
+				tempSpeed = append(tempSpeed, float64(myGPSPerfStats[i].gsf))
+				tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
+				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
+			}
+		}
+		if lengthSpeed == 0 {
+			log.Printf("GPS Attitude: No groundspeed data could be parsed from NMEA RMC messages\n")
+			return false
+		} else if lengthSpeed == 1 {
+			v_x = tempSpeed[0] * 1.687810
+		} else {
+			slope, intercept, valid = linRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
+			if !valid {
+				log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
+				return false
+			} else {
+				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
+			}
+		}
+
+		// next, calculate vertical velocity from GGA altitude data.
+		tempSpeedTime = make([]float64, 0)
+		tempVV = make([]float64, 0)
+		tempRegWeights = make([]float64, 0)
+
+		for i := 0; i < length; i++ {
+			if myGPSPerfStats[i].msgType == "GPGGA" || myGPSPerfStats[i].msgType == "GNGGA" {
+				tempVV = append(tempVV, float64(myGPSPerfStats[i].alt))
+				tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
+				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
+			}
+		}
+		if lengthSpeed < 2 {
+			log.Printf("GPS Attitude: Not enough points to calculate vertical speed from NMEA GGA messages\n")
+			return false
+		} else {
+			slope, _, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
+			if !valid {
+				log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
+				return false
+			} else {
+				v_z = slope // units are feet/sec
+
+			}
+		}
+
 	}
 
 	// If we're going too slow for processNMEALine() to give us valid heading data, there's no sense in trying to parse it.
@@ -1058,6 +1112,20 @@ func processNMEALine(l string) bool {
 		mySituation.mu_GPS.Lock()
 		defer mySituation.mu_GPS.Unlock()
 
+		var indexGPSPerfStats, lenGPSPerfStats int
+
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			lenGPSPerfStats = len(myGPSPerfStats)
+			if lenGPSPerfStats > 299 { //30 seconds @ 5 Hz, for RMC+GGA -- assuming SIRF (need better detection)
+				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):]
+			}
+			myGPSPerfStats = append(myGPSPerfStats, gpsPerf)
+			indexGPSPerfStats = len(myGPSPerfStats) - 1
+			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing. Replace with stratuxClock.Time?
+			myGPSPerfStats[indexGPSPerfStats].msgType = x[0]
+			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
+		}
+
 		// Quality indicator.
 		q, err1 := strconv.Atoi(x[6])
 		if err1 != nil {
@@ -1077,6 +1145,9 @@ func processNMEALine(l string) bool {
 		}
 
 		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			myGPSPerfStats[indexGPSPerfStats].nmeaTime = mySituation.lastFixSinceMidnightUTC
+		}
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -1139,6 +1210,10 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
 
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			myGPSPerfStats[indexGPSPerfStats].alt = float32(mySituation.Alt)
+		}
+
 		// Geoid separation (Sep = HAE - MSL)
 		// (needed for proper MSL offset on PUBX,00 altitudes)
 
@@ -1177,8 +1252,8 @@ func processNMEALine(l string) bool {
 
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
 			lenGPSPerfStats = len(myGPSPerfStats)
-			if lenGPSPerfStats > 149 { //30 seconds @ 5 Hz -- assuming SIRF (need better detection)
-				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 149):]
+			if lenGPSPerfStats > 299 { //30 seconds @ 5 Hz -- assuming SIRF (need better detection)
+				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):]
 			}
 			myGPSPerfStats = append(myGPSPerfStats, gpsPerf)
 			indexGPSPerfStats = len(myGPSPerfStats) - 1
