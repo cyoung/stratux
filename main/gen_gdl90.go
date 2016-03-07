@@ -293,7 +293,7 @@ func makeOwnshipReport() bool {
 	var alt uint16
 	var altf float64
 
-	if isOwnshipPressureAltValid() {
+	if isOwnshipPressureAltValid() && globalSettings.UseOwnshipBaroAlt {
 		altf = float64(mySituation.OwnshipPressureAlt) // use Mode S pressure altitude
 		//fmt.Printf("Using Mode S altitude of %.f' MSL\n", altf)
 	} else if isTempPressValid() {
@@ -310,7 +310,7 @@ func makeOwnshipReport() bool {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 	if isGPSGroundTrackValid() {
-		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
+		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
@@ -341,7 +341,7 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	if isOwnshipPressureAltValid() && len(mySituation.OwnshipTail) > 0 {
+	if globalSettings.UseOwnshipBaroAlt && isOwnshipPressureAltValid() && len(mySituation.OwnshipTail) > 0 {
 		tail := mySituation.OwnshipTail
 		if len(tail) > 8 {
 			tail = tail[:8]
@@ -1088,6 +1088,7 @@ type settings struct {
 	WatchList           string
 	ForeFlightSimMode   bool
 	GPSAttitude_Enabled bool
+	UseOwnshipBaroAlt   bool
 	DemoMode            bool
 	FLARMTraffic        bool
 }
@@ -1145,6 +1146,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.ForeFlightSimMode = false
 	globalSettings.GPSAttitude_Enabled = false
+	globalSettings.UseOwnshipBaroAlt = false
 	globalSettings.DemoMode = false
 	globalSettings.FLARMTraffic = false
 }
