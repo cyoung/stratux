@@ -150,7 +150,8 @@ func getPPM(serial string) int {
 		return globalSettings.PPM
 	}
 
-	if ppm, err := strconv.Atoi(arr[1]); err != nil {
+	ppm, err := strconv.Atoi(arr[1])
+	if err != nil {
 		return globalSettings.PPM
 	}
 
