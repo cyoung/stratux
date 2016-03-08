@@ -76,6 +76,7 @@ const (
 	MSGCLASS_GPS      = 3
 	MSGCLASS_AHRS     = 4
 	MSGCLASS_DUMP1090 = 5
+	MSGCLASS_TRAFFIC  = 6
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -88,6 +89,7 @@ var esReplayLog string
 var gpsReplayLog string
 var ahrsReplayLog string
 var dump1090ReplayLog string
+var trafficReplayLog string
 
 var stratuxBuild string
 var stratuxVersion string
@@ -114,6 +116,7 @@ var esReplayWriter WriteCloser
 var gpsReplayWriter WriteCloser
 var ahrsReplayWriter WriteCloser
 var dump1090ReplayWriter WriteCloser
+var trafficReplayWriter WriteCloser
 
 var developerMode bool
 
@@ -180,12 +183,14 @@ func constructFilenames() {
 		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
+		trafficReplayLog = fmt.Sprintf("%s/%04d-traffic.log", logDirectory, fileIndexNumber)
 	} else {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
 		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log.gz", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
+		trafficReplayLog = fmt.Sprintf("%s/%04d-traffic.log.gz", logDirectory, fileIndexNumber)
 	}
 }
 
@@ -632,7 +637,9 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
-			parseOwnshipADSBMessage()
+			if globalSettings.UseOwnshipBaroAlt {
+				parseOwnshipADSBMessage()
+			}
 			if globalSettings.ForeFlightSimMode == false {
 				sendGDL90(makeHeartbeat(), false)
 				sendGDL90(makeStratuxHeartbeat(), false)
@@ -859,6 +866,8 @@ func replayLog(msg string, msgclass int) {
 		fp = ahrsReplayWriter
 	case MSGCLASS_DUMP1090:
 		fp = dump1090ReplayWriter
+	case MSGCLASS_TRAFFIC:
+		fp = trafficReplayWriter
 	}
 
 	if fp != nil {
@@ -1217,6 +1226,10 @@ func replayMark(active bool) {
 		dump1090ReplayWriter.Write([]byte(t))
 	}
 
+	if trafficReplayWriter != nil {
+		trafficReplayWriter.Write([]byte(t))
+	}
+
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
@@ -1457,6 +1470,14 @@ func main() {
 	} else {
 		dump1090ReplayWriter = dump1090wt
 		defer dump1090ReplayWriter.Close()
+	}
+
+	// Traffic csv log.
+	if trafficwt, err := openReplay(trafficReplayLog, !developerMode); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		trafficReplayWriter = trafficwt
+		defer trafficReplayWriter.Close()
 	}
 
 	// Mark the files (whether we're logging or not).

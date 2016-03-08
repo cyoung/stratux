@@ -175,6 +175,53 @@ func sendTrafficUpdates() {
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
+		// Make traffic CSV output in the format:
+		// timestamp,source,type,signal_strength_db,icao_hex,callsign,lat,lng,bearing,range,age_of_fix,alt,age_of_alt,tracl,speed,vvel,age_of_speed
+
+		sourceFmt := 1090
+		if ti.Last_source == TRAFFIC_SOURCE_UAT {
+			sourceFmt = 978
+		}
+		typeS := "ADS-B"
+		switch ti.TargetType {
+		case TARGET_TYPE_ADSR, TARGET_TYPE_TISB_S:
+			typeS = "ADS-R"
+		case TARGET_TYPE_TISB:
+			typeS = "TIS-B"
+		case TARGET_TYPE_MODE_S:
+			typeS = "Mode S"
+		}
+
+		if ti.TargetType > 0 { // filter out basic Mode S targets
+			buf := fmt.Sprintf("%v,%d,%s,%.3f,%06X,%s,", ti.Timestamp.Format("2006-01-02 15:04:05.999"), sourceFmt, typeS, ti.SignalLevel, ti.Icao_addr, ti.Tail)
+
+			if ti.TargetType > 0 && ti.Position_valid && ti.Age < 3 {
+				buf = fmt.Sprintf("%s%.6f,%.6f,", buf, ti.Lat, ti.Lng)
+				if isGPSValid() {
+					buf = fmt.Sprintf("%s%.3f,%.4f,", buf, ti.Bearing, ti.Distance/1852) // convert range from meters to NM
+				} else {
+					buf = fmt.Sprintf("%s,,", buf)
+				}
+			} else {
+				buf = fmt.Sprintf("%s,,,,", buf)
+			}
+
+			buf = fmt.Sprintf("%s%.3f,", buf, ti.Age)
+			if ti.AgeLastAlt < 3 {
+				buf = fmt.Sprintf("%s%d,%.3f,", buf, ti.Alt, ti.AgeLastAlt)
+			} else {
+				buf = fmt.Sprintf("%s,%.3f,", buf, ti.AgeLastAlt)
+			}
+
+			ageLastSpeed := stratuxClock.Since(ti.Last_speed).Seconds()
+			if ageLastSpeed < 3 {
+				buf = fmt.Sprintf("%s%d,%d,%d,%.3f", buf, ti.Track, ti.Speed, ti.Vvel, ageLastSpeed)
+			} else {
+				buf = fmt.Sprintf("%s,,,%.3f", buf, ageLastSpeed)
+			}
+			replayLog(buf, MSGCLASS_TRAFFIC)
+		}
+
 		// Print the list of all tracked targets (with data) to the log every 15 seconds if "VerboseLogs" option is enabled
 		if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
@@ -371,7 +418,7 @@ Return value is a byte indicating status of the message
 
  Bit 0: 0 if code not found; 1 if code found
  Bit
- Bit 1-6: Age of message
+ Bit 1-6: Reserved / TO-DO
 
  7 6 5 4 3 2 1 0
 
