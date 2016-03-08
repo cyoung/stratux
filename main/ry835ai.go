@@ -447,9 +447,7 @@ Pitch minimum ground speed = 15. Roll = 25. Turn rate is specified at parse (3-1
 
 func calcGPSAttitude() bool {
 	// check slice length. Return error if empty set or set zero values
-	//log.Printf("calcGPSAttitude mutex lock\n") // DEBUG - REMOVE
 	mySituation.mu_GPSPerf.Lock()
-	//log.Printf("Inside calcGPSAttitude mutex\n") // DEBUG - REMOVE
 	defer mySituation.mu_GPSPerf.Unlock()
 	length := len(myGPSPerfStats)
 	index := length - 1
@@ -833,10 +831,7 @@ func processNMEALine(l string) bool {
 
 			//mySituation.mu_GPS.Lock()
 			//defer mySituation.mu_GPS.Unlock()
-			//log.Printf("UBX mutex lock\n")	// DEBUG - REMOVE
 			mySituation.mu_GPSPerf.Lock()
-			//log.Printf("Inside UBX mutex\n")  // DEBUG - REMOVE
-			//defer mySituation.mu_GPSPerf.Unlock()
 
 			// append to gps performance stats. Also need to run on SIRF GGA?
 			lenGPSPerfStats := len(myGPSPerfStats)
@@ -850,7 +845,7 @@ func processNMEALine(l string) bool {
 			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
 
 			mySituation.mu_GPSPerf.Unlock()
-			//log.Printf("UBX mutex unlock\n")  // DEBUG - REMOVE
+
 			// Do the accuracy / quality fields first to prevent invalid position etc. from being sent downstream
 
 			// field 8 = nav status
@@ -1122,10 +1117,7 @@ func processNMEALine(l string) bool {
 
 		var indexGPSPerfStats, lenGPSPerfStats int
 
-		//log.Printf("GGA mutex lock\n")  // DEBUG - REMOVE
 		mySituation.mu_GPSPerf.Lock()
-		//log.Printf("Inside GGA mutex\n") // DEBUG - REMOVE
-		//defer mySituation.mu_GPSPerf.Unlock()
 
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
 			lenGPSPerfStats = len(myGPSPerfStats)
@@ -1139,7 +1131,6 @@ func processNMEALine(l string) bool {
 			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
 		}
 		mySituation.mu_GPSPerf.Unlock()
-		//log.Printf("GGA mutex unlock\n")	// DEBUG - REMOVE
 
 		// Quality indicator.
 		q, err1 := strconv.Atoi(x[6])
@@ -1265,10 +1256,7 @@ func processNMEALine(l string) bool {
 		//defer mySituation.mu_GPS.Unlock()
 		var indexGPSPerfStats, lenGPSPerfStats int
 
-		//log.Printf("RMC mutex lock\n")	// DEBUG - REMOVE
 		mySituation.mu_GPSPerf.Lock()
-		//log.Printf("Inside RMC mutex\n") // DEBUG - REMOVE
-		//defer mySituation.mu_GPSPerf.Unlock()
 
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
 			lenGPSPerfStats = len(myGPSPerfStats)
@@ -1282,7 +1270,6 @@ func processNMEALine(l string) bool {
 			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
 		}
 		mySituation.mu_GPSPerf.Unlock()
-		//log.Printf("RMC mutex unlock\n")  // DEBUG - REMOVE
 
 		if x[2] != "A" { // invalid fix
 			mySituation.quality = 0
@@ -1683,7 +1670,6 @@ func gpsAttitudeSender() {
 	for {
 		<-timer.C
 		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
-		//log.Printf("About to enter gpsAttitudeSender for loop. Parameter status: GPS_enabled=%t, GPS_connected=%t, GPSAttitude_Enabled=%t, AHRS_Enabled=%t\n",globalSettings.GPS_Enabled,globalStatus.GPS_connected,globalSettings.GPSAttitude_Enabled,globalSettings.AHRS_Enabled) // DEBUG - REMOVE
 		for globalSettings.GPS_Enabled && globalStatus.GPS_connected && globalSettings.GPSAttitude_Enabled && !(globalSettings.AHRS_Enabled) {
 			<-timer.C
 
@@ -1692,9 +1678,7 @@ func gpsAttitudeSender() {
 					log.Printf("Error calculating GPS-based attitude statistics\n")
 				}
 			} else {
-				//log.Printf("GPSAttitudeSender mutex lock\n") // DEBUG - REMOVE
 				mySituation.mu_GPSPerf.Lock()
-				//log.Printf("Inside GPSAttitudeSender mutex\n") // DEBUG - REMOVE
 				index := len(myGPSPerfStats) - 1
 				if index > 1 {
 					mySituation.Pitch = myGPSPerfStats[index].gpsPitch
@@ -1707,9 +1691,7 @@ func gpsAttitudeSender() {
 						makeAHRSGDL90Report()
 					}
 				}
-				//log.Printf("End of GPSAttitudeSender mutex\n")  // DEBUG - REMOVE
 				mySituation.mu_GPSPerf.Unlock()
-				//log.Printf("GPSAttitudeSender mutex unlock\n")  // DEBUG - REMOVE
 			}
 		}
 	}
