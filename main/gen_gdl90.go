@@ -143,7 +143,7 @@ func constructFilenames() {
 	var fileIndexNumber uint
 
 	// First, create the log file directory if it does not exist
-	os.Mkdir(logDirectory, 0644)
+	os.Mkdir(logDirectory, 0755)
 
 	f, err := os.Open(indexFilename)
 	if err != nil {

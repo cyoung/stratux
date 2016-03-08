@@ -41,10 +41,10 @@ echo "**** STRATUX SETUP *****"
 #http server
 apt-get install -y lighttpd
 ln -s /var/log /var/www/logs
-makedir -p /var/logs/stratux
-chmod o+x /var/logs/stratux
 echo 'dir-listing.activate = "enable"' >> /etc/lighttpd/lighttpd.conf
 echo 'server.follow-symlink = "enable"' >> /etc/lighttpd/lighttpd.conf
+update-rc.d lighttpd enable
+
 #wifi
 apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
@@ -126,7 +126,7 @@ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 
 
 cd /root
-rm -rf rtl-sdr
+rm -rf librtlsdr
 git clone https://github.com/jpoirier/librtlsdr
 cd librtlsdr
 mkdir build
