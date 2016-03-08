@@ -39,7 +39,7 @@ import (
 const (
 	configLocation      = "/etc/stratux.conf"
 	indexFilename       = "/var/log/stratux/LOGINDEX"
-	managementAddr      = ":80"
+	managementAddr      = ":8080"
 	debugLog            = "/var/log/stratux.log"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.

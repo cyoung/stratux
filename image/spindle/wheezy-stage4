@@ -37,8 +37,14 @@ setup_stratux() {
 echo "**** STRATUX SETUP *****"
 
   ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
-#general
-apt-get install -y screen
+
+#http server
+apt-get install -y lighttpd
+ln -s /var/log /var/www/logs
+makedir -p /var/logs/stratux
+chmod o+x /var/logs/stratux
+echo 'dir-listing.activate = "enable"' >> /etc/lighttpd/lighttpd.conf
+echo 'server.follow-symlink = "enable"' >> /etc/lighttpd/lighttpd.conf
 #wifi
 apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
