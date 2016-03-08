@@ -145,7 +145,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		
 		fd.append("update_file", file);
 
-		$http.post("/updateUpload", fd, {
+		$http.post(URL_UPDATE_UPLOAD, fd, {
 			withCredentials: true,
 			headers: {
 				'Content-Type': undefined

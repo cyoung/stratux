@@ -8,6 +8,7 @@ var URL_STATUS_GET 		= "http://"	+ URL_HOST_BASE + "/getStatus"
 var URL_STATUS_WS 		= "ws://"	+ URL_HOST_BASE + "/status"
 var URL_TRAFFIC_WS 		= "ws://"	+ URL_HOST_BASE + "/traffic";
 var URL_WEATHER_WS 		= "ws://"	+ URL_HOST_BASE + "/weather";
+var URL_UPDATE_UPLOAD	= "http://" + URL_HOST_BASE + "/updateUpload";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
