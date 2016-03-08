@@ -271,7 +271,8 @@ func delayReboot() {
 
 // Upload an update file.
 func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setNoCache(w)
+	setJSONHeaders(w)
 	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
 	file, handler, err := r.FormFile("update_file")
 	if err != nil {
