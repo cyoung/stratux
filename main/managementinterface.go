@@ -131,8 +131,7 @@ func handleSituationWS(conn *websocket.Conn) {
 // a webservice call for the same data available on the websocket but when only a single update is needed
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	setJSONHeaders(w)
 	statusJSON, _ := json.Marshal(&globalStatus)
 	fmt.Fprintf(w, "%s\n", statusJSON)
 }
@@ -140,8 +139,7 @@ func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
 // AJAX call - /getSituation. Responds with current situation (lat/lon/gdspeed/track/pitch/roll/heading/etc.)
 func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	setJSONHeaders(w)
 	situationJSON, _ := json.Marshal(&mySituation)
 	fmt.Fprintf(w, "%s\n", situationJSON)
 }
@@ -149,8 +147,7 @@ func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
 // AJAX call - /getTowers. Responds with all ADS-B ground towers that have sent messages that we were able to parse, along with its stats.
 func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	setJSONHeaders(w)
 	towersJSON, err := json.Marshal(&ADSBTowers)
 	if err != nil {
 		log.Printf("Error sending tower JSON data: %s\n", err.Error())
@@ -163,8 +160,7 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 // AJAX call - /getSettings. Responds with all stratux.conf data.
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	setJSONHeaders(w)
 	settingsJSON, _ := json.Marshal(&globalSettings)
 	fmt.Fprintf(w, "%s\n", settingsJSON)
 }
@@ -173,10 +169,9 @@ func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 	// define header in support of cross-domain AJAX
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setJSONHeaders(w)
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-	w.Header().Set("Content-Type", "application/json")
 
 	// for an OPTION method request, we return header without processing.
 	// this insures we are recognized as supporting cross-domain AJAX REST calls
@@ -264,8 +259,7 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 // AJAX call - /getClients. Responds with all connected clients.
 func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	setJSONHeaders(w)
 	clientsJSON, _ := json.Marshal(&outSockets)
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
@@ -277,6 +271,7 @@ func delayReboot() {
 
 // Upload an update file.
 func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
 	file, handler, err := r.FormFile("update_file")
 	if err != nil {
@@ -303,18 +298,15 @@ func setNoCache(w http.ResponseWriter) {
 	w.Header().Set("Expires", "0")
 }
 
-func defaultServer(w http.ResponseWriter, r *http.Request) {
-	//	setNoCache(w)
-
-	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
+func setJSONHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
 
-	// http.HandleFunc("/", defaultServer)
-	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
