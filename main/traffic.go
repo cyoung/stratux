@@ -176,7 +176,7 @@ func sendTrafficUpdates() {
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
 		// Make traffic CSV output in the format:
-		// timestamp,source,type,signal_strength_db,icao_hex,callsign,lat,lng,bearing,range,age_of_fix,alt,age_of_alt,tracl,speed,vvel,age_of_speed
+		// Timestamp,Source,Type,Signal Strength (dB),ICAO code,Callsign,Latitude,Longitude,Bearing (deg true),Range (NM),Age of position fix (sec),Altitude (ft MSL),Age of altitude (sec),Track (deg true),Groundspeed (knots),Vertical velocity (ft/min),Age of velocity (sec)
 
 		sourceFmt := 1090
 		if ti.Last_source == TRAFFIC_SOURCE_UAT {

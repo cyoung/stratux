@@ -1483,6 +1483,9 @@ func main() {
 	// Mark the files (whether we're logging or not).
 	replayMark(globalSettings.ReplayLog)
 
+	// Add header to traffic csv log
+	replayLog("Timestamp,Source,Type,Signal Strength (dB),ICAO code,Callsign,Latitude,Longitude,Bearing (deg true),Range (NM),Age of position fix (sec),Altitude (ft MSL),Age of altitude (sec),Track (deg true),Groundspeed (knots),Vertical velocity (ft/min),Age of velocity (sec)", MSGCLASS_TRAFFIC)
+
 	// Moved the following options to the UI settings screen
 	/*
 		if *ffSimFlag == true {
