@@ -24,6 +24,7 @@ import (
 	rtl "github.com/jpoirier/gortlsdr"
 )
 
+// Device holds per dongle values and attributes
 type Device struct {
 	dev     *rtl.Context
 	wg      *sync.WaitGroup
@@ -34,10 +35,16 @@ type Device struct {
 	idSet   bool
 }
 
+// UAT is a 978 MHz device
 type UAT Device
+
+// ES is a 1090 MHz device
 type ES Device
 
+// UATDev holds a 978 MHz dongle object
 var UATDev *UAT
+
+// ESDev holds a 1090 MHz dongle object
 var ESDev *ES
 
 func (e *ES) read() {
@@ -145,9 +152,9 @@ func getPPM(serial string) int {
 
 	if ppm, err := strconv.Atoi(arr[1]); err != nil {
 		return globalSettings.PPM
-	} else {
-		return ppm
 	}
+
+	return ppm
 }
 
 func (e *ES) sdrConfig() (err error) {
@@ -156,6 +163,7 @@ func (e *ES) sdrConfig() (err error) {
 	return
 }
 
+// 978 UAT configuration settings
 const (
 	TunerGain    = 480
 	SampleRate   = 2083334
@@ -181,18 +189,16 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetTunerGainMode Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetTunerGainMode Successful\n")
 	}
+	log.Printf("\tSetTunerGainMode Successful\n")
 
 	err = u.dev.SetTunerGain(TunerGain)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetTunerGain Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetTunerGain Successful\n")
 	}
+	log.Printf("\tSetTunerGain Successful\n")
 
 	//---------- Get/Set Sample Rate ----------
 	err = u.dev.SetSampleRate(SampleRate)
@@ -200,9 +206,9 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetSampleRate Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetSampleRate - rate: %d\n", SampleRate)
 	}
+	log.Printf("\tSetSampleRate - rate: %d\n", SampleRate)
+
 	log.Printf("\tGetSampleRate: %d\n", u.dev.GetSampleRate())
 
 	//---------- Get/Set Xtal Freq ----------
@@ -211,19 +217,17 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tGetXtalFreq Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 	}
+	log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 
 	err = u.dev.SetXtalFreq(NewRTLFreq, NewTunerFreq)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetXtalFreq Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
-			NewRTLFreq, NewTunerFreq)
 	}
+	log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
+		NewRTLFreq, NewTunerFreq)
 
 	//---------- Get/Set Center Freq ----------
 	err = u.dev.SetCenterFreq(CenterFreq)
@@ -231,9 +235,8 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetCenterFreq 978MHz Failed, error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetCenterFreq 978MHz Successful\n")
 	}
+	log.Printf("\tSetCenterFreq 978MHz Successful\n")
 
 	log.Printf("\tGetCenterFreq: %d\n", u.dev.GetCenterFreq())
 
@@ -243,17 +246,15 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetTunerBw %d Failed, error: %s\n", Bandwidth, err)
 		return
-	} else {
-		log.Printf("\tSetTunerBw %d Successful\n", Bandwidth)
 	}
+	log.Printf("\tSetTunerBw %d Successful\n", Bandwidth)
 
 	if err = u.dev.ResetBuffer(); err != nil {
 		u.dev.Close()
 		log.Printf("\tResetBuffer Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tResetBuffer Successful\n")
 	}
+	log.Printf("\tResetBuffer Successful\n")
 
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
@@ -265,9 +266,9 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", u.ppm, err)
 		return
-	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
 	}
+	log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
+
 	return
 }
 
@@ -386,7 +387,7 @@ func createESDev(id int, serial string, idSet bool) error {
 	return nil
 }
 
-func configDevices(count int, es_enabled, uat_enabled bool) {
+func configDevices(count int, esEnabled, uatEnabled bool) {
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make(map[int]string)
@@ -398,9 +399,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 			// no need to check if createXDev returned an error; if it
 			// failed to config the error is logged and we can ignore
 			// it here so it doesn't get queued up again
-			if uat_enabled && UATDev == nil && rUAT.hasID(s) {
+			if uatEnabled && UATDev == nil && rUAT.hasID(s) {
 				createUATDev(i, s, true)
-			} else if es_enabled && ESDev == nil && rES.hasID(s) {
+			} else if esEnabled && ESDev == nil && rES.hasID(s) {
 				createESDev(i, s, true)
 			} else {
 				unusedIDs[i] = s
@@ -415,9 +416,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 	// dongles are set to the same stratux id and the unconsumed,
 	// non-anonymous, dongle makes it to this loop.
 	for i, s := range unusedIDs {
-		if uat_enabled && UATDev == nil && !rES.hasID(s) {
+		if uatEnabled && UATDev == nil && !rES.hasID(s) {
 			createUATDev(i, s, false)
-		} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
+		} else if esEnabled && ESDev == nil && !rUAT.hasID(s) {
 			createESDev(i, s, false)
 		}
 	}
@@ -432,8 +433,8 @@ var shutdownUAT bool
 // Watch for config/device changes.
 func sdrWatcher() {
 	prevCount := 0
-	prevUAT_Enabled := false
-	prevES_Enabled := false
+	prevUATEnabled := false
+	prevESEnabled := false
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -470,8 +471,8 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		if count == prevCount && prevES_Enabled == globalSettings.ES_Enabled &&
-			prevUAT_Enabled == globalSettings.UAT_Enabled {
+		if count == prevCount && prevESEnabled == globalSettings.ES_Enabled &&
+			prevUATEnabled == globalSettings.UAT_Enabled {
 			continue
 		}
 
@@ -487,8 +488,8 @@ func sdrWatcher() {
 		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
 
 		prevCount = count
-		prevUAT_Enabled = globalSettings.UAT_Enabled
-		prevES_Enabled = globalSettings.ES_Enabled
+		prevUATEnabled = globalSettings.UAT_Enabled
+		prevESEnabled = globalSettings.ES_Enabled
 	}
 }
 
