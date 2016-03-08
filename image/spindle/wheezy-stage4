@@ -26,7 +26,7 @@ setup_stratux_bootconfig() {
 	echo "arm_freq=900" >>boot/config.txt
 	echo "sdram_freq=450" >>boot/config.txt
 	echo "core_freq=450" >>boot/config.txt
-	
+
 	#disable serial console
     sed -i boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 }
@@ -121,8 +121,8 @@ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 
 cd /root
 rm -rf rtl-sdr
-git clone https://github.com/jpoirier/librtlsdr rtl-sdr
-cd rtl-sdr
+git clone https://github.com/jpoirier/librtlsdr
+cd librtlsdr
 mkdir build
 cd build
 cmake ../
