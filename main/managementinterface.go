@@ -304,9 +304,18 @@ func setJSONHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+func defaultServer(w http.ResponseWriter, r *http.Request) {
+	//	setNoCache(w)
+
+	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
+}
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+
+	http.HandleFunc("/", defaultServer)
+	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
