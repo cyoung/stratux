@@ -13,13 +13,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/net/websocket"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
 )
 
@@ -35,7 +38,6 @@ var trafficUpdate *uibroadcaster
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
 */
-
 func handleWeatherWS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	weatherUpdate.AddSocket(conn)
@@ -310,12 +312,99 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
 
+// https://gist.github.com/alexisrobert/982674.
+// Copyright (c) 2010-2014 Alexis ROBERT <alexis.robert@gmail.com>.
+const dirlisting_tpl = `<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<!-- Modified from lighttpd directory listing -->
+<head>
+<title>Index of {{.Name}}</title>
+<style type="text/css">
+a, a:active {text-decoration: none; color: blue;}
+a:visited {color: #48468F;}
+a:hover, a:focus {text-decoration: underline; color: red;}
+body {background-color: #F5F5F5;}
+h2 {margin-bottom: 12px;}
+table {margin-left: 12px;}
+th, td { font: 90% monospace; text-align: left;}
+th { font-weight: bold; padding-right: 14px; padding-bottom: 3px;}
+td {padding-right: 14px;}
+td.s, th.s {text-align: right;}
+div.list { background-color: white; border-top: 1px solid #646464; border-bottom: 1px solid #646464; padding-top: 10px; padding-bottom: 14px;}
+div.foot { font: 90% monospace; color: #787878; padding-top: 4px;}
+</style>
+</head>
+<body>
+<h2>Index of {{.Name}}</h2>
+<div class="list">
+<table summary="Directory Listing" cellpadding="0" cellspacing="0">
+<thead><tr><th class="n">Name</th><th>Last Modified</th><th>Size (bytes)</th><th class="dl">Options</th></tr></thead>
+<tbody>
+{{range .Children_files}}
+<tr><td class="n"><a href="/logs/stratux/{{.Name}}">{{.Name}}</a></td><td>{{.Mtime}}</td><td>{{.Size}}</td><td class="dl"><a href="/logs/stratux/{{.Name}}">Download</a></td></tr>
+{{end}}
+</tbody>
+</table>
+</div>
+<div class="foot">{{.ServerUA}}</div>
+</body>
+</html>`
+
+type fileInfo struct {
+	Name  string
+	Mtime string
+	Size  string
+}
+
+// Manages directory listings
+type dirlisting struct {
+	Name           string
+	Children_files []fileInfo
+	ServerUA       string
+}
+
+func viewLogs(w http.ResponseWriter, r *http.Request) {
+
+	names, err := ioutil.ReadDir("/var/log/stratux/")
+	if err != nil {
+		return
+	}
+
+	fi := make([]fileInfo, 0)
+	for _, val := range names {
+		if val.Name()[0] == '.' {
+			continue
+		} // Remove hidden files from listing
+
+		if !val.IsDir() {
+			mtime := val.ModTime().Format("2006-Jan-02 15:04:05")
+			sz := humanize.Comma(val.Size())
+			fi = append(fi, fileInfo{Name: val.Name(), Mtime: mtime, Size: sz})
+		}
+	}
+
+	tpl, err := template.New("tpl").Parse(dirlisting_tpl)
+	if err != nil {
+		return
+	}
+	data := dirlisting{Name: r.URL.Path, ServerUA: "Stratux " + stratuxVersion + "/" + stratuxBuild,
+		Children_files: fi}
+
+	err = tpl.Execute(w, data)
+	if err != nil {
+		log.Printf("viewLogs() error: %s\n", err.Error())
+	}
+
+}
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
+	http.HandleFunc("/view_logs/", viewLogs)
 
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
