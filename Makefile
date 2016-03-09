@@ -22,7 +22,7 @@ xdump1090:
 
 xdump978:
 	cd dump978 && make lib
-	cp -f ./libdump978.so /usr/lib/libdump978.so
+	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 xlinux-mpu9150:
 	git submodule update --init
