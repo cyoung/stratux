@@ -1058,7 +1058,7 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
-	Errors                                     []error
+	Errors                                     []string
 }
 
 var globalSettings settings
@@ -1106,7 +1106,7 @@ func readSettings() {
 }
 
 func addSystemError(err error) {
-	globalStatus.Errors = append(globalStatus.Errors, err)
+	globalStatus.Errors = append(globalStatus.Errors, err.Error())
 }
 
 func saveSettings() {
@@ -1303,6 +1303,14 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
+	// Set up status.
+	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
+	globalStatus.Errors = make([]string, 0)
+	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "FlightBox"
+	}
+
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
 	develFlag := flag.Bool("developer", false, "Developer mode")
@@ -1343,14 +1351,7 @@ func main() {
 	sdrInit()
 	initTraffic()
 
-	// Set up status/settings.
-	globalStatus.Version = stratuxVersion
-	globalStatus.Build = stratuxBuild
-	globalStatus.Errors = make([]error, 0)
-	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
-		globalStatus.HardwareBuild = "FlightBox"
-	}
-
+	// Read settings.
 	readSettings()
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
