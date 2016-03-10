@@ -1347,7 +1347,7 @@ func main() {
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]error, 0)
-	if _, err := os.Stat("/etc/FlightBox"); os.IsExist(err) {
+	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"
 	}
 
