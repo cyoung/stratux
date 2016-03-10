@@ -313,14 +313,14 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
 
-func handleroPartitionRebuild() {
+func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
 	out, err := exec.Command("/usr/sbin/rebuild_ro_part.sh").Output()
 
 	var ret_err error
 	if err != nil {
-		ret = fmt.Errorf("Rebuild RO Partition error: %s", err.Error())
+		ret_err = fmt.Errorf("Rebuild RO Partition error: %s", err.Error())
 	} else {
-		ret = fmt.Errorf("Rebuild RO Partition success: %s", out)
+		ret_err = fmt.Errorf("Rebuild RO Partition success: %s", out)
 	}
 
 	addSystemError(ret_err)
