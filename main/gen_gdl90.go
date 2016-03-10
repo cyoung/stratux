@@ -1032,6 +1032,7 @@ type settings struct {
 type status struct {
 	Version                                    string
 	Build                                      string
+	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
 	UAT_messages_last_minute                   uint
@@ -1342,9 +1343,13 @@ func main() {
 	sdrInit()
 	initTraffic()
 
+	// Set up status/settings.
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]error, 0)
+	if _, err := os.Stat("/etc/FlightBox"); os.IsExist(err) {
+		globalStatus.HardwareBuild = "FlightBox"
+	}
 
 	readSettings()
 
