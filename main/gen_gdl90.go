@@ -1057,6 +1057,7 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	Errors                                     []error
 }
 
 var globalSettings settings
@@ -1103,10 +1104,16 @@ func readSettings() {
 	log.Printf("read in settings.\n")
 }
 
+func addSystemError(err error) {
+	globalStatus.Errors = append(globalStatus.Errors, err)
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
 		return
 	}
 	defer fd.Close()
@@ -1315,7 +1322,9 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		addSystemError(err_log)
+		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
 		mfp := io.MultiWriter(fp, os.Stdout)
@@ -1335,6 +1344,7 @@ func main() {
 
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
+	globalStatus.Errors = make([]error, 0)
 
 	readSettings()
 
