@@ -186,7 +186,7 @@ echo "net.core.wmem_default = 167772160" >>/etc/sysctl.conf
 cd /root
 git clone https://github.com/steve-m/kalibrate-rtl
 cd kalibrate-rtl
-apt-get install -y autoconf fftw3 fftw3-dev
+apt-get install -y autoconf libfftw3 libfftw3-dev
 apt-get install -y libtool
 
 ./bootstrap
