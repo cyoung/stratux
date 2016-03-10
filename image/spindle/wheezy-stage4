@@ -49,7 +49,8 @@ update-rc.d isc-dhcp-server enable
 update-rc.d ntp disable
 EOF
 
-scp_in_to_qemu /root/spindle/hostapd-edimax /tmp/hostapd.in
+#scp_in_to_qemu /root/spindle/hostapd-edimax /tmp/hostapd.in
+scp_in_to_qemu /root/spindle/wpa_supplicant_hostapd.tgz /mnt/root/wpa_supplicant_hostapd.tgz
 scp_in_to_qemu /root/spindle/root /tmp/root.in
 scp_in_to_qemu /root/spindle/interfaces /tmp/interfaces.in
 scp_in_to_qemu /root/spindle/dhcpd.conf /tmp/dhcpd.conf.in
@@ -66,9 +67,16 @@ scp_in_to_qemu /root/spindle/wifi_watch.sh /tmp/wifi_watch.sh.in
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
 mv /tmp/libdump978.so.in /usr/lib/libdump978.so
 mv /tmp/libimu.so.in /usr/lib/libimu.so
-mv -f /tmp/hostapd.in /usr/sbin/hostapd
+
+cd /root
+tar -xvzf wpa_supplicant_hostapd.tgz
+cd wpa_supplicant_hostapd/hostapd
+make
+mv -f ./hostapd /usr/sbin/hostapd
 chown root.root /usr/sbin/hostapd
 chmod 755 /usr/sbin/hostapd
+cd /root
+rm -rf wpa_supplicant_hostapd*
 
 mkdir -p /etc/ssh/authorized_keys
 mv -f /tmp/root.in /etc/ssh/authorized_keys/root
