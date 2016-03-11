@@ -238,7 +238,7 @@ func initGPSSerial() bool {
 	//-- End developer option */
 
 	// Open port at default baud for config.
-	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
+	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 1200}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -274,20 +274,22 @@ func initGPSSerial() bool {
 
 		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 	} else {
-		log.Printf("Sent UBX and MTK ident commands at %d\n", stratuxClock.Milliseconds)
-		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
-		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
+		log.Printf("Sent UBX and MTK ident commands at %d. Listening for response.\n", stratuxClock.Milliseconds)
 		serialPort = p
 		scanner := bufio.NewScanner(serialPort)
+		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
+		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
+		//serialPort = p
+		//scanner := bufio.NewScanner(serialPort)
 		timeout := stratuxClock.Time
 
 		for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 3*time.Second && scanner.Scan() {
 			s := scanner.Text()
-			log.Printf("[%d] Serial reader: %s\n", stratuxClock.Milliseconds, s)
+			log.Printf("[%d] Raw data read from %s: %s\n", stratuxClock.Milliseconds, device, s)
 
 			l_valid, validNMEAcs := validateNMEAChecksum(s)
 			if !validNMEAcs {
-				log.Printf("Data was seen on %s seen during GPS probing, but not NMEA message: %s\n", device, l_valid)
+				log.Printf("Data was seen on %s seen during GPS probing, but not NMEA message.\n", device)
 				continue
 			}
 
@@ -413,7 +415,7 @@ func initGPSSerial() bool {
 
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 
-		} else if globalStatus.GPS_detected_type == GPS_TYPE_MEDIATEK {
+		} else if globalStatus.GPS_detected_type == GPS_TYPE_MEDIATEK { // TO-DO: Needs testing.
 			// send GGA, VTG, RMC, GSA once per second. Send GSV once every five (?)
 			p.Write(makeNMEACmd("PMTK314,0,1,1,1,1,5,0,0,0,0,0,0,0,0,0,0,0,0,0")) // GLL, RMC, VTG, GGA, GSA, GSV
 
@@ -431,7 +433,7 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing MediaTek GPS config to %s. Opening port to test connection.\n", device)
 
 		} else if globalStatus.GPS_detected_type == GPS_TYPE_NMEA {
-			//baudrate = 9600
+			//baudrate is still 9600
 			log.Printf("Using generic NMEA GPS support at %d baud on %s. Opening port to test connection.\n", baudrate, device)
 			// TO-DO: SIRF detection. Need hardware to run debug.
 			// For now, do nothing. Keep baud rate at 9600.
@@ -439,6 +441,7 @@ func initGPSSerial() bool {
 		} else {
 			// No messages detected. If a GPS is connected, this is usually seen on hot-starts.
 			// Wait until the gpsSerialReader starts to do detection.
+			log.Printf("No NMEA messages were seen at %d baud on %s. Might be due to device at higher bitrate from warm boot. Opening port at 38400 baud to test connection.\n", baudrate, device)
 			baudrate = 38400
 		}
 
@@ -1735,9 +1738,9 @@ func gpsAttitudeSender() {
 		for globalSettings.GPS_Enabled && globalStatus.GPS_connected && globalSettings.GPSAttitude_Enabled && !(globalSettings.AHRS_Enabled) {
 			<-timer.C
 
-			if !calcGPSAttitude() {
+			if mySituation.quality == 0 || !calcGPSAttitude() {
 				if globalSettings.VerboseLogs {
-					log.Printf("Error calculating GPS-based attitude statistics\n")
+					log.Printf("Could'nt calculate GPS-based attitude statistics\n")
 				}
 			} else {
 				mySituation.mu_GPSPerf.Lock()
