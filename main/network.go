@@ -298,7 +298,10 @@ func messageQueueSender() {
 				} else {
 					pd = float64(0.1) // 100ms.
 				}
-				log.Printf("Average sendable queue is %v messages. Changing queue timer to %f seconds\n", averageSendableQueueSize, pd)
+
+				if globalSettings.DEBUG {
+					log.Printf("Average sendable queue is %v messages. Changing queue timer to %f seconds\n", averageSendableQueueSize, pd)
+				}
 
 				queueTimer.Stop()
 				queueTimer = time.NewTicker(time.Duration(pd*1000000000.0) * time.Nanosecond)
