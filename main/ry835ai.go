@@ -977,14 +977,14 @@ func gpsSerialReader() {
 	scanner := bufio.NewScanner(serialPort)
 	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled.Load() {
 		i++
-		if globalSettings.DEBUG && i%100 == 0 {
+		if globalSettings.DEBUG.Load() && i%100 == 0 {
 			log.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
 		}
 
 		s := scanner.Text()
 
 		if !processNMEALine(s) {
-			if globalSettings.DEBUG {
+			if globalSettings.DEBUG.Load() {
 				fmt.Printf("processNMEALine() exited early -- %s\n", s)
 			}
 		}
