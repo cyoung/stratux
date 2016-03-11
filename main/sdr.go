@@ -119,7 +119,7 @@ func (u *UAT) read() {
 		default:
 			nRead, err := u.dev.ReadSync(buffer, rtl.DefaultBufLength)
 			if err != nil {
-				if globalSettings.DEBUG {
+				if globalSettings.DEBUG.Load() {
 					log.Printf("\tReadSync Failed - error: %s\n", err)
 				}
 				if shutdownUAT != true {
@@ -472,8 +472,9 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		if count == prevCount && prevESEnabled == globalSettings.ES_Enabled &&
-			prevUATEnabled == globalSettings.UAT_Enabled {
+		uatEnabled := globalSettings.UAT_Enabled.Load()
+		esEnabled := globalSettings.ES_Enabled.Load()
+		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled {
 			continue
 		}
 
@@ -486,11 +487,11 @@ func sdrWatcher() {
 			ESDev.shutdown()
 			ESDev = nil
 		}
-		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		configDevices(count, esEnabled, uatEnabled)
 
 		prevCount = count
-		prevUATEnabled = globalSettings.UAT_Enabled
-		prevESEnabled = globalSettings.ES_Enabled
+		prevUATEnabled = uatEnabled
+		prevESEnabled = esEnabled
 	}
 }
 

@@ -114,7 +114,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 ```json
 {
   "UAT_Enabled": true,
-  "ES_Enabled": false,
+  "ES_Enabled": true,
   "GPS_Enabled": true,
   "NetworkOutputs": [
     {

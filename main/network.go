@@ -10,8 +10,6 @@
 package main
 
 import (
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 	"io/ioutil"
 	"log"
 	"math"
@@ -22,6 +20,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 type networkMessage struct {
@@ -174,7 +175,7 @@ func getNetworkStats() uint {
 		for _, msg := range netconn.messageQueue {
 			queueBytes += len(msg)
 		}
-		if globalSettings.DEBUG {
+		if globalSettings.DEBUG.Load() {
 			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
 		}
 	}
@@ -299,7 +300,7 @@ func messageQueueSender() {
 					pd = float64(0.1) // 100ms.
 				}
 
-				if globalSettings.DEBUG {
+				if globalSettings.DEBUG.Load() {
 					log.Printf("Average sendable queue is %v messages. Changing queue timer to %f seconds\n", averageSendableQueueSize, pd)
 				}
 
