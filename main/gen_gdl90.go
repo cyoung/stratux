@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -442,22 +443,22 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: UAT portion.
-	if globalSettings.UAT_Enabled {
+	if globalSettings.UAT_Enabled.Load() {
 		msg[13] = msg[13] | (1 << 5)
 	}
 
 	// Valid/Enabled: ES portion.
-	if globalSettings.ES_Enabled {
+	if globalSettings.ES_Enabled.Load() {
 		msg[13] = msg[13] | (1 << 6)
 	}
 
 	// Valid/Enabled: GPS Enabled portion.
-	if globalSettings.GPS_Enabled {
+	if globalSettings.GPS_Enabled.Load() {
 		msg[13] = msg[13] | (1 << 7)
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	if globalSettings.AHRS_Enabled {
+	if globalSettings.AHRS_Enabled.Load() {
 		msg[12] = 1 << 0
 	}
 
@@ -781,7 +782,7 @@ func makeReplayLogEntry(msg string) string {
 }
 
 func replayLog(msg string, msgclass int) {
-	if !globalSettings.ReplayLog { // Logging disabled.
+	if !globalSettings.ReplayLog.Load() { // Logging disabled.
 		return
 	}
 	msg = strings.Trim(msg, " \r\n")
@@ -1017,13 +1018,13 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled    bool
-	ES_Enabled     bool
-	GPS_Enabled    bool
+	UAT_Enabled    atomic.Value // bool
+	ES_Enabled     atomic.Value // bool
+	GPS_Enabled    atomic.Value // bool
 	NetworkOutputs []networkConnection
-	AHRS_Enabled   bool
-	DEBUG          bool
-	ReplayLog      bool
+	AHRS_Enabled   atomic.Value // bool
+	DEBUG          atomic.Value // bool
+	ReplayLog      atomic.Value // bool
 	PPM            int
 	OwnshipModeS   string
 	WatchList      string
@@ -1065,17 +1066,17 @@ var globalSettings settings
 var globalStatus status
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true
-	globalSettings.ES_Enabled = true
-	globalSettings.GPS_Enabled = true
+	globalSettings.UAT_Enabled.Store(true)
+	globalSettings.ES_Enabled.Store(true)
+	globalSettings.GPS_Enabled.Store(true)
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
-	globalSettings.AHRS_Enabled = false
-	globalSettings.DEBUG = false
-	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
+	globalSettings.AHRS_Enabled.Store(false)
+	globalSettings.DEBUG.Store(false)
+	globalSettings.ReplayLog.Store(false) //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 }
 
@@ -1185,7 +1186,7 @@ func printStats() {
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
-		if globalSettings.GPS_Enabled {
+		if globalSettings.GPS_Enabled.Load() {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
@@ -1358,48 +1359,48 @@ func main() {
 	// Override after reading in the settings.
 	if *replayFlag == true {
 		log.Printf("Replay file %s\n", *replayUATFilename)
-		globalSettings.ReplayLog = true
+		globalSettings.ReplayLog.Store(true)
 	}
 
 	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 
 	if uatwt, err := openReplay(uatReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
+		globalSettings.ReplayLog.Store(false)
 	} else {
 		uatReplayWriter = uatwt
 		defer uatReplayWriter.Close()
 	}
 	// 1090ES replay log.
 	if eswt, err := openReplay(esReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
+		globalSettings.ReplayLog.Store(false)
 	} else {
 		esReplayWriter = eswt
 		defer esReplayWriter.Close()
 	}
 	// GPS replay log.
 	if gpswt, err := openReplay(gpsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
+		globalSettings.ReplayLog.Store(false)
 	} else {
 		gpsReplayWriter = gpswt
 		defer gpsReplayWriter.Close()
 	}
 	// AHRS replay log.
 	if ahrswt, err := openReplay(ahrsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
+		globalSettings.ReplayLog.Store(false)
 	} else {
 		ahrsReplayWriter = ahrswt
 		defer ahrsReplayWriter.Close()
 	}
 	// Dump1090 replay log.
 	if dump1090wt, err := openReplay(dump1090ReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
+		globalSettings.ReplayLog.Store(false)
 	} else {
 		dump1090ReplayWriter = dump1090wt
 		defer dump1090ReplayWriter.Close()
 	}
 
 	// Mark the files (whether we're logging or not).
-	replayMark(globalSettings.ReplayLog)
+	replayMark(globalSettings.ReplayLog.Load())
 
 	initRY835AI()
 

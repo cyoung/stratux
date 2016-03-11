@@ -13,8 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	humanize "github.com/dustin/go-humanize"
-	"golang.org/x/net/websocket"
 	"io"
 	"io/ioutil"
 	"log"
@@ -25,6 +23,9 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+
+	humanize "github.com/dustin/go-humanize"
+	"golang.org/x/net/websocket"
 )
 
 type SettingMessage struct {
@@ -196,19 +197,19 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					// log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
 					switch key {
 					case "UAT_Enabled":
-						globalSettings.UAT_Enabled = val.(bool)
+						globalSettings.UAT_Enabled.Store(val.(bool))
 					case "ES_Enabled":
-						globalSettings.ES_Enabled = val.(bool)
+						globalSettings.ES_Enabled.Store(val.(bool))
 					case "GPS_Enabled":
-						globalSettings.GPS_Enabled = val.(bool)
+						globalSettings.GPS_Enabled.Store(val.(bool))
 					case "AHRS_Enabled":
-						globalSettings.AHRS_Enabled = val.(bool)
+						globalSettings.AHRS_Enabled.Store(val.(bool))
 					case "DEBUG":
-						globalSettings.DEBUG = val.(bool)
+						globalSettings.DEBUG.Store(val.(bool))
 					case "ReplayLog":
 						v := val.(bool)
-						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
-							globalSettings.ReplayLog = v
+						if v != globalSettings.ReplayLog.Load() { // Don't mark the files unless there is a change.
+							globalSettings.ReplayLog.Store(v)
 							replayMark(v)
 						}
 					case "PPM":

@@ -153,14 +153,14 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
-	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+	if globalSettings.DEBUG.Load() && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 
 		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
-		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+		if globalSettings.DEBUG.Load() && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
 			if err != nil {
 				log.Printf("Error generating output: %s\n", err.Error())
@@ -346,7 +346,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Tail = tail
 	}
 
-	if globalSettings.DEBUG {
+	if globalSettings.DEBUG.Load() {
 		// This is a hack to show the source of the traffic in ForeFlight.
 		if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'U') {
 			ti.Tail = "u" + ti.Tail
@@ -536,7 +536,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 func esListen() {
 	for {
-		if !globalSettings.ES_Enabled {
+		if !globalSettings.ES_Enabled.Load() {
 			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
 			continue
 		}
@@ -547,7 +547,7 @@ func esListen() {
 			continue
 		}
 		rdr := bufio.NewReader(inConn)
-		for globalSettings.ES_Enabled {
+		for globalSettings.ES_Enabled.Load() {
 			//log.Printf("ES enabled. Ready to read next message from dump1090\n")
 			buf, err := rdr.ReadString('\n')
 			//log.Printf("String read from dump1090\n")
@@ -780,7 +780,7 @@ func esListen() {
 				ti.Tail = *newTi.Tail
 				// This is a hack to show the source of the traffic in ForeFlight.
 				ti.Tail = strings.Trim(ti.Tail, " ")
-				if globalSettings.DEBUG {
+				if globalSettings.DEBUG.Load() {
 					if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
 						ti.Tail = "e" + ti.Tail
 					}

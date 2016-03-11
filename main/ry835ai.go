@@ -386,7 +386,7 @@ func validateNMEAChecksum(s string) (string, bool) {
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed, trueCourse uint16) {
-	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled.Load() {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
 			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
 		}
@@ -975,7 +975,7 @@ func gpsSerialReader() {
 
 	i := 0 //debug monitor
 	scanner := bufio.NewScanner(serialPort)
-	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
+	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled.Load() {
 		i++
 		if globalSettings.DEBUG && i%100 == 0 {
 			log.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
@@ -1039,7 +1039,7 @@ func initI2C() error {
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled.Load() {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
@@ -1105,7 +1105,7 @@ func makeAHRSGDL90Report() {
 
 func attitudeReaderSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled.Load() {
 		<-timer.C
 		// Read pitch and roll.
 		pitch, roll, err_mpu6050 := readMPU6050()
@@ -1184,14 +1184,14 @@ func pollRY835AI() {
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
-		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+		if globalSettings.GPS_Enabled.Load() && !globalStatus.GPS_connected && readyToInitGPS { //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 			globalStatus.GPS_connected = initGPSSerial()
 			if globalStatus.GPS_connected {
 				go gpsSerialReader()
 			}
 		}
 		// RY835AI I2C enabled, was not connected previously?
-		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
+		if globalSettings.AHRS_Enabled.Load() && !globalStatus.RY835AI_connected {
 			err := initAHRS()
 			if err != nil {
 				log.Printf("initAHRS(): %s\ndisabling AHRS sensors.\n", err.Error())
