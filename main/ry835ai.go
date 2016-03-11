@@ -164,7 +164,7 @@ navigation, rate, message, and UART settings on the GPS receiver, and reopens
 the port to begin receiving NMEA messages.
 */
 
-// TO-DO: Redine detection routines for UBX and SIRF iv (BU-353). Add MTK3339 detection (Adafruit Ultimate GPS).
+// IN WORK: Detection routines for UBX, and SIRF iv (BU-353), and MTK3339 (Adafruit Ultimate GPS).
 
 func initGPSSerial() bool {
 	globalStatus.GPS_detected_type = 0 // reset detection criteria each time we initialize.
@@ -188,53 +188,54 @@ func initGPSSerial() bool {
 	}
 	log.Printf("Using %s for GPS\n", device)
 
-	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start)
+	// Developer option -- uncomment to allow "hot" configuration of U-blox serial GPS (assuming 38.4 kpbs on warm start)
+	/*
 		serialConfig = &serial.Config{Name: device, Baud: 38400}
 		p, err := serial.OpenPort(serialConfig)
 		if err != nil {
 			log.Printf("serial port err: %s\n", err.Error())
 			return false
 		} else { // reset port to 9600 baud for configuration
-		        cfg1 := make([]byte, 20)
-		        cfg1[0] = 0x01 // portID.
-		        cfg1[1] = 0x00 // res0.
-		        cfg1[2] = 0x00 // res1.
-		        cfg1[3] = 0x00 // res1.
+			cfg1 := make([]byte, 20)
+			cfg1[0] = 0x01 // portID.
+			cfg1[1] = 0x00 // res0.
+			cfg1[2] = 0x00 // res1.
+			cfg1[3] = 0x00 // res1.
 
-	        	//      [   7   ] [   6   ] [   5   ] [   4   ]
-		        //      0000 0000 0000 0000 1000 0000 1100 0000
-		        // UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
-		        cfg1[4] = 0xC0
-		        cfg1[5] = 0x08
-		        cfg1[6] = 0x00
-		        cfg1[7] = 0x00
+			//      [   7   ] [   6   ] [   5   ] [   4   ]
+			//      0000 0000 0000 0000 1000 0000 1100 0000
+			// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
+			cfg1[4] = 0xC0
+			cfg1[5] = 0x08
+			cfg1[6] = 0x00
+			cfg1[7] = 0x00
 
-	        	// Baud rate. Little endian order.
-		        bdrt1 := uint32(9600)
-		        cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
-		        cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
-		        cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
-		        cfg1[8] = byte(bdrt1 & 0xFF)
+			// Baud rate. Little endian order.
+			bdrt1 := uint32(9600)
+			cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
+			cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
+			cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
+			cfg1[8] = byte(bdrt1 & 0xFF)
 
-	        	// inProtoMask. NMEA and UBX. Little endian.
-		        cfg1[12] = 0x03
-		        cfg1[13] = 0x00
+			// inProtoMask. NMEA and UBX. Little endian.
+			cfg1[12] = 0x03
+			cfg1[13] = 0x00
 
-		        // outProtoMask. NMEA. Little endian.
-		        cfg1[14] = 0x02
-		        cfg1[15] = 0x00
+			// outProtoMask. NMEA. Little endian.
+			cfg1[14] = 0x02
+			cfg1[15] = 0x00
 
-	        	cfg1[16] = 0x00 // flags.
-		        cfg1[17] = 0x00 // flags.
+			cfg1[16] = 0x00 // flags.
+			cfg1[17] = 0x00 // flags.
 
-	        	cfg1[18] = 0x00 //pad.
-		        cfg1[19] = 0x00 //pad.
+			cfg1[18] = 0x00 //pad.
+			cfg1[19] = 0x00 //pad.
 
-	        	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
+			p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
 			p.Close()
 		}
-
-		-- End developer option */
+	*/
+	//-- End developer option */
 
 	// Open port at default baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
@@ -273,7 +274,7 @@ func initGPSSerial() bool {
 
 		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 	} else {
-		log.Printf("Sent UBX command at %d\n", stratuxClock.Milliseconds)
+		log.Printf("Sent UBX and MTK ident commands at %d\n", stratuxClock.Milliseconds)
 		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
 		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
 		serialPort = p
@@ -282,11 +283,11 @@ func initGPSSerial() bool {
 
 		for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 3*time.Second && scanner.Scan() {
 			s := scanner.Text()
-			log.Printf("[%d] Serial sez: %s\n", stratuxClock.Milliseconds, s)
+			log.Printf("[%d] Serial reader: %s\n", stratuxClock.Milliseconds, s)
 
 			l_valid, validNMEAcs := validateNMEAChecksum(s)
 			if !validNMEAcs {
-				log.Printf("Data seen during GPS probing, but not NMEA: s\n", l_valid) // remove log message once validation complete
+				log.Printf("Data was seen on %s seen during GPS probing, but not NMEA message: %s\n", device, l_valid)
 				continue
 			}
 
@@ -302,10 +303,14 @@ func initGPSSerial() bool {
 
 				} else if x[0] == "PMTK705" { // MTK response to
 					globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
-					log.Printf("GPS detected: MediaTek firmware version message seen.\n")
+					pmtk705msg := ""
+					if len(x) > 1 {
+						pmtk705msg = x[1]
+					}
+					log.Printf("GPS detected: MediaTek NMEA firmware message (%s) seen.\n", pmtk705msg)
 				} else if strings.Contains(x[0], "PMTK") { // any other 1st sting with MTK
 					globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
-					log.Printf("GPS detected: MediaTek other message seen.\n")
+					log.Printf("GPS detected: MediaTek other NMEA message (%s) seen.\n", x[0])
 				}
 			}
 		}
@@ -428,9 +433,13 @@ func initGPSSerial() bool {
 		} else if globalStatus.GPS_detected_type == GPS_TYPE_NMEA {
 			//baudrate = 9600
 			log.Printf("Using generic NMEA GPS support at %d baud on %s. Opening port to test connection.\n", baudrate, device)
-			// TO-DO: Figure out how to detect SIRF
+			// TO-DO: SIRF detection. Need hardware to run debug.
 			// For now, do nothing. Keep baud rate at 9600.
 
+		} else {
+			// No messages detected. If a GPS is connected, this is usually seen on hot-starts.
+			// Wait until the gpsSerialReader starts to do detection.
+			baudrate = 38400
 		}
 
 	}
@@ -504,10 +513,16 @@ func setTrueCourse(groundSpeed, trueCourse uint16) {
 }
 
 /*
-calcGPSAttitude determines estimated turn rate, pitch, and roll at the specified index of myGPSPerfStats[], and saves results to that structure.
+calcGPSAttitude estimates turn rate, pitch, and roll based on recent GPS groundspeed, track, and altitude / vertical speed.
 
-Initial version is a simplified calculation based only on index and index-1.
-Pitch minimum ground speed = 15. Roll = 25. Turn rate is specified at parse (3-10 knots typ)
+Method uses stored performance statistics from myGPSPerfStats[]. Calculation is based on most recent 1.5 seconds of data,
+assuming 10 Hz sampling frequency.
+
+
+
+(c) 2016 AvSquirrel (https://github.com/AvSquirrel) . All rights reserved.
+Distributable under the terms of the "BSD-New" License that can be found in
+the LICENSE file, herein included as part of this header.
 */
 
 func calcGPSAttitude() bool {
@@ -855,6 +870,12 @@ return is true if parse occurs correctly and position is valid.
 func processNMEALine(l string) bool {
 	replayLog(l, MSGCLASS_GPS)
 
+	// Local variables
+	thisGpsPerf := gpsPerf                              // write to myGPSPerfStats at end of function IFF
+	thisGpsPerf.coursef = -999.9                        // default value; indicates invalid heading to regression calculation
+	thisGpsPerf.stratuxTime = stratuxClock.Milliseconds // Only needed for gross indexing
+	updateGPSPerf := false                              // change to true when position or vector info is read
+
 	// append to gps message stat
 	lenGPSMsgStats := len(myGPSMsgStats)
 	if lenGPSMsgStats > 999 {
@@ -871,7 +892,7 @@ func processNMEALine(l string) bool {
 		return false
 	}
 	if globalStatus.GPS_detected_type == 0 {
-		log.Printf("GPS dectected: NMEA messages seen.\n")
+		log.Printf("GPS detected: NMEA messages seen.\n")
 		globalStatus.GPS_detected_type = GPS_TYPE_NMEA // If this is the first time we see a NMEA message, set our status flag
 	}
 
@@ -894,22 +915,10 @@ func processNMEALine(l string) bool {
 				return false
 			}
 
+			thisGpsPerf.msgType = x[0] + x[1]
+
 			//mySituation.mu_GPS.Lock()
 			//defer mySituation.mu_GPS.Unlock()
-			mySituation.mu_GPSPerf.Lock()
-
-			// append to gps performance stats. Also need to run on SIRF GGA?
-			lenGPSPerfStats := len(myGPSPerfStats)
-			if lenGPSPerfStats > 299 { //30 seconds @ 10 Hz
-				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):]
-			}
-			myGPSPerfStats = append(myGPSPerfStats, gpsPerf)
-			indexGPSPerfStats := len(myGPSPerfStats) - 1
-			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing
-			myGPSPerfStats[indexGPSPerfStats].msgType = x[0] + x[1]
-			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
-
-			mySituation.mu_GPSPerf.Unlock()
 
 			// Do the accuracy / quality fields first to prevent invalid position etc. from being sent downstream
 
@@ -965,7 +974,7 @@ func processNMEALine(l string) bool {
 			}
 
 			mySituation.lastFixSinceMidnightUTC = float32((3600*hr)+(60*min)) + float32(sec)
-			myGPSPerfStats[indexGPSPerfStats].nmeaTime = mySituation.lastFixSinceMidnightUTC
+			thisGpsPerf.nmeaTime = mySituation.lastFixSinceMidnightUTC
 
 			//log.Printf("Latest GPS time is %02d:%02d:%06.3f UTC. Time since midnight UTC is %06.3f\n", hr, min, sec, mySituation.lastFixSinceMidnightUTC)
 
@@ -1010,7 +1019,7 @@ func processNMEALine(l string) bool {
 			alt := float32(hae*3.28084) - mySituation.GeoidSep        // convert to feet and offset by geoid separation
 			mySituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
 			mySituation.Alt = alt
-			myGPSPerfStats[indexGPSPerfStats].alt = alt
+			thisGpsPerf.alt = alt
 
 			mySituation.LastFixLocalTime = stratuxClock.Time
 
@@ -1021,7 +1030,7 @@ func processNMEALine(l string) bool {
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
 			mySituation.GroundSpeed = uint16(groundspeed)
-			myGPSPerfStats[indexGPSPerfStats].gsf = float32(groundspeed)
+			thisGpsPerf.gsf = float32(groundspeed)
 
 			// field 12 = track, deg
 			trueCourse := uint16(0)
@@ -1034,9 +1043,9 @@ func processNMEALine(l string) bool {
 				trueCourse = uint16(tc)
 				setTrueCourse(uint16(groundspeed), trueCourse)
 				mySituation.TrueCourse = uint16(trueCourse)
-				myGPSPerfStats[indexGPSPerfStats].coursef = float32(tc)
+				thisGpsPerf.coursef = float32(tc)
 			} else {
-				myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // regression will skip negative values
+				thisGpsPerf.coursef = -999.9 // regression will skip negative values
 				// Negligible movement. Don't update course, but do use the slow speed.
 				// TO-DO: use average course over last n seconds?
 			}
@@ -1048,7 +1057,7 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			mySituation.GPSVertVel = float32(vv * -3.28084) // convert to ft/sec and positive = up
-			myGPSPerfStats[indexGPSPerfStats].vv = mySituation.GPSVertVel
+			thisGpsPerf.vv = mySituation.GPSVertVel
 
 			// field 14 = age of diff corrections
 
@@ -1058,6 +1067,8 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			mySituation.Satellites = uint16(sat)
+
+			updateGPSPerf = true
 
 		} else if x[1] == "03" { // satellite status message
 
@@ -1180,23 +1191,6 @@ func processNMEALine(l string) bool {
 		//mySituation.mu_GPS.Lock()
 		//defer mySituation.mu_GPS.Unlock()
 
-		var indexGPSPerfStats, lenGPSPerfStats int
-
-		mySituation.mu_GPSPerf.Lock()
-
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			lenGPSPerfStats = len(myGPSPerfStats)
-			if lenGPSPerfStats > 299 { //30 seconds @ 5 Hz, for RMC+GGA -- assuming SIRF (need better detection)
-				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):]
-			}
-			myGPSPerfStats = append(myGPSPerfStats, gpsPerf)
-			indexGPSPerfStats = len(myGPSPerfStats) - 1
-			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing. Replace with stratuxClock.Time?
-			myGPSPerfStats[indexGPSPerfStats].msgType = x[0]
-			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
-		}
-		mySituation.mu_GPSPerf.Unlock()
-
 		// Quality indicator.
 		q, err1 := strconv.Atoi(x[6])
 		if err1 != nil {
@@ -1217,7 +1211,7 @@ func processNMEALine(l string) bool {
 
 		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			myGPSPerfStats[indexGPSPerfStats].nmeaTime = mySituation.lastFixSinceMidnightUTC
+			thisGpsPerf.nmeaTime = mySituation.lastFixSinceMidnightUTC
 		}
 
 		// Latitude.
@@ -1282,7 +1276,7 @@ func processNMEALine(l string) bool {
 		mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
 
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			myGPSPerfStats[indexGPSPerfStats].alt = float32(mySituation.Alt)
+			thisGpsPerf.alt = float32(mySituation.Alt)
 		}
 
 		// Geoid separation (Sep = HAE - MSL)
@@ -1297,6 +1291,10 @@ func processNMEALine(l string) bool {
 
 		// Timestamp.
 		mySituation.LastFixLocalTime = stratuxClock.Time
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			updateGPSPerf = true
+			thisGpsPerf.msgType = x[0]
+		}
 
 	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") {
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
@@ -1319,22 +1317,6 @@ func processNMEALine(l string) bool {
 		}
 		//mySituation.mu_GPS.Lock()
 		//defer mySituation.mu_GPS.Unlock()
-		var indexGPSPerfStats, lenGPSPerfStats int
-
-		mySituation.mu_GPSPerf.Lock()
-
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			lenGPSPerfStats = len(myGPSPerfStats)
-			if lenGPSPerfStats > 299 { //30 seconds @ 5 Hz -- assuming SIRF (need better detection)
-				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):]
-			}
-			myGPSPerfStats = append(myGPSPerfStats, gpsPerf)
-			indexGPSPerfStats = len(myGPSPerfStats) - 1
-			myGPSPerfStats[indexGPSPerfStats].stratuxTime = stratuxClock.Milliseconds // only needed for gross indexing. Replace with stratuxClock.Time?
-			myGPSPerfStats[indexGPSPerfStats].msgType = x[0]
-			myGPSPerfStats[indexGPSPerfStats].coursef = -999.9 // default value; indicates invalid heading to regression calculation
-		}
-		mySituation.mu_GPSPerf.Unlock()
 
 		if x[2] != "A" { // invalid fix
 			mySituation.quality = 0
@@ -1356,7 +1338,7 @@ func processNMEALine(l string) bool {
 
 		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			myGPSPerfStats[indexGPSPerfStats].nmeaTime = mySituation.lastFixSinceMidnightUTC
+			thisGpsPerf.nmeaTime = mySituation.lastFixSinceMidnightUTC
 		}
 
 		if len(x[9]) == 6 {
@@ -1413,7 +1395,7 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.GroundSpeed = uint16(groundspeed)
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-			myGPSPerfStats[indexGPSPerfStats].gsf = float32(groundspeed)
+			thisGpsPerf.gsf = float32(groundspeed)
 		}
 
 		// ground track "True" (field 8)
@@ -1428,17 +1410,21 @@ func processNMEALine(l string) bool {
 			setTrueCourse(uint16(groundspeed), trueCourse)
 			mySituation.TrueCourse = uint16(trueCourse)
 			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-				myGPSPerfStats[indexGPSPerfStats].coursef = float32(tc)
+				thisGpsPerf.coursef = float32(tc)
 			}
 		} else {
 			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-				myGPSPerfStats[indexGPSPerfStats].coursef = -999.9
+				thisGpsPerf.coursef = -999.9
 			}
 
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
 		}
 
+		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			updateGPSPerf = true
+			thisGpsPerf.msgType = x[0]
+		}
 		mySituation.LastGroundTrackTime = stratuxClock.Time
 
 	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") {
@@ -1498,6 +1484,17 @@ func processNMEALine(l string) bool {
 			return false
 		}
 		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
+	}
+
+	if updateGPSPerf {
+		mySituation.mu_GPSPerf.Lock()
+		myGPSPerfStats = append(myGPSPerfStats, thisGpsPerf)
+		lenGPSPerfStats := len(myGPSPerfStats)
+		//log.Printf("GPSPerf array has %n elements. Contents are: %v\n",lenGPSPerfStats,myGPSPerfStats)
+		if lenGPSPerfStats > 299 { //30 seconds @ 10 Hz for UBX, 30 seconds @ 5 Hz for MTK or SIRF with 2x messages per 200 ms)
+			myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):] // remove the first n entries if more than 300 in the slice
+		}
+		mySituation.mu_GPSPerf.Unlock()
 	}
 
 	return true
