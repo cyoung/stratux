@@ -476,6 +476,9 @@ func sdrWatcher() {
 			prevUATEnabled == globalSettings.UAT_Enabled {
 			continue
 		}
+		// capture global state as quickly as possible after the check
+		esEnabled := globalSettings.ES_Enabled
+		uatEnabled := globalSettings.UAT_Enabled
 
 		// the device count or the global settings have changed, reconfig
 		if UATDev != nil {
@@ -486,11 +489,11 @@ func sdrWatcher() {
 			ESDev.shutdown()
 			ESDev = nil
 		}
-		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		configDevices(count, esEnabled, uatEnabled)
 
 		prevCount = count
-		prevUATEnabled = globalSettings.UAT_Enabled
-		prevESEnabled = globalSettings.ES_Enabled
+		prevUATEnabled = uatEnabled
+		prevESEnabled = esEnabled
 	}
 }
 
