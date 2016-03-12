@@ -74,43 +74,48 @@ func (e *ES) read() {
 	scanStdout := bufio.NewScanner(stdout)
 	scanStderr := bufio.NewScanner(stderr)
 
-	for {
-		select {
-		case <-e.closeCh:
-			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
-			err := cmd.Process.Kill()
-			if err != nil {
-				log.Printf("\t couldn't kill dump1090: %s\n", err)
-			} else {
-				cmd.Wait()
-				log.Println("\t kill successful...")
-			}
-			return
-		default:
-			if scanStdout.Scan() {
-				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
-			}
-			if err := scanStdout.Err(); err != nil {
-				log.Printf("scanStdout error: %s\n", err)
-			}
+	done := make(chan bool)
 
-			if scanStderr.Scan() {
-				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
-				// dump1090 sends stdio messages out on stderr, so
-				// shutting down on stderr messages doesn't work
-				// TODO(joe) figure out a way to shutdown dump1090
-				// when it errors out
-				// 	if shutdownES != true {
-				// 		shutdownES = true
-				// 	}
-			}
-			if err := scanStderr.Err(); err != nil {
-				log.Printf("scanStderr error: %s\n", err)
-			}
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-e.closeCh:
+				log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
+				err := cmd.Process.Kill()
+				if err == nil {
+					log.Println("\t kill successful...")
+				}
+				return
+			default:
+				if scanStdout.Scan() {
+					replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+				}
+				if err := scanStdout.Err(); err != nil {
+					log.Printf("scanStdout error: %s\n", err)
+				}
 
-			time.Sleep(1 * time.Second)
+				if scanStderr.Scan() {
+					replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+				}
+				if err := scanStderr.Err(); err != nil {
+					log.Printf("scanStderr error: %s\n", err)
+				}
+
+				time.Sleep(1 * time.Second)
+			}
 		}
-	}
+	}()
+
+	cmd.Wait()
+
+	// we get here if A) the dump1090 process died
+	// on its own or B) cmd.Process.Kill() was called
+	// from within the goroutine, either way close
+	// the "done" channel, which ensures we don't leak
+	// goroutines...
+	close(done)
 }
 
 func (u *UAT) read() {
