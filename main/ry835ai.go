@@ -115,9 +115,11 @@ var serialPort *serial.Port
 var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
 
 /*
+
 chksumUBX returns the two-byte Fletcher algorithm checksum of byte array msg.
 This is used in configuration messages for the u-blox GPS. See p. 97 of the
 u-blox M8 Receiver Description.
+
 */
 
 func chksumUBX(msg []byte) []byte {
@@ -1606,14 +1608,16 @@ func gpsSerialReader() {
 	scanner := bufio.NewScanner(serialPort)
 	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
 		i++
-		if i%100 == 0 {
+		if globalSettings.VerboseLogs && i%100 == 0 {
 			log.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
 		}
 
 		s := scanner.Text()
-		//fmt.Printf("Output: %s\n", s)
-		if !(processNMEALine(s)) {
-			//	fmt.Printf("processNMEALine() exited early -- %s\n",s) //debug code.
+
+		if !processNMEALine(s) {
+			if globalSettings.VerboseLogs {
+				fmt.Printf("processNMEALine() exited early -- %s\n", s)
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {

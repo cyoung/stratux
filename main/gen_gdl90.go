@@ -1105,6 +1105,7 @@ type settings struct {
 type status struct {
 	Version                                    string
 	Build                                      string
+	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
 	UAT_messages_last_minute                   uint
@@ -1134,6 +1135,7 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	Errors                                     []string
 }
 
 var globalSettings settings
@@ -1142,7 +1144,7 @@ var globalStatus status
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
-	globalSettings.GPS_Enabled = false
+	globalSettings.GPS_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1186,10 +1188,16 @@ func readSettings() {
 	log.Printf("read in settings.\n")
 }
 
+func addSystemError(err error) {
+	globalStatus.Errors = append(globalStatus.Errors, err.Error())
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
 		return
 	}
 	defer fd.Close()
@@ -1382,6 +1390,14 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
+	// Set up status.
+	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
+	globalStatus.Errors = make([]string, 0)
+	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "FlightBox"
+	}
+
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
 	develFlag := flag.Bool("developer", false, "Developer mode")
@@ -1405,7 +1421,9 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		addSystemError(err_log)
+		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
 		mfp := io.MultiWriter(fp, os.Stdout)
@@ -1423,9 +1441,7 @@ func main() {
 	sdrInit()
 	initTraffic()
 
-	globalStatus.Version = stratuxVersion
-	globalStatus.Build = stratuxBuild
-
+	// Read settings.
 	readSettings()
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.

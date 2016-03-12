@@ -25,6 +25,7 @@ Apps with stratux recognition/support:
 * AerovieReports.
 * AvPlan EFB.
 * iFly GPS 9.4+.
+* DroidEFB 2.1.1+.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.

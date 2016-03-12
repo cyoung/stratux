@@ -20,6 +20,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"syscall"
 	"text/template"
@@ -324,6 +325,19 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
 }
 
+func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
+	out, err := exec.Command("/usr/sbin/rebuild_ro_part.sh").Output()
+
+	var ret_err error
+	if err != nil {
+		ret_err = fmt.Errorf("Rebuild RO Partition error: %s", err.Error())
+	} else {
+		ret_err = fmt.Errorf("Rebuild RO Partition success: %s", out)
+	}
+
+	addSystemError(ret_err)
+}
+
 // https://gist.github.com/alexisrobert/982674.
 // Copyright (c) 2010-2014 Alexis ROBERT <alexis.robert@gmail.com>.
 const dirlisting_tpl = `<?xml version="1.0" encoding="iso-8859-1"?>
@@ -452,6 +466,7 @@ func managementInterface() {
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
+	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
