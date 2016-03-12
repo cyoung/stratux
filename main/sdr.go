@@ -87,18 +87,22 @@ func (e *ES) read() {
 			}
 			return
 		default:
-			for scanStdout.Scan() {
+			if scanStdout.Scan() {
 				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
 			}
 			if err := scanStdout.Err(); err != nil {
 				log.Printf("scanStdout error: %s\n", err)
 			}
 
-			for scanStderr.Scan() {
+			if scanStderr.Scan() {
 				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
-				if shutdownES != true {
-					shutdownES = true
-				}
+				// dump1090 sends stdio messages out on stderr, so
+				// shutting down on stderr messages doesn't work
+				// TODO(joe) figure out a way to shutdown dump1090
+				// when it errors out
+				// 	if shutdownES != true {
+				// 		shutdownES = true
+				// 	}
 			}
 			if err := scanStderr.Err(); err != nil {
 				log.Printf("scanStderr error: %s\n", err)
@@ -311,6 +315,7 @@ func (u *UAT) shutdown() {
 	log.Println("UAT shutdown(): u.wg.Wait() returned...")
 	log.Println("UAT shutdown(): closing device ...")
 	u.dev.Close() // preempt the blocking ReadSync call
+	log.Println("UAT shutdown() complete ...")
 }
 
 func (e *ES) shutdown() {
@@ -318,7 +323,7 @@ func (e *ES) shutdown() {
 	close(e.closeCh) // signal to shutdown
 	log.Println("ES shutdown(): calling e.wg.Wait() ...")
 	e.wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("ES shutdown(): e.wg.Wait() returned...")
+	log.Println("ES shutdown() complete ...")
 }
 
 var sdrShutdown bool
