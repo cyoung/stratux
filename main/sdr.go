@@ -90,7 +90,7 @@ func (e *ES) read() {
 				return
 			default:
 				time.Sleep(1 * time.Second)
-                        }
+			}
 		}
 	}()
 
