@@ -829,9 +829,16 @@ func esListen() {
 				continue
 			}
 
-			if (newTi.Icao_addr & 0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
+			if newTi.Icao_addr == 0x07FFFFFF { // used to signal heartbeat
 				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
 				continue
+			}
+
+			if (newTi.Icao_addr | 0x01000000) != 0 { // used by dump1090 to signal non-ICAO address
+				newTi.Icao_addr = newTi.Icao_addr & 0x00FFFFFF
+				if globalSettings.VerboseLogs {
+					log.Printf("Non-ICAO address %X sent by dump1090. This is typical for TIS-B.\n", newTi.Icao_addr)
+				}
 			}
 
 			// Log the message to the message counter as a valid ES if it unmarshalles.
