@@ -89,6 +89,16 @@ func (e *ES) read() {
 				}
 				return
 			default:
+				time.Sleep(1 * time.Second)
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
 				if scanStdout.Scan() {
 					replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
 				}
