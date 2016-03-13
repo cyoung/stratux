@@ -834,7 +834,7 @@ func esListen() {
 				continue
 			}
 
-			if (newTi.Icao_addr | 0x01000000) != 0 { // used by dump1090 to signal non-ICAO address
+			if (newTi.Icao_addr & 0x01000000) != 0 { // bit 25 used by dump1090 to signal non-ICAO address
 				newTi.Icao_addr = newTi.Icao_addr & 0x00FFFFFF
 				if globalSettings.VerboseLogs {
 					log.Printf("Non-ICAO address %X sent by dump1090. This is typical for TIS-B.\n", newTi.Icao_addr)
