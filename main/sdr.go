@@ -107,6 +107,31 @@ func (e *ES) read() {
 					log.Printf("scanStdout error: %s\n", err)
 				}
 
+				//if scanStderr.Scan() {
+				//	replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+				//}
+				//if err := scanStderr.Err(); err != nil {
+				//	log.Printf("scanStderr error: %s\n", err)
+				//}
+
+				//time.Sleep(1 * time.Second)
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				//if scanStdout.Scan() {
+				//	replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+				//}
+				//if err := scanStdout.Err(); err != nil {
+				//	log.Printf("scanStdout error: %s\n", err)
+				//}
+
 				if scanStderr.Scan() {
 					replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
 				}
@@ -114,7 +139,7 @@ func (e *ES) read() {
 					log.Printf("scanStderr error: %s\n", err)
 				}
 
-				time.Sleep(1 * time.Second)
+				//time.Sleep(1 * time.Second)
 			}
 		}
 	}()
