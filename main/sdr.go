@@ -487,8 +487,8 @@ func sdrWatcher() {
 		}
 
 		// capture current state
-		esEnabled := esEnabled
-		uatEnabled := uatEnabled
+		esEnabled := globalSettings.ES_Enabled
+		uatEnabled := globalSettings.UAT_Enabled
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
