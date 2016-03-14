@@ -10,7 +10,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os/exec"
 	"regexp"
@@ -71,9 +70,6 @@ func (e *ES) read() {
 
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
-	scanStdout := bufio.NewScanner(stdout)
-	scanStderr := bufio.NewScanner(stderr)
-
 	done := make(chan bool)
 
 	go func() {
@@ -94,27 +90,32 @@ func (e *ES) read() {
 		}
 	}()
 
+	stdoutBuf := make([]byte, 1024)
+	stderrBuf := make([]byte, 1024)
 	go func() {
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				if scanStdout.Scan() {
-					replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+				n, err := stdout.Read(stdoutBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stdoutBuf[:n]), MSGCLASS_DUMP1090)
 				}
-				if err := scanStdout.Err(); err != nil {
-					log.Printf("scanStdout error: %s\n", err)
-				}
+			}
+		}
+	}()
 
-				if scanStderr.Scan() {
-					replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stderr.Read(stderrBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stderrBuf[:n]), MSGCLASS_DUMP1090)
 				}
-				if err := scanStderr.Err(); err != nil {
-					log.Printf("scanStderr error: %s\n", err)
-				}
-
-				time.Sleep(1 * time.Second)
 			}
 		}
 	}()
