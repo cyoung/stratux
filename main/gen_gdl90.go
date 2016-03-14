@@ -674,6 +674,9 @@ func heartBeatSender() {
 				sendGPRMCString() // send equivalent of ownship message to FLARM units
 			}
 			updateStatus()
+			if globalSettings.VerboseLogs {
+				log.Printf("Finished sending once-per-second heartbeat items at [%d]\n", stratuxClock.Milliseconds)
+			}
 		case <-timerMessageStats.C:
 			// Save a bit of CPU by not pruning the message log every 1 second.
 			updateMessageStats()
@@ -1113,8 +1116,10 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	FLARM_out_connected                        bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
+	GPS_serial_port                            string
 	GPS_msgs_last_minute                       uint
 	GPS_invalid_msgs_last_minute               uint
 	GPS_pos_msgs_last_minute                   uint

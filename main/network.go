@@ -10,8 +10,10 @@
 package main
 
 import (
+	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+
 	"io/ioutil"
 	"log"
 	"math"
@@ -447,8 +449,60 @@ func networkStatsCounter() {
 
 }
 
+var flarmOutputChan chan []byte
+
+// Watch for a serial output device.
+func flarmOutWatcher() {
+	// Check every 30 seconds for a serial output device.
+	serialTicker := time.NewTicker(30 * time.Second)
+	serialConfig := &serial.Config{Name: "/dev/ttyUSB0", Baud: 38400} // TO-DO: Configurable FLARM output port and baud rate?
+	var serialPort *serial.Port
+
+	for {
+		select {
+		case <-serialTicker.C:
+			// Check for serial output device.
+			if globalSettings.FLARMTraffic && !globalStatus.FLARM_out_connected {
+				p, err := serial.OpenPort(serialConfig)
+				if err != nil {
+					log.Printf("FLARM serial (out) port err: %s\n", err.Error())
+					break
+				}
+				if globalStatus.GPS_serial_port == "/dev/ttyUSB0" {
+					globalSettings.GPS_Enabled = false // Force disable GPS on ttyUSB0 when serial enabled. -- FIXME
+				}
+				globalStatus.FLARM_out_connected = true
+				serialPort = p
+				log.Printf("opened serial port /dev/ttyUSB0\n")
+			}
+		case b := <-flarmOutputChan:
+			if globalSettings.VerboseLogs {
+				log.Printf("Data on the FLARM chan.\n")
+			}
+			if globalStatus.FLARM_out_connected && serialPort != nil {
+				_, err := serialPort.Write(b)
+				if err != nil { // Encountered an error in writing to the serial port. Close it and unset FLARM_out_enabled.
+					log.Printf("FLARM serial (out) port err: %s\n", err.Error())
+					serialPort.Close()
+					serialPort = nil
+					globalStatus.FLARM_out_connected = false
+				}
+			} else {
+				//if globalSettings.VerboseLogs {
+				log.Printf("No FLARM output device connected. Message was %s\n", string(b))
+				//}
+			}
+		}
+	}
+}
+
+func sendFlarmMsg(flarmmsg []byte) {
+	flarmOutputChan <- flarmmsg
+}
+
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
+	flarmOutputChan = make(chan []byte, 128)       // Buffered channel, 128 messages = 3 seconds @ 38.4 kbps
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -457,4 +511,5 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
+	go flarmOutWatcher()
 }

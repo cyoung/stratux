@@ -156,6 +156,9 @@ func cleanupOldEntries() {
 }
 
 func sendTrafficUpdates() {
+	if globalSettings.VerboseLogs {
+		log.Printf("Sending traffic updates.\n")
+	}
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
@@ -250,7 +253,10 @@ func sendTrafficUpdates() {
 			if globalSettings.FLARMTraffic == true && isGPSValid() {
 				flarmmsg, valid := makeFlarmNMEAString(ti)
 				if valid {
-					log.Printf("Sending FLARM message %s\n", flarmmsg) // To-Do: Set up serial output channel
+					if globalSettings.VerboseLogs {
+						log.Printf("Sending FLARM message %s\n", flarmmsg)
+					}
+					sendFlarmMsg([]byte(flarmmsg))
 				}
 			}
 		}
@@ -270,7 +276,7 @@ func registerTrafficUpdate(ti TrafficInfo) {
 		if !ti.Position_valid { // Don't send unless a valid position exists.
 			return
 		}
-	*/ // testing: send all traffic and let JS sort them out.
+	*/ // Send all traffic and let JS sort it out. This will provide user indication of why they see 1000 ES messages and no traffic.
 
 	tiJSON, _ := json.Marshal(&ti)
 	trafficUpdate.Send(tiJSON)
@@ -428,7 +434,9 @@ func parseOwnshipADSBMessage() uint8 {
 	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
 	ti, present := traffic[uint32(code)]
 	if !present { // address isn't in the map
-		fmt.Printf("Address %X not seen in the traffic map.\n", code)
+		if globalSettings.VerboseLogs {
+			log.Printf("Address %X not seen in the traffic map.\n", code)
+		}
 		return 0
 	}
 
@@ -437,9 +445,11 @@ func parseOwnshipADSBMessage() uint8 {
 	mySituation.OwnshipLat = ti.Lat
 	mySituation.OwnshipLng = ti.Lng
 	mySituation.OwnshipLastSeen = ti.Last_seen
+	// to-do... air/ground status, NACp, etc.?
 
-	fmt.Printf("Address %X found in the traffic map at %.3f° LAT and %.3f° LNG with tail number %s at %d' MSL.\n", code, mySituation.OwnshipLat, mySituation.OwnshipLng, mySituation.OwnshipTail, mySituation.OwnshipPressureAlt)
-	// do all the things!
+	if globalSettings.VerboseLogs {
+		log.Printf("Address %X found in the traffic map at %.3f° LAT and %.3f° LNG with tail number %s at %d' MSL.\n", code, mySituation.OwnshipLat, mySituation.OwnshipLng, mySituation.OwnshipTail, mySituation.OwnshipPressureAlt)
+	}
 
 	return 1
 }
@@ -521,6 +531,7 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 
 	relativeVertical = int16(float64(ti.Alt)*0.3048 - mySituation.Pressure_alt*0.3048) // convert to meters
 
+	// demo of alarm levels... may remove for final release.
 	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
 		alarmLevel = 2
 	} else if (dist < 1852) && (relativeVertical < 304) && (relativeVertical > -304) { // 1852 m = 1.0 NM ; 304 m = 1000'

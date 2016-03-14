@@ -180,12 +180,16 @@ func initGPSSerial() bool {
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/ttyUSB0"
+		globalStatus.GPS_serial_port = device
 	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
 		device = "/dev/ttyACM0"
+		globalStatus.GPS_serial_port = device
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
 		device = "/dev/ttyAMA0"
+		globalStatus.GPS_serial_port = device
 	} else {
 		log.Printf("No suitable device found.\n")
+		globalStatus.GPS_serial_port = ""
 		return false
 	}
 	log.Printf("Using %s for GPS\n", device)
@@ -1506,8 +1510,9 @@ func processNMEALine(l string) bool {
 }
 
 func sendGPRMCString() {
-	msg := makeGPRMCString()
-	log.Printf("FLARM GPRMC String: %s\n", msg) // TO-DO: Send this to /dev/ttyAMA0
+	flarmmsg := makeGPRMCString()
+	//log.Printf("FLARM GPRMC String: %s\n", flarmmsg) // TO-DO: Send this to /dev/ttyAMA0
+	sendFlarmMsg([]byte(flarmmsg))
 }
 
 func makeGPRMCString() string {
@@ -1590,7 +1595,13 @@ func makeGPRMCString() string {
 		mode = "D"
 	}
 
-	msg := fmt.Sprintf("GPRMC,%02.f%02.f%05.2f,%s,%010.5f,%s,%011.5f,%s,%.1f,%.1f,%02d%02d%02d,%s,%s,%s", hr, mins, sec, status, lat, ns, lng, ew, gs, trueCourse, dd, mm, yy, magVar, mvEW, mode)
+	var msg string
+
+	if isGPSValid() {
+		msg = fmt.Sprintf("GPRMC,%02.f%02.f%05.2f,%s,%010.5f,%s,%011.5f,%s,%.1f,%.1f,%02d%02d%02d,%s,%s,%s", hr, mins, sec, status, lat, ns, lng, ew, gs, trueCourse, dd, mm, yy, magVar, mvEW, mode)
+	} else {
+		msg = fmt.Sprintf("GPRMC,,%s,,,,,,,%02d%02d%02d,%s,%s,%s", status, dd, mm, yy, magVar, mvEW, mode) // return null lat-lng and velocity if invalid GPS
+	}
 
 	var checksum byte
 	for i := range msg {
@@ -1808,7 +1819,7 @@ func isGPSConnected() bool {
 }
 
 func isGPSValid() bool {
-	return (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && isGPSConnected()
+	return (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && isGPSConnected() && (mySituation.quality > 0)
 }
 
 func isGPSGroundTrackValid() bool {
