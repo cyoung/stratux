@@ -61,7 +61,12 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			var tempLocalClock = new Date;
 			$scope.LocalClock = tempLocalClock.toUTCString();
 			$scope.SecondsFast = (Math.round(tempClock-tempLocalClock)/1000).toFixed(2);
-			
+
+			// Errors array.
+			if (status.Errors.length > 0) {
+				$scope.visible_errors = true;
+				$scope.Errors = status.Errors;
+			}
 			
 			var uptime = status.Uptime;
 			if (uptime != undefined) {

@@ -75,7 +75,7 @@ var serialPort *serial.Port
 var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
 
 /*
-file:///Users/c/Downloads/u-blox5_Referenzmanual.pdf
+u-blox5_Referenzmanual.pdf
 Platform settings
 Airborne <2g Recommended for typical airborne environment. No 2D position fixes supported.
 p.91 - CFG-MSG
@@ -977,14 +977,16 @@ func gpsSerialReader() {
 	scanner := bufio.NewScanner(serialPort)
 	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
 		i++
-		if i%100 == 0 {
+		if globalSettings.DEBUG && i%100 == 0 {
 			log.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
 		}
 
 		s := scanner.Text()
-		//fmt.Printf("Output: %s\n", s)
-		if !(processNMEALine(s)) {
-			//	fmt.Printf("processNMEALine() exited early -- %s\n",s) //debug code. comment out before pushing to github
+
+		if !processNMEALine(s) {
+			if globalSettings.DEBUG {
+				fmt.Printf("processNMEALine() exited early -- %s\n", s)
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {

@@ -3,6 +3,16 @@
 		<p><strong>Version: <span>{{Version}} ({{Build}})</span></strong></p>
 	</div>
 	<div class="panel panel-default">
+		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
+			<span class="panel_label">Errors</span>
+		</div>
+		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
+			<ul>
+				<li ng-repeat="err in Errors">
+					<font style="background-color: #FF0000">{{err}}</font>
+				</li>
+			</ul>
+		</div>
 		<div class="panel-heading">
 			<span class="panel_label">Status</span>
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
