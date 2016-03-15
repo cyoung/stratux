@@ -46,7 +46,7 @@ type SituationData struct {
 	SatellitesSeen          uint16  // satellites seen (signal received)
 	Accuracy                float32 // 95% confidence for horizontal position, meters.
 	NACp                    uint8   // NACp categories are defined in AC 20-165A
-	Alt                     float32 // Feet MSL
+	Alt                     float32 // GNSS altitude, feet MSL
 	AccuracyVert            float32 // 95% confidence for vertical position, meters
 	GPSVertVel              float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime        time.Time
@@ -176,7 +176,7 @@ func initGPSSerial() bool {
 
 	log.Printf("Configuring GPS\n")
 
-	if _, err := os.Stat("/dev/ttyUSB0"); err == nil { // note -- method is not robust; ttyUSB could be used by any number of USB-to-serial bridges, not just GPS devices.
+	if _, err := os.Stat("/dev/ttyUSB0"); err == nil && !globalSettings.FLARMTraffic { // note -- method is not robust; ttyUSB could be used by any number of USB-to-serial bridges, not just GPS devices.
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/ttyUSB0"
@@ -193,55 +193,6 @@ func initGPSSerial() bool {
 		return false
 	}
 	log.Printf("Using %s for GPS\n", device)
-
-	// Developer option -- uncomment to allow "hot" configuration of U-blox serial GPS (assuming 38.4 kpbs on warm start)
-	/*
-		serialConfig = &serial.Config{Name: device, Baud: 38400}
-		p, err := serial.OpenPort(serialConfig)
-		if err != nil {
-			log.Printf("serial port err: %s\n", err.Error())
-			return false
-		} else { // reset port to 9600 baud for configuration
-			cfg1 := make([]byte, 20)
-			cfg1[0] = 0x01 // portID.
-			cfg1[1] = 0x00 // res0.
-			cfg1[2] = 0x00 // res1.
-			cfg1[3] = 0x00 // res1.
-
-			//      [   7   ] [   6   ] [   5   ] [   4   ]
-			//      0000 0000 0000 0000 1000 0000 1100 0000
-			// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
-			cfg1[4] = 0xC0
-			cfg1[5] = 0x08
-			cfg1[6] = 0x00
-			cfg1[7] = 0x00
-
-			// Baud rate. Little endian order.
-			bdrt1 := uint32(9600)
-			cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
-			cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
-			cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
-			cfg1[8] = byte(bdrt1 & 0xFF)
-
-			// inProtoMask. NMEA and UBX. Little endian.
-			cfg1[12] = 0x03
-			cfg1[13] = 0x00
-
-			// outProtoMask. NMEA. Little endian.
-			cfg1[14] = 0x02
-			cfg1[15] = 0x00
-
-			cfg1[16] = 0x00 // flags.
-			cfg1[17] = 0x00 // flags.
-
-			cfg1[18] = 0x00 //pad.
-			cfg1[19] = 0x00 //pad.
-
-			p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
-			p.Close()
-		}
-	*/
-	//-- End developer option */
 
 	// Open port at default baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 1200}
@@ -1607,7 +1558,7 @@ func makeGPRMCString() string {
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}
-	msg = fmt.Sprintf("$%s*%X", msg, checksum)
+	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
 	return msg
 }
 

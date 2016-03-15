@@ -451,10 +451,10 @@ func networkStatsCounter() {
 
 var flarmOutputChan chan []byte
 
-// Watch for a serial output device.
+// Watch for a serial output device on /dev/ttyUSB0. TO-DO: Flexible configuration of FLARM output port
 func flarmOutWatcher() {
 	// Check every 30 seconds for a serial output device.
-	serialTicker := time.NewTicker(30 * time.Second)
+	serialTicker := time.NewTicker(10 * time.Second)
 	serialConfig := &serial.Config{Name: "/dev/ttyUSB0", Baud: 38400} // TO-DO: Configurable FLARM output port and baud rate?
 	var serialPort *serial.Port
 
@@ -463,21 +463,23 @@ func flarmOutWatcher() {
 		case <-serialTicker.C:
 			// Check for serial output device.
 			if globalSettings.FLARMTraffic && !globalStatus.FLARM_out_connected {
+				if globalStatus.GPS_serial_port == "/dev/ttyUSB0" {
+					globalSettings.GPS_Enabled = false // Force disable GPS on ttyUSB0 when serial enabled. -- FIXME
+				}
+
 				p, err := serial.OpenPort(serialConfig)
 				if err != nil {
 					log.Printf("FLARM serial (out) port err: %s\n", err.Error())
 					break
 				}
-				if globalStatus.GPS_serial_port == "/dev/ttyUSB0" {
-					globalSettings.GPS_Enabled = false // Force disable GPS on ttyUSB0 when serial enabled. -- FIXME
-				}
+
 				globalStatus.FLARM_out_connected = true
 				serialPort = p
-				log.Printf("opened serial port /dev/ttyUSB0\n")
+				log.Printf("Opened FLARM serial port /dev/ttyUSB0 at 38400 baud\n") // TO-DO: Read from port and rate from variables
 			}
 		case b := <-flarmOutputChan:
 			if globalSettings.VerboseLogs {
-				log.Printf("Data on the FLARM chan.\n")
+				log.Printf("Data read off the flarmOutputChan. Sending to port.\n")
 			}
 			if globalStatus.FLARM_out_connected && serialPort != nil {
 				_, err := serialPort.Write(b)
@@ -488,9 +490,9 @@ func flarmOutWatcher() {
 					globalStatus.FLARM_out_connected = false
 				}
 			} else {
-				//if globalSettings.VerboseLogs {
-				log.Printf("No FLARM output device connected. Message was %s\n", string(b))
-				//}
+				if globalSettings.VerboseLogs {
+					log.Printf("No FLARM output device connected. Message was %s\n", string(b))
+				}
 			}
 		}
 	}

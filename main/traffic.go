@@ -529,7 +529,11 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 		relativeEast = int16(distE)
 	}
 
-	relativeVertical = int16(float64(ti.Alt)*0.3048 - mySituation.Pressure_alt*0.3048) // convert to meters
+	altf := mySituation.Pressure_alt
+	if !isTempPressValid() { // if no pressure altitude available, use GPS altitude
+		altf = float64(mySituation.Alt)
+	}
+	relativeVertical = int16(float64(ti.Alt)*0.3048 - altf*0.3048) // convert to meters
 
 	// demo of alarm levels... may remove for final release.
 	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
@@ -543,11 +547,11 @@ func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
 	}
 
 	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
-	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0\r\n", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}
-	msg = (fmt.Sprintf("$%s*%X", msg, checksum))
+	msg = (fmt.Sprintf("$%s*%X\r\n", msg, checksum))
 	valid = true
 	return
 }
