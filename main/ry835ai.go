@@ -1767,7 +1767,7 @@ func gpsAttitudeSender() {
 					mySituation.LastAttitudeTime = stratuxClock.Time
 					if globalSettings.ForeFlightSimMode == true {
 						makeFFAHRSSimReport()
-					} else {
+					} else if globalSettings.AHRS_GDL90_Enabled {
 						makeAHRSGDL90Report()
 					}
 				}
@@ -1801,7 +1801,7 @@ func attitudeReaderSender() {
 
 		if globalSettings.ForeFlightSimMode == true {
 			makeFFAHRSSimReport()
-		} else {
+		} else if globalSettings.AHRS_GDL90_Enabled {
 			makeAHRSGDL90Report()
 		}
 

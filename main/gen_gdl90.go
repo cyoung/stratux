@@ -1092,6 +1092,7 @@ type settings struct {
 	GPS_Enabled         bool
 	NetworkOutputs      []networkConnection
 	AHRS_Enabled        bool
+	AHRS_GDL90_Enabled  bool
 	VerboseLogs         bool
 	DEBUG               bool
 	ReplayLog           bool
@@ -1156,6 +1157,7 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
+	globalSettings.AHRS_GDL90_Enabled = false
 	globalSettings.VerboseLogs = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
