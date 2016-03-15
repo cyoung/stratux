@@ -1513,26 +1513,26 @@ func makeGPRMCString() string {
 	}
 
 	lat := float64(mySituation.Lat)
-	deg := math.Floor(lat)
-	min := (lat - deg) * 60
-	lat = deg*100 + min
-
 	ns := "N"
 	if lat < 0 {
 		lat = -lat
 		ns = "S"
 	}
 
-	lng := float64(mySituation.Lng)
-	deg = math.Floor(lng)
-	min = (lng - deg) * 60
-	lng = deg*100 + min
+	deg := math.Floor(lat)
+	min := (lat - deg) * 60
+	lat = deg*100 + min
 
 	ew := "E"
+	lng := float64(mySituation.Lng)
 	if lng < 0 {
 		lng = -lng
 		ew = "W"
 	}
+
+	deg = math.Floor(lng)
+	min = (lng - deg) * 60
+	lng = deg*100 + min
 
 	gs := float32(mySituation.GroundSpeed)
 	trueCourse := float32(mySituation.TrueCourse)
