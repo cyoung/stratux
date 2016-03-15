@@ -13,10 +13,24 @@
 #			Authenticator
 ### END INIT INFO
 
+# Detect RPi version.
+#  Per http://elinux.org/RPi_HardwareHistory
+
+DAEMON_CONF=/etc/hostapd/hostapd.conf
+RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//'`
+if [ "$RPI_REV" -eq "a01041" ] || [ "$RPI_REV" -eq "a21041" ] ; then
+ # This is a RPi2B.
+ DAEMON_CONF=/etc/hostapd/hostapd.conf
+fi
+if [ "$RPI_REV" -eq "a01041" ] ; then
+ # This is a RPi3B.
+ DAEMON_CONF=/etc/hostapd/hostapd-rpi3.conf
+fi
+
+
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON_SBIN=/usr/sbin/hostapd
 DAEMON_DEFS=/etc/default/hostapd
-DAEMON_CONF=
 NAME=hostapd
 DESC="advanced IEEE 802.11 management"
 PIDFILE=/run/hostapd.pid
