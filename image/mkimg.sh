@@ -48,8 +48,8 @@ rm -f mnt/etc/rc*.d/*hostapd mnt/etc/network/if-pre-up.d/hostapd mnt/etc/network
 #interface config
 cp -f interfaces mnt/etc/network/interfaces
 #custom hostapd start script
-cp stratux-hostapd.sh mnt/usr/sbin/
-chmod 755 mnt/usr/sbin/stratux-hostapd.sh
+cp stratux-wifi.sh mnt/usr/sbin/
+chmod 755 mnt/usr/sbin/stratux-wifi.sh
 
 
 #isc-dhcp-server config
