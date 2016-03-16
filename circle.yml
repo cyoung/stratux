@@ -7,7 +7,7 @@ dependencies:
   pre:
     - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd ~/; git clone https://github.com/jpoirier/librtlsdr; cd librtlsdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig; cd ~/; mkdir gopath; cd ~/; mkdir gopath; wget https://storage.googleapis.com/golang/go1.6.src.tar.gz; tar -zxvf go1.6.src.tar.gz; cd go/src; export GOROOT_BOOTSTRAP=/usr/local/go; ./make.bash; echo $PATH; echo $GOPATH; go version; env
   override:
-    - cd .. ; rm -rf stratux ; git clone --recursive https://github.com/cyoung/stratux ; cd stratux ; make
+    - cd .. ; rm -rf stratux ; git clone --recursive https://github.com/cyoung/stratux ; cd stratux ; git checkout $CIRCLE_BRANCH ; make
 
 test:
   override:

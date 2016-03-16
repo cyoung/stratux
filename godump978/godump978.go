@@ -28,7 +28,7 @@ package godump978
 #include <stdint.h>
 #include "../dump978/dump978.h"
 
-extern void dump978Cb(char updown, uint8_t *data, int len);
+extern void dump978Cb(char updown, uint8_t *data, int len, int rs_errors, int signal_strength);
 static inline CallBack GetGoCb() {
 	return (CallBack)dump978Cb;
 }
@@ -42,7 +42,7 @@ var PackageVersion = "v0.1"
 // InChan is a buffered input channel for raw data.
 var InChan = make(chan []byte, 100)
 
-type UserCbT func(C.char, *C.uint8_t, C.int)
+type UserCbT func(C.char, *C.uint8_t, C.int, C.int, C.int)
 
 // Dump978Init must be the first function called in this package.
 func Dump978Init() {
