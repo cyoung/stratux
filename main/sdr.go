@@ -521,6 +521,5 @@ func sdrWatcher() {
 func sdrInit() {
 	go sdrWatcher()
 	go uatReader()
-	godump978.Dump978Init()
 	go godump978.ProcessDataFromChannel()
 }
