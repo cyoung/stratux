@@ -70,10 +70,6 @@ echo export GOROOT=/root/go >>/root/.bashrc
 echo export GOPATH=/root/go_path >>/root/.bashrc
 
 
-#wifi watch
-cp -f wifi_watch.sh mnt/usr/sbin/wifi_watch.sh
-chmod +x mnt/usr/sbin/wifi_watch.sh
-
 #rtl-sdr setup
 echo blacklist dvb_usb_rtl28xxu >>/etc/modprobe.d/rtl-sdr-blacklist.conf
 echo blacklist e4000 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
