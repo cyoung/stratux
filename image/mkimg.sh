@@ -24,21 +24,15 @@ apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
 apt-get install -y tcpdump
 #wifi startup
-update-rc.d hostapd enable
-update-rc.d isc-dhcp-server enable
-cp hostapd-init.d mnt/etc/init.d/hostapd
-chmod +x mnt/etc/init.d/hostapd
+systemctl enable isc-dhcp-server
 
 #disable ntpd autostart
-update-rc.d ntp disable
+systemctl disbable ntp
 
 #root key
 cp -f root mnt/etc/ssh/authorized_keys/root
 chown root.root mnt/etc/ssh/authorized_keys/root
 chmod 644 mnt/etc/ssh/authorized_keys/root
-
-#interface config
-cp -f interfaces mnt/etc/network/interfaces
 
 #dhcpd config
 cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
@@ -48,6 +42,15 @@ cp -f hostapd.conf mnt/etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-rpi3.conf
 #hostapd
 cp -f hostapd-edimax mnt/usr/sbin/hostapd-edimax
+chmod 755 mnt/usr/sbin/hostapd-edimax
+#remove hostapd startup scripts
+rm -f mnt/etc/rc*.d/*hostapd mnt/etc/network/if-pre-up.d/hostapd mnt/etc/network/if-post-down.d/hostapd mnt/etc/init.d/hostapd mnt/etc/default/hostapd
+#interface config
+cp -f interfaces mnt/etc/network/interfaces
+#custom hostapd start script
+cp stratux-hostapd.sh mnt/usr/sbin/
+chmod 755 mnt/usr/sbin/stratux-hostapd.sh
+
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
@@ -96,7 +99,7 @@ rm -rf stratux
 git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make
-update-rc.d stratux enable
+systemctl enable stratux
 
 #system tweaks
 echo "i2c-bcm2708" >>/etc/modules
