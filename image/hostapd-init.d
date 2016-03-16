@@ -1,5 +1,8 @@
 #!/bin/sh
 
+#TODO: change DAEMON_SBIN
+#TODO: add hostapd-edimax binary to image [http://www.daveconroy.com/wp3/wp-content/uploads/2013/07/hostapd.zip]
+
 ### BEGIN INIT INFO
 # Provides:		hostapd
 # Required-Start:	$remote_fs
@@ -17,19 +20,20 @@
 #  Per http://elinux.org/RPi_HardwareHistory
 
 DAEMON_CONF=/etc/hostapd/hostapd.conf
+DAEMON_SBIN=/usr/sbin/hostapd
 RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//'`
 if [ "$RPI_REV" -eq "a01041" ] || [ "$RPI_REV" -eq "a21041" ] ; then
  # This is a RPi2B.
- DAEMON_CONF=/etc/hostapd/hostapd.conf
+ DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
+ DAEMON_SBIN=/usr/sbin/hostapd-edimax
 fi
 if [ "$RPI_REV" -eq "a01041" ] ; then
  # This is a RPi3B.
- DAEMON_CONF=/etc/hostapd/hostapd-rpi3.conf
+ DAEMON_CONF=/etc/hostapd/hostapd.conf
 fi
 
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON_SBIN=/usr/sbin/hostapd
 DAEMON_DEFS=/etc/default/hostapd
 NAME=hostapd
 DESC="advanced IEEE 802.11 management"

@@ -26,6 +26,9 @@ apt-get install -y tcpdump
 #wifi startup
 update-rc.d hostapd enable
 update-rc.d isc-dhcp-server enable
+cp hostapd-init.d mnt/etc/init.d/hostapd
+chmod +x mnt/etc/init.d/hostapd
+
 #disable ntpd autostart
 update-rc.d ntp disable
 
@@ -42,7 +45,9 @@ cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
 
 #hostapd config
 cp -f hostapd.conf mnt/etc/hostapd/hostapd.conf
-echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" >/etc/default/hostapd
+cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-rpi3.conf
+#hostapd
+cp -f hostapd-edimax mnt/usr/sbin/hostapd-edimax
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
