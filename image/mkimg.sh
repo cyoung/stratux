@@ -1,26 +1,23 @@
 #!/bin/bash
 
 
-kpartx -a asdfsadf.img
+#kpartx -a asdfsadf.img
 
-dd if=/dev/zero bs=1M count=200 >>2016-02-26-raspbian-jessie-lite.img
+##dd if=/dev/zero bs=1M count=200 >>2016-02-26-raspbian-jessie-lite.img
 
 #mount root partition
-mount -o loop,offset=67108864 2016-02-26-raspbian-jessie-lite.img mnt/
-resize2fs /dev/loop0
+##mount -o loop,offset=67108864 2016-02-26-raspbian-jessie-lite.img mnt/
+##resize2fs /dev/loop0
 #mount boot partition
-mount -o loop,offset=4194304 2016-02-26-raspbian-jessie-lite.img mnt/boot/
+##mount -o loop,offset=4194304 2016-02-26-raspbian-jessie-lite.img mnt/boot/
 
-#TODO
-chroot mnt/
-
-apt-get update
+chroot mnt/ apt-get update
 
 #update firmware
-apt-get -y install rpi-update
-rpi-update
+chroot mnt/ apt-get -y install rpi-update
+chroot mnt/ rpi-update
 #wifi
-apt-get install -y hostapd isc-dhcp-server
+chroot mnt/ apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
 apt-get install -y tcpdump
 #wifi startup
@@ -39,7 +36,7 @@ cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
 
 #hostapd config
 cp -f hostapd.conf mnt/etc/hostapd/hostapd.conf
-cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-rpi3.conf
+cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-edimax.conf
 #hostapd
 cp -f hostapd-edimax mnt/usr/sbin/hostapd-edimax
 chmod 755 mnt/usr/sbin/hostapd-edimax
