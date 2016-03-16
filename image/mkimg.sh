@@ -19,12 +19,12 @@ chroot mnt/ rpi-update
 #wifi
 chroot mnt/ apt-get install -y hostapd isc-dhcp-server
 #troubleshooting
-apt-get install -y tcpdump
+chroot mnt/ apt-get install -y tcpdump
 #wifi startup
-systemctl enable isc-dhcp-server
+chroot mnt/ systemctl enable isc-dhcp-server
 
 #disable ntpd autostart
-systemctl disbable ntp
+chroot mnt/ systemctl disable ntp
 
 #root key
 cp -f root mnt/etc/ssh/authorized_keys/root
@@ -48,7 +48,6 @@ cp -f interfaces mnt/etc/network/interfaces
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
 
-
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
 
@@ -60,28 +59,22 @@ cp -f ../libdump978.so mnt/usr/lib/libdump978.so
 cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
 cp -f rc.local mnt/etc/rc.local
 
-#TODO:go setup
+#go1.5.1 setup
 cp -rf /root/go mnt/root/
-echo export PATH=/root/go/bin:\$\{PATH\} >>/root/.bashrc
-echo export GOROOT=/root/go >>/root/.bashrc
-echo export GOPATH=/root/go_path >>/root/.bashrc
-
+##echo export PATH=/root/go/bin:\$\{PATH\} >>mnt/root/.bashrc
+##echo export GOROOT=/root/go >>mnt/root/.bashrc
+##echo export GOPATH=/root/go_path >>mnt/root/.bashrc
 
 #rtl-sdr setup
-echo blacklist dvb_usb_rtl28xxu >>/etc/modprobe.d/rtl-sdr-blacklist.conf
-echo blacklist e4000 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
-echo blacklist rtl2832 >>/etc/modprobe.d/rtl-sdr-blacklist.conf
-apt-get install -y git cmake libusb-1.0-0.dev build-essential
-cd /root
-rm -rf librtlsdr
-git clone https://github.com/jpoirier/librtlsdr
-cd librtlsdr
-mkdir build
-cd build
-cmake ../
-make
-make install
-ldconfig
+##echo blacklist dvb_usb_rtl28xxu >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
+##echo blacklist e4000 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
+##echo blacklist rtl2832 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
+chroot mnt/ apt-get install -y git cmake libusb-1.0-0.dev build-essential
+rm -rf mnt/root/librtlsdr
+git clone https://github.com/jpoirier/librtlsdr mnt/root/librtlsdr
+mkdir -p mnt/root/librtlsdr/build
+#FIXME
+chroot mnt/ 'cd /root/librtlsdr/build && cmake ../ && make && make install && ldconfig'
 
 
 #stratux setup
@@ -92,11 +85,12 @@ rm -rf stratux
 git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make
+make install
 systemctl enable stratux
 
 #system tweaks
-echo "i2c-bcm2708" >>/etc/modules
-echo "i2c-dev" >>/etc/modules
+#echo "i2c-bcm2708" >>/etc/modules
+#echo "i2c-dev" >>/etc/modules
 
 #kalibrate-rtl
 cd /root
