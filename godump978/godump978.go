@@ -44,8 +44,7 @@ var InChan = make(chan []byte, 100)
 
 type UserCbT func(C.char, *C.uint8_t, C.int)
 
-// Dump978Init must be the first function called in this package.
-func Dump978Init() {
+func init() {
 	C.Dump978Init((C.CallBack)(C.GetGoCb()))
 }
 
