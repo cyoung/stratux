@@ -193,7 +193,6 @@ func main() {
 	*/
 
 	//---------- Get/Set misc. streaming ----------
-	godump978.Dump978Init()
 	go printUAT()
 	go godump978.ProcessDataFromChannel()
 

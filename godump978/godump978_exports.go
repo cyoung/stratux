@@ -12,9 +12,10 @@ import (
 	"unsafe"
 	"strconv"
 )
-
-// #cgo CFLAGS: -L../
+ 
 /*
+#cgo CFLAGS: -L../
+
 #include <stdint.h>
 #include "../dump978/dump978.h"
 */

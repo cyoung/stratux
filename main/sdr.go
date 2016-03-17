@@ -10,7 +10,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os/exec"
 	"regexp"
@@ -71,9 +70,6 @@ func (e *ES) read() {
 
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
-	scanStdout := bufio.NewScanner(stdout)
-	scanStderr := bufio.NewScanner(stderr)
-
 	done := make(chan bool)
 
 	go func() {
@@ -94,27 +90,18 @@ func (e *ES) read() {
 		}
 	}()
 
+	stdoutBuf := make([]byte, 1024)
+	stderrBuf := make([]byte, 1024)
 	go func() {
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				if scanStdout.Scan() {
-					replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+				n, err := stdout.Read(stdoutBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stdoutBuf[:n]), MSGCLASS_DUMP1090)
 				}
-				if err := scanStdout.Err(); err != nil {
-					log.Printf("scanStdout error: %s\n", err)
-				}
-
-				//if scanStderr.Scan() {
-				//	replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
-				//}
-				//if err := scanStderr.Err(); err != nil {
-				//	log.Printf("scanStderr error: %s\n", err)
-				//}
-
-				//time.Sleep(1 * time.Second)
 			}
 		}
 	}()
@@ -125,21 +112,10 @@ func (e *ES) read() {
 			case <-done:
 				return
 			default:
-				//if scanStdout.Scan() {
-				//	replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
-				//}
-				//if err := scanStdout.Err(); err != nil {
-				//	log.Printf("scanStdout error: %s\n", err)
-				//}
-
-				if scanStderr.Scan() {
-					replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+				n, err := stderr.Read(stderrBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stderrBuf[:n]), MSGCLASS_DUMP1090)
 				}
-				if err := scanStderr.Err(); err != nil {
-					log.Printf("scanStderr error: %s\n", err)
-				}
-
-				//time.Sleep(1 * time.Second)
 			}
 		}
 	}()
@@ -510,16 +486,18 @@ func sdrWatcher() {
 			shutdownES = false
 		}
 
+		// capture current state
+		esEnabled := globalSettings.ES_Enabled
+		uatEnabled := globalSettings.UAT_Enabled
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
-		// support two and only two dongles
+		// support up to two dongles
 		if count > 2 {
 			count = 2
 		}
 
-		if count == prevCount && prevESEnabled == globalSettings.ES_Enabled &&
-			prevUATEnabled == globalSettings.UAT_Enabled {
+		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled {
 			continue
 		}
 
@@ -532,17 +510,16 @@ func sdrWatcher() {
 			ESDev.shutdown()
 			ESDev = nil
 		}
-		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		configDevices(count, esEnabled, uatEnabled)
 
 		prevCount = count
-		prevUATEnabled = globalSettings.UAT_Enabled
-		prevESEnabled = globalSettings.ES_Enabled
+		prevUATEnabled = uatEnabled
+		prevESEnabled = esEnabled
 	}
 }
 
 func sdrInit() {
 	go sdrWatcher()
 	go uatReader()
-	godump978.Dump978Init()
 	go godump978.ProcessDataFromChannel()
 }
