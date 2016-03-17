@@ -9,11 +9,6 @@ chmod 755 /etc/init.d/stratux
 ln -fs /etc/init.d/stratux /etc/rc2.d/S01stratux
 ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
 
-# Wifi watcher.
-cp -f rc.local /etc/rc.local
-cp -f wifi_watch.sh /usr/sbin/wifi_watch.sh
-chmod +x /usr/sbin/wifi_watch.sh
-
 cp -f dump1090 /usr/bin/
 
 # Web files install.
