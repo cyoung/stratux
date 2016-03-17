@@ -452,7 +452,7 @@ func makeStratuxStatus() []byte {
 		switch mySituation.quality {
 		case 1: // 1 = 3D GPS.
 			msg[13] = 1
-		case 2: // 2 = DGPS (SBAS /WAAS).
+		case 2: // 2 = DGPS / SBAS (WAAS).
 			msg[13] = 2
 		default: // Zero.
 		}
@@ -798,7 +798,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.quality == 2 {
-		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
 	} else if mySituation.quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.quality == 6 {
@@ -921,7 +921,7 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	var thisSignalStrength int
 
-	if /*isUplink &&*/ len(x) >= 3 {
+	if len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
 		//log.Printf("x[2] = %s\n",ss)

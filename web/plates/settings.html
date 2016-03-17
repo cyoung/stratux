@@ -28,60 +28,10 @@
 						<ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
 					</div>
 				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">AHRS Output to EFB</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='AHRS_GDL90_Enabled' settings-change></ui-switch>
-					</div>
-				</div>
 			</div>
 		</div>
 	
-		<div class="panel panel-default">
-			<div class="panel-heading">AvSquirrel's Developer Options</div>
-			<div class="panel-body">
-				<div class="form-group">
-					<label class="control-label col-xs-7">ForeFlight Sim Mode AHRS</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='ForeFlightSimMode' settings-change></ui-switch>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">Traffic Demo Mode</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='DemoMode' settings-change></ui-switch>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">FLARM Output Demo</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='FLARMTraffic' settings-change></ui-switch>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">GPS Attitude ("Fake AHRS")</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='GPSAttitude_Enabled' settings-change></ui-switch>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">Use ADS-B ownship altitude and callsign</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='UseOwnshipBaroAlt' settings-change></ui-switch>
-					</div>
-				</div>
-				
-				<!--
-				<div class="form-group">
-					<label class="control-label col-xs-7">AHRS</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
-					</div>
-				</div>
-				-->
-			</div>
-		</div>
-	
+		
 	</div>
 
 	<div class="panel-group col-sm-6">
@@ -116,6 +66,13 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Configuration</div>
 			<div class="panel-body">
+				<div class="form-group">
+					<label class="control-label col-xs-7"><a ui-turn-on="modalAHRSWarning">AHRS Output to EFB</a></label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='AHRS_GDL90_Enabled' settings-change ui-turn-on="modalAHRSWarning"></ui-switch>
+					</div>
+				</div>
+				
 				<div class="form-group reset-flow">
 					<label class="control-label col-xs-5">Mode S Code (Hex)</label>
 					<form name="modeForm" ng-submit="updatemodes()" novalidate>
@@ -174,6 +131,43 @@
 
 </div>
 
+<div class="col-sm-12">
+  <div class="panel panel-default">
+			<div class="panel-heading">Experimental Configuration Options</div>
+			<div class="panel-body">
+				<div class="form-group">
+					<label class="control-label col-xs-7"><a ui-turn-on="modalFFAHRSWarning">ForeFlight 'Flight Simulator' AHRS Output</a></label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='ForeFlightSimMode' settings-change ui-turn-on="modalFFAHRSWarning"></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Traffic Demo</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='DemoMode' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">FLARM-Formatted Serial Traffic Output</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='FLARMTraffic' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">GPS Simulated AHRS</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='GPSAttitude_Enabled' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Use ADS-B Ownship Altitude and Callsign</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='UseOwnshipBaroAlt' settings-change></ui-switch>
+					</div>
+				</div>
+			</div>
+		</div>
+</div>
 
 <!--
 <div class="col-sm-12">
@@ -240,6 +234,47 @@
     	  </div>
     </div>
   </div> 
-
+  
+  <div class="modal" ui-if="modalAHRSWarning" ui-state="modalAHRSWarning">
+    <div class="modal-overlay "></div>
+       	<div class="vertical-alignment-helper center-block">
+        	<div class="modal-dialog vertical-align-center">
+   			  <div class="modal-content">
+				<div class="modal-header">
+				  <button class="close" 
+						  ui-turn-off="modalAHRSWarning"></button>
+				  <h4 class="modal-title">AHRS Output to EFB: Compatibility Note</h4>
+				</div>
+				<div class="modal-body">
+				  <p>This option must be enabled to send AHRS messages to compatible EFBs (WingX, iFly, etc.) over the WiFi interface using the GDL90 protocol. Hardware AHRS or GPS simulated AHRS must also be enabled. <strong>This mode is not compatible with ForeFlight, and must be disabled for ForeFlight 7.6 to work at all.</strong></p>
+				</div>
+				<div class="modal-footer">
+				  <a ui-turn-off="modalAHRSWarning" class="btn btn-primary">Acknowledge</a>
+				</div>
+			  </div>
+    	  </div>
+    </div>
+  </div> 
+  
+  <div class="modal" ui-if="modalFFAHRSWarning" ui-state="modalFFAHRSWarning">
+    <div class="modal-overlay "></div>
+       	<div class="vertical-alignment-helper center-block">
+        	<div class="modal-dialog vertical-align-center">
+   			  <div class="modal-content">
+				<div class="modal-header">
+				  <button class="close" 
+						  ui-turn-off="modalFFAHRSWarning"></button>
+				  <h4 class="modal-title">ForeFlight 'Flight Simulator' AHRS Output: Compatibility Warning</h4>
+				</div>
+				<div class="modal-body">
+				  <p>This option enables position, traffic, and AHRS messages over the WiFi interface using the ForeFlight "Flight Simulator" protocol. Hardware AHRS or GPS simulated AHRS must also be enabled. This mode is intended for developer use on the ground only, and may not function correctly while airborne. <strong>This mode disables ALL GDL90 protocol traffic, meaning ForeFlight will not show FIS-B weather and NOTAMS, and other applications won't work at all.</strong></p>
+				</div>
+				<div class="modal-footer">
+				  <a ui-turn-off="modalFFAHRSWarning" class="btn btn-primary">Acknowledge</a>
+				</div>
+			  </div>
+    	  </div>
+    </div>
+  </div> 
 </div>
 
