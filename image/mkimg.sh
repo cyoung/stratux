@@ -108,3 +108,9 @@ sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+
+#boot settings
+echo "max_usb_current=1" >>mnt/boot/config.txt
+echo "dtparam=i2c1=on" >>mnt/boot/config.txt
+echo "dtparam=i2c1_baudrate=400000" >>mnt/boot/config.txt
+echo "dtparam=i2c_arm_baudrate=400000" >>mnt/boot/config.txt
