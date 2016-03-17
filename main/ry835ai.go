@@ -176,7 +176,7 @@ func initGPSSerial() bool {
 
 	log.Printf("Configuring GPS\n")
 
-	if _, err := os.Stat("/dev/ttyUSB0"); err == nil && !globalSettings.FLARMTraffic { // note -- method is not robust; ttyUSB could be used by any number of USB-to-serial bridges, not just GPS devices.
+	if _, err := os.Stat("/dev/ttyUSB0"); err == nil && !globalSettings.FLARMTraffic { // note -- SIRF detection method is not robust; ttyUSB could be used by any number of USB-to-serial bridges, not just GPS devices.
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/ttyUSB0"
@@ -231,7 +231,7 @@ func initGPSSerial() bool {
 
 		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 	} else {
-		log.Printf("Sent UBX and MTK ident commands at %d. Listening for response.\n", stratuxClock.Milliseconds)
+		log.Printf("Sent UBX and MTK ident commands at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
 		serialPort = p
 		scanner := bufio.NewScanner(serialPort)
 		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
@@ -277,6 +277,8 @@ func initGPSSerial() bool {
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX {
 			// Set 10Hz update. Little endian order.
 			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
+			//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
+			//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xe8, 0x03, 0x01, 0x00, 0x01, 0x00})) // 1 Hz
 
 			// Set navigation settings.
 			nav := make([]byte, 36)
@@ -312,6 +314,7 @@ func initGPSSerial() bool {
 
 			// Message output configuration -- disable standard NMEA messages except 1Hz GGA
 			//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
+
 			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
 			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
 			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
@@ -331,6 +334,27 @@ func initGPSSerial() bool {
 			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
 			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
 
+			/*
+			   Alternate configuration using only NMEA standard sentences -- only used for developer testing
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x0A, 0x00, 0x01})) // GGA
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01})) // GSA
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01})) // GSV
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01})) // RMC
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01})) // VTG
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
+
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox,0
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox,3
+			   			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox,4
+			*/
 			// Reconfigure serial port.
 			cfg := make([]byte, 20)
 			cfg[0] = 0x01 // portID.
@@ -369,19 +393,18 @@ func initGPSSerial() bool {
 
 			p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 			baudrate = 38400
-
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 
 		} else if globalStatus.GPS_detected_type == GPS_TYPE_MEDIATEK { // TO-DO: Needs testing.
-			// send GGA, VTG, RMC, GSA once per second. Send GSV once every five (?)
-			p.Write(makeNMEACmd("PMTK314,0,1,1,1,1,5,0,0,0,0,0,0,0,0,0,0,0,0,0")) // GLL, RMC, VTG, GGA, GSA, GSV
+			// send GGA, VTG, RMC, once per sample. Send GSA and GSV once every five.
+			p.Write(makeNMEACmd("PMTK314,0,1,1,1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0")) // GLL, RMC, VTG, GGA, GSA, GSV
 
 			// set WAAS
 			p.Write(makeNMEACmd("PMTK301,2"))
 			p.Write(makeNMEACmd("PMTK513,1"))
 
-			// set sample rate to 10 Hz
-			p.Write(makeNMEACmd("PMTK220,100"))
+			// set sample rate to 5 Hz. Documentation states SBAS is only available at 5Hz or less.
+			p.Write(makeNMEACmd("PMTK220,200"))
 
 			// set baud rate to 38400
 			p.Write(makeNMEACmd("PMTK251,38400"))
@@ -403,6 +426,8 @@ func initGPSSerial() bool {
 		}
 
 	}
+	mySituation.LastNMEAMessage = stratuxClock.Time // zero the NMEA message count timer to avoid timing out of the GPS reader loop before we read a message
+
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
@@ -417,7 +442,9 @@ func initGPSSerial() bool {
 	// TO-DO: Verify port is sending correct messages.
 
 	serialPort = p
+
 	return true
+
 }
 
 // func validateNMEAChecksum determines if a string is a properly formatted NMEA sentence with a valid checksum.
@@ -475,10 +502,9 @@ func setTrueCourse(groundSpeed, trueCourse uint16) {
 /*
 calcGPSAttitude estimates turn rate, pitch, and roll based on recent GPS groundspeed, track, and altitude / vertical speed.
 
-Method uses stored performance statistics from myGPSPerfStats[]. Calculation is based on most recent 1.5 seconds of data,
-assuming 10 Hz sampling frequency.
-
-
+Method uses stored performance statistics from myGPSPerfStats[]. Ideally, calculation is based on most recent 1.5 seconds of data,
+assuming 10 Hz sampling frequency. Lower frequency sample rates will increase calculation window for smoother response, at the
+cost of slightly increased lag.
 
 (c) 2016 AvSquirrel (https://github.com/AvSquirrel) . All rights reserved.
 Distributable under the terms of the "BSD-New" License that can be found in
@@ -493,7 +519,7 @@ func calcGPSAttitude() bool {
 	index := length - 1
 
 	if length == 0 {
-		log.Printf("myGPSPerfStats is empty set. Not calculating attitude.\n")
+		log.Printf("GPS attitude: No data received yet. Not calculating attitude.\n")
 		return false
 	} else if length == 1 {
 		//log.Printf("myGPSPerfStats has one data point. Setting statistics to zero.\n")
@@ -563,17 +589,42 @@ func calcGPSAttitude() bool {
 
 	}
 
-	// otherwise if all bounds checks are good, process the data.
+	// If all of the bounds checks pass, begin processing the GPS data.
 
-	// temp vars
-	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept float64
+	// local variables
+	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept, dt_avg float64
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
 	var lengthHeading, lengthSpeed int
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
-	halfwidth := float64(1.5)                         // width of regression evaluation window. Default of 1.5 seconds for 10 Hz sampling; can increase to 2.0 sec @ 5 Hz or 5 sec @ 1 Hz
-	//detectedFreq := float64(10.0)  // TO-DO
+	halfwidth := float64(1.5)                         // width of regression evaluation window. Default of 1.5 seconds for 10 Hz sampling; can increase to 3 sec @ 5 Hz or 5 sec @ 1 Hz
+
+	// frequency detection
+	tempSpeedTime = make([]float64, 0)
+	for i := 1; i < length; i++ {
+		dt = myGPSPerfStats[i].nmeaTime - myGPSPerfStats[i-1].nmeaTime
+		if dt > 0.05 { // avoid double counting messages with same / similar timestamps
+			tempSpeedTime = append(tempSpeedTime, float64(dt))
+		}
+	}
+	//log.Printf("Delta time array is %v.\n",tempSpeedTime)
+	dt_avg, valid = mean(tempSpeedTime)
+	if valid && dt_avg > 0 {
+		if globalSettings.VerboseLogs {
+			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
+		}
+		halfwidth = 15 * dt_avg
+	} else {
+		if globalSettings.VerboseLogs {
+			log.Printf("GPS attitude: Couldn't determine sample rate\n")
+		}
+		halfwidth = 3.0
+	}
+
+	if halfwidth > 5 {
+		halfwidth = 5 // limit calculation window to 5 seconds of data for 2 Hz or slower samples
+	}
 
 	if globalStatus.GPS_detected_type == GPS_TYPE_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
 		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
@@ -608,10 +659,9 @@ func calcGPSAttitude() bool {
 		}
 
 	} else { // If we need to parse standard NMEA messages, determine if it's RMC or GGA, then fill the temporary slices accordingly. Need to pull from multiple message types since GGA doesn't do course or speed; VTG / RMC don't do altitude, etc. Grrr.
-		halfwidth = 2.5 // SIRF configuration is 5 Hz, so extend the timebase a bit. This will also allow basic calculation to be done for 1 Hz generic NMEA.
-		// TODO
-		v_x = float64(myGPSPerfStats[index].gsf * 1.687810) //FIXME. Pull current value from RMC message and convert to ft/sec.
-		v_z = 0                                             // FIXME
+
+		//v_x = float64(myGPSPerfStats[index].gsf * 1.687810)
+		//v_z = 0
 
 		// first, parse groundspeed from RMC messages.
 		tempSpeedTime = make([]float64, 0)
@@ -625,6 +675,7 @@ func calcGPSAttitude() bool {
 				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
 			}
 		}
+		lengthSpeed = len(tempSpeed)
 		if lengthSpeed == 0 {
 			log.Printf("GPS Attitude: No groundspeed data could be parsed from NMEA RMC messages\n")
 			return false
@@ -652,6 +703,7 @@ func calcGPSAttitude() bool {
 				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
 			}
 		}
+		lengthSpeed = len(tempVV)
 		if lengthSpeed < 2 {
 			log.Printf("GPS Attitude: Not enough points to calculate vertical speed from NMEA GGA messages\n")
 			return false
@@ -669,7 +721,7 @@ func calcGPSAttitude() bool {
 	}
 
 	// If we're going too slow for processNMEALine() to give us valid heading data, there's no sense in trying to parse it.
-	// However, this function should still return a valid level attitude so we don't get the "red X of death" on our AHRS display.
+	// However, we need to return a valid level attitude so we don't get the "red X of death" on our AHRS display.
 	// This will also eliminate most of the nuisance error message from the turn rate calculation.
 	if v_x < 6 { // ~3.55 knots
 
@@ -679,10 +731,9 @@ func calcGPSAttitude() bool {
 		myGPSPerfStats[index].gpsLoadFactor = 1.0
 		mySituation.GPSTurnRate = 0
 
-		if globalSettings.VerboseLogs {
-			// Output format:GPSAtttiude,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
-			log.Printf(",GPSAttitude,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
-		}
+		// Output format:GPSAtttiude,seconds,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
+		buf := fmt.Sprintf("GPSAttitude,%.1f,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", float64(stratuxClock.Milliseconds)/1000, myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+		replayLog(buf, MSGCLASS_AHRS)
 
 		return true
 	}
@@ -789,10 +840,9 @@ func calcGPSAttitude() bool {
 		myGPSPerfStats[index].gpsLoadFactor = 1
 	}
 
-	if globalSettings.VerboseLogs {
-		// Output format:,GPSAtttiude,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
-		log.Printf(",GPSAttitude,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
-	}
+	// Output format:GPSAtttiude,seconds,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
+	buf := fmt.Sprintf("GPSAttitude,%.1f,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", float64(stratuxClock.Milliseconds)/1000, myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
+	replayLog(buf, MSGCLASS_AHRS)
 	return true
 }
 
@@ -1272,6 +1322,7 @@ func processNMEALine(l string) bool {
 		     D				mode field (nmea 2.3 and higher)
 		     *6A          The checksum data, always begins with *
 		*/
+
 		if len(x) < 11 {
 			return false
 		}
@@ -1361,7 +1412,7 @@ func processNMEALine(l string) bool {
 		// ground track "True" (field 8)
 		trueCourse := uint16(0)
 		tc, err := strconv.ParseFloat(x[8], 32)
-		if err != nil {
+		if err != nil && groundspeed > 3 { // some receivers return null COG at low speeds. Need to ignore this condition.
 			return false
 		}
 
@@ -1385,6 +1436,7 @@ func processNMEALine(l string) bool {
 			updateGPSPerf = true
 			thisGpsPerf.msgType = x[0]
 		}
+
 		mySituation.LastGroundTrackTime = stratuxClock.Time
 
 	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") {
@@ -1446,11 +1498,13 @@ func processNMEALine(l string) bool {
 		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
 	}
 
+	//	log.Printf("Done parsing data for %s. Update GPSPerf = %t\n", x[0], updateGPSPerf) // REMOVE
+
 	if updateGPSPerf {
 		mySituation.mu_GPSPerf.Lock()
 		myGPSPerfStats = append(myGPSPerfStats, thisGpsPerf)
 		lenGPSPerfStats := len(myGPSPerfStats)
-		//log.Printf("GPSPerf array has %n elements. Contents are: %v\n",lenGPSPerfStats,myGPSPerfStats)
+		//	log.Printf("GPSPerf array has %n elements. Contents are: %v\n",lenGPSPerfStats,myGPSPerfStats)
 		if lenGPSPerfStats > 299 { //30 seconds @ 10 Hz for UBX, 30 seconds @ 5 Hz for MTK or SIRF with 2x messages per 200 ms)
 			myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):] // remove the first n entries if more than 300 in the slice
 		}

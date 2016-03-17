@@ -649,8 +649,6 @@ func heartBeatSender() {
 			} else {
 				sendFFSimLocation() // sends equivalent of ownship message in FFSIM format
 			}
-			// --- debug code: traffic demo ---
-			// Uncomment and compile to display large number of artificial traffic targets
 
 			if globalSettings.DemoMode {
 				numTargets := uint32(36)
@@ -667,16 +665,14 @@ func heartBeatSender() {
 				}
 			}
 
-			// ---end traffic demo code ---
-
 			sendTrafficUpdates()
 			if globalSettings.FLARMTraffic == true {
 				sendGPRMCString() // send equivalent of ownship message to FLARM units
 			}
 			updateStatus()
-			if globalSettings.VerboseLogs {
-				log.Printf("Finished sending once-per-second heartbeat items at [%d]\n", stratuxClock.Milliseconds)
-			}
+			//if globalSettings.VerboseLogs {
+			//	log.Printf("Finished sending once-per-second heartbeat items at [%d]\n", stratuxClock.Milliseconds)
+			//}
 		case <-timerMessageStats.C:
 			// Save a bit of CPU by not pruning the message log every 1 second.
 			updateMessageStats()

@@ -156,9 +156,9 @@ func cleanupOldEntries() {
 }
 
 func sendTrafficUpdates() {
-	if globalSettings.VerboseLogs {
-		log.Printf("Sending traffic updates.\n")
-	}
+	//	if globalSettings.VerboseLogs {
+	//		log.Printf("Sending traffic updates.\n")
+	//	}
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
@@ -233,7 +233,6 @@ func sendTrafficUpdates() {
 			} else {
 				log.Printf("%X => %s\n", ti.Icao_addr, string(s_out))
 			}
-			// end of debug block
 		}
 
 		traffic[icao] = ti // write the updated ti back to the map
