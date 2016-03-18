@@ -9,6 +9,9 @@ chmod 755 /etc/init.d/stratux
 ln -fs /etc/init.d/stratux /etc/rc2.d/S01stratux
 ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
 
+#wifi config
+cp -f hostapd.conf /etc/hostapd/hostapd.conf
+
 cp -f dump1090 /usr/bin/
 
 # Web files install.
