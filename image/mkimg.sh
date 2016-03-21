@@ -60,9 +60,7 @@ cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
 
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
-##echo export PATH=/root/go/bin:\$\{PATH\} >>mnt/root/.bashrc
-##echo export GOROOT=/root/go >>mnt/root/.bashrc
-##echo export GOPATH=/root/go_path >>mnt/root/.bashrc
+cp -f bashrc.txt mnt/root/.bashrc
 
 #rtl-sdr setup
 cp -f rtl-sdr-blacklist.conf mnt/etc/modprobe.d/
