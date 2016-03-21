@@ -993,7 +993,9 @@ func gpsSerialReader() {
 		log.Printf("reading standard input: %s\n", err.Error())
 	}
 
-	log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
+	if globalSettings.DEBUG {
+		log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
+	}
 	globalStatus.GPS_connected = false
 	readyToInitGPS = true // TO-DO: replace with channel control to terminate goroutine when complete
 	return
