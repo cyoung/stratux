@@ -25,6 +25,7 @@ cp image/hostapd.conf work/bin/
 cp image/config.txt work/bin/
 cp image/rtl-sdr-blacklist.conf work/bin/
 cp image/bashrc.txt work/bin/
+cp image/modules.txt work/bin/
 
 #TODO: librtlsdr.
 cd work/

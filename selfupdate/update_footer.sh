@@ -21,6 +21,9 @@ cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 #go setup
 cp -f bashrc.txt /root/.bashrc
 
+# /etc/modules
+cp -f modules.txt /etc/modules
+
 cp -f dump1090 /usr/bin/
 
 # Web files install.

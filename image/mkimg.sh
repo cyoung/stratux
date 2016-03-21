@@ -85,8 +85,7 @@ make install
 systemctl enable stratux
 
 #system tweaks
-#echo "i2c-bcm2708" >>/etc/modules
-#echo "i2c-dev" >>/etc/modules
+cp -f modules.txt mnt/etc/modules
 
 #kalibrate-rtl
 cd /root
