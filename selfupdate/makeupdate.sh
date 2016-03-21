@@ -23,6 +23,8 @@ cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
 cp image/hostapd.conf work/bin/
 cp image/config.txt work/bin/
+cp image/rtl-sdr-blacklist.conf work/bin/
+
 #TODO: librtlsdr.
 cd work/
 cat ../selfupdate/update_header.sh >update.sh

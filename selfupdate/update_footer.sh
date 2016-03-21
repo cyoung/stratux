@@ -15,6 +15,9 @@ cp -f hostapd.conf /etc/hostapd/hostapd.conf
 #boot config
 cp -f config.txt /boot/config.txt
 
+#modprobe.d blacklist
+cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
+
 cp -f dump1090 /usr/bin/
 
 # Web files install.

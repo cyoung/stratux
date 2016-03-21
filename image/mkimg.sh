@@ -65,9 +65,8 @@ cp -rf /root/go mnt/root/
 ##echo export GOPATH=/root/go_path >>mnt/root/.bashrc
 
 #rtl-sdr setup
-##echo blacklist dvb_usb_rtl28xxu >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
-##echo blacklist e4000 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
-##echo blacklist rtl2832 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
+cp -f rtl-sdr-blacklist.conf mnt/etc/modprobe.d/
+
 chroot mnt/ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 rm -rf mnt/root/librtlsdr
 git clone https://github.com/jpoirier/librtlsdr mnt/root/librtlsdr
