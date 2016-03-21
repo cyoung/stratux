@@ -22,6 +22,7 @@ cp init.d-stratux work/bin/
 cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
 cp image/hostapd.conf work/bin/
+cp image/config.txt work/bin/
 #TODO: librtlsdr.
 cd work/
 cat ../selfupdate/update_header.sh >update.sh
