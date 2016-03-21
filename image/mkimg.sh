@@ -57,18 +57,14 @@ cp -f sshd_config mnt/etc/ssh/sshd_config
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
 cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
-cp -f rc.local mnt/etc/rc.local
 
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
-##echo export PATH=/root/go/bin:\$\{PATH\} >>mnt/root/.bashrc
-##echo export GOROOT=/root/go >>mnt/root/.bashrc
-##echo export GOPATH=/root/go_path >>mnt/root/.bashrc
+cp -f bashrc.txt mnt/root/.bashrc
 
 #rtl-sdr setup
-##echo blacklist dvb_usb_rtl28xxu >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
-##echo blacklist e4000 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
-##echo blacklist rtl2832 >>mnt/etc/modprobe.d/rtl-sdr-blacklist.conf
+cp -f rtl-sdr-blacklist.conf mnt/etc/modprobe.d/
+
 chroot mnt/ apt-get install -y git cmake libusb-1.0-0.dev build-essential
 rm -rf mnt/root/librtlsdr
 git clone https://github.com/jpoirier/librtlsdr mnt/root/librtlsdr
@@ -89,15 +85,14 @@ make install
 systemctl enable stratux
 
 #system tweaks
-#echo "i2c-bcm2708" >>/etc/modules
-#echo "i2c-dev" >>/etc/modules
+cp -f modules.txt mnt/etc/modules
 
 #kalibrate-rtl
 cd /root
+rm -rf kalibrate-rtl
 git clone https://github.com/steve-m/kalibrate-rtl
 cd kalibrate-rtl
-apt-get install -y autoconf fftw3 fftw3-dev
-apt-get install -y libtool
+apt-get install -y autoconf fftw3 fftw3-dev libtool
 ./bootstrap
 ./configure
 make
@@ -108,3 +103,6 @@ sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+
+#boot settings
+cp -f config.txt mnt/boot/

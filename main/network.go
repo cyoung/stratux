@@ -10,6 +10,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -47,6 +48,7 @@ type networkConnection struct {
 	nextMessageTime time.Time // The next time that the device is "able" to receive a message.
 	numOverflows    uint32    // Number of times the queue has overflowed - for calculating the amount to chop off from the queue.
 	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging (relies on messages being sent to update this flag in sendToAllConnectedClients()).
+	FFCrippled      bool
 }
 
 var messageQueue chan networkMessage
@@ -84,17 +86,6 @@ func getDHCPLeases() (map[string]string, error) {
 			hostname := strings.TrimRight(strings.TrimLeft(strings.Join(spaced[3:], " "), "\""), "\";")
 			ret[block_ip] = hostname
 			open_block = false
-		} else if open_block && len(spaced) >= 4 && spaced[2] == "ends" {
-			end_time := spaced[4] + " " + strings.TrimRight(spaced[5], ";")
-			// Mon Jan 2 15:04:05 -0700 MST 2006.
-			// 2016/02/02 00:39:59.
-			t, err := time.Parse("2006/01/02 15:04:05", end_time) // "In the absence of a time zone indicator, Parse returns a time in UTC."
-			if err == nil && t.Before(time.Now()) {
-				log.Printf("lease expired for %s (%s) - skipping.\n", block_ip, end_time)
-				open_block = false
-				delete(ret, block_ip)
-				block_ip = ""
-			}
 		} else if open_block && strings.HasPrefix(spaced[0], "}") { // No hostname.
 			open_block = false
 			ret[block_ip] = ""
@@ -502,6 +493,60 @@ func sendFlarmMsg(flarmmsg []byte) {
 	flarmOutputChan <- flarmmsg
 }
 
+/*
+	ffMonitor().
+		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
+		 port 50113. Tags the client, issues a warning, and disables AHRS.
+
+*/
+
+func ffMonitor() {
+	ff_warned := false // Has a warning been issued via globalStatus.Errors?
+
+	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
+	conn, err := net.ListenUDP("udp", &addr)
+	defer conn.Close()
+	if err != nil {
+		log.Printf("ffMonitor(): error listening on port 50113: %s\n", err.Error())
+		return
+	}
+	for {
+		buf := make([]byte, 1024)
+		n, addr, err := conn.ReadFrom(buf)
+		ipAndPort := strings.Split(addr.String(), ":")
+		ip := ipAndPort[0]
+		if err != nil {
+			log.Printf("err: %s\n", err.Error())
+			return
+		}
+		// Got message, check if it's in the correct format.
+		if n < 3 || buf[0] != 0xFF || buf[1] != 0xFE {
+			continue
+		}
+		s := string(buf[2:n])
+		s = strings.Replace(s, "\x00", "", -1)
+		ffIpAndPort := ip + ":4000"
+		netMutex.Lock()
+		p, ok := outSockets[ffIpAndPort]
+		if !ok {
+			// Can't do anything, the client isn't even technically connected.
+			netMutex.Unlock()
+			continue
+		}
+		if globalSettings.AHRS_GDL90_Enabled == true && (strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp")) {
+			p.FFCrippled = true
+			globalSettings.AHRS_GDL90_Enabled = false
+			if !ff_warned {
+				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
+				addSystemError(e)
+				ff_warned = true
+			}
+		}
+		outSockets[ffIpAndPort] = p
+		netMutex.Unlock()
+	}
+}
+
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
 	flarmOutputChan = make(chan []byte, 128)       // Buffered channel, 128 messages = 3 seconds @ 38.4 kbps
@@ -514,4 +559,6 @@ func initNetwork() {
 	go sleepMonitor()
 	go networkStatsCounter()
 	go flarmOutWatcher()
+	go ffMonitor()
+
 }
