@@ -89,10 +89,10 @@ cp -f modules.txt mnt/etc/modules
 
 #kalibrate-rtl
 cd /root
+rm -rf kalibrate-rtl
 git clone https://github.com/steve-m/kalibrate-rtl
 cd kalibrate-rtl
-apt-get install -y autoconf fftw3 fftw3-dev
-apt-get install -y libtool
+apt-get install -y autoconf fftw3 fftw3-dev libtool
 ./bootstrap
 ./configure
 make
