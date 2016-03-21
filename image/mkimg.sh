@@ -57,7 +57,6 @@ cp -f sshd_config mnt/etc/ssh/sshd_config
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
 cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
-cp -f rc.local mnt/etc/rc.local
 
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
