@@ -158,9 +158,12 @@ func sendToAllConnectedClients(msg networkMessage) {
 	}
 }
 
-// Returns the number of DHCP leases and prints queue lengths
-func getNetworkStats() uint {
-	for _, netconn := range outSockets {
+// Returns the number of DHCP leases and prints queue lengths.
+func getNetworkStats() {
+
+	var numNonSleepingClients uint
+
+	for k, netconn := range outSockets {
 		queueBytes := 0
 		for _, msg := range netconn.messageQueue {
 			queueBytes += len(msg)
@@ -168,11 +171,21 @@ func getNetworkStats() uint {
 		if globalSettings.DEBUG {
 			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
 		}
+		ipAndPort := strings.Split(k, ":")
+		if len(ipAndPort) != 2 {
+			continue
+		}
+		ip := ipAndPort[0]
+		if pingRespTime, ok := pingResponse[ip]; ok {
+			// Don't count the ping time if it is the same as stratuxClock epoch.
+			// If the client has responded to a ping in the last 15 minutes, count it as "connected" or "recent".
+			if !pingRespTime.Equal(time.Time{}) && stratuxClock.Since(pingRespTime) < 15*time.Minute {
+				numNonSleepingClients++
+			}
+		}
 	}
 
-	ret := uint(len(dhcpLeases))
-	globalStatus.Connected_Users = ret
-	return ret
+	globalStatus.Connected_Users = numNonSleepingClients
 }
 
 // See who has a DHCP lease and make a UDP connection to each of them.
