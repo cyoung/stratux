@@ -8,8 +8,8 @@
 		</div>
 		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
 			<ul>
-				<li ng-repeat="err in Errors">
-					<font style="background-color: #FF0000">{{err}}</font>
+				<li class="status-error" ng-repeat="err in Errors">
+					<span class="fa fa-exclamation-triangle icon-red"></span> <span class="icon-red">{{err}}</span>
 				</li>
 			</ul>
 		</div>
@@ -82,7 +82,7 @@
 				</div>
 				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
 				<div class="separator"></div>
-				
+
 				<div class="row">
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-5"><strong>Uptime:</strong></span>
