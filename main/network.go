@@ -496,7 +496,7 @@ func sendFlarmMsg(flarmmsg []byte) {
 /*
 	ffMonitor().
 		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS.
+		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
 
 */
 
@@ -537,7 +537,7 @@ func ffMonitor() {
 			p.FFCrippled = true
 			globalSettings.AHRS_GDL90_Enabled = false
 			if !ff_warned {
-				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
+				e := errors.New("Stratux is not officially supported by your EFB app. It is incompatible with Stratux AHRS output, and revisions have been known to cause compatibility issues with Stratux. AHRS output is being disabled. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)
 				ff_warned = true
 			}

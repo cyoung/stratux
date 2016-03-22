@@ -1773,8 +1773,10 @@ func gpsAttitudeSender() {
 					mySituation.Gyro_heading = float64(mySituation.TrueCourse)
 					mySituation.LastAttitudeTime = stratuxClock.Time
 					if globalSettings.ForeFlightSimMode == true {
+						globalSettings.AHRS_GDL90_Enabled = false // both can't be simultaneously active
 						makeFFAHRSSimReport()
-					} else if globalSettings.AHRS_GDL90_Enabled {
+					} else if globalSettings.AHRS_GDL90_Enabled == true {
+						globalSettings.ForeFlightSimMode = false // both can't be simultaneoussly active
 						makeAHRSGDL90Report()
 					}
 				}
@@ -1807,8 +1809,10 @@ func attitudeReaderSender() {
 		//		if isGPSGroundTrackValid(), etc.
 
 		if globalSettings.ForeFlightSimMode == true {
+			globalSettings.AHRS_GDL90_Enabled = false // both can't be simultaneously active
 			makeFFAHRSSimReport()
-		} else if globalSettings.AHRS_GDL90_Enabled {
+		} else if globalSettings.AHRS_GDL90_Enabled == true {
+			globalSettings.ForeFlightSimMode = false // both can't be simultaneoussly active
 			makeAHRSGDL90Report()
 		}
 
