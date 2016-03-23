@@ -231,16 +231,20 @@ func initGPSSerial() bool {
 
 		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 	} else {
-		log.Printf("Sent UBX and MTK ident commands at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
 		serialPort = p
 		scanner := bufio.NewScanner(serialPort)
-		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
-		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
-		//serialPort = p
-		//scanner := bufio.NewScanner(serialPort)
+		
+		// MediaTek3339 doesn't like having UBX commands sent to it. So, we probe for it alone.
+		
+		
 		timeout := stratuxClock.Time
-
-		for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 3*time.Second && scanner.Scan() {
+		log.Printf("Sent MTK ident command at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
+		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
+		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
+		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
+		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek		
+		
+		for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 2*time.Second && scanner.Scan() {
 			s := scanner.Text()
 			log.Printf("[%d] Raw data read from %s: %s\n", stratuxClock.Milliseconds, device, s)
 
@@ -274,6 +278,48 @@ func initGPSSerial() bool {
 			}
 		}
 
+		// If as specific GPS type isn't detected, then we try looking for UBX.
+		
+		if globalStatus.GPS_detected_type < 2 {
+			timeout = stratuxClock.Time
+			log.Printf("Sent UBX ident command at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
+			p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
+			
+			for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 3*time.Second && scanner.Scan() {
+				s := scanner.Text()
+				log.Printf("[%d] Raw data read from %s: %s\n", stratuxClock.Milliseconds, device, s)
+
+				l_valid, validNMEAcs := validateNMEAChecksum(s)
+				if !validNMEAcs {
+					log.Printf("Data was seen on %s seen during GPS probing, but not NMEA message.\n", device)
+					continue
+				}
+
+				if globalStatus.GPS_detected_type == 0 {
+					log.Printf("GPS detected: NMEA messages seen.\n")
+					globalStatus.GPS_detected_type = GPS_TYPE_NMEA // If this is the first time we see a NMEA message, set our status flag
+				}
+				x := strings.Split(l_valid, ",")
+				if len(x) > 0 {
+					if x[0] == "PUBX" { // u-blox proprietary message
+						globalStatus.GPS_detected_type = GPS_TYPE_UBX // Only UBX GPS receivers send UBX messages
+						log.Printf("GPS detected: u-blox NMEA position message seen.\n")
+
+					} else if x[0] == "PMTK705" { // MTK response to
+						globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
+						pmtk705msg := ""
+						if len(x) > 1 {
+							pmtk705msg = x[1]
+						}
+						log.Printf("GPS detected: MediaTek NMEA firmware message (%s) seen.\n", pmtk705msg)
+					} else if strings.Contains(x[0], "PMTK") { // any other 1st sting with MTK
+						globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
+						log.Printf("GPS detected: MediaTek other NMEA message (%s) seen.\n", x[0])
+					}
+				}
+			}
+		}
+		
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX {
 			// Set 10Hz update. Little endian order.
 			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
@@ -396,20 +442,31 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 
 		} else if globalStatus.GPS_detected_type == GPS_TYPE_MEDIATEK { // TO-DO: Needs testing.
-			// send GGA, VTG, RMC, once per sample. Send GSA and GSV once every five.
-			p.Write(makeNMEACmd("PMTK314,0,1,1,1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0")) // GLL, RMC, VTG, GGA, GSA, GSV
-
-			// set WAAS
-			p.Write(makeNMEACmd("PMTK301,2"))
-			p.Write(makeNMEACmd("PMTK513,1"))
-
-			// set sample rate to 5 Hz. Documentation states SBAS is only available at 5Hz or less.
-			p.Write(makeNMEACmd("PMTK220,200"))
-
 			// set baud rate to 38400
 			p.Write(makeNMEACmd("PMTK251,38400"))
 			baudrate = 38400
+			p.Close()
+			time.Sleep(250 * time.Millisecond)
 
+			// Re-open port at newly configured baud so we can configure 5Hz messages.
+			serialConfig = &serial.Config{Name: device, Baud: baudrate}
+			p, err = serial.OpenPort(serialConfig)
+			
+			
+			// send GGA, VTG, RMC, once per sample. Send GSA and GSV once every five.
+			p.Write(makeNMEACmd("PMTK314,0,1,1,1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0")) // GLL, RMC, VTG, GGA, GSA, GSV
+			time.Sleep(100 * time.Millisecond)
+			// set WAAS
+			p.Write(makeNMEACmd("PMTK301,2"))
+			time.Sleep(100 * time.Millisecond)
+			
+			p.Write(makeNMEACmd("PMTK513,1"))
+			time.Sleep(100 * time.Millisecond)
+
+			// set sample rate to 5 Hz. Documentation states SBAS is only available at 5Hz or less.
+			p.Write(makeNMEACmd("PMTK220,200"))
+			time.Sleep(100 * time.Millisecond)
+			
 			log.Printf("Finished writing MediaTek GPS config to %s. Opening port to test connection.\n", device)
 
 		} else if globalStatus.GPS_detected_type == GPS_TYPE_NMEA {
@@ -1465,12 +1522,12 @@ func processNMEALine(l string) bool {
 		}
 		mySituation.Satellites = uint16(sat)
 
-		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
-		if mySituation.SatellitesTracked == 0 {
+		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution if tracked / almanac is less than sats in solution
+		if mySituation.SatellitesTracked < uint16(sat) {
 			mySituation.SatellitesTracked = uint16(sat)
 		}
 
-		if mySituation.SatellitesSeen == 0 {
+		if mySituation.SatellitesSeen < uint16(sat) {
 			mySituation.SatellitesSeen = uint16(sat)
 		}
 
