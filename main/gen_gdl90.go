@@ -49,6 +49,13 @@ const (
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
 	UPLINK_BLOCK_DATA_BYTES = (UPLINK_BLOCK_DATA_BITS / 8)
 	UPLINK_BLOCK_BYTES      = (UPLINK_BLOCK_BITS / 8)
+	GPS_TYPE_NMEA           = 0x01
+	GPS_TYPE_UBX            = 0x02
+	GPS_TYPE_SIRF           = 0x03
+	GPS_TYPE_MEDIATEK       = 0x04
+	GPS_TYPE_FLARM          = 0x05
+	GPS_TYPE_GARMIN         = 0x06
+	// other GPS types to be defined as needed
 
 	UPLINK_FRAME_BLOCKS     = 6
 	UPLINK_FRAME_DATA_BITS  = (UPLINK_FRAME_BLOCKS * UPLINK_BLOCK_DATA_BITS)
@@ -69,6 +76,7 @@ const (
 	MSGCLASS_GPS      = 3
 	MSGCLASS_AHRS     = 4
 	MSGCLASS_DUMP1090 = 5
+	MSGCLASS_TRAFFIC  = 6
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -81,6 +89,7 @@ var esReplayLog string
 var gpsReplayLog string
 var ahrsReplayLog string
 var dump1090ReplayLog string
+var trafficReplayLog string
 
 var stratuxBuild string
 var stratuxVersion string
@@ -107,6 +116,7 @@ var esReplayWriter WriteCloser
 var gpsReplayWriter WriteCloser
 var ahrsReplayWriter WriteCloser
 var dump1090ReplayWriter WriteCloser
+var trafficReplayWriter WriteCloser
 
 var developerMode bool
 
@@ -173,12 +183,14 @@ func constructFilenames() {
 		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
+		trafficReplayLog = fmt.Sprintf("%s/%04d-traffic.log", logDirectory, fileIndexNumber)
 	} else {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
 		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log.gz", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
+		trafficReplayLog = fmt.Sprintf("%s/%04d-traffic.log.gz", logDirectory, fileIndexNumber)
 	}
 }
 
@@ -254,7 +266,7 @@ func makeOwnshipReport() bool {
 	// See p.16.
 	msg[0] = 0x0A // Message type "Ownship".
 
-	msg[1] = 0x01 // Alert status, address type.
+	msg[1] = 0x00 // Alert status, address type.
 
 	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
 	if len(code) != 3 {
@@ -268,6 +280,7 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
+	//fmt.Printf("Code is %X, %X, %X\n", msg[2], msg[3], msg[4])
 	tmp := makeLatLng(mySituation.Lat)
 	msg[5] = tmp[0] // Latitude.
 	msg[6] = tmp[1] // Latitude.
@@ -285,11 +298,16 @@ func makeOwnshipReport() bool {
 	var alt uint16
 	var altf float64
 
-	if isTempPressValid() {
-		altf = float64(mySituation.Pressure_alt)
+	if isOwnshipPressureAltValid() && globalSettings.UseOwnshipBaroAlt {
+		altf = float64(mySituation.OwnshipPressureAlt) // use Mode S pressure altitude
+		//fmt.Printf("Using Mode S altitude of %.f' MSL\n", altf)
+	} else if isTempPressValid() {
+		altf = float64(mySituation.Pressure_alt) // otherwise, onboard sensor
 	} else {
 		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
+	//fmt.Printf("Using altitude of %.f' MSL\n", altf)
+
 	altf = (altf + 1000) / 25
 
 	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
@@ -297,7 +315,7 @@ func makeOwnshipReport() bool {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 	if isGPSGroundTrackValid() {
-		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
+		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
@@ -328,15 +346,29 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
-	// Create callsign "Stratux".
-	msg[19] = 0x53
-	msg[20] = 0x74
-	msg[21] = 0x72
-	msg[22] = 0x61
-	msg[23] = 0x74
-	msg[24] = 0x75
-	msg[25] = 0x78
+	if globalSettings.UseOwnshipBaroAlt && isOwnshipPressureAltValid() && len(mySituation.OwnshipTail) > 0 {
+		tail := mySituation.OwnshipTail
+		if len(tail) > 8 {
+			tail = tail[:8]
+		}
 
+		//fmt.Printf("Ownship tail message is %d bytes long\n", len(tail))
+		for i := range tail {
+			msg[i+19] = tail[i]
+		}
+		//fmt.Printf("Made ownship tail message: %X %X %X %X %X %X %X %X\n", msg[19], msg[20], msg[21], msg[22], msg[23], msg[24], msg[25], msg[26])
+	} else {
+		// Create callsign "Stratux".
+		msg[19] = 0x53
+		msg[20] = 0x74
+		msg[21] = 0x72
+		msg[22] = 0x61
+		msg[23] = 0x74
+		msg[24] = 0x75
+		msg[25] = 0x78
+	}
+
+	//fmt.Printf("Sending GDL message %v\n", msg)
 	sendGDL90(prepareMessage(msg), false)
 	return true
 }
@@ -420,7 +452,7 @@ func makeStratuxStatus() []byte {
 		switch mySituation.quality {
 		case 1: // 1 = 3D GPS.
 			msg[13] = 1
-		case 2: // 2 = DGPS (SBAS /WAAS).
+		case 2: // 2 = DGPS / SBAS (WAAS).
 			msg[13] = 2
 		default: // Zero.
 		}
@@ -495,8 +527,8 @@ func makeStratuxStatus() []byte {
 	msg[20] = byte((es_traffic_targets & 0xFF00) >> 8)
 	msg[21] = byte(es_traffic_targets & 0xFF)
 
-	// Number of UAT messages per minute.
 	msg[22] = byte((globalStatus.UAT_messages_last_minute & 0xFF00) >> 8)
+	// Number of UAT messages per minute.
 	msg[23] = byte(globalStatus.UAT_messages_last_minute & 0xFF)
 	// Number of 1090ES messages per minute.
 	msg[24] = byte((globalStatus.ES_messages_last_minute & 0xFF00) >> 8)
@@ -594,7 +626,9 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret), true)
+	if !globalSettings.ForeFlightSimMode {
+		sendGDL90(prepareMessage(ret), true)
+	}
 }
 
 func heartBeatSender() {
@@ -603,15 +637,20 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
-			sendGDL90(makeHeartbeat(), false)
-			sendGDL90(makeStratuxHeartbeat(), false)
-			sendGDL90(makeStratuxStatus(), false)
-			makeOwnshipReport()
-			makeOwnshipGeometricAltitudeReport()
+			if globalSettings.UseOwnshipBaroAlt {
+				parseOwnshipADSBMessage()
+			}
+			if globalSettings.ForeFlightSimMode == false {
+				sendGDL90(makeHeartbeat(), false)
+				sendGDL90(makeStratuxHeartbeat(), false)
+				sendGDL90(makeStratuxStatus(), false)
+				makeOwnshipReport()
+				makeOwnshipGeometricAltitudeReport()
+			} else {
+				sendFFSimLocation() // sends equivalent of ownship message in FFSIM format
+			}
 
-			// --- debug code: traffic demo ---
-			// Uncomment and compile to display large number of artificial traffic targets
-			/*
+			if globalSettings.DemoMode {
 				numTargets := uint32(36)
 				hexCode := uint32(0xFF0000)
 
@@ -624,15 +663,40 @@ func heartBeatSender() {
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-			*/
+			}
 
-			// ---end traffic demo code ---
 			sendTrafficUpdates()
+			if globalSettings.FLARMTraffic == true {
+				sendGPRMCString() // send equivalent of ownship message to FLARM units
+			}
 			updateStatus()
+			//if globalSettings.VerboseLogs {
+			//	log.Printf("Finished sending once-per-second heartbeat items at [%d]\n", stratuxClock.Milliseconds)
+			//}
 		case <-timerMessageStats.C:
 			// Save a bit of CPU by not pruning the message log every 1 second.
 			updateMessageStats()
 		}
+	}
+}
+
+func sendFFSimLocation() {
+	if isGPSValid() {
+		s := fmt.Sprintf("XGPSStratux,%.5f,%.5f,%.1f,%.f,%.1f", mySituation.Lng, mySituation.Lat, float32(mySituation.Alt)/3.2808, float32(mySituation.TrueCourse), float32(mySituation.GroundSpeed)*0.5144)
+		sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
+		/*
+			XGPSMy Sim,-80.11,34.55,1200.1,359.05,55.6
+
+			The "words" are separated by a comma (no word may contain a comma). The required words are:
+
+			XGPS followed by a name/ID of the simulator type sending the data (that might be "My Sim" without quotes)
+
+			Longitude
+			Latitude
+			Altitude in meters MSL
+			Track-along-ground from true north
+			Groundspeed in meters/sec
+		*/
 	}
 }
 
@@ -734,7 +798,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.quality == 2 {
-		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
 	} else if mySituation.quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.quality == 6 {
@@ -801,6 +865,8 @@ func replayLog(msg string, msgclass int) {
 		fp = ahrsReplayWriter
 	case MSGCLASS_DUMP1090:
 		fp = dump1090ReplayWriter
+	case MSGCLASS_TRAFFIC:
+		fp = trafficReplayWriter
 	}
 
 	if fp != nil {
@@ -855,7 +921,7 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	var thisSignalStrength int
 
-	if /*isUplink &&*/ len(x) >= 3 {
+	if len(x) >= 3 {
 		// See if we can parse out the signal strength.
 		ss := x[2]
 		//log.Printf("x[2] = %s\n",ss)
@@ -1017,16 +1083,23 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled    bool
-	ES_Enabled     bool
-	GPS_Enabled    bool
-	NetworkOutputs []networkConnection
-	AHRS_Enabled   bool
-	DEBUG          bool
-	ReplayLog      bool
-	PPM            int
-	OwnshipModeS   string
-	WatchList      string
+	UAT_Enabled         bool
+	ES_Enabled          bool
+	GPS_Enabled         bool
+	NetworkOutputs      []networkConnection
+	AHRS_Enabled        bool
+	AHRS_GDL90_Enabled  bool
+	VerboseLogs         bool
+	DEBUG               bool
+	ReplayLog           bool
+	PPM                 int
+	OwnshipModeS        string
+	WatchList           string
+	ForeFlightSimMode   bool
+	GPSAttitude_Enabled bool
+	UseOwnshipBaroAlt   bool
+	DemoMode            bool
+	FLARMTraffic        bool
 }
 
 type status struct {
@@ -1040,11 +1113,17 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	FLARM_out_connected                        bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
+	GPS_serial_port                            string
+	GPS_msgs_last_minute                       uint
+	GPS_invalid_msgs_last_minute               uint
+	GPS_pos_msgs_last_minute                   uint
 	GPS_satellites_tracked                     uint16
 	GPS_connected                              bool
 	GPS_solution                               string
+	GPS_detected_type                          uint
 	RY835AI_connected                          bool
 	Uptime                                     int64
 	Clock                                      time.Time
@@ -1071,12 +1150,19 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
-		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
+		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
+	globalSettings.AHRS_GDL90_Enabled = false
+	globalSettings.VerboseLogs = false
 	globalSettings.DEBUG = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.ForeFlightSimMode = false
+	globalSettings.GPSAttitude_Enabled = false
+	globalSettings.UseOwnshipBaroAlt = false
+	globalSettings.DemoMode = false
+	globalSettings.FLARMTraffic = false
 }
 
 func readSettings() {
@@ -1149,6 +1235,10 @@ func replayMark(active bool) {
 
 	if dump1090ReplayWriter != nil {
 		dump1090ReplayWriter.Write([]byte(t))
+	}
+
+	if trafficReplayWriter != nil {
+		trafficReplayWriter.Write([]byte(t))
 	}
 
 }
@@ -1398,8 +1488,19 @@ func main() {
 		defer dump1090ReplayWriter.Close()
 	}
 
+	// Traffic csv log.
+	if trafficwt, err := openReplay(trafficReplayLog, !developerMode); err != nil {
+		globalSettings.ReplayLog = false
+	} else {
+		trafficReplayWriter = trafficwt
+		defer trafficReplayWriter.Close()
+	}
+
 	// Mark the files (whether we're logging or not).
 	replayMark(globalSettings.ReplayLog)
+
+	// Add header to traffic csv log
+	replayLog("Timestamp,Source,Type,Signal Strength (dB),ICAO code,Callsign,Latitude,Longitude,Bearing (deg true),Range (NM),Age of position fix (sec),Altitude (ft MSL),Age of altitude (sec),Track (deg true),Groundspeed (knots),Vertical velocity (ft/min),Age of velocity (sec)", MSGCLASS_TRAFFIC)
 
 	initRY835AI()
 

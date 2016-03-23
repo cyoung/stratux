@@ -4,6 +4,10 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
+	Support for ForeFlight simulator mode, ownship details parsing,
+	and FLARM NMEA message generation (c) 2016 AvSquirrel
+	(https://github.com/AvSquirrel)
+
 	traffic.go: Target management, UAT downlink message processing, 1090ES source input, GDL90 traffic reports.
 */
 
@@ -13,10 +17,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 	"net"
-	//"strconv"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -81,6 +86,7 @@ type TrafficInfo struct {
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
 	TargetType          uint8     // types decribed in const above
 	SignalLevel         float64   // Signal level, dB RSSI.
+	Squawk              int       // Squawk code
 	Position_valid      bool      // set when position report received. Unset after n seconds? (To-do)
 	Lat                 float32   // decimal degrees, north positive
 	Lng                 float32   // decimal degrees, east positive
@@ -98,7 +104,8 @@ type TrafficInfo struct {
 	// Parameters starting at 'Age' are calculated after message receipt.
 	// Mode S transmits position and track in separate messages, and altitude can also be
 	// received from interrogations.
-	Age                  float64   // seconds ago traffic last seen
+	Age                  float64   // Age of last valid position fix, seconds ago.
+	AgeLastAlt           float64   // Age of last altitude message, seconds ago.
 	Last_seen            time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
 	Last_alt             time.Time // time of last altitude update, relative to Stratux startup
 	Last_GnssDiff        time.Time // time of last GnssDiffFromBaroAlt update, relative to Stratux startup
@@ -149,48 +156,126 @@ func cleanupOldEntries() {
 }
 
 func sendTrafficUpdates() {
+	//	if globalSettings.VerboseLogs {
+	//		log.Printf("Sending traffic updates.\n")
+	//	}
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
-	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+	if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+		if isGPSValid() {
+			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
+			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			ti.Distance = dist
+			ti.Bearing = bearing
+		}
 
-		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
-		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
+		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
+		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
+
+		// Make traffic CSV output in the format:
+		// Timestamp,Source,Type,Signal Strength (dB),ICAO code,Callsign,Latitude,Longitude,Bearing (deg true),Range (NM),Age of position fix (sec),Altitude (ft MSL),Age of altitude (sec),Track (deg true),Groundspeed (knots),Vertical velocity (ft/min),Age of velocity (sec)
+
+		sourceFmt := 1090
+		if ti.Last_source == TRAFFIC_SOURCE_UAT {
+			sourceFmt = 978
+		}
+		typeS := "ADS-B"
+		switch ti.TargetType {
+		case TARGET_TYPE_ADSR, TARGET_TYPE_TISB_S:
+			typeS = "ADS-R"
+		case TARGET_TYPE_TISB:
+			typeS = "TIS-B"
+		case TARGET_TYPE_MODE_S:
+			typeS = "Mode S"
+		}
+
+		if ti.TargetType > 0 { // filter out basic Mode S targets
+			buf := fmt.Sprintf("%v,%d,%s,%.3f,%06X,%s,", ti.Timestamp.Format("2006-01-02 15:04:05.999"), sourceFmt, typeS, ti.SignalLevel, ti.Icao_addr, ti.Tail)
+
+			if ti.TargetType > 0 && ti.Position_valid && ti.Age < 3 {
+				buf = fmt.Sprintf("%s%.6f,%.6f,", buf, ti.Lat, ti.Lng)
+				if isGPSValid() {
+					buf = fmt.Sprintf("%s%.3f,%.4f,", buf, ti.Bearing, ti.Distance/1852) // convert range from meters to NM
+				} else {
+					buf = fmt.Sprintf("%s,,", buf)
+				}
+			} else {
+				buf = fmt.Sprintf("%s,,,,", buf)
+			}
+
+			buf = fmt.Sprintf("%s%.3f,", buf, ti.Age)
+			if ti.AgeLastAlt < 3 {
+				buf = fmt.Sprintf("%s%d,%.3f,", buf, ti.Alt, ti.AgeLastAlt)
+			} else {
+				buf = fmt.Sprintf("%s,%.3f,", buf, ti.AgeLastAlt)
+			}
+
+			ageLastSpeed := stratuxClock.Since(ti.Last_speed).Seconds()
+			if ageLastSpeed < 3 {
+				buf = fmt.Sprintf("%s%d,%d,%d,%.3f", buf, ti.Track, ti.Speed, ti.Vvel, ageLastSpeed)
+			} else {
+				buf = fmt.Sprintf("%s,,,%.3f", buf, ageLastSpeed)
+			}
+			replayLog(buf, MSGCLASS_TRAFFIC)
+		}
+
+		// Print the list of all tracked targets (with data) to the log every 15 seconds if "VerboseLogs" option is enabled
+		if globalSettings.VerboseLogs && (stratuxClock.Time.Second()%15) == 0 {
 			s_out, err := json.Marshal(ti)
 			if err != nil {
 				log.Printf("Error generating output: %s\n", err.Error())
 			} else {
 				log.Printf("%X => %s\n", ti.Icao_addr, string(s_out))
 			}
-			// end of debug block
 		}
-		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
-		traffic[icao] = ti
+
+		traffic[icao] = ti // write the updated ti back to the map
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			tiJSON, _ := json.Marshal(&ti)
 			trafficUpdate.Send(tiJSON)
 		}
+
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
-			msg = append(msg, makeTrafficReportMsg(ti)...)
+			if globalSettings.ForeFlightSimMode == false {
+				msg = append(msg, makeTrafficReportMsg(ti)...)
+			} else {
+				sendFFTrafficReportMsg(ti) // without overhead of FIS-B, should be OK to send individual messages. May need to cap total targets.
+			}
+
+			if globalSettings.FLARMTraffic == true && isGPSValid() {
+				flarmmsg, valid := makeFlarmNMEAString(ti)
+				if valid {
+					if globalSettings.VerboseLogs {
+						log.Printf("Sending FLARM message %s\n", flarmmsg)
+					}
+					sendFlarmMsg([]byte(flarmmsg))
+				}
+			}
 		}
 	}
 
-	if len(msg) > 0 {
-		sendGDL90(msg, false)
+	if globalSettings.ForeFlightSimMode == false {
+		if len(msg) > 0 {
+			sendGDL90(msg, false)
+		}
 	}
+
 }
 
 // Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
-	if !ti.Position_valid { // Don't send unless a valid position exists.
-		return
-	}
+	/*
+		if !ti.Position_valid { // Don't send unless a valid position exists.
+			return
+		}
+	*/ // Send all traffic and let JS sort it out. This will provide user indication of why they see 1000 ES messages and no traffic.
 
 	tiJSON, _ := json.Marshal(&ti)
 	trafficUpdate.Send(tiJSON)
@@ -288,13 +373,186 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// msg[19] to msg[26] are "call sign" (tail).
 	for i := 0; i < len(ti.Tail) && i < 8; i++ {
 		c := byte(ti.Tail[i])
-		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' { // See p.24, FAA ref.
+		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' && c != 'a' && c != 'r' && c != 't' { // See p.24, FAA ref.
 			c = byte(20)
 		}
 		msg[19+i] = c
 	}
-
 	return prepareMessage(msg)
+}
+
+func sendFFTrafficReportMsg(ti TrafficInfo) {
+	/*  Documentation of FF Flight Sim format from https://www.foreflight.com/support/network-gps/
+	For traffic data, the simulator will need to send packets in the form of a string message like this:
+
+	XTRAFFICMy Sim,,33.85397339,-118.32486725,3749.9,-213.0,1,68.2,126.0,KS6
+
+	The "words" are separated by a comma (no word may contain a comma). The required words are:
+
+	XTRAFFIC followed by a name/ID of the simulator type sending the data (that might be "My Sim" without quotes)
+	ICAO address, an integer ID
+	Traffic latitude - float
+	Traffic longitude - float
+	Traffic geometric altitude - float (feet)
+	Traffic vertical speed - float (ft/min)
+	Airborne boolean flag - 1 or 0: 1=airborne; 0=surface
+	Heading - float, degrees true
+	Velocity knots - float
+	Callsign - string
+	*/
+
+	airborne := 0
+	if !ti.OnGround {
+		airborne = 1
+	}
+
+	// 11-character message, including altitude (since initial debug showed relative alt broken. Need to see if current FF supports either --- revert to 8-character tail?
+	// added cr-lf for batched messaging [TEST]
+	ffmsg := fmt.Sprintf("XTRAFFICStratux,%v,%.4f,%.4f,%.f,%.f,%b,%.f,%.f,%s\r\n", ti.Icao_addr, ti.Lat, ti.Lng, float32(ti.Alt), float32(ti.Vvel), airborne, float32(ti.Track), float32(ti.Speed), ti.Tail /*, int16(ti.Alt/100)*/)
+	sendMsg([]byte(ffmsg), NETWORK_AHRS_FFSIM, false)
+	if globalSettings.VerboseLogs {
+		log.Printf("Sent string for current ti: %s\n", ffmsg)
+	}
+}
+
+/*
+parseOwnshipADSBMessage scans the traffic map for the ownship ICAO address. If found, it
+will feed that data into mySituation.x
+
+Return value is a byte indicating status of the message
+
+ Bit 0: 0 if code not found; 1 if code found
+ Bit
+ Bit 1-6: Reserved / TO-DO
+
+ 7 6 5 4 3 2 1 0
+
+*/
+
+func parseOwnshipADSBMessage() uint8 {
+	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
+	ti, present := traffic[uint32(code)]
+	if !present { // address isn't in the map
+		if globalSettings.VerboseLogs {
+			log.Printf("Address %X not seen in the traffic map.\n", code)
+		}
+		return 0
+	}
+
+	mySituation.OwnshipTail = ti.Tail
+	mySituation.OwnshipPressureAlt = ti.Alt
+	mySituation.OwnshipLat = ti.Lat
+	mySituation.OwnshipLng = ti.Lng
+	mySituation.OwnshipLastSeen = ti.Last_seen
+	// to-do... air/ground status, NACp, etc.?
+
+	if globalSettings.VerboseLogs {
+		log.Printf("Address %X found in the traffic map at %.3f° LAT and %.3f° LNG with tail number %s at %d' MSL.\n", code, mySituation.OwnshipLat, mySituation.OwnshipLng, mySituation.OwnshipTail, mySituation.OwnshipPressureAlt)
+	}
+
+	return 1
+}
+
+/*
+makeFlarmNMEAString creates a NMEA-formatted PFLAA string (FLARM traffic format) with checksum.
+*/
+
+func makeFlarmNMEAString(ti TrafficInfo) (msg string, valid bool) {
+
+	/*	Format: $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>*<checksum>
+		            $PFLAA,0,-10687,-22561,-10283,1,A4F2EE,136,0,269,0.0,0*4E
+
+			<AlarmLevel>  Decimal integer value. Range: from 0 to 3.
+							Alarm level as assessed by FLARM:
+							0 = no alarm (also used for no-alarm traffic information)
+							1 = alarm, 13-18 seconds to impact
+							2 = alarm, 9-12 seconds to impact
+							3 = alarm, 0-8 seconds to impact
+
+			<RelativeNorth>,<RelativeEast>,<RelativeVertical> are distances in meters. Decimal integer value. Range: from -32768 to 32767.
+
+			<IDType>: 1 = official ICAO 24-bit aircraft address; 2 = stable FLARM ID (chosen by FLARM) 3 = anonymous ID, used if stealth mode is activated.
+			For ADS-B traffic, we'll always pick 1.
+
+			<ID>: 6-digit hexadecimal value (e.g. “5A77B1”) as configured in the target’s PFLAC,,ID sentence. For ADS-B targets always use reported 24-bit ICAO address.
+
+			<Track>: Decimal integer value. Range: from 0 to 359. The target’s true ground track in degrees.
+
+			<TurnRate>: Not used. Empty field.
+
+			<GroundSpeed>: Decimal integer value. Range: from 0 to 32767. The target’s ground speed in m/s
+
+			<ClimbRate>: Decimal fixed point number with one digit after the radix point (dot). Range: from -32.7 to 32.7. The target’s climb rate in m/s.
+			Positive values indicate a climbing aircraft.
+
+			<AcftType>: Hexadecimal value. Range: from 0 to F.
+							Aircraft types:
+							0 = unknown
+							1 = glider / motor glider
+							2 = tow / tug plane
+							3 = helicopter / rotorcraft
+							4 = skydiver
+							5 = drop plane for skydivers
+							6 = hang glider (hard)
+							7 = paraglider (soft)
+							8 = aircraft with reciprocating engine(s)
+							9 = aircraft with jet/turboprop engine(s)
+							A = unknown
+							B = balloon
+							C = airship
+							D = unmanned aerial vehicle (UAV)
+							E = unknown
+							F = static object
+
+
+	*/
+
+	var alarmLevel, idType, checksum uint8
+	var relativeNorth, relativeEast, relativeVertical, groundSpeed int16
+	var climbRate float32
+
+	idType = 1
+
+	// determine distance and bearing to target
+	dist, bearing, distN, distE := distRect(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+	if globalSettings.VerboseLogs {
+		log.Printf("FLARM - ICAO target %X (%s) is %.1f meters away at %.1f degrees\n", ti.Icao_addr, ti.Tail, dist, bearing)
+	}
+
+	if distN > 32767 || distN < -32767 || distE > 32767 || distE < -32767 {
+		msg = ""
+		valid = false
+		return
+	} else {
+		relativeNorth = int16(distN)
+		relativeEast = int16(distE)
+	}
+
+	altf := mySituation.Pressure_alt
+	if !isTempPressValid() { // if no pressure altitude available, use GPS altitude
+		altf = float64(mySituation.Alt)
+	}
+	relativeVertical = int16(float64(ti.Alt)*0.3048 - altf*0.3048) // convert to meters
+
+	// demo of alarm levels... may remove for final release.
+	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
+		alarmLevel = 2
+	} else if (dist < 1852) && (relativeVertical < 304) && (relativeVertical > -304) { // 1852 m = 1.0 NM ; 304 m = 1000'
+		alarmLevel = 1
+	}
+
+	if ti.Speed_valid {
+		groundSpeed = int16(float32(ti.Speed) * 0.5144) // convert to m/s
+	}
+
+	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
+	for i := range msg {
+		checksum = checksum ^ byte(msg[i])
+	}
+	msg = (fmt.Sprintf("$%s*%X\r\n", msg, checksum))
+	valid = true
+	return
 }
 
 func parseDownlinkReport(s string, signalLevel int) {
@@ -346,13 +604,6 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Tail = tail
 	}
 
-	if globalSettings.DEBUG {
-		// This is a hack to show the source of the traffic in ForeFlight.
-		if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'U') {
-			ti.Tail = "u" + ti.Tail
-		}
-	}
-
 	// Extract emitter category.
 	if msg_type == 1 || msg_type == 3 {
 		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
@@ -387,6 +638,29 @@ func parseDownlinkReport(s string, signalLevel int) {
 		}
 	}
 
+	// This is a hack to show the source of the traffic on moving maps.
+	if globalSettings.DEBUG {
+		type_code := " "
+		switch ti.TargetType {
+		case TARGET_TYPE_ADSB:
+			type_code = "a"
+		case TARGET_TYPE_ADSR, TARGET_TYPE_TISB_S:
+			type_code = "r"
+		case TARGET_TYPE_TISB:
+			type_code = "t"
+		}
+
+		if len(ti.Tail) == 0 {
+			ti.Tail = "u" + type_code
+		} else if len(ti.Tail) < 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+			ti.Tail = "u" + type_code + ti.Tail
+		} else if len(ti.Tail) == 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+			ti.Tail = "u" + type_code + ti.Tail[1:]
+		} else if len(ti.Tail) > 1 { // bounds checking
+			ti.Tail = "u" + type_code + ti.Tail[2:]
+		}
+	}
+
 	raw_lat := (uint32(frame[4]) << 15) | (uint32(frame[5]) << 7) | (uint32(frame[6]) >> 1)
 	raw_lon := ((uint32(frame[6]) & 0x01) << 23) | (uint32(frame[7]) << 15) | (uint32(frame[8]) << 7) | (uint32(frame[9]) >> 1)
 
@@ -405,10 +679,14 @@ func parseDownlinkReport(s string, signalLevel int) {
 			lng = lng - 360
 		}
 	}
-	ti.Lat = lat
-	ti.Lng = lng
+
 	ti.Position_valid = position_valid
 	if ti.Position_valid {
+		ti.Lat = lat
+		ti.Lng = lng
+		if isGPSValid() {
+			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
 	}
@@ -565,9 +843,16 @@ func esListen() {
 				continue
 			}
 
-			if (newTi.Icao_addr & 0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
+			if newTi.Icao_addr == 0x07FFFFFF { // used to signal heartbeat
 				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
 				continue
+			}
+
+			if (newTi.Icao_addr & 0x01000000) != 0 { // bit 25 used by dump1090 to signal non-ICAO address
+				newTi.Icao_addr = newTi.Icao_addr & 0x00FFFFFF
+				if globalSettings.VerboseLogs {
+					log.Printf("Non-ICAO address %X sent by dump1090. This is typical for TIS-B.\n", newTi.Icao_addr)
+				}
 			}
 
 			// Log the message to the message counter as a valid ES if it unmarshalles.
@@ -589,8 +874,10 @@ func esListen() {
 			} else {
 				//log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
 				ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
+				ti.Last_alt = stratuxClock.Time  // ditto.
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
+				ti.Last_source = TRAFFIC_SOURCE_1090ES
 			}
 
 			ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
@@ -666,6 +953,9 @@ func esListen() {
 				if valid_position {
 					ti.Lat = lat
 					ti.Lng = lng
+					if isGPSValid() {
+						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+					}
 					ti.Position_valid = true
 					ti.ExtrapolatedPosition = false
 					ti.Last_seen = stratuxClock.Time // only update "last seen" data on position updates
@@ -754,6 +1044,10 @@ func esListen() {
 				ti.Emitter_category = uint8(*newTi.Emitter_category) // validate dump1090 on live traffic
 			}
 
+			if newTi.Squawk != nil {
+				ti.Squawk = int(*newTi.Squawk) // only provided by Mode S messages, so we don't do this in parseUAT.
+			}
+
 			// Set the target type. DF=18 messages are sent by ground station, so we look at CA
 			// (repurposed to Control Field in DF18) to determine if it's ADS-R or TIS-B.
 			if newTi.DF == 17 {
@@ -776,19 +1070,40 @@ func esListen() {
 				ti.OnGround = bool(*newTi.OnGround)
 			}
 
-			if newTi.Tail != nil { // DF=17 or DF=18, Type Code 1-4
+			if (newTi.Tail != nil) && ((newTi.DF == 17) || (newTi.DF == 18)) { // DF=17 or DF=18, Type Code 1-4
 				ti.Tail = *newTi.Tail
-				// This is a hack to show the source of the traffic in ForeFlight.
-				ti.Tail = strings.Trim(ti.Tail, " ")
-				if globalSettings.DEBUG {
-					if len(ti.Tail) == 0 || (len(ti.Tail) != 0 && len(ti.Tail) < 8 && ti.Tail[0] != 'E') {
-						ti.Tail = "e" + ti.Tail
-					}
+				ti.Tail = strings.Trim(ti.Tail, " ") // remove extraneous spaces
+			}
+
+			// This is a hack to show the source of the traffic on moving maps.
+
+			if globalSettings.DEBUG {
+				type_code := " "
+				switch ti.TargetType {
+				case TARGET_TYPE_ADSB:
+					type_code = "a"
+				case TARGET_TYPE_ADSR:
+					type_code = "r"
+				case TARGET_TYPE_TISB:
+					type_code = "t"
+				}
+
+				if len(ti.Tail) == 0 {
+					ti.Tail = "e" + type_code
+				} else if len(ti.Tail) < 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+					ti.Tail = "e" + type_code + ti.Tail
+				} else if len(ti.Tail) == 7 && ti.Tail[0] != 'e' && ti.Tail[0] != 'u' {
+					ti.Tail = "e" + type_code + ti.Tail[1:]
+				} else if len(ti.Tail) > 1 { // bounds checking
+					ti.Tail = "e" + type_code + ti.Tail[2:]
 				}
 			}
 
+			if newTi.DF == 17 || newTi.DF == 18 {
+				ti.Last_source = TRAFFIC_SOURCE_1090ES // only update traffic source on ADS-B messages. Prevents source on UAT ADS-B targets with Mode S transponders from "flickering" every time we get an altitude or DF11 update.
+			}
 			ti.Timestamp = newTi.Timestamp // only update "last seen" data on position updates
-			ti.Last_source = TRAFFIC_SOURCE_1090ES
+
 			/*
 				s_out, err := json.Marshal(ti)
 				if err != nil {
@@ -823,6 +1138,17 @@ and speed invalid flag is set for headings 135-150 to allow testing of response 
 */
 func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
+
+	// Retrieve previous information on this ICAO code.
+	if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
+		ti = val
+		//log.Printf("Existing target %X imported for ES update\n", icao)
+	} else {
+		//log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
+		ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
+		ti.Icao_addr = icao
+		ti.ExtrapolatedPosition = false
+	}
 
 	hdg := float64((int32(stratuxClock.Milliseconds/1000)+offset)%720) / 2
 	// gs := float64(220) // knots
@@ -862,6 +1188,9 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Emitter_category = 1
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
+
+	ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
 	ti.Alt = int32(mySituation.Alt + relAlt)

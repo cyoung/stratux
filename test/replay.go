@@ -76,10 +76,10 @@ func esListener(l net.Listener) {
 }
 
 func esReplay(f *os.File, replaySpeed uint64) {
-	l, err := net.Listen("tcp", "0.0.0.0:30003")
+	l, err := net.Listen("tcp", "0.0.0.0:30006")
 	if err != nil {
 		esDone = true
-		fmt.Fprintf(os.Stderr, "couldn't open :30003: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "couldn't open :30006: %s\n", err.Error())
 		return
 	}
 

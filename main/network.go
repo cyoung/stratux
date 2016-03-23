@@ -11,8 +11,10 @@ package main
 
 import (
 	"errors"
+	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+
 	"io/ioutil"
 	"log"
 	"math"
@@ -168,7 +170,7 @@ func getNetworkStats() {
 		for _, msg := range netconn.messageQueue {
 			queueBytes += len(msg)
 		}
-		if globalSettings.DEBUG {
+		if globalSettings.VerboseLogs {
 			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(netconn.messageQueue), queueBytes)
 		}
 		ipAndPort := strings.Split(k, ":")
@@ -303,7 +305,7 @@ func messageQueueSender() {
 					pd = float64(0.1) // 100ms.
 				}
 
-				if globalSettings.DEBUG {
+				if globalSettings.VerboseLogs {
 					log.Printf("Average sendable queue is %v messages. Changing queue timer to %f seconds\n", averageSendableQueueSize, pd)
 				}
 
@@ -451,10 +453,63 @@ func networkStatsCounter() {
 
 }
 
+var flarmOutputChan chan []byte
+
+// Watch for a serial output device on /dev/ttyUSB0. TO-DO: Flexible configuration of FLARM output port
+func flarmOutWatcher() {
+	// Check every 30 seconds for a serial output device.
+	serialTicker := time.NewTicker(10 * time.Second)
+	serialConfig := &serial.Config{Name: "/dev/ttyUSB0", Baud: 38400} // TO-DO: Configurable FLARM output port and baud rate?
+	var serialPort *serial.Port
+
+	for {
+		select {
+		case <-serialTicker.C:
+			// Check for serial output device.
+			if globalSettings.FLARMTraffic && !globalStatus.FLARM_out_connected {
+				if globalStatus.GPS_serial_port == "/dev/ttyUSB0" {
+					globalSettings.GPS_Enabled = false // Force disable GPS on ttyUSB0 when serial enabled. -- FIXME
+				}
+
+				p, err := serial.OpenPort(serialConfig)
+				if err != nil {
+					log.Printf("FLARM serial (out) port err: %s\n", err.Error())
+					break
+				}
+
+				globalStatus.FLARM_out_connected = true
+				serialPort = p
+				log.Printf("Opened FLARM serial port /dev/ttyUSB0 at 38400 baud\n") // TO-DO: Read from port and rate from variables
+			}
+		case b := <-flarmOutputChan:
+			if globalSettings.VerboseLogs {
+				log.Printf("Data read off the flarmOutputChan. Sending to port.\n")
+			}
+			if globalStatus.FLARM_out_connected && serialPort != nil {
+				_, err := serialPort.Write(b)
+				if err != nil { // Encountered an error in writing to the serial port. Close it and unset FLARM_out_enabled.
+					log.Printf("FLARM serial (out) port err: %s\n", err.Error())
+					serialPort.Close()
+					serialPort = nil
+					globalStatus.FLARM_out_connected = false
+				}
+			} else {
+				if globalSettings.VerboseLogs {
+					log.Printf("No FLARM output device connected. Message was %s\n", string(b))
+				}
+			}
+		}
+	}
+}
+
+func sendFlarmMsg(flarmmsg []byte) {
+	flarmOutputChan <- flarmmsg
+}
+
 /*
 	ffMonitor().
 		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS.
+		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
 
 */
 
@@ -491,12 +546,11 @@ func ffMonitor() {
 			netMutex.Unlock()
 			continue
 		}
-		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
+		if globalSettings.AHRS_GDL90_Enabled == true && (strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp")) {
 			p.FFCrippled = true
-			//FIXME: AHRS doesn't need to be disabled globally, just messages need to be filtered.
-			globalSettings.AHRS_Enabled = false
+			globalSettings.AHRS_GDL90_Enabled = false
 			if !ff_warned {
-				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
+				e := errors.New("Stratux is not officially supported by your EFB app. It is incompatible with Stratux AHRS output, and revisions have been known to cause compatibility issues with Stratux. AHRS output is being disabled. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)
 				ff_warned = true
 			}
@@ -508,6 +562,7 @@ func ffMonitor() {
 
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
+	flarmOutputChan = make(chan []byte, 128)       // Buffered channel, 128 messages = 3 seconds @ 38.4 kbps
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -516,5 +571,7 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
+	go flarmOutWatcher()
 	go ffMonitor()
+
 }

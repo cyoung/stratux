@@ -203,8 +203,22 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":
 						globalSettings.AHRS_Enabled = val.(bool)
+					case "AHRS_GDL90_Enabled":
+						globalSettings.AHRS_GDL90_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
+					case "VerboseLogs":
+						globalSettings.VerboseLogs = val.(bool)
+					case "ForeFlightSimMode":
+						globalSettings.ForeFlightSimMode = val.(bool)
+					case "GPSAttitude_Enabled":
+						globalSettings.GPSAttitude_Enabled = val.(bool)
+					case "UseOwnshipBaroAlt":
+						globalSettings.UseOwnshipBaroAlt = val.(bool)
+					case "DemoMode":
+						globalSettings.DemoMode = val.(bool)
+					case "FLARMTraffic":
+						globalSettings.FLARMTraffic = val.(bool)
 					case "ReplayLog":
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
