@@ -128,8 +128,6 @@ func initGPSSerial() bool {
 	baudrate := int(9600)
 	isSirfIV := bool(false)
 
-	log.Printf("Configuring GPS\n")
-
 	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
 		isSirfIV = true
 		baudrate = 4800
@@ -142,7 +140,9 @@ func initGPSSerial() bool {
 		log.Printf("No suitable device found.\n")
 		return false
 	}
-	log.Printf("Using %s for GPS\n", device)
+	if globalSettings.DEBUG {
+		log.Printf("Using %s for GPS\n", device)
+	}
 
 	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start)
 		serialConfig = &serial.Config{Name: device, Baud: 38400}
