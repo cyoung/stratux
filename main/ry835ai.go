@@ -234,12 +234,10 @@ func initGPSSerial() bool {
 		serialPort = p
 		scanner := bufio.NewScanner(serialPort)
 
-		// MediaTek3339 doesn't like having UBX commands sent to it. So, we probe for it alone.
-
 		timeout := stratuxClock.Time
 		log.Printf("Sent MTK and UBX ident commands at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
 
-		// Interleave pings.
+		// Interleave pings probe messages to increase probability that response is seen
 		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
 		p.Write(makeNMEACmd("PMTK605")) // probe for Mediatek
 		p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
@@ -280,50 +278,6 @@ func initGPSSerial() bool {
 				}
 			}
 		}
-
-		/*
-			// If as specific GPS type isn't detected, then we try looking for UBX.
-
-			if globalStatus.GPS_detected_type < 2 {
-				timeout = stratuxClock.Time
-				log.Printf("Sent UBX ident command at [%d] msec since start. Listening for response.\n", stratuxClock.Milliseconds)
-				p.Write(makeNMEACmd("PUBX,00")) // probe for u-blox
-
-				for (globalStatus.GPS_detected_type < 2) && stratuxClock.Since(timeout) < 5*time.Second && scanner.Scan() {
-					s := scanner.Text()
-					log.Printf("[%d] Raw data read from %s: %s\n", stratuxClock.Milliseconds, device, s)
-
-					l_valid, validNMEAcs := validateNMEAChecksum(s)
-					if !validNMEAcs {
-						log.Printf("Data was seen on %s seen during GPS probing, but not NMEA message.\n", device)
-						continue
-					}
-
-					if globalStatus.GPS_detected_type == 0 {
-						log.Printf("GPS detected: NMEA messages seen.\n")
-						globalStatus.GPS_detected_type = GPS_TYPE_NMEA // If this is the first time we see a NMEA message, set our status flag
-					}
-					x := strings.Split(l_valid, ",")
-					if len(x) > 0 {
-						if x[0] == "PUBX" && len(x) > 3 { // u-blox proprietary message. Validate that we're not just getting an echo of "PUBX,00"
-							globalStatus.GPS_detected_type = GPS_TYPE_UBX // Only UBX GPS receivers send UBX messages
-							log.Printf("GPS detected: u-blox NMEA position message seen.\n")
-
-						} else if x[0] == "PMTK705" { // MTK response to
-							globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
-							pmtk705msg := ""
-							if len(x) > 1 {
-								pmtk705msg = x[1]
-							}
-							log.Printf("GPS detected: MediaTek NMEA firmware message (%s) seen.\n", pmtk705msg)
-						} else if strings.Contains(x[0], "PMTK") { // any other 1st sting with MTK
-							globalStatus.GPS_detected_type = GPS_TYPE_MEDIATEK
-							log.Printf("GPS detected: MediaTek other NMEA message (%s) seen.\n", x[0])
-						}
-					}
-				}
-			}
-		*/
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX {
 			// Set 10Hz update. Little endian order.

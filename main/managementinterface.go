@@ -297,6 +297,11 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
+	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
+	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(handler.Filename, globalStatus.HardwareBuild) {
+		w.WriteHeader(404)
+		return
+	}
 	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
 	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
