@@ -226,7 +226,9 @@ func initGPSSerial() bool {
 		// Disable GSV.
 		p.Write(makeNMEACmd("PSRF103,03,00,00,01"))
 
-		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
+		if globalSettings.DEBUG {
+			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
+		}
 	} else {
 		// Set 10Hz update. Little endian order.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
@@ -324,7 +326,9 @@ func initGPSSerial() bool {
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 		baudrate = 38400
 
-		log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
+		if globalSettings.DEBUG {
+			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
+		}
 	}
 	p.Close()
 
