@@ -1190,6 +1190,7 @@ func printStats() {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
+		logStatus()
 	}
 }
 
