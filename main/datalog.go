@@ -26,10 +26,10 @@ const (
 
 type StratuxTimestamp struct {
 	id                   int64
-	time_type_preference int // 0 = stratuxClock, 1 = gpsClock, 2 = gpsClock extrapolated via stratuxClock.
-	stratuxClock_value   time.Time
-	gpsClock_value       time.Time
-	preferredTime_value  time.Time
+	Time_type_preference int // 0 = stratuxClock, 1 = gpsClock, 2 = gpsClock extrapolated via stratuxClock.
+	StratuxClock_value   time.Time
+	GPSClock_value       time.Time
+	PreferredTime_value  time.Time
 }
 
 var dataLogTimestamp StratuxTimestamp // Current timestamp bucket.
@@ -42,11 +42,11 @@ var dataLogTimestamp StratuxTimestamp // Current timestamp bucket.
 
 //FIXME: time -> stratuxClock
 func checkTimestamp() bool {
-	if time.Since(dataLogTimestamp.stratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
+	if time.Since(dataLogTimestamp.StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		dataLogTimestamp.id = 0
-		dataLogTimestamp.stratuxClock_value = time.Now()
-		dataLogTimestamp.time_type_preference = 0
+		dataLogTimestamp.StratuxClock_value = time.Now()
+		dataLogTimestamp.Time_type_preference = 0
 
 		return false
 	}
@@ -166,17 +166,20 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 		fields = append(fields, s)
 	}
 
-	if len(fields) > 0 {
-		tblCreate := fmt.Sprintf("CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s)", tbl, strings.Join(fields, ", "))
-		_, err := db.Exec(tblCreate)
-		fmt.Printf("%s\n", tblCreate)
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err.Error())
-		}
+	// Add the timestamp_id field to link up with the timestamp table.
+	if tbl != "timestamp" {
+		fields = append(fields, "timestamp_id INTEGER")
+	}
+
+	tblCreate := fmt.Sprintf("CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s)", tbl, strings.Join(fields, ", "))
+	_, err := db.Exec(tblCreate)
+	fmt.Printf("%s\n", tblCreate)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
 	}
 }
 
-func insertData(i interface{}, tbl string, db *sql.DB) {
+func insertData(i interface{}, tbl string, db *sql.DB) int64 {
 	checkTimestamp()
 	val := reflect.ValueOf(i)
 
@@ -197,19 +200,60 @@ func insertData(i interface{}, tbl string, db *sql.DB) {
 		values = append(values, v)
 	}
 
-	if len(keys) > 0 {
-		tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
-			strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+	// Add the timestamp_id field to link up with the timestamp table.
+	if tbl != "timestamp" {
+		keys = append(keys, "timestamp_id")
+		values = append(values, strconv.FormatInt(dataLogTimestamp.id, 10))
+	}
 
-		fmt.Printf("%s\n", tblInsert)
-		ifs := make([]interface{}, len(values))
-		for i := 0; i < len(values); i++ {
-			ifs[i] = values[i]
+	tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
+		strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+
+	fmt.Printf("%s\n", tblInsert)
+	ifs := make([]interface{}, len(values))
+	for i := 0; i < len(values); i++ {
+		ifs[i] = values[i]
+	}
+	res, err := db.Exec(tblInsert, ifs...)
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err.Error())
+	}
+	id, err := res.LastInsertId()
+	if err == nil {
+		return id
+	}
+
+	return 0
+}
+
+type DataLogRow struct {
+	tbl  string
+	data interface{}
+}
+
+var dataLogChan chan DataLogRow
+
+func dataLogWriter() {
+	dataLogChan := make(chan DataLogRow, 10240)
+
+	db, err := sql.Open("sqlite3", "./test.db")
+	if err != nil {
+		fmt.Printf("sql.Open(): %s\n", err.Error())
+	}
+	defer db.Close()
+
+	for {
+		//FIXME: measure latency from here to end of block. Messages may need to be timestamped *before* executing everything here.
+		r := <-dataLogChan
+		if r.tbl == "mySituation" {
+			//TODO: Piggyback a GPS time update from this update.
 		}
-		_, err := db.Exec(tblInsert, ifs...)
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err.Error())
+
+		// Check if our time bucket has expired or has never been entered.
+		if !checkTimestamp() || dataLogTimestamp.id == 0 {
+			dataLogTimestamp.id = insertData(dataLogTimestamp, "timestamp", db)
 		}
+		insertData(r.data, r.tbl, db)
 	}
 }
 
@@ -257,5 +301,6 @@ func main() {
 
 	e := SituationData{}
 	//makeTable(e, "situation", db)
-	insertData(e, "situation", db)
+	i := insertData(e, "situation", db)
+	fmt.Printf("insert id=%d\n", i)
 }
