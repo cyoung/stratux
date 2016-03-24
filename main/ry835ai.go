@@ -670,6 +670,7 @@ func processNMEALine(l string) bool {
 							log.Printf("Time set from GPS. Current time is %v\n", time.Now())
 						}
 					}
+					setDataLogTimeWithGPS(mySituation)
 					return true // All possible successes lead here.
 				}
 			}
@@ -925,6 +926,7 @@ func processNMEALine(l string) bool {
 
 		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 		mySituation = tmpSituation
+		setDataLogTimeWithGPS(mySituation)
 		return true
 
 	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") { // Satellite data.

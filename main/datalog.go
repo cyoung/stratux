@@ -184,7 +184,6 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 }
 
 func insertData(i interface{}, tbl string, db *sql.DB) int64 {
-	checkTimestamp()
 	val := reflect.ValueOf(i)
 
 	keys := make([]string, 0)
@@ -224,6 +223,9 @@ func insertData(i interface{}, tbl string, db *sql.DB) int64 {
 	}
 	id, err := res.LastInsertId()
 	if err == nil {
+		if tbl == "timestamp" {
+			dataLogTimestamp.id = id
+		}
 		return id
 	}
 
@@ -266,22 +268,23 @@ func dataLogWriter() {
 	for {
 		//FIXME: measure latency from here to end of block. Messages may need to be timestamped *before* executing everything here.
 		r := <-dataLogChan
-		if r.tbl == "mySituation" && isGPSClockValid() {
-			// Piggyback a GPS time update from this update.
-			if t, ok := r.data.(SituationData); ok {
-				dataLogTimestamp.id = 0
-				dataLogTimestamp.Time_type_preference = 1 // gpsClock.
-				dataLogTimestamp.StratuxClock_value = stratuxClock.Time
-				dataLogTimestamp.GPSClock_value = t.GPSTime
-				dataLogTimestamp.PreferredTime_value = t.GPSTime
-			}
-		}
 
 		// Check if our time bucket has expired or has never been entered.
 		if !checkTimestamp() || dataLogTimestamp.id == 0 {
-			dataLogTimestamp.id = insertData(dataLogTimestamp, "timestamp", db)
+			insertData(dataLogTimestamp, "timestamp", db) // Updates dataLogTimestamp.id.
 		}
 		insertData(r.data, r.tbl, db)
+	}
+}
+
+func setDataLogTimeWithGPS(sit SituationData) {
+	if isGPSClockValid() {
+		// Piggyback a GPS time update from this update.
+		dataLogTimestamp.id = 0
+		dataLogTimestamp.Time_type_preference = 1 // gpsClock.
+		dataLogTimestamp.StratuxClock_value = stratuxClock.Time
+		dataLogTimestamp.GPSClock_value = sit.GPSTime
+		dataLogTimestamp.PreferredTime_value = sit.GPSTime
 	}
 }
 
