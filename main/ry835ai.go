@@ -52,7 +52,8 @@ type SituationData struct {
 	TrueCourse              uint16
 	GroundSpeed             uint16
 	LastGroundTrackTime     time.Time
-	LastGPSTimeTime         time.Time
+	GPSTime                 time.Time
+	LastGPSTimeTime         time.Time // stratuxClock time since last GPS time received.
 	LastNMEAMessage         time.Time // time valid NMEA message last seen
 
 	mu_Attitude *sync.Mutex
@@ -655,6 +656,7 @@ func processNMEALine(l string) bool {
 				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 				if err == nil {
 					mySituation.LastGPSTimeTime = stratuxClock.Time
+					mySituation.GPSTime = gpsTime
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
@@ -847,6 +849,7 @@ func processNMEALine(l string) bool {
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			if err == nil {
 				mySituation.LastGPSTimeTime = stratuxClock.Time
+				mySituation.GPSTime = gpsTime
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)
