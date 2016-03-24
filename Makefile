@@ -3,7 +3,7 @@ ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 else
 	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
-$(ifeq (, $(shell which go)),,$(error Go command not found!))
+$(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
