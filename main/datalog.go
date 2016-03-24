@@ -177,7 +177,6 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 
 	tblCreate := fmt.Sprintf("CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s)", tbl, strings.Join(fields, ", "))
 	_, err := db.Exec(tblCreate)
-	fmt.Printf("%s\n", tblCreate)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
 	}
@@ -212,14 +211,13 @@ func insertData(i interface{}, tbl string, db *sql.DB) int64 {
 	tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
 		strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
 
-	fmt.Printf("%s\n", tblInsert)
 	ifs := make([]interface{}, len(values))
 	for i := 0; i < len(values); i++ {
 		ifs[i] = values[i]
 	}
 	res, err := db.Exec(tblInsert, ifs...)
 	if err != nil {
-		fmt.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err.Error())
 	}
 	id, err := res.LastInsertId()
 	if err == nil {
