@@ -44,7 +44,7 @@ var dataLogTimestamp StratuxTimestamp // Current timestamp bucket.
 
 //FIXME: time -> stratuxClock
 func checkTimestamp() bool {
-	if time.Since(dataLogTimestamp.StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
+	if stratuxClock.Since(dataLogTimestamp.StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		dataLogTimestamp.id = 0
 		dataLogTimestamp.Time_type_preference = 0 // stratuxClock.
