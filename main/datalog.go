@@ -14,6 +14,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"log"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -21,7 +23,7 @@ import (
 )
 
 const (
-	LOG_TIMESTAMP_RESOLUTION = 50 * time.Millisecond
+	LOG_TIMESTAMP_RESOLUTION = 250 * time.Millisecond
 )
 
 type StratuxTimestamp struct {
@@ -45,8 +47,10 @@ func checkTimestamp() bool {
 	if time.Since(dataLogTimestamp.StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		dataLogTimestamp.id = 0
-		dataLogTimestamp.StratuxClock_value = time.Now()
-		dataLogTimestamp.Time_type_preference = 0
+		dataLogTimestamp.Time_type_preference = 0 // stratuxClock.
+		dataLogTimestamp.StratuxClock_value = stratuxClock.Time
+		dataLogTimestamp.GPSClock_value = time.Time{}
+		dataLogTimestamp.PreferredTime_value = stratuxClock.Time
 
 		return false
 	}
@@ -64,14 +68,6 @@ func boolMarshal(v reflect.Value) string {
 		return "1"
 	}
 	return "0"
-}
-
-func structCanBeMarshalled(v reflect.Value) bool {
-	m := v.MethodByName("String")
-	if m.IsValid() && !m.IsNil() {
-		return true
-	}
-	return false
 }
 
 func intMarshal(v reflect.Value) string {
@@ -92,6 +88,14 @@ func stringMarshal(v reflect.Value) string {
 
 func notsupportedMarshal(v reflect.Value) string {
 	return ""
+}
+
+func structCanBeMarshalled(v reflect.Value) bool {
+	m := v.MethodByName("String")
+	if m.IsValid() && !m.IsNil() {
+		return true
+	}
+	return false
 }
 
 func structMarshal(v reflect.Value) string {
@@ -236,17 +240,41 @@ var dataLogChan chan DataLogRow
 func dataLogWriter() {
 	dataLogChan := make(chan DataLogRow, 10240)
 
-	db, err := sql.Open("sqlite3", "./test.db")
+	// Check if we need to create a new database.
+	createDatabase := false
+
+	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
+		createDatabase = true
+		log.Printf("creating new database '%s'.\n", dataLogFile)
+	}
+
+	db, err := sql.Open("sqlite3", dataLogFile)
 	if err != nil {
-		fmt.Printf("sql.Open(): %s\n", err.Error())
+		log.Printf("sql.Open(): %s\n", err.Error())
 	}
 	defer db.Close()
+
+	// Do we need to create the database?
+	if createDatabase {
+		makeTable(dataLogTimestamp, "timestamp", db)
+		makeTable(mySituation, "mySituation", db)
+		makeTable(globalStatus, "status", db)
+		makeTable(globalSettings, "settings", db)
+		makeTable(TrafficInfo{}, "traffic", db)
+	}
 
 	for {
 		//FIXME: measure latency from here to end of block. Messages may need to be timestamped *before* executing everything here.
 		r := <-dataLogChan
-		if r.tbl == "mySituation" {
-			//TODO: Piggyback a GPS time update from this update.
+		if r.tbl == "mySituation" && isGPSClockValid() {
+			// Piggyback a GPS time update from this update.
+			if t, ok := r.data.(SituationData); ok {
+				dataLogTimestamp.id = 0
+				dataLogTimestamp.Time_type_preference = 1 // gpsClock.
+				dataLogTimestamp.StratuxClock_value = stratuxClock.Time
+				dataLogTimestamp.GPSClock_value = t.GPSTime
+				dataLogTimestamp.PreferredTime_value = t.GPSTime
+			}
 		}
 
 		// Check if our time bucket has expired or has never been entered.
@@ -257,50 +285,22 @@ func dataLogWriter() {
 	}
 }
 
-type SituationData struct {
-	// From GPS.
-	LastFixSinceMidnightUTC float32
-	Lat                     float32
-	Lng                     float32
-	Quality                 uint8
-	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
-	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	Satellites              uint16  // satellites used in solution
-	SatellitesTracked       uint16  // satellites tracked (almanac data received)
-	SatellitesSeen          uint16  // satellites seen (signal received)
-	Accuracy                float32 // 95% confidence for horizontal position, meters.
-	NACp                    uint8   // NACp categories are defined in AC 20-165A
-	Alt                     float32 // Feet MSL
-	AccuracyVert            float32 // 95% confidence for vertical position, meters
-	GPSVertVel              float32 // GPS vertical velocity, feet per second
-	LastFixLocalTime        time.Time
-	TrueCourse              uint16
-	GroundSpeed             uint16
-	LastGroundTrackTime     time.Time
-	LastGPSTimeTime         time.Time
-	LastNMEAMessage         time.Time // time valid NMEA message last seen
-
-	// From BMP180 pressure sensor.
-	Temp              float64
-	Pressure_alt      float64
-	LastTempPressTime time.Time
-
-	// From MPU6050 accel/gyro.
-	Pitch            float64
-	Roll             float64
-	Gyro_heading     float64
-	LastAttitudeTime time.Time
+func logSituation() {
+	dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
 }
 
-func main() {
-	db, err := sql.Open("sqlite3", "./test.db")
-	if err != nil {
-		fmt.Printf("sql.Open(): %s\n", err.Error())
-	}
-	defer db.Close()
+func logStatus() {
+	dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
+}
 
-	e := SituationData{}
-	//makeTable(e, "situation", db)
-	i := insertData(e, "situation", db)
-	fmt.Printf("insert id=%d\n", i)
+func logSettings() {
+	dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
+}
+
+func logTraffic(ti TrafficInfo) {
+	dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+}
+
+func initDataLog() {
+	go dataLogWriter()
 }

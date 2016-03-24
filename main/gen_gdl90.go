@@ -44,6 +44,7 @@ const (
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 	logDirectory        = "/var/log/stratux"
+	dataLogFile         = "/var/log/stratux.sqlite"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -1361,6 +1362,8 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
+	//FIXME: Only do this if data logging is enabled.
+	initDataLog()
 	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 
 	if uatwt, err := openReplay(uatReplayLog, !developerMode); err != nil {
