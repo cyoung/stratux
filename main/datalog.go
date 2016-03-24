@@ -238,7 +238,7 @@ type DataLogRow struct {
 var dataLogChan chan DataLogRow
 
 func dataLogWriter() {
-	dataLogChan := make(chan DataLogRow, 10240)
+	dataLogChan = make(chan DataLogRow, 10240)
 
 	// Check if we need to create a new database.
 	createDatabase := false
