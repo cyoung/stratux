@@ -34,27 +34,28 @@ type SituationData struct {
 	mu_GPS *sync.Mutex
 
 	// From GPS.
-	LastFixSinceMidnightUTC float32
-	Lat                     float32
-	Lng                     float32
-	Quality                 uint8
-	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
-	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	Satellites              uint16  // satellites used in solution
-	SatellitesTracked       uint16  // satellites tracked (almanac data received)
-	SatellitesSeen          uint16  // satellites seen (signal received)
-	Accuracy                float32 // 95% confidence for horizontal position, meters.
-	NACp                    uint8   // NACp categories are defined in AC 20-165A
-	Alt                     float32 // Feet MSL
-	AccuracyVert            float32 // 95% confidence for vertical position, meters
-	GPSVertVel              float32 // GPS vertical velocity, feet per second
-	LastFixLocalTime        time.Time
-	TrueCourse              uint16
-	GroundSpeed             uint16
-	LastGroundTrackTime     time.Time
-	GPSTime                 time.Time
-	LastGPSTimeTime         time.Time // stratuxClock time since last GPS time received.
-	LastValidNMEAMessage    time.Time // time valid NMEA message last seen
+	LastFixSinceMidnightUTC  float32
+	Lat                      float32
+	Lng                      float32
+	Quality                  uint8
+	HeightAboveEllipsoid     float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
+	GeoidSep                 float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	Satellites               uint16  // satellites used in solution
+	SatellitesTracked        uint16  // satellites tracked (almanac data received)
+	SatellitesSeen           uint16  // satellites seen (signal received)
+	Accuracy                 float32 // 95% confidence for horizontal position, meters.
+	NACp                     uint8   // NACp categories are defined in AC 20-165A
+	Alt                      float32 // Feet MSL
+	AccuracyVert             float32 // 95% confidence for vertical position, meters
+	GPSVertVel               float32 // GPS vertical velocity, feet per second
+	LastFixLocalTime         time.Time
+	TrueCourse               uint16
+	GroundSpeed              uint16
+	LastGroundTrackTime      time.Time
+	GPSTime                  time.Time
+	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
+	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
+	LastValidNMEAMessage     string    // last NMEA message processed.
 
 	mu_Attitude *sync.Mutex
 
@@ -431,7 +432,10 @@ return is true if parse occurs correctly and position is valid.
 
 func processNMEALine(l string) bool {
 	mySituation.mu_GPS.Lock()
-	defer mySituation.mu_GPS.Unlock()
+	defer func() {
+		logSituation()
+		mySituation.mu_GPS.Unlock()
+	}()
 
 	replayLog(l, MSGCLASS_GPS)
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
@@ -441,7 +445,8 @@ func processNMEALine(l string) bool {
 	}
 	x := strings.Split(l_valid, ",")
 
-	mySituation.LastValidNMEAMessage = stratuxClock.Time
+	mySituation.LastValidNMEAMessageTime = stratuxClock.Time
+	mySituation.LastValidNMEAMessage = l
 
 	if x[0] == "PUBX" { // UBX proprietary message
 		if x[1] == "00" { // Position fix.
@@ -1158,7 +1163,7 @@ func attitudeReaderSender() {
 }
 
 func isGPSConnected() bool {
-	return stratuxClock.Since(mySituation.LastValidNMEAMessage) < 5*time.Second
+	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
 func isGPSValid() bool {
