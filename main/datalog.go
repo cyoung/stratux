@@ -11,9 +11,9 @@
 package main
 
 import (
-	//	"database/sql"
+	"database/sql"
 	"fmt"
-	//	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 	"reflect"
 	"strconv"
 	"strings"
@@ -39,19 +39,20 @@ var dataLogTimestamp StratuxTimestamp // Current timestamp bucket.
 		Verify that our current timestamp is within the LOG_TIMESTAMP_RESOLUTION bucket.
 		 Returns false if the timestamp was changed, true if it is still valid.
 */
-/*
+
+//FIXME: time -> stratuxClock
 func checkTimestamp() bool {
-	if stratuxClock.Since(dataLogTimestamp.stratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
+	if time.Since(dataLogTimestamp.stratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		dataLogTimestamp.id = 0
-		dataLogTimestamp.stratuxClock_value = stratuxClock.Time
+		dataLogTimestamp.stratuxClock_value = time.Now()
 		dataLogTimestamp.time_type_preference = 0
 
 		return false
 	}
 	return true
 }
-*/
+
 type SQLiteMarshal struct {
 	FieldType string
 	Marshal   func(v reflect.Value) string
@@ -144,7 +145,7 @@ var sqlTypeMap = map[reflect.Kind]string{
 	reflect.UnsafePointer: "notsupported",
 }
 
-func makeTable(i interface{}, tbl string) {
+func makeTable(i interface{}, tbl string, db *sql.DB) {
 	val := reflect.ValueOf(i)
 
 	fields := make([]string, 0)
@@ -152,7 +153,6 @@ func makeTable(i interface{}, tbl string) {
 		kind := val.Field(i).Kind()
 		fieldName := val.Type().Field(i).Name
 		sqlTypeAlias := sqlTypeMap[kind]
-		fmt.Printf("%s %s\n", kind, fieldName)
 
 		// Check that if the field is a struct that it can be marshalled.
 		if sqlTypeAlias == "struct" && !structCanBeMarshalled(val.Field(i)) {
@@ -168,14 +168,20 @@ func makeTable(i interface{}, tbl string) {
 
 	if len(fields) > 0 {
 		tblCreate := fmt.Sprintf("CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s)", tbl, strings.Join(fields, ", "))
+		_, err := db.Exec(tblCreate)
 		fmt.Printf("%s\n", tblCreate)
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err.Error())
+		}
 	}
 }
 
-func insertData(i interface{}, tbl string) {
+func insertData(i interface{}, tbl string, db *sql.DB) {
+	checkTimestamp()
 	val := reflect.ValueOf(i)
 
-	//	values := make([]string, 0)
+	keys := make([]string, 0)
+	values := make([]string, 0)
 	for i := 0; i < val.NumField(); i++ {
 		kind := val.Field(i).Kind()
 		fieldName := val.Type().Field(i).Name
@@ -187,19 +193,69 @@ func insertData(i interface{}, tbl string) {
 
 		v := sqliteMarshalFunctions[sqlTypeAlias].Marshal(val.Field(i))
 
-		fmt.Printf("%s='%s'\n", fieldName, v)
+		keys = append(keys, fieldName)
+		values = append(values, v)
+	}
+
+	if len(keys) > 0 {
+		tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
+			strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+
+		fmt.Printf("%s\n", tblInsert)
+		ifs := make([]interface{}, len(values))
+		for i := 0; i < len(values); i++ {
+			ifs[i] = values[i]
+		}
+		_, err := db.Exec(tblInsert, ifs...)
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err.Error())
+		}
 	}
 }
 
-func logData(i interface{}, tbl string) {
-	val := reflect.ValueOf(i)
-	for i := 0; i < val.NumField(); i++ {
-		fmt.Printf("%d, %s\n", val.Field(i).Kind(), val.Type().Field(i).Name)
-	}
+type SituationData struct {
+	// From GPS.
+	LastFixSinceMidnightUTC float32
+	Lat                     float32
+	Lng                     float32
+	Quality                 uint8
+	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
+	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	Satellites              uint16  // satellites used in solution
+	SatellitesTracked       uint16  // satellites tracked (almanac data received)
+	SatellitesSeen          uint16  // satellites seen (signal received)
+	Accuracy                float32 // 95% confidence for horizontal position, meters.
+	NACp                    uint8   // NACp categories are defined in AC 20-165A
+	Alt                     float32 // Feet MSL
+	AccuracyVert            float32 // 95% confidence for vertical position, meters
+	GPSVertVel              float32 // GPS vertical velocity, feet per second
+	LastFixLocalTime        time.Time
+	TrueCourse              uint16
+	GroundSpeed             uint16
+	LastGroundTrackTime     time.Time
+	LastGPSTimeTime         time.Time
+	LastNMEAMessage         time.Time // time valid NMEA message last seen
+
+	// From BMP180 pressure sensor.
+	Temp              float64
+	Pressure_alt      float64
+	LastTempPressTime time.Time
+
+	// From MPU6050 accel/gyro.
+	Pitch            float64
+	Roll             float64
+	Gyro_heading     float64
+	LastAttitudeTime time.Time
 }
 
 func main() {
+	db, err := sql.Open("sqlite3", "./test.db")
+	if err != nil {
+		fmt.Printf("sql.Open(): %s\n", err.Error())
+	}
+	defer db.Close()
+
 	e := SituationData{}
-	makeTable(e, "situation")
-	insertData(e, "situation")
+	//makeTable(e, "situation", db)
+	insertData(e, "situation", db)
 }
