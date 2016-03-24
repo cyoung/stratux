@@ -34,10 +34,10 @@ type SituationData struct {
 	mu_GPS *sync.Mutex
 
 	// From GPS.
-	lastFixSinceMidnightUTC float32
+	LastFixSinceMidnightUTC float32
 	Lat                     float32
 	Lng                     float32
-	quality                 uint8
+	Quality                 uint8
 	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
 	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
 	Satellites              uint16  // satellites used in solution
@@ -60,7 +60,7 @@ type SituationData struct {
 	// From BMP180 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
-	lastTempPressTime time.Time
+	LastTempPressTime time.Time
 
 	// From MPU6050 accel/gyro.
 	Pitch            float64
@@ -456,16 +456,16 @@ func processNMEALine(l string) bool {
 			okReturn := true
 
 			if x[8] == "D2" || x[8] == "D3" {
-				mySituation.quality = 2
+				mySituation.Quality = 2
 			} else if x[8] == "G2" || x[8] == "G3" {
-				mySituation.quality = 1
+				mySituation.Quality = 1
 			} else if x[8] == "DR" || x[8] == "RK" {
-				mySituation.quality = 6
+				mySituation.Quality = 6
 			} else if x[8] == "NF" {
-				mySituation.quality = 0
+				mySituation.Quality = 0
 				okReturn = false //  better to have no data than wrong data
 			} else {
-				mySituation.quality = 0
+				mySituation.Quality = 0
 				okReturn = false //  better to have no data than wrong data
 			}
 
@@ -501,7 +501,7 @@ func processNMEALine(l string) bool {
 				return false
 			}
 
-			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+			mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3-4 = lat
 
@@ -645,7 +645,7 @@ func processNMEALine(l string) bool {
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
-			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+			mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3 is date
 
@@ -711,7 +711,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
+		mySituation.Quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
 		// Timestamp.
 		if len(x[1]) < 7 {
@@ -724,7 +724,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+		mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -770,7 +770,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		if mySituation.quality == 2 {
+		if mySituation.Quality == 2 {
 			mySituation.Accuracy = float32(hdop * 4.0) //Estimate for WAAS / DGPS solution
 		} else {
 			mySituation.Accuracy = float32(hdop * 8.0) //Estimate for 3D non-WAAS solution
@@ -823,10 +823,10 @@ func processNMEALine(l string) bool {
 		defer mySituation.mu_GPS.Unlock()
 
 		if x[2] != "A" { // invalid fix
-			mySituation.quality = 0
+			mySituation.Quality = 0
 			return false
-		} else if mySituation.quality == 0 {
-			mySituation.quality = 1 // fallback option; indicate if the position fix is valid even if GGA or PUBX,00 aren't received
+		} else if mySituation.Quality == 0 {
+			mySituation.Quality = 1 // fallback option; indicate if the position fix is valid even if GGA or PUBX,00 aren't received
 		}
 
 		// Timestamp.
@@ -839,7 +839,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
-		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+		mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
@@ -921,7 +921,7 @@ func processNMEALine(l string) bool {
 		// M: manual forced to 2D or 3D mode
 		// A: automatic switching between 2D and 3D modes
 		if (x[1] != "A") && (x[1] != "M") { // invalid fix
-			mySituation.quality = 0
+			mySituation.Quality = 0
 			return false
 		}
 
@@ -953,7 +953,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		if mySituation.quality == 2 {
+		if mySituation.Quality == 2 {
 			mySituation.Accuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
 		} else {
 			mySituation.Accuracy = float32(hdop * 8.0) // Rough 95% confidence estimate for 3D non-WAAS solution
@@ -1056,7 +1056,7 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			mySituation.lastTempPressTime = stratuxClock.Time
+			mySituation.LastTempPressTime = stratuxClock.Time
 		}
 	}
 	globalStatus.RY835AI_connected = false
@@ -1161,7 +1161,7 @@ func isAHRSValid() bool {
 }
 
 func isTempPressValid() bool {
-	return stratuxClock.Since(mySituation.lastTempPressTime) < 15*time.Second
+	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
 
 func initAHRS() error {
