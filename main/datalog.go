@@ -287,7 +287,9 @@ func setDataLogTimeWithGPS(sit SituationData) {
 }
 
 func logSituation() {
-	dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
+	}
 }
 
 func logStatus() {
@@ -299,7 +301,9 @@ func logSettings() {
 }
 
 func logTraffic(ti TrafficInfo) {
-	dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+	}
 }
 
 func initDataLog() {
