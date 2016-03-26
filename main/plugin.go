@@ -1,4 +1,4 @@
-package StratuxPlugin
+package main
 
 import (
 	"time"
