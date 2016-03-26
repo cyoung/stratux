@@ -766,8 +766,7 @@ func registerADSBTextMessageReceived(msg string) {
 }
 
 func parseInput(buf string) ([]byte, uint16) {
-	replayLog(buf, MSGCLASS_UAT) // Log the raw message.
-
+	//FIXME: We're ignoring all invalid format UAT messages (not sending to datalog).
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
 	s := x[0]
 	if len(s) == 0 {
