@@ -1165,7 +1165,8 @@ func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	//TODO: Any other graceful shutdown functions.
-	closeReplayLogs()
+	// Shut down data logging.
+	shutdownDataLog <- true
 	os.Exit(1)
 }
 

@@ -236,9 +236,11 @@ type DataLogRow struct {
 }
 
 var dataLogChan chan DataLogRow
+var shutdownDataLog chan bool
 
 func dataLogWriter() {
 	dataLogChan = make(chan DataLogRow, 10240)
+	shutdownDataLog = make(chan bool)
 
 	// Check if we need to create a new database.
 	createDatabase := false
@@ -266,14 +268,18 @@ func dataLogWriter() {
 	}
 
 	for {
+		select {
 		//FIXME: measure latency from here to end of block. Messages may need to be timestamped *before* executing everything here.
-		r := <-dataLogChan
+		case r := <-dataLogChan:
 
-		// Check if our time bucket has expired or has never been entered.
-		if !checkTimestamp() || dataLogTimestamp.id == 0 {
-			insertData(dataLogTimestamp, "timestamp", db) // Updates dataLogTimestamp.id.
+			// Check if our time bucket has expired or has never been entered.
+			if !checkTimestamp() || dataLogTimestamp.id == 0 {
+				insertData(dataLogTimestamp, "timestamp", db) // Updates dataLogTimestamp.id.
+			}
+			insertData(r.data, r.tbl, db)
+		case <-shutdownDataLog: // Received a message on the channel (anything). Graceful shutdown (defer statement).
+			return
 		}
-		insertData(r.data, r.tbl, db)
 	}
 }
 
