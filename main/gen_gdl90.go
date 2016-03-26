@@ -67,7 +67,6 @@ const (
 
 	MSGCLASS_UAT      = 0
 	MSGCLASS_ES       = 1
-	MSGCLASS_AHRS     = 4
 	MSGCLASS_DUMP1090 = 5
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
@@ -78,7 +77,6 @@ var maxSignalStrength int
 
 var uatReplayLog string
 var esReplayLog string
-var ahrsReplayLog string
 var dump1090ReplayLog string
 
 var stratuxBuild string
@@ -103,7 +101,6 @@ type ReadCloser interface {
 // File handles for replay logging.
 var uatReplayWriter WriteCloser
 var esReplayWriter WriteCloser
-var ahrsReplayWriter WriteCloser
 var dump1090ReplayWriter WriteCloser
 
 var developerMode bool
@@ -168,12 +165,10 @@ func constructFilenames() {
 	if developerMode == true {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log", logDirectory, fileIndexNumber)
-		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
 	} else {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
-		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
 	}
 }
@@ -791,8 +786,6 @@ func replayLog(msg string, msgclass int) {
 		fp = uatReplayWriter
 	case MSGCLASS_ES:
 		fp = esReplayWriter
-	case MSGCLASS_AHRS:
-		fp = ahrsReplayWriter
 	case MSGCLASS_DUMP1090:
 		fp = dump1090ReplayWriter
 	}
@@ -1133,10 +1126,6 @@ func replayMark(active bool) {
 		esReplayWriter.Write([]byte(t))
 	}
 
-	if ahrsReplayWriter != nil {
-		ahrsReplayWriter.Write([]byte(t))
-	}
-
 	if dump1090ReplayWriter != nil {
 		dump1090ReplayWriter.Write([]byte(t))
 	}
@@ -1260,9 +1249,6 @@ func closeReplayLogs() {
 	if esReplayWriter != nil {
 		esReplayWriter.Close()
 	}
-	if ahrsReplayWriter != nil {
-		ahrsReplayWriter.Close()
-	}
 	if dump1090ReplayWriter != nil {
 		dump1090ReplayWriter.Close()
 	}
@@ -1365,13 +1351,6 @@ func main() {
 	} else {
 		esReplayWriter = eswt
 		defer esReplayWriter.Close()
-	}
-	// AHRS replay log.
-	if ahrswt, err := openReplay(ahrsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		ahrsReplayWriter = ahrswt
-		defer ahrsReplayWriter.Close()
 	}
 	// Dump1090 replay log.
 	if dump1090wt, err := openReplay(dump1090ReplayLog, !developerMode); err != nil {
