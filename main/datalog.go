@@ -261,6 +261,7 @@ func dataLogWriter() {
 		makeTable(globalStatus, "status", db)
 		makeTable(globalSettings, "settings", db)
 		makeTable(TrafficInfo{}, "traffic", db)
+		makeTable(msg{}, "messages", db)
 	}
 
 	for {
@@ -303,6 +304,12 @@ func logSettings() {
 func logTraffic(ti TrafficInfo) {
 	if globalSettings.ReplayLog {
 		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+	}
+}
+
+func logMsg(m msg) {
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "messages", data: m}
 	}
 }
 

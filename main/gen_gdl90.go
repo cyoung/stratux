@@ -75,8 +75,6 @@ const (
 
 var maxSignalStrength int
 
-var uatReplayLog string
-var esReplayLog string
 var dump1090ReplayLog string
 
 var stratuxBuild string
@@ -99,8 +97,6 @@ type ReadCloser interface {
 }
 
 // File handles for replay logging.
-var uatReplayWriter WriteCloser
-var esReplayWriter WriteCloser
 var dump1090ReplayWriter WriteCloser
 
 var developerMode bool
@@ -163,12 +159,8 @@ func constructFilenames() {
 	fo.Sync()
 	fo.Close()
 	if developerMode == true {
-		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log", logDirectory, fileIndexNumber)
-		esReplayLog = fmt.Sprintf("%s/%04d-es.log", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
 	} else {
-		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
-		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
 	}
 }
@@ -782,10 +774,6 @@ func replayLog(msg string, msgclass int) {
 	var fp WriteCloser
 
 	switch msgclass {
-	case MSGCLASS_UAT:
-		fp = uatReplayWriter
-	case MSGCLASS_ES:
-		fp = esReplayWriter
 	case MSGCLASS_DUMP1090:
 		fp = dump1090ReplayWriter
 	}
@@ -927,6 +915,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	}
 
 	MsgLog = append(MsgLog, thisMsg)
+	logMsg(thisMsg)
 
 	return frame, msgtype
 }
@@ -1118,14 +1107,6 @@ func replayMark(active bool) {
 		t = fmt.Sprintf("UNPAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
 	}
 
-	if uatReplayWriter != nil {
-		uatReplayWriter.Write([]byte(t))
-	}
-
-	if esReplayWriter != nil {
-		esReplayWriter.Write([]byte(t))
-	}
-
 	if dump1090ReplayWriter != nil {
 		dump1090ReplayWriter.Write([]byte(t))
 	}
@@ -1243,16 +1224,9 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
 // Close replay log file handles.
 func closeReplayLogs() {
-	if uatReplayWriter != nil {
-		uatReplayWriter.Close()
-	}
-	if esReplayWriter != nil {
-		esReplayWriter.Close()
-	}
 	if dump1090ReplayWriter != nil {
 		dump1090ReplayWriter.Close()
 	}
-
 }
 
 // Graceful shutdown.
@@ -1337,21 +1311,8 @@ func main() {
 
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
-	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 
-	if uatwt, err := openReplay(uatReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		uatReplayWriter = uatwt
-		defer uatReplayWriter.Close()
-	}
-	// 1090ES replay log.
-	if eswt, err := openReplay(esReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		esReplayWriter = eswt
-		defer esReplayWriter.Close()
-	}
+	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 	// Dump1090 replay log.
 	if dump1090wt, err := openReplay(dump1090ReplayLog, !developerMode); err != nil {
 		globalSettings.ReplayLog = false
