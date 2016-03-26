@@ -65,17 +65,14 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT      = 0
-	MSGCLASS_ES       = 1
-	MSGCLASS_DUMP1090 = 5
+	MSGCLASS_UAT = 0
+	MSGCLASS_ES  = 1
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
 var maxSignalStrength int
-
-var dump1090ReplayLog string
 
 var stratuxBuild string
 var stratuxVersion string
@@ -95,9 +92,6 @@ type ReadCloser interface {
 	io.Reader
 	io.Closer
 }
-
-// File handles for replay logging.
-var dump1090ReplayWriter WriteCloser
 
 var developerMode bool
 
@@ -158,11 +152,6 @@ func constructFilenames() {
 	}
 	fo.Sync()
 	fo.Close()
-	if developerMode == true {
-		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
-	} else {
-		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
-	}
 }
 
 // Construct the CRC table. Adapted from FAA ref above.
@@ -747,43 +736,6 @@ func updateStatus() {
 	globalStatus.Clock = time.Now()
 }
 
-type ReplayWriter struct {
-	fp *os.File
-}
-
-func (r ReplayWriter) Write(p []byte) (n int, err error) {
-	return r.fp.Write(p)
-}
-
-func (r ReplayWriter) Close() error {
-	return r.fp.Close()
-}
-
-func makeReplayLogEntry(msg string) string {
-	return fmt.Sprintf("%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
-}
-
-func replayLog(msg string, msgclass int) {
-	if !globalSettings.ReplayLog { // Logging disabled.
-		return
-	}
-	msg = strings.Trim(msg, " \r\n")
-	if len(msg) == 0 { // Blank message.
-		return
-	}
-	var fp WriteCloser
-
-	switch msgclass {
-	case MSGCLASS_DUMP1090:
-		fp = dump1090ReplayWriter
-	}
-
-	if fp != nil {
-		s := makeReplayLogEntry(msg)
-		fp.Write([]byte(s))
-	}
-}
-
 type WeatherMessage struct {
 	Type              string
 	Location          string
@@ -1099,20 +1051,6 @@ func saveSettings() {
 	log.Printf("wrote settings.\n")
 }
 
-func replayMark(active bool) {
-	var t string
-	if !active {
-		t = fmt.Sprintf("PAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
-	} else {
-		t = fmt.Sprintf("UNPAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
-	}
-
-	if dump1090ReplayWriter != nil {
-		dump1090ReplayWriter.Write([]byte(t))
-	}
-
-}
-
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
 	fp, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 
@@ -1222,13 +1160,6 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
-// Close replay log file handles.
-func closeReplayLogs() {
-	if dump1090ReplayWriter != nil {
-		dump1090ReplayWriter.Close()
-	}
-}
-
 // Graceful shutdown.
 func gracefulShutdown() {
 	// Shut down SDRs.
@@ -1311,18 +1242,6 @@ func main() {
 
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
-
-	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
-	// Dump1090 replay log.
-	if dump1090wt, err := openReplay(dump1090ReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		dump1090ReplayWriter = dump1090wt
-		defer dump1090ReplayWriter.Close()
-	}
-
-	// Mark the files (whether we're logging or not).
-	replayMark(globalSettings.ReplayLog)
 
 	initRY835AI()
 

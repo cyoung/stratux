@@ -262,6 +262,7 @@ func dataLogWriter() {
 		makeTable(globalSettings, "settings", db)
 		makeTable(TrafficInfo{}, "traffic", db)
 		makeTable(msg{}, "messages", db)
+		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
 	}
 
 	for {
@@ -311,6 +312,10 @@ func logMsg(m msg) {
 	if globalSettings.ReplayLog {
 		dataLogChan <- DataLogRow{tbl: "messages", data: m}
 	}
+}
+
+func logDump1090TermMessage(m Dump1090TermMessage) {
+	dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
 }
 
 func initDataLog() {

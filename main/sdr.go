@@ -46,6 +46,11 @@ var UATDev *UAT
 // ESDev holds a 1090 MHz dongle object
 var ESDev *ES
 
+type Dump1090TermMessage struct {
+	Text   string
+	Source string
+}
+
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
@@ -100,7 +105,8 @@ func (e *ES) read() {
 			default:
 				n, err := stdout.Read(stdoutBuf)
 				if err == nil && n > 0 {
-					replayLog(string(stdoutBuf[:n]), MSGCLASS_DUMP1090)
+					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stdout"}
+					logDump1090TermMessage(m)
 				}
 			}
 		}
@@ -114,7 +120,8 @@ func (e *ES) read() {
 			default:
 				n, err := stderr.Read(stderrBuf)
 				if err == nil && n > 0 {
-					replayLog(string(stderrBuf[:n]), MSGCLASS_DUMP1090)
+					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stderr"}
+					logDump1090TermMessage(m)
 				}
 			}
 		}
