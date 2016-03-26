@@ -67,7 +67,6 @@ const (
 
 	MSGCLASS_UAT      = 0
 	MSGCLASS_ES       = 1
-	MSGCLASS_GPS      = 3
 	MSGCLASS_AHRS     = 4
 	MSGCLASS_DUMP1090 = 5
 
@@ -79,7 +78,6 @@ var maxSignalStrength int
 
 var uatReplayLog string
 var esReplayLog string
-var gpsReplayLog string
 var ahrsReplayLog string
 var dump1090ReplayLog string
 
@@ -105,7 +103,6 @@ type ReadCloser interface {
 // File handles for replay logging.
 var uatReplayWriter WriteCloser
 var esReplayWriter WriteCloser
-var gpsReplayWriter WriteCloser
 var ahrsReplayWriter WriteCloser
 var dump1090ReplayWriter WriteCloser
 
@@ -171,13 +168,11 @@ func constructFilenames() {
 	if developerMode == true {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log", logDirectory, fileIndexNumber)
-		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
 	} else {
 		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
 		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
-		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log.gz", logDirectory, fileIndexNumber)
 		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz", logDirectory, fileIndexNumber)
 		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
 	}
@@ -796,8 +791,6 @@ func replayLog(msg string, msgclass int) {
 		fp = uatReplayWriter
 	case MSGCLASS_ES:
 		fp = esReplayWriter
-	case MSGCLASS_GPS:
-		fp = gpsReplayWriter
 	case MSGCLASS_AHRS:
 		fp = ahrsReplayWriter
 	case MSGCLASS_DUMP1090:
@@ -1140,10 +1133,6 @@ func replayMark(active bool) {
 		esReplayWriter.Write([]byte(t))
 	}
 
-	if gpsReplayWriter != nil {
-		gpsReplayWriter.Write([]byte(t))
-	}
-
 	if ahrsReplayWriter != nil {
 		ahrsReplayWriter.Write([]byte(t))
 	}
@@ -1271,9 +1260,6 @@ func closeReplayLogs() {
 	if esReplayWriter != nil {
 		esReplayWriter.Close()
 	}
-	if gpsReplayWriter != nil {
-		gpsReplayWriter.Close()
-	}
 	if ahrsReplayWriter != nil {
 		ahrsReplayWriter.Close()
 	}
@@ -1379,13 +1365,6 @@ func main() {
 	} else {
 		esReplayWriter = eswt
 		defer esReplayWriter.Close()
-	}
-	// GPS replay log.
-	if gpswt, err := openReplay(gpsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		gpsReplayWriter = gpswt
-		defer gpsReplayWriter.Close()
 	}
 	// AHRS replay log.
 	if ahrswt, err := openReplay(ahrsReplayLog, !developerMode); err != nil {

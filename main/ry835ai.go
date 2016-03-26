@@ -437,7 +437,6 @@ func processNMEALine(l string) bool {
 		mySituation.mu_GPS.Unlock()
 	}()
 
-	replayLog(l, MSGCLASS_GPS)
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
 	if !validNMEAcs {
 		log.Printf("GPS error. Invalid NMEA string: %s\n", l_valid) // remove log message once validation complete
