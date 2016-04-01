@@ -229,7 +229,6 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 			batchVals = batchVals[1:]
 			i++
 		}
-		log.Printf("bulkInsert %d vals: %s\n", len(vals), stmt)
 		res, err = db.Exec(stmt, vals...)
 		if err != nil {
 			return
@@ -309,7 +308,6 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 				ts := dataLogTimestamps[ts_num]
 				ts.id = id
 				dataLogTimestamps[ts_num] = ts
-				log.Printf("new ts=%d\n", id)
 			}
 			return id
 		}
@@ -333,7 +331,7 @@ func dataLogWriter(db *sql.DB) {
 	dataLogWriteChan = make(chan DataLogRow, 10240)
 	// The write queue. As data comes in via dataLogChan, it is timestamped and stored.
 	//  When writeTicker comes up, the queue is emptied.
-	writeTicker := time.NewTicker(5 * time.Second)
+	writeTicker := time.NewTicker(10 * time.Second)
 	rowsQueuedForWrite := make([]DataLogRow, 0)
 	for {
 		select {
@@ -345,7 +343,6 @@ func dataLogWriter(db *sql.DB) {
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
 			tblsAffected := make(map[string]bool)
 			// Start transaction.
-			log.Printf("go %d\n", len(rowsQueuedForWrite))
 			tx, err := db.Begin()
 			if err != nil {
 				log.Printf("db.Begin() error: %s\n", err.Error())
@@ -361,7 +358,6 @@ func dataLogWriter(db *sql.DB) {
 			}
 			// Close the transaction.
 			tx.Commit()
-			log.Printf("done\n")
 			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
 		}
 	}
