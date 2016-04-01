@@ -16,7 +16,8 @@ NORMAL=$(tput sgr0)
 
 function USAGE {
 	echo ""
-    echo "usage: $0 ssid channel passphrase"
+    echo "usage: $0 quiet ssid channel passphrase"
+    echo "  quiet           will the script output messages 1 = yes"
     echo "	ssid			current or new SSID -required-"
     echo "	channel			the channel you want the WIFI to operate on -required-"
     echo "	passphrase		code to login to wifi. If not provided then security will be turned off"
@@ -30,8 +31,10 @@ function USAGE {
 
 #### root user check
 if [ $(whoami) != 'root' ]; then
-    echo "${BOLD}${RED}This script must be executed as root, exiting...${WHITE}${NORMAL}"
-    echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+    if [ $1 != "1" ]; then
+    	echo "${BOLD}${RED}This script must be executed as root, exiting...${WHITE}${NORMAL}"
+    	echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+    fi
     exit
 fi
 
@@ -43,34 +46,40 @@ fi
 #### ssid option check
 ####
 SSID=
-if [ "$1" = '' ]; then
-    echo "${BOLD}${RED}Missing SSID option, exiting...${WHITE}${NORMAL}"
-    echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+if [ "$2" = '' ]; then
+    if [ $1 != "1" ]; then
+    	echo "${BOLD}${RED}Missing SSID option, exiting...${WHITE}${NORMAL}"
+    	echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+    fi
     exit
 else
-    SSID=ssid=$1
+    SSID=ssid=$2
 fi
 
 #### channel option check
 ####
 CHAN=
-if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 -a "$2" -le 13  ]; then
-    	CHAN=channel=$2
+if [[ "$3" =~ ^[0-9]+$ ]] && [ "$3" -ge 1 -a "$3" -le 13  ]; then
+    	CHAN=channel=$3
 else
-    echo "${BOLD}${RED}Incorrect CHANNEL(number from 1 to 13), exiting...${WHITE}${NORMAL}"
-    echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
-    exit
+	if [ $1 != "1" ]; then
+    	echo "${BOLD}${RED}Incorrect CHANNEL $3 not valid (number from 1 to 13), exiting...${WHITE}${NORMAL}"
+    	echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+    fi
+   	exit
 fi
 
 #### encription option check
 ####
 PASS=
 if [ ! -z "$3" ]; then
-	if [ -z `echo $3 | tr -d "[:print:]"` ] && [ ${#3} -ge 8 ]  && [ ${#3} -le 63 ]; then
+	if [ -z `echo $4 | tr -d "[:print:]"` ] && [ ${#4} -ge 8 ]  && [ ${#4} -le 63 ]; then
   		PASS=wpa_passphrase=$3
 	else
-		echo  "${BOLD}${RED}Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
-        echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+    	if [ $1 != "1" ]; then
+			echo  "${BOLD}${RED}Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
+        	echo "${BOLD}${RED}USAGE${WHITE}${NORMAL}"
+        fi
 		exit
 	fi 
 fi
@@ -83,7 +92,9 @@ HOSTAPDEDIMAX=/etc/hostapd/hostapd-edimax.conf
 #### /etc/hostapd/hostapd.conf
 ####
 if [ -f "$HOSTAPD" ]; then
-    echo "${MAGENTA}Setting ${YELLOW}SSID${MAGENTA} to ${YELLOW}$1 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    if [ $1 != "1" ]; then
+    	echo "${MAGENTA}Setting ${YELLOW}SSID${MAGENTA} to ${YELLOW}$2 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    fi
 
     if grep -q "^ssid=" ${HOSTAPD}; then
         sed -i "s/^ssid=.*/${SSID}/" ${HOSTAPD}
@@ -91,7 +102,9 @@ if [ -f "$HOSTAPD" ]; then
         echo ${SSID} >> ${HOSTAPD}
     fi
     
-    echo "${MAGENTA}Setting Channel to ${YELLOW}$2 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    if [ $1 != "1" ]; then
+    	echo "${MAGENTA}Setting Channel to ${YELLOW}$3 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    fi
 
     if grep -q "^channel=" ${HOSTAPD}; then
         sed -i "s/^channel=.*/${CHAN}/" ${HOSTAPD}
@@ -101,25 +114,27 @@ if [ -f "$HOSTAPD" ]; then
 
 
     if [ ! -z "$3" ]; then
-        echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
+    	if [ $1 != "1" ]; then
+        	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
+        fi
         if grep -q "^#auth_algs=" ${HOSTAPD}; then
-        	echo "uncomenting wpa"
+        	#echo "uncomenting wpa"
             sed -i "s/^#auth_algs=.*/auth_algs=1/" ${HOSTAPD}
             sed -i "s/^#wpa=.*/wpa=3/" ${HOSTAPD}
-            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$3/" ${HOSTAPD}
+            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$4/" ${HOSTAPD}
             sed -i "s/^#wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${HOSTAPD}
             sed -i "s/^#wpa_pairwise=.*/wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^#rsn_pairwise=.*/rsn_pairwise=CCMP/" ${HOSTAPD}
        elif grep -q "^auth_algs=" ${HOSTAPD}; then
-        	echo "rewriting existing wpa"
+        	#echo "rewriting existing wpa"
             sed -i "s/^auth_algs=.*/auth_algs=1/" ${HOSTAPD}
             sed -i "s/^wpa=.*/wpa=3/" ${HOSTAPD}
-            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$3/" ${HOSTAPD}
+            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$4/" ${HOSTAPD}
             sed -i "s/^wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${HOSTAPD}
             sed -i "s/^wpa_pairwise=.*/wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^rsn_pairwise=.*/rsn_pairwise=CCMP/" ${HOSTAPD}
        else
-       		echo "adding wpa"
+       		#echo "adding wpa"
        		echo "" >> ${HOSTAPD}
             echo "auth_algs=1" >> ${HOSTAPD}
 			echo "wpa=3" >> ${HOSTAPD}
@@ -129,9 +144,11 @@ if [ -f "$HOSTAPD" ]; then
 			echo "rsn_pairwise=CCMP" >> ${HOSTAPD}
         fi
     else
-        echo "${MAGENTA}Removing WPA encryption in $HOSTAPD...${WHITE}"
+    	if [ $1 != "1" ]; then
+        	echo "${MAGENTA}Removing WPA encryption in $HOSTAPD...${WHITE}"
+        fi
         if grep -q "^auth_algs=" ${HOSTAPD}; then
-        	echo "comenting out wpa"
+        	#echo "comenting out wpa"
             sed -i "s/^auth_algs=.*/#auth_algs=1/" ${HOSTAPD}
             sed -i "s/^wpa=.*/#wpa=3/" ${HOSTAPD}
             sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=Clearedfortakeoff/" ${HOSTAPD}
@@ -139,7 +156,7 @@ if [ -f "$HOSTAPD" ]; then
             sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${HOSTAPD}
         elif grep -q "^#auth_algs=" ${HOSTAPD}; then
-        	echo "rewriting comentied out wpa"
+        	#echo "rewriting comentied out wpa"
             sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${HOSTAPD}
             sed -i "s/^#wpa=.*/#wpa=3/" ${HOSTAPD}
             sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=Clearedfortakeoff/" ${HOSTAPD}
@@ -147,7 +164,7 @@ if [ -f "$HOSTAPD" ]; then
             sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${HOSTAPD}
         else
-        	echo "adding commented out WPA"
+        	#echo "adding commented out WPA"
         	echo "" >> ${HOSTAPD}
         	echo "#auth_algs=1" >> ${HOSTAPD}
 			echo "#wpa=3" >> ${HOSTAPD}
@@ -158,18 +175,23 @@ if [ -f "$HOSTAPD" ]; then
         fi
         
     fi
-
-    echo "${GREEN}...done${WHITE}"
+	if [ $1 != "1" ]; then
+    	echo "${GREEN}...done${WHITE}"
+    fi
     STATUS="${YELLOW}Don't forget to reboot...${WHITE}"
 else
-    echo "${MAGENTA}${RED}No ${HOSTAPD} file found...${WHITE}${NORMAL}"
+	if [ $1 != "1" ]; then
+    	echo "${MAGENTA}${RED}No ${HOSTAPD} file found...${WHITE}${NORMAL}"
+    fi
 fi
 
 ####
 #### /etc/hostapd/hostapd-edimax.conf
 ####
 if [ -f "$HOSTAPDEDIMAX" ]; then
-    echo "${MAGENTA}Setting ${YELLOW}SSID ${MAGENTA}to ${YELLOW}$1 ${MAGENTA}in $HOSTAPD...${WHITE}"
+	if [ $1 != "1" ]; then
+    	echo "${MAGENTA}Setting ${YELLOW}SSID ${MAGENTA}to ${YELLOW}$2 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    fi
 
     if grep -q "^ssid=" "${HOSTAPDEDIMAX}"; then
         sed -i "s/^ssid=.*/${SSID}/" ${HOSTAPDEDIMAX}
@@ -177,7 +199,9 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
         echo ${SSID} >> ${HOSTAPDEDIMAX}
     fi
 
-   echo "${MAGENTA}Setting Channel to ${YELLOW}$2 ${MAGENTA}in $HOSTAPD...${WHITE}"
+	if [ $1 != "1" ]; then
+    	echo "${MAGENTA}Setting Channel to ${YELLOW}$3 ${MAGENTA}in $HOSTAPD...${WHITE}"
+    fi
 
     if grep -q "^channel=" ${HOSTAPD}; then
         sed -i "s/^channel=.*/${CHAN}/" ${HOSTAPD}
@@ -187,37 +211,41 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
 
 
     if [ ! -z "$3" ]; then
-        echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
+    	if [ $1 != "1" ]; then
+        	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
+        fi
         if grep -q "^#auth_algs=" ${HOSTAPD}; then
-        	echo "uncomenting wpa"
+        	#echo "uncomenting wpa"
             sed -i "s/^#auth_algs=.*/auth_algs=1/" ${HOSTAPD}
             sed -i "s/^#wpa=.*/wpa=3/" ${HOSTAPD}
-            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$3/" ${HOSTAPD}
+            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$4/" ${HOSTAPD}
             sed -i "s/^#wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${HOSTAPD}
             sed -i "s/^#wpa_pairwise=.*/wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^#rsn_pairwise=.*/rsn_pairwise=CCMP/" ${HOSTAPD}
        elif grep -q "^auth_algs=" ${HOSTAPD}; then
-        	echo "rewriting existing wpa"
+        	#echo "rewriting existing wpa"
             sed -i "s/^auth_algs=.*/auth_algs=1/" ${HOSTAPD}
             sed -i "s/^wpa=.*/wpa=3/" ${HOSTAPD}
-            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$3/" ${HOSTAPD}
+            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$4/" ${HOSTAPD}
             sed -i "s/^wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${HOSTAPD}
             sed -i "s/^wpa_pairwise=.*/wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^rsn_pairwise=.*/rsn_pairwise=CCMP/" ${HOSTAPD}
        else
-       		echo "adding wpa"
+       		#echo "adding wpa"
        		echo "" >> ${HOSTAPD}
             echo "auth_algs=1" >> ${HOSTAPD}
 			echo "wpa=3" >> ${HOSTAPD}
-			echo "wpa_passphrase=$3" >> ${HOSTAPD}
+			echo "wpa_passphrase=$4" >> ${HOSTAPD}
 			echo "wpa_key_mgmt=WPA-PSK" >> ${HOSTAPD}
             echo "wpa_pairwise=TKIP" >> ${HOSTAPD}
 			echo "rsn_pairwise=CCMP" >> ${HOSTAPD}
         fi
     else
-        echo "${MAGENTA}Removing WPA encryption in $HOSTAPD...${WHITE}"
+    	if [ $1 != "1" ]; then
+        	echo "${MAGENTA}Removing WPA encryption in $HOSTAPD...${WHITE}"
+        fi
         if grep -q "^auth_algs=" ${HOSTAPD}; then
-        	echo "comenting out wpa"
+        	#echo "comenting out wpa"
             sed -i "s/^auth_algs=.*/#auth_algs=1/" ${HOSTAPD}
             sed -i "s/^wpa=.*/#wpa=3/" ${HOSTAPD}
             sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=Clearedfortakeoff/" ${HOSTAPD}
@@ -225,7 +253,7 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
             sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${HOSTAPD}
         elif grep -q "^#auth_algs=" ${HOSTAPD}; then
-        	echo "rewriting comentied out wpa"
+        	#echo "rewriting comentied out wpa"
             sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${HOSTAPD}
             sed -i "s/^#wpa=.*/#wpa=3/" ${HOSTAPD}
             sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=Clearedfortakeoff/" ${HOSTAPD}
@@ -233,7 +261,7 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
             sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${HOSTAPD}
             sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${HOSTAPD}
         else
-        	echo "adding commented out WPA"
+        	#echo "adding commented out WPA"
         	echo "" >> ${HOSTAPD}
         	echo "#auth_algs=1" >> ${HOSTAPD}
 			echo "#wpa=3" >> ${HOSTAPD}
@@ -244,12 +272,18 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
         fi
     fi
 
-    echo "${GREEN}...done${WHITE}"
+    if [ $1 != "1" ]; then
+    	echo "${GREEN}...done${WHITE}"
+    fi
     STATUS="${YELLOW}Don't forget to reboot...${WHITE}"
 else
-    echo "${MAGENTA}${RED}No ${HOSTAPDEDIMAX} found...${WHITE}${NORMAL}"
+    if [ $1 != "1" ]; then
+    	echo "${MAGENTA}${RED}No ${HOSTAPDEDIMAX} found...${WHITE}${NORMAL}"
+    fi
 fi
 
-echo
-echo $STATUS
-echo
+if [ $1 != "1" ]; then
+	echo
+	echo $STATUS
+	echo
+fi
