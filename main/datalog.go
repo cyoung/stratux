@@ -27,6 +27,7 @@ const (
 )
 
 type StratuxTimestamp struct {
+	id                   int64
 	Time_type_preference int // 0 = stratuxClock, 1 = gpsClock, 2 = gpsClock extrapolated via stratuxClock.
 	StratuxClock_value   time.Time
 	GPSClock_value       time.Time
