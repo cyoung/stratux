@@ -4,8 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
-	 ownship, status messages, stats collection.
+	fisb.go: FISB service. Inputs raw UAT packets, parses, and creates a standard buffer to be saved for general purpose use.
 */
 
 package main

@@ -4,8 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
-	 ownship, status messages, stats collection.
+	nexrad_annunciator.go: PoC precip warning system, parses NEXRAD frames and inputs current position/heading.
 */
 
 package main

@@ -4,8 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
-	 ownship, status messages, stats collection.
+	maxgap.go: QoS graph from UAT replay files.
 */
 
 package main
