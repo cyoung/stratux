@@ -430,10 +430,13 @@ return is true if parse occurs correctly and position is valid.
 
 */
 
-func processNMEALine(l string) bool {
+func processNMEALine(l string) (sentenceUsed bool) {
 	mySituation.mu_GPS.Lock()
+
 	defer func() {
-		logSituation()
+		if sentenceUsed || globalSettings.DEBUG {
+			logSituation()
+		}
 		mySituation.mu_GPS.Unlock()
 	}()
 
@@ -622,7 +625,6 @@ func processNMEALine(l string) bool {
 			                                x[8+6*i] // lock time, sec, 0-64
 			*/
 			return true
-
 		} else if x[1] == "04" { // clock message
 			// field 5 is UTC week (epoch = 1980-JAN-06). If this is invalid, do not parse date / time
 			utcWeek, err0 := strconv.Atoi(x[5])
