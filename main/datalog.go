@@ -248,7 +248,9 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 	id, err := res.LastInsertId()
 	if err == nil {
 		if tbl == "timestamp" {
-			dataLogTimestamps[ts_num].id = id
+			ts := dataLogTimestamps[ts_num]
+			ts.id = id
+			dataLogTimestamps[ts_num] = ts
 		}
 		return id
 	}
