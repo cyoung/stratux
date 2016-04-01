@@ -203,6 +203,16 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 	}
 }
 
+/*
+	insertData().
+		Inserts an arbitrary struct into an SQLite table.
+		 Inserts the timestamp first, if its 'id' is 0.
+
+*/
+
+// Cached prepared statements. Indexed by table name.
+var preparedStmts map[string]*sql.Stmt
+
 func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 	val := reflect.ValueOf(i)
 
@@ -235,14 +245,23 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 		values = append(values, strconv.FormatInt(dataLogTimestamps[ts_num].id, 10))
 	}
 
-	tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
-		strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+	if _, ok := preparedStmts[tbl]; !ok {
+		// Prepare the statement.
+		tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
+			strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+		s, err := db.Prepare(tblInsert)
+		if err != nil {
+			log.Printf("insertData: db.Prepare() error (%s): %s\n", tblInsert, err.Error)
+			panic(err.Error())
+		}
+		preparedStmts[tbl] = s
+	}
 
 	ifs := make([]interface{}, len(values))
 	for i := 0; i < len(values); i++ {
 		ifs[i] = values[i]
 	}
-	res, err := db.Exec(tblInsert, ifs...)
+	res, err := preparedStmts[tbl].Exec(ifs...)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 	}
@@ -282,10 +301,20 @@ func dataLogWriter(db *sql.DB) {
 			// Accept timestamped row.
 			rowsQueuedForWrite = append(rowsQueuedForWrite, r)
 		case <-writeTicker.C:
-			// Write the buffered rows. This will block occasionally.
+			// Write the buffered rows. This will block while it is writing.
+			// Start transaction.
+			log.Printf("go %d\n", len(rowsQueuedForWrite))
+			tx, err := db.Begin()
+			if err != nil {
+				log.Printf("db.Begin() error: %s\n", err.Error())
+				break // from select {}
+			}
 			for _, r := range rowsQueuedForWrite {
 				insertData(r.data, r.tbl, db, r.ts_num)
 			}
+			// Close the transaction.
+			tx.Commit()
+			log.Printf("done\n")
 			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
 		}
 	}
@@ -390,5 +419,6 @@ func logDump1090TermMessage(m Dump1090TermMessage) {
 }
 
 func initDataLog() {
+	preparedStmts = make(map[string]*sql.Stmt)
 	go dataLog()
 }
