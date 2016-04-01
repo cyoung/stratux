@@ -17,7 +17,7 @@ NORMAL=$(tput sgr0)
 function USAGE {
 	echo ""
     echo "usage: $0 quiet ssid channel passphrase"
-    echo "  quiet           will the script output messages 1 = yes"
+    echo "      quiet                   will the script output messages 1 = silent"
     echo "	ssid			current or new SSID -required-"
     echo "	channel			the channel you want the WIFI to operate on -required-"
     echo "	passphrase		code to login to wifi. If not provided then security will be turned off"
