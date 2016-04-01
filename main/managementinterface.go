@@ -209,7 +209,6 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
-							replayMark(v)
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))

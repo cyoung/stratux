@@ -188,6 +188,7 @@ func sendTrafficUpdates() {
 
 // Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
+	logTraffic(ti)
 	if !ti.Position_valid { // Don't send unless a valid position exists.
 		return
 	}
@@ -555,8 +556,14 @@ func esListen() {
 				break
 			}
 			buf = strings.Trim(buf, "\r\n")
-			//log.Printf("%s\n", buf)
-			replayLog(buf, MSGCLASS_ES) // Log the raw message to nnnn-ES.log
+
+			// Log the message to the message counter in any case.
+			var thisMsg msg
+			thisMsg.MessageClass = MSGCLASS_ES
+			thisMsg.TimeReceived = stratuxClock.Time
+			thisMsg.Data = []byte(buf)
+			MsgLog = append(MsgLog, thisMsg)
+			logMsg(thisMsg)
 
 			var newTi *dump1090Data
 			err = json.Unmarshal([]byte(buf), &newTi)
@@ -565,17 +572,10 @@ func esListen() {
 				continue
 			}
 
-			if (newTi.Icao_addr & 0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
+			if globalSettings.DEBUG && (newTi.Icao_addr&0xFF000000) != 0 { //24-bit overflow is used to signal heartbeat
 				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
 				continue
 			}
-
-			// Log the message to the message counter as a valid ES if it unmarshalles.
-			var thisMsg msg
-			thisMsg.MessageClass = MSGCLASS_ES
-			thisMsg.TimeReceived = stratuxClock.Time
-			thisMsg.Data = []byte(buf)
-			MsgLog = append(MsgLog, thisMsg)
 
 			icao := uint32(newTi.Icao_addr)
 			var ti TrafficInfo

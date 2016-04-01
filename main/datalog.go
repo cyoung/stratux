@@ -12,6 +12,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
@@ -30,27 +31,48 @@ type StratuxTimestamp struct {
 	id                   int64
 	Time_type_preference int // 0 = stratuxClock, 1 = gpsClock, 2 = gpsClock extrapolated via stratuxClock.
 	StratuxClock_value   time.Time
-	GPSClock_value       time.Time
+	GPSClock_value       time.Time // The value of this is either from the GPS or extrapolated from the GPS via stratuxClock if pref is 1 or 2. It is time.Time{} if 0.
 	PreferredTime_value  time.Time
 }
 
-var dataLogTimestamp StratuxTimestamp // Current timestamp bucket.
+var dataLogTimestamps map[int64]StratuxTimestamp
+var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on dataLogTimestamps which is not necessarily the db id.
 
 /*
 	checkTimestamp().
 		Verify that our current timestamp is within the LOG_TIMESTAMP_RESOLUTION bucket.
 		 Returns false if the timestamp was changed, true if it is still valid.
+		 This is where GPS timestamps are extrapolated, if the GPS data is currently valid.
 */
 
-//FIXME: time -> stratuxClock
 func checkTimestamp() bool {
-	if stratuxClock.Since(dataLogTimestamp.StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
+	if stratuxClock.Since(dataLogTimestamps[dataLogCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
-		dataLogTimestamp.id = 0
-		dataLogTimestamp.Time_type_preference = 0 // stratuxClock.
-		dataLogTimestamp.StratuxClock_value = stratuxClock.Time
-		dataLogTimestamp.GPSClock_value = time.Time{}
-		dataLogTimestamp.PreferredTime_value = stratuxClock.Time
+		var ts StratuxTimestamp
+		ts.id = 0
+		ts.Time_type_preference = 0 // stratuxClock.
+		ts.StratuxClock_value = stratuxClock.Time
+		ts.GPSClock_value = time.Time{}
+		ts.PreferredTime_value = stratuxClock.Time
+
+		// Extrapolate from GPS timestamp, if possible.
+		if isGPSClockValid() && dataLogCurTimestamp > 0 {
+			// Was the last timestamp either extrapolated or GPS time?
+			last_ts := dataLogTimestamps[dataLogCurTimestamp]
+			if last_ts.Time_type_preference == 1 || last_ts.Time_type_preference == 2 {
+				// Extrapolate via stratuxClock.
+				timeSinceLastTS := ts.StratuxClock_value.Sub(last_ts.StratuxClock_value) // stratuxClock ticks since last timestamp.
+				extrapolatedGPSTimestamp := last_ts.PreferredTime_value.Add(timeSinceLastTS)
+
+				// Re-set the preferred timestamp type to '2' (extrapolated time).
+				ts.Time_type_preference = 2
+				ts.PreferredTime_value = extrapolatedGPSTimestamp
+				ts.GPSClock_value = extrapolatedGPSTimestamp
+			}
+		}
+
+		dataLogCurTimestamp++
+		dataLogTimestamps[dataLogCurTimestamp] = ts
 
 		return false
 	}
@@ -182,7 +204,56 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 	}
 }
 
-func insertData(i interface{}, tbl string, db *sql.DB) int64 {
+/*
+	bulkInsert().
+		Reads insertBatch and insertBatchIfs. This is called after a group of insertData() calls.
+*/
+
+func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
+	if _, ok := insertString[tbl]; !ok {
+		return nil, errors.New("no insert statement")
+	}
+
+	batchVals := insertBatchIfs[tbl]
+	for len(batchVals) > 0 {
+		i := int(0) // Maximum of 10 rows per INSERT statement.
+		stmt := ""
+		vals := make([]interface{}, 0)
+		for len(batchVals) > 0 && i < 10 {
+			if len(stmt) == 0 { // The first set will be covered by insertString.
+				stmt = insertString[tbl]
+			} else {
+				stmt += ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
+			}
+			vals = append(vals, batchVals[0]...)
+			batchVals = batchVals[1:]
+			i++
+		}
+		res, err = db.Exec(stmt, vals...)
+		if err != nil {
+			return
+		}
+	}
+
+	// Clear the buffers.
+	delete(insertString, tbl)
+	delete(insertBatchIfs, tbl)
+
+	return
+}
+
+/*
+	insertData().
+		Inserts an arbitrary struct into an SQLite table.
+		 Inserts the timestamp first, if its 'id' is 0.
+
+*/
+
+// Cached 'VALUES' statements. Indexed by table name.
+var insertString map[string]string // INSERT INTO tbl (col1, col2, ...) VALUES(?, ?, ...). Only for one value.
+var insertBatchIfs map[string][][]interface{}
+
+func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 	val := reflect.ValueOf(i)
 
 	keys := make([]string, 0)
@@ -205,40 +276,97 @@ func insertData(i interface{}, tbl string, db *sql.DB) int64 {
 	// Add the timestamp_id field to link up with the timestamp table.
 	if tbl != "timestamp" {
 		keys = append(keys, "timestamp_id")
-		values = append(values, strconv.FormatInt(dataLogTimestamp.id, 10))
+		if dataLogTimestamps[ts_num].id == 0 {
+			//FIXME: This is somewhat convoluted. When insertData() is called for a ts_num that corresponds to a timestamp with no database id,
+			// then it inserts that timestamp via the same interface and the id is updated in the structure via the below lines
+			// (dataLogTimestamps[ts_num].id = id).
+			insertData(dataLogTimestamps[ts_num], "timestamp", db, ts_num) // Updates dataLogTimestamps[ts_num].id.
+		}
+		values = append(values, strconv.FormatInt(dataLogTimestamps[ts_num].id, 10))
 	}
 
-	tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
-		strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+	if _, ok := insertString[tbl]; !ok {
+		// Prepare the statement.
+		tblInsert := fmt.Sprintf("INSERT INTO %s (%s) VALUES(%s)", tbl, strings.Join(keys, ","),
+			strings.Join(strings.Split(strings.Repeat("?", len(keys)), ""), ","))
+		insertString[tbl] = tblInsert
+	}
 
+	// Make the values slice into a slice of interface{}.
 	ifs := make([]interface{}, len(values))
 	for i := 0; i < len(values); i++ {
 		ifs[i] = values[i]
 	}
-	res, err := db.Exec(tblInsert, ifs...)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-	}
-	id, err := res.LastInsertId()
-	if err == nil {
-		if tbl == "timestamp" {
-			dataLogTimestamp.id = id
+
+	insertBatchIfs[tbl] = append(insertBatchIfs[tbl], ifs)
+
+	if tbl == "timestamp" { // Immediate insert always for "timestamp" table.
+		res, err := bulkInsert("timestamp", db) // Bulk insert of 1, always.
+		if err == nil {
+			id, err := res.LastInsertId()
+			if err == nil {
+				ts := dataLogTimestamps[ts_num]
+				ts.id = id
+				dataLogTimestamps[ts_num] = ts
+			}
+			return id
 		}
-		return id
 	}
 
 	return 0
 }
 
 type DataLogRow struct {
-	tbl  string
-	data interface{}
+	tbl    string
+	data   interface{}
+	ts_num int64
 }
 
 var dataLogChan chan DataLogRow
+var shutdownDataLog chan bool
 
-func dataLogWriter() {
+var dataLogWriteChan chan DataLogRow
+
+func dataLogWriter(db *sql.DB) {
+	dataLogWriteChan = make(chan DataLogRow, 10240)
+	// The write queue. As data comes in via dataLogChan, it is timestamped and stored.
+	//  When writeTicker comes up, the queue is emptied.
+	writeTicker := time.NewTicker(10 * time.Second)
+	rowsQueuedForWrite := make([]DataLogRow, 0)
+	for {
+		select {
+		case r := <-dataLogWriteChan:
+			// Accept timestamped row.
+			rowsQueuedForWrite = append(rowsQueuedForWrite, r)
+		case <-writeTicker.C:
+			// Write the buffered rows. This will block while it is writing.
+			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
+			tblsAffected := make(map[string]bool)
+			// Start transaction.
+			tx, err := db.Begin()
+			if err != nil {
+				log.Printf("db.Begin() error: %s\n", err.Error())
+				break // from select {}
+			}
+			for _, r := range rowsQueuedForWrite {
+				tblsAffected[r.tbl] = true
+				insertData(r.data, r.tbl, db, r.ts_num)
+			}
+			// Do the bulk inserts.
+			for tbl, _ := range tblsAffected {
+				bulkInsert(tbl, db)
+			}
+			// Close the transaction.
+			tx.Commit()
+			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
+		}
+	}
+}
+
+func dataLog() {
 	dataLogChan = make(chan DataLogRow, 10240)
+	shutdownDataLog = make(chan bool)
+	dataLogTimestamps = make(map[int64]StratuxTimestamp, 0)
 
 	// Check if we need to create a new database.
 	createDatabase := false
@@ -254,40 +382,59 @@ func dataLogWriter() {
 	}
 	defer db.Close()
 
+	go dataLogWriter(db)
+
 	// Do we need to create the database?
 	if createDatabase {
-		makeTable(dataLogTimestamp, "timestamp", db)
+		makeTable(StratuxTimestamp{}, "timestamp", db)
 		makeTable(mySituation, "mySituation", db)
 		makeTable(globalStatus, "status", db)
 		makeTable(globalSettings, "settings", db)
 		makeTable(TrafficInfo{}, "traffic", db)
+		makeTable(msg{}, "messages", db)
+		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
 	}
 
 	for {
-		//FIXME: measure latency from here to end of block. Messages may need to be timestamped *before* executing everything here.
-		r := <-dataLogChan
-
-		// Check if our time bucket has expired or has never been entered.
-		if !checkTimestamp() || dataLogTimestamp.id == 0 {
-			insertData(dataLogTimestamp, "timestamp", db) // Updates dataLogTimestamp.id.
+		select {
+		case r := <-dataLogChan:
+			// When data is input, the first step is to timestamp it.
+			// Check if our time bucket has expired or has never been entered.
+			checkTimestamp()
+			// Mark the row with the current timestamp ID, in case it gets entered later.
+			r.ts_num = dataLogCurTimestamp
+			// Queue it for the scheduled write.
+			dataLogWriteChan <- r
+		case <-shutdownDataLog: // Received a message on the channel (anything). Graceful shutdown (defer statement).
+			return
 		}
-		insertData(r.data, r.tbl, db)
 	}
 }
 
+/*
+	setDataLogTimeWithGPS().
+		Create a timestamp entry using GPS time.
+*/
+
 func setDataLogTimeWithGPS(sit SituationData) {
 	if isGPSClockValid() {
+		//FIXME: mutex.
+		var ts StratuxTimestamp
 		// Piggyback a GPS time update from this update.
-		dataLogTimestamp.id = 0
-		dataLogTimestamp.Time_type_preference = 1 // gpsClock.
-		dataLogTimestamp.StratuxClock_value = stratuxClock.Time
-		dataLogTimestamp.GPSClock_value = sit.GPSTime
-		dataLogTimestamp.PreferredTime_value = sit.GPSTime
+		ts.id = 0
+		ts.Time_type_preference = 1 // gpsClock.
+		ts.StratuxClock_value = stratuxClock.Time
+		ts.GPSClock_value = sit.GPSTime
+		ts.PreferredTime_value = sit.GPSTime
+		dataLogCurTimestamp++
+		dataLogTimestamps[dataLogCurTimestamp] = ts
 	}
 }
 
 func logSituation() {
-	dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
+	}
 }
 
 func logStatus() {
@@ -299,9 +446,23 @@ func logSettings() {
 }
 
 func logTraffic(ti TrafficInfo) {
-	dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
+	}
+}
+
+func logMsg(m msg) {
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "messages", data: m}
+	}
+}
+
+func logDump1090TermMessage(m Dump1090TermMessage) {
+	dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
 }
 
 func initDataLog() {
-	go dataLogWriter()
+	insertString = make(map[string]string)
+	insertBatchIfs = make(map[string][][]interface{})
+	go dataLog()
 }
