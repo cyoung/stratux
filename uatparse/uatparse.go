@@ -566,6 +566,7 @@ func (u *UATMsg) GetTextReports() ([]string, error) {
 
 	for _, f := range u.Frames {
 		for _, m := range f.Text_data {
+			m = strings.Trim(m, " ")
 			if len(m) > 0 {
 				ret = append(ret, m)
 			}
