@@ -40,6 +40,7 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 	checkTimestamp().
 		Verify that our current timestamp is within the LOG_TIMESTAMP_RESOLUTION bucket.
 		 Returns false if the timestamp was changed, true if it is still valid.
+		 This is where GPS timestamps are extrapolated, if the GPS data is currently valid.
 */
 
 func checkTimestamp() bool {
@@ -51,6 +52,22 @@ func checkTimestamp() bool {
 		ts.StratuxClock_value = stratuxClock.Time
 		ts.GPSClock_value = time.Time{}
 		ts.PreferredTime_value = stratuxClock.Time
+
+		// Extrapolate from GPS timestamp, if possible.
+		if isGPSClockValid() && dataLogCurTimestamp > 0 {
+			// Was the last timestamp either extrapolated or GPS time?
+			last_ts := dataLogTimestamps[dataLogCurTimestamp]
+			if last_ts.Time_type_preference == 1 || last_ts.Time_type_preference == 2 {
+				// Extrapolate via stratuxClock.
+				timeSinceLastTS := ts.StratuxClock_value.Sub(last_ts.StratuxClock_value) // stratuxClock ticks since last timestamp.
+				extrapolatedGPSTimestamp := last_ts.PreferredTime_value.Add(timeSinceLastTS)
+
+				// Re-set the preferred timestamp type to '2' (extrapolated time).
+				ts.Time_type_preference = 2
+				ts.PreferredTime_value = extrapolatedGPSTimestamp
+			}
+		}
+
 		dataLogCurTimestamp++
 		dataLogTimestamps[dataLogCurTimestamp] = ts
 
