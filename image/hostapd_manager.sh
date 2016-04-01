@@ -138,7 +138,7 @@ if [ -f "$HOSTAPD" ]; then
        		echo "" >> ${HOSTAPD}
             echo "auth_algs=1" >> ${HOSTAPD}
 			echo "wpa=3" >> ${HOSTAPD}
-			echo "wpa_passphrase=$3" >> ${HOSTAPD}
+			echo "wpa_passphrase=$4" >> ${HOSTAPD}
 			echo "wpa_key_mgmt=WPA-PSK" >> ${HOSTAPD}
             echo "wpa_pairwise=TKIP" >> ${HOSTAPD}
 			echo "rsn_pairwise=CCMP" >> ${HOSTAPD}
