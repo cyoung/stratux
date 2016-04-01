@@ -72,9 +72,9 @@ fi
 #### encription option check
 ####
 PASS=
-if [ ! -z "$3" ]; then
+if [ ! -z "$4" ]; then
 	if [ -z `echo $4 | tr -d "[:print:]"` ] && [ ${#4} -ge 8 ]  && [ ${#4} -le 63 ]; then
-  		PASS=wpa_passphrase=$3
+  		PASS=wpa_passphrase=$4
 	else
     	if [ $1 != "1" ]; then
 			echo  "${BOLD}${RED}Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
@@ -113,7 +113,7 @@ if [ -f "$HOSTAPD" ]; then
     fi
 
 
-    if [ ! -z "$3" ]; then
+    if [ ! -z "$4" ]; then
     	if [ $1 != "1" ]; then
         	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
         fi
@@ -210,7 +210,7 @@ if [ -f "$HOSTAPDEDIMAX" ]; then
     fi
 
 
-    if [ ! -z "$3" ]; then
+    if [ ! -z "$4" ]; then
     	if [ $1 != "1" ]; then
         	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$4 ${MAGENTA}to $HOSTAPD...${WHITE}"
         fi
