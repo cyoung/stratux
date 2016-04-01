@@ -44,6 +44,7 @@ const (
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 	logDirectory        = "/var/log/stratux"
+	dataLogFile         = "/var/log/stratux.sqlite"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -143,7 +144,7 @@ func constructFilenames() {
 	var fileIndexNumber uint
 
 	// First, create the log file directory if it does not exist
-	os.Mkdir(logDirectory, 0644)
+	os.Mkdir(logDirectory, 0755)
 
 	f, err := os.Open(indexFilename)
 	if err != nil {
@@ -417,7 +418,7 @@ func makeStratuxStatus() []byte {
 	// Valid and enabled flags.
 	// Valid/Enabled: GPS portion.
 	if isGPSValid() {
-		switch mySituation.quality {
+		switch mySituation.Quality {
 		case 1: // 1 = 3D GPS.
 			msg[13] = 1
 		case 2: // 2 = DGPS (SBAS /WAAS).
@@ -676,7 +677,7 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.uat_products_last_minute = products_last_minute
+	globalStatus.UAT_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -733,13 +734,13 @@ func cpuTempMonitor() {
 }
 
 func updateStatus() {
-	if mySituation.quality == 2 {
+	if mySituation.Quality == 2 {
 		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
-	} else if mySituation.quality == 1 {
+	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
-	} else if mySituation.quality == 6 {
+	} else if mySituation.Quality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else if mySituation.quality == 0 {
+	} else if mySituation.Quality == 0 {
 		globalStatus.GPS_solution = "No Fix"
 	} else {
 		globalStatus.GPS_solution = "Unknown"
@@ -749,7 +750,7 @@ func updateStatus() {
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
 		mySituation.SatellitesTracked = 0
-		mySituation.quality = 0
+		mySituation.Quality = 0
 		globalStatus.GPS_solution = "Disconnected"
 		globalStatus.GPS_connected = false
 	}
@@ -1032,10 +1033,11 @@ type settings struct {
 type status struct {
 	Version                                    string
 	Build                                      string
+	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
 	UAT_messages_last_minute                   uint
-	uat_products_last_minute                   map[string]uint32
+	UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
@@ -1057,6 +1059,7 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	Errors                                     []string
 }
 
 var globalSettings settings
@@ -1065,7 +1068,7 @@ var globalStatus status
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
-	globalSettings.GPS_Enabled = false
+	globalSettings.GPS_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1103,10 +1106,16 @@ func readSettings() {
 	log.Printf("read in settings.\n")
 }
 
+func addSystemError(err error) {
+	globalStatus.Errors = append(globalStatus.Errors, err.Error())
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
 		return
 	}
 	defer fd.Close()
@@ -1178,9 +1187,10 @@ func printStats() {
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
-			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
+		logStatus()
 	}
 }
 
@@ -1295,6 +1305,14 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
+	// Set up status.
+	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
+	globalStatus.Errors = make([]string, 0)
+	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "FlightBox"
+	}
+
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
 	develFlag := flag.Bool("developer", false, "Developer mode")
@@ -1315,7 +1333,9 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		addSystemError(err_log)
+		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
 		mfp := io.MultiWriter(fp, os.Stdout)
@@ -1333,9 +1353,7 @@ func main() {
 	sdrInit()
 	initTraffic()
 
-	globalStatus.Version = stratuxVersion
-	globalStatus.Build = stratuxBuild
-
+	// Read settings.
 	readSettings()
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
@@ -1345,6 +1363,8 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
+	//FIXME: Only do this if data logging is enabled.
+	initDataLog()
 	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
 
 	if uatwt, err := openReplay(uatReplayLog, !developerMode); err != nil {

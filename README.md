@@ -23,11 +23,13 @@ Apps with stratux recognition/support:
 * WingX Pro7 8.6.2+
 * FltPlan Go.
 * AerovieReports.
+* AvPlan EFB.
+* iFly GPS 9.4+.
+* DroidEFB 2.1.1+.
 
 Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic, AHRS.
 * Avare
-* iFly 740 - weather & traffic.
 
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 

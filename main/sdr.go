@@ -10,7 +10,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os/exec"
 	"regexp"
@@ -24,6 +23,7 @@ import (
 	rtl "github.com/jpoirier/gortlsdr"
 )
 
+// Device holds per dongle values and attributes
 type Device struct {
 	dev     *rtl.Context
 	wg      *sync.WaitGroup
@@ -34,10 +34,16 @@ type Device struct {
 	idSet   bool
 }
 
+// UAT is a 978 MHz device
 type UAT Device
+
+// ES is a 1090 MHz device
 type ES Device
 
+// UATDev holds a 978 MHz dongle object
 var UATDev *UAT
+
+// ESDev holds a 1090 MHz dongle object
 var ESDev *ES
 
 func (e *ES) read() {
@@ -64,42 +70,64 @@ func (e *ES) read() {
 
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
-	scanStdout := bufio.NewScanner(stdout)
-	scanStderr := bufio.NewScanner(stderr)
+	done := make(chan bool)
 
-	for {
-		select {
-		case <-e.closeCh:
-			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
-			err := cmd.Process.Kill()
-			if err != nil {
-				log.Printf("\t couldn't kill dump1090: %s\n", err)
-			} else {
-				cmd.Wait()
-				log.Println("\t kill successful...")
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-e.closeCh:
+				log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
+				err := cmd.Process.Kill()
+				if err == nil {
+					log.Println("\t kill successful...")
+				}
+				return
+			default:
+				time.Sleep(1 * time.Second)
 			}
-			return
-		default:
-			for scanStdout.Scan() {
-				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
-			}
-			if err := scanStdout.Err(); err != nil {
-				log.Printf("scanStdout error: %s\n", err)
-			}
+		}
+	}()
 
-			for scanStderr.Scan() {
-				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
-				if shutdownES != true {
-					shutdownES = true
+	stdoutBuf := make([]byte, 1024)
+	stderrBuf := make([]byte, 1024)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stdout.Read(stdoutBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stdoutBuf[:n]), MSGCLASS_DUMP1090)
 				}
 			}
-			if err := scanStderr.Err(); err != nil {
-				log.Printf("scanStderr error: %s\n", err)
-			}
-
-			time.Sleep(1 * time.Second)
 		}
-	}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stderr.Read(stderrBuf)
+				if err == nil && n > 0 {
+					replayLog(string(stderrBuf[:n]), MSGCLASS_DUMP1090)
+				}
+			}
+		}
+	}()
+
+	cmd.Wait()
+
+	// we get here if A) the dump1090 process died
+	// on its own or B) cmd.Process.Kill() was called
+	// from within the goroutine, either way close
+	// the "done" channel, which ensures we don't leak
+	// goroutines...
+	close(done)
 }
 
 func (u *UAT) read() {
@@ -143,11 +171,12 @@ func getPPM(serial string) int {
 		return globalSettings.PPM
 	}
 
-	if ppm, err := strconv.Atoi(arr[1]); err != nil {
+	ppm, err := strconv.Atoi(arr[1])
+	if err != nil {
 		return globalSettings.PPM
-	} else {
-		return ppm
 	}
+
+	return ppm
 }
 
 func (e *ES) sdrConfig() (err error) {
@@ -156,6 +185,7 @@ func (e *ES) sdrConfig() (err error) {
 	return
 }
 
+// 978 UAT configuration settings
 const (
 	TunerGain    = 480
 	SampleRate   = 2083334
@@ -181,18 +211,16 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetTunerGainMode Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetTunerGainMode Successful\n")
 	}
+	log.Printf("\tSetTunerGainMode Successful\n")
 
 	err = u.dev.SetTunerGain(TunerGain)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetTunerGain Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetTunerGain Successful\n")
 	}
+	log.Printf("\tSetTunerGain Successful\n")
 
 	//---------- Get/Set Sample Rate ----------
 	err = u.dev.SetSampleRate(SampleRate)
@@ -200,9 +228,9 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetSampleRate Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetSampleRate - rate: %d\n", SampleRate)
 	}
+	log.Printf("\tSetSampleRate - rate: %d\n", SampleRate)
+
 	log.Printf("\tGetSampleRate: %d\n", u.dev.GetSampleRate())
 
 	//---------- Get/Set Xtal Freq ----------
@@ -211,19 +239,17 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tGetXtalFreq Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 	}
+	log.Printf("\tGetXtalFreq - Rtl: %d, Tuner: %d\n", rtlFreq, tunerFreq)
 
 	err = u.dev.SetXtalFreq(NewRTLFreq, NewTunerFreq)
 	if err != nil {
 		u.dev.Close()
 		log.Printf("\tSetXtalFreq Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
-			NewRTLFreq, NewTunerFreq)
 	}
+	log.Printf("\tSetXtalFreq - Center freq: %d, Tuner freq: %d\n",
+		NewRTLFreq, NewTunerFreq)
 
 	//---------- Get/Set Center Freq ----------
 	err = u.dev.SetCenterFreq(CenterFreq)
@@ -231,9 +257,8 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetCenterFreq 978MHz Failed, error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tSetCenterFreq 978MHz Successful\n")
 	}
+	log.Printf("\tSetCenterFreq 978MHz Successful\n")
 
 	log.Printf("\tGetCenterFreq: %d\n", u.dev.GetCenterFreq())
 
@@ -243,17 +268,15 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetTunerBw %d Failed, error: %s\n", Bandwidth, err)
 		return
-	} else {
-		log.Printf("\tSetTunerBw %d Successful\n", Bandwidth)
 	}
+	log.Printf("\tSetTunerBw %d Successful\n", Bandwidth)
 
 	if err = u.dev.ResetBuffer(); err != nil {
 		u.dev.Close()
 		log.Printf("\tResetBuffer Failed - error: %s\n", err)
 		return
-	} else {
-		log.Printf("\tResetBuffer Successful\n")
 	}
+	log.Printf("\tResetBuffer Successful\n")
 
 	//---------- Get/Set Freq Correction ----------
 	freqCorr := u.dev.GetFreqCorrection()
@@ -265,9 +288,9 @@ func (u *UAT) sdrConfig() (err error) {
 		u.dev.Close()
 		log.Printf("\tSetFreqCorrection %d Failed, error: %s\n", u.ppm, err)
 		return
-	} else {
-		log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
 	}
+	log.Printf("\tSetFreqCorrection %d Successful\n", u.ppm)
+
 	return
 }
 
@@ -309,6 +332,7 @@ func (u *UAT) shutdown() {
 	log.Println("UAT shutdown(): u.wg.Wait() returned...")
 	log.Println("UAT shutdown(): closing device ...")
 	u.dev.Close() // preempt the blocking ReadSync call
+	log.Println("UAT shutdown() complete ...")
 }
 
 func (e *ES) shutdown() {
@@ -316,7 +340,7 @@ func (e *ES) shutdown() {
 	close(e.closeCh) // signal to shutdown
 	log.Println("ES shutdown(): calling e.wg.Wait() ...")
 	e.wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("ES shutdown(): e.wg.Wait() returned...")
+	log.Println("ES shutdown() complete ...")
 }
 
 var sdrShutdown bool
@@ -386,9 +410,7 @@ func createESDev(id int, serial string, idSet bool) error {
 	return nil
 }
 
-func configDevices(count int, es_enabled, uat_enabled bool) {
-	// entry to this function is only valid when both UATDev and ESDev are nil
-
+func configDevices(count int, esEnabled, uatEnabled bool) {
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make(map[int]string)
@@ -400,9 +422,9 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 			// no need to check if createXDev returned an error; if it
 			// failed to config the error is logged and we can ignore
 			// it here so it doesn't get queued up again
-			if uat_enabled && UATDev == nil && rUAT.hasID(s) {
+			if uatEnabled && UATDev == nil && rUAT.hasID(s) {
 				createUATDev(i, s, true)
-			} else if es_enabled && ESDev == nil && rES.hasID(s) {
+			} else if esEnabled && ESDev == nil && rES.hasID(s) {
 				createESDev(i, s, true)
 			} else {
 				unusedIDs[i] = s
@@ -412,33 +434,30 @@ func configDevices(count int, es_enabled, uat_enabled bool) {
 		}
 	}
 
-	// loop 2; assign anonymous dongles, but sanity check the serial ids
-	// so we don't cross config for dual assigned dongles. E.g. when two
-	// dongles are set to the same stratux id and the unconsumed, non-anonymous,
-	// dongle makes it to this loop.
+	// loop 2: assign anonymous dongles but sanity check the serial ids
+	// so we don't cross config for dual assigned dongles. e.g. when two
+	// dongles are set to the same stratux id and the unconsumed,
+	// non-anonymous, dongle makes it to this loop.
 	for i, s := range unusedIDs {
-		if uat_enabled && UATDev == nil && !rES.hasID(s) {
+		if uatEnabled && UATDev == nil && !rES.hasID(s) {
 			createUATDev(i, s, false)
-		} else if es_enabled && ESDev == nil && !rUAT.hasID(s) {
+		} else if esEnabled && ESDev == nil && !rUAT.hasID(s) {
 			createESDev(i, s, false)
 		}
 	}
 }
 
-// to gracefully shut down a read method we check a channel for
-// a close flag, but now we want to handle catastrophic dongle
-// failures (when ReadSync returns an error or we get stderr
-// ouput) but we can't just bypass the channel check and return
-// directly from a goroutine because the close channel call in
-// the shutdown method will cause a runtime panic, hence these...
+// to keep our sync primitives synchronized, only exit a read
+// method's goroutine via the close flag channel check, to
+// include catastrophic dongle failures
 var shutdownES bool
 var shutdownUAT bool
 
 // Watch for config/device changes.
 func sdrWatcher() {
 	prevCount := 0
-	prevUAT_Enabled := false
-	prevES_Enabled := false
+	prevUATEnabled := false
+	prevESEnabled := false
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -467,60 +486,40 @@ func sdrWatcher() {
 			shutdownES = false
 		}
 
+		// capture current state
+		esEnabled := globalSettings.ES_Enabled
+		uatEnabled := globalSettings.UAT_Enabled
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
-		// support two and only two dongles
+		// support up to two dongles
 		if count > 2 {
 			count = 2
 		}
 
-		// check for either no dongles or none enabled
-		if count < 1 || (!globalSettings.UAT_Enabled && !globalSettings.ES_Enabled) {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			prevCount = count
-			prevUAT_Enabled = false
-			prevES_Enabled = false
+		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled {
 			continue
 		}
 
-		// if the device count or the global settings change, do a reconfig.
-		// both events are significant and the least convoluted way to handle it
-		// is to reconfigure all dongle/s across the board. The reconfig
-		// should happen fairly quick so the user shouldn't notice any
-		// major disruption; if it is significant we can split the dongle
-		// count check from the global settings check where the gloabl settings
-		// check won't do a reconfig.
-		if count != prevCount || prevES_Enabled != globalSettings.ES_Enabled ||
-			prevUAT_Enabled != globalSettings.UAT_Enabled {
-			if UATDev != nil {
-				UATDev.shutdown()
-				UATDev = nil
-
-			}
-			if ESDev != nil {
-				ESDev.shutdown()
-				ESDev = nil
-			}
-			configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		// the device count or the global settings have changed, reconfig
+		if UATDev != nil {
+			UATDev.shutdown()
+			UATDev = nil
 		}
+		if ESDev != nil {
+			ESDev.shutdown()
+			ESDev = nil
+		}
+		configDevices(count, esEnabled, uatEnabled)
 
 		prevCount = count
-		prevUAT_Enabled = globalSettings.UAT_Enabled
-		prevES_Enabled = globalSettings.ES_Enabled
+		prevUATEnabled = uatEnabled
+		prevESEnabled = esEnabled
 	}
 }
 
 func sdrInit() {
 	go sdrWatcher()
 	go uatReader()
-	godump978.Dump978Init()
 	go godump978.ProcessDataFromChannel()
 }
