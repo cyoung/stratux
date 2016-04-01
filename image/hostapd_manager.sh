@@ -3,9 +3,9 @@
 # desired ssid as a command line option, e.g.:
 #
 #
-# bash hostapd-mgr.sh ssid chan passphrase
+# bash hostapd_manager.sh 1 ssid chan passphrase
 #
-# bash ssid-change.sh stratux-100 6 secrst
+# bash hostapd_manager.sh 0 stratux-100 6 secret
 #
 
 RED=$(tput setaf 1)
