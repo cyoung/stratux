@@ -341,9 +341,6 @@ func dataLogWriter(db *sql.DB) {
 			// Accept timestamped row.
 			rowsQueuedForWrite = append(rowsQueuedForWrite, r)
 		case <-writeTicker.C:
-			for i := 0; i < 1000; i++ {
-				logSituation()
-			}
 			// Write the buffered rows. This will block while it is writing.
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
 			tblsAffected := make(map[string]bool)
