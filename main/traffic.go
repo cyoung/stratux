@@ -188,6 +188,7 @@ func sendTrafficUpdates() {
 
 // Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
+	logTraffic(ti)
 	if !ti.Position_valid { // Don't send unless a valid position exists.
 		return
 	}
