@@ -1,19 +1,28 @@
-package main
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
 
+	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
+	 ownship, status messages, stats collection.
+*/
+
+package main
 
 import (
 	"fmt"
-//	"time"
-	"os"
+	//	"time"
 	"bufio"
-	"strings"
-	"unicode"
-	"strconv"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/plotutil"
 	"github.com/gonum/plot/vg"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
+	"unicode"
 )
 
 func main() {
@@ -37,7 +46,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		buf = strings.TrimFunc(buf, func(r rune) bool {return unicode.IsControl(r)})
+		buf = strings.TrimFunc(buf, func(r rune) bool { return unicode.IsControl(r) })
 		linesplit := strings.Split(buf, ",")
 		if len(linesplit) < 2 { // Blank line or invalid.
 			continue
@@ -53,10 +62,10 @@ func main() {
 
 			// Window number in current session.
 			wnum := int64(i / (60 * 1000000000))
-//			fmt.Printf("%d\n", curWindow)
-			if wnum + windowOffset != curWindow { // Switched over.
+			//			fmt.Printf("%d\n", curWindow)
+			if wnum+windowOffset != curWindow { // Switched over.
 				curWindow = wnum + windowOffset
-				fmt.Printf("ppm=%d\n", ppm[curWindow - 1])
+				fmt.Printf("ppm=%d\n", ppm[curWindow-1])
 			}
 			ppm[curWindow]++
 		}
@@ -80,7 +89,7 @@ func main() {
 
 	pts := make(plotter.XYs, len(ppm))
 	i := 0
-	for _,k := range keys {
+	for _, k := range keys {
 		v := ppm[int64(k)]
 		fmt.Printf("%d, %d\n", k, v)
 		pts[i].X = float64(k)
@@ -92,7 +101,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4 * vg.Inch, 4 * vg.Inch, "ppm.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, "ppm.png"); err != nil {
 		panic(err)
 	}
 }

@@ -1,3 +1,13 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
+	 ownship, status messages, stats collection.
+*/
+
 package main
 
 import (
@@ -25,7 +35,7 @@ func decodeUplink(frame []byte) {
 	if lon > 180 {
 		lon = lon - 360
 	}
-	
+
 	fmt.Printf("%.04f, %.04f\n", lat, lon)
 
 }

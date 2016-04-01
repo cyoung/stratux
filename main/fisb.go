@@ -1,3 +1,13 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
+	 ownship, status messages, stats collection.
+*/
+
 package main
 
 import (
@@ -6,6 +16,25 @@ import (
 	"time"
 	"uatparse"
 )
+
+/*
+	Examples:
+
+METAR KIND 261654Z 10005KT 10SM SCT250 11/02 A3015 RMK AO2 SLP212
+    T01060017=
+SPECI KTDZ 261738Z AUTO 04006KT 8SM SCT020 07/00 A3025 RMK AO2
+    T00670000=
+TAF KCMI 261131Z 2612/2712 12007KT P6SM SCT250
+     FM261600 13013KT P6SM SCT100
+     FM270000 15006KT P6SM BKN200=
+TAF.AMD KMKG 261725Z 2617/2718 VRB05KT P6SM SCT250
+     FM270100 11006KT P6SM BKN150
+     FM271200 13008KT P6SM VCSH BKN150=
+WINDS COU 271200Z  FT 3000 6000      9000   12000       18000   24000   30000    34000  39000
+   2109 2019+05 2134+01 2347-04 2353-21 2454-33 257949 259857 257955
+PIREP HNN 261618Z CRW UA /OV HNN/TM 1618/FL360/TP B737/TB OCNL LGT CHOP 360/RM OVER HNN AWC-WEB:SWA
+
+*/
 
 const (
 	FISB_METAR = iota

@@ -1,39 +1,47 @@
+/*
+	Copyright (c) 2015-2016 Christopher Young
+	Distributable under the terms of The "BSD New"" License
+	that can be found in the LICENSE file, herein included
+	as part of this header.
+
+	gen_gdl90.go: Input demodulated UAT and 1090ES information, output GDL90. Heartbeat,
+	 ownship, status messages, stats collection.
+*/
+
 package main
 
 import (
-	"fmt"
 	"../uatparse"
-	"strconv"
-	"os"
 	"bufio"
+	"fmt"
 	"github.com/kellydunn/golang-geo"
 	"math"
-	)
-
+	"os"
+	"strconv"
+)
 
 // Most adapted from extract_nexrad.c
 
 const (
-	BLOCK_WIDTH = float64(48.0/60.0)
-	WIDE_BLOCK_WIDTH = float64(96.0/60.0)
-	BLOCK_HEIGHT = float64(4.0/60.0)
-	BLOCK_THRESHOLD = 405000
-	BLOCKS_PER_RING = 450
+	BLOCK_WIDTH      = float64(48.0 / 60.0)
+	WIDE_BLOCK_WIDTH = float64(96.0 / 60.0)
+	BLOCK_HEIGHT     = float64(4.0 / 60.0)
+	BLOCK_THRESHOLD  = 405000
+	BLOCKS_PER_RING  = 450
 
 	WARN_DIST = float64(18.52) // kilometers (10 nm).
 )
 
 type NEXRADFrame struct {
 	radar_type uint32
-	ts string
-	scale int
-	latNorth float64
-	lonWest float64
-	height float64
-	width float64
-	intensity []uint8 // Really only 4-bit values.
+	ts         string
+	scale      int
+	latNorth   float64
+	lonWest    float64
+	height     float64
+	width      float64
+	intensity  []uint8 // Really only 4-bit values.
 }
-
 
 func block_location(block_num int, ns_flag bool, scale_factor int) (float64, float64, float64, float64) {
 	var realScale float64
@@ -49,8 +57,8 @@ func block_location(block_num int, ns_flag bool, scale_factor int) (float64, flo
 		block_num = block_num & ^1
 	}
 
-	raw_lat := float64(BLOCK_HEIGHT * float64(int(float64(block_num) / float64(BLOCKS_PER_RING))))
-	raw_lon := float64(block_num % BLOCKS_PER_RING) * BLOCK_WIDTH
+	raw_lat := float64(BLOCK_HEIGHT * float64(int(float64(block_num)/float64(BLOCKS_PER_RING))))
+	raw_lon := float64(block_num%BLOCKS_PER_RING) * BLOCK_WIDTH
 
 	var lonSize float64
 	if block_num >= BLOCK_THRESHOLD {
@@ -66,7 +74,7 @@ func block_location(block_num int, ns_flag bool, scale_factor int) (float64, flo
 	} else {
 		raw_lat = raw_lat + BLOCK_HEIGHT
 	}
-	
+
 	if raw_lon > 180.0 {
 		raw_lon = raw_lon - 360.0
 	}
@@ -97,7 +105,7 @@ func decode_nexrad(f *uatparse.UATFrame) []NEXRADFrame {
 
 		intensityData := f.FISB_data[3:]
 		for _, v := range intensityData {
-			intensity := uint8(v) & 0x7;
+			intensity := uint8(v) & 0x7
 			runlength := (uint8(v) >> 3) + 1
 			for runlength > 0 {
 				tmp.intensity = append(tmp.intensity, intensity)
@@ -128,7 +136,7 @@ func decode_nexrad(f *uatparse.UATFrame) []NEXRADFrame {
 			}
 
 			for j := 0; j < 8; j++ {
-				if bb & (1 << uint(j)) != 0 {
+				if bb&(1<<uint(j)) != 0 {
 					row_x := (row_offset + 8*i + j - 3) % row_size
 					bn := row_start + row_x
 					lat, lon, h, w := block_location(bn, ns_flag, scale_factor)
@@ -236,9 +244,9 @@ func scanNEXRAD(poly *geo.Polygon, frame NEXRADFrame) (*geo.Point, uint8) {
 	var maxIntensity uint8
 	for y := 0; y < 4; y++ {
 		for x := 0; x < 32; x++ {
-			intensity := frame.intensity[x + 32*y]
-			lat := frame.latNorth - (float64(y) * (frame.height)/float64(4.0))
-			lon := frame.lonWest + (float64(x) * (frame.width)/float64(32.0))
+			intensity := frame.intensity[x+32*y]
+			lat := frame.latNorth - (float64(y) * (frame.height) / float64(4.0))
+			lon := frame.lonWest + (float64(x) * (frame.width) / float64(32.0))
 			pt := geo.NewPoint(lat, lon)
 			if !poly.Contains(pt) { // Doesn't contain this point - skip.
 				continue
@@ -303,12 +311,12 @@ func main() {
 	nineOClock := fixHeading(hdgFloat - 90.0)
 	threeOClock := fixHeading(hdgFloat + 90.0)
 
-//	fmt.Printf("myPos=%v\n", myPos)
+	//	fmt.Printf("myPos=%v\n", myPos)
 
 	leftBottom := myPos.PointAtDistanceAndBearing(WARN_DIST, nineOClock)
 	rightBottom := myPos.PointAtDistanceAndBearing(WARN_DIST, threeOClock)
 
-//	fmt.Printf("nineOClock=%f [leftBottom=%v], threeOClock=%f [rightBottom=%v]\n", nineOClock, leftBottom, threeOClock, rightBottom)
+	//	fmt.Printf("nineOClock=%f [leftBottom=%v], threeOClock=%f [rightBottom=%v]\n", nineOClock, leftBottom, threeOClock, rightBottom)
 
 	hypDist := math.Sqrt2 * WARN_DIST
 	leftTopHdg := fixHeading(hdgFloat - 45.0)
@@ -317,11 +325,10 @@ func main() {
 	leftTop := myPos.PointAtDistanceAndBearing(hypDist, leftTopHdg)
 	rightTop := myPos.PointAtDistanceAndBearing(hypDist, rightTopHdg)
 
-//	fmt.Printf("leftTopHdg=%f [leftTop=%v], rightTopHdg=%f [rightTop=%v]\n", leftTopHdg, leftTop, rightTopHdg, rightTop)
+	//	fmt.Printf("leftTopHdg=%f [leftTop=%v], rightTopHdg=%f [rightTop=%v]\n", leftTopHdg, leftTop, rightTopHdg, rightTop)
 
 	points := []*geo.Point{leftTop, rightTop, rightBottom, leftBottom, leftTop}
 	poly := geo.NewPolygon(points)
-
 
 	var maxpt *geo.Point
 	var maxIntensity uint8
@@ -335,14 +342,13 @@ func main() {
 		}
 	}
 
-//	fmt.Printf("maxes: %d %v\n", maxIntensity, maxpt)
-
+	//	fmt.Printf("maxes: %d %v\n", maxIntensity, maxpt)
 
 	if maxIntensity > 0 && maxpt != nil {
 		desc := intensityToText(maxIntensity)
 		direction := fixHeading(myPos.BearingTo(maxpt))
 		relativeDirection := fixHeading(direction - hdgFloat)
-//		fmt.Printf("direction=%f, relativeDirection=%f\n", direction, relativeDirection)
+		//		fmt.Printf("direction=%f, relativeDirection=%f\n", direction, relativeDirection)
 		directionDesc := oclock(relativeDirection)
 		dist := myPos.GreatCircleDistance(maxpt) * float64(0.539957) // Convert km -> nm.
 		fmt.Printf("%s precip %d o'clock, %0.1f nm.\n", desc, directionDesc, dist)
