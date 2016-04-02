@@ -216,19 +216,26 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 
 	batchVals := insertBatchIfs[tbl]
 	for len(batchVals) > 0 {
-		i := int(0) // Maximum of 10 rows per INSERT statement.
+		i := int(0) // Maximum of 25 rows per INSERT statement.
 		stmt := ""
 		vals := make([]interface{}, 0)
-		for len(batchVals) > 0 && i < 10 {
+		querySize := uint64(0) // Size of the query in bytes.
+		for len(batchVals) > 0 && i < 1000 && querySize < 750000 {
 			if len(stmt) == 0 { // The first set will be covered by insertString.
 				stmt = insertString[tbl]
+				querySize += uint64(len(insertString[tbl]))
 			} else {
-				stmt += ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
+				addStr := ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
+				querySize += uint64(len(addStr))
+			}
+			for _, val := range batchVals[0] {
+				querySize += uint64(len(val.(string)))
 			}
 			vals = append(vals, batchVals[0]...)
 			batchVals = batchVals[1:]
 			i++
 		}
+		//		log.Printf("inserting %d rows to %s. querySize=%d\n", i, tbl, querySize)
 		res, err = db.Exec(stmt, vals...)
 		if err != nil {
 			return
@@ -381,6 +388,15 @@ func dataLog() {
 		log.Printf("sql.Open(): %s\n", err.Error())
 	}
 	defer db.Close()
+
+	_, err = db.Exec("PRAGMA journal_mode=WAL")
+	if err != nil {
+		log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
+	}
+	_, err = db.Exec("PRAGMA synchronous=OFF")
+	if err != nil {
+		log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
+	}
 
 	go dataLogWriter(db)
 
