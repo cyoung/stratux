@@ -227,13 +227,13 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 				stmt += ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
 			}
 			for _, val := range batchVals[0] {
-				querySize += len(string(val))
+				querySize += uint64(len(val.(string)))
 			}
 			vals = append(vals, batchVals[0]...)
 			batchVals = batchVals[1:]
 			i++
 		}
-		querySize += len(stmt)
+		querySize += uint64(len(stmt))
 		log.Printf("inserting. querySize=%d\n", querySize)
 		res, err = db.Exec(stmt, vals...)
 		if err != nil {
