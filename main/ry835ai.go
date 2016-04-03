@@ -959,13 +959,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		tmpSituation.Satellites = uint16(sat)
 
 		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
-		if tmpSituation.SatellitesTracked == 0 {
-			tmpSituation.SatellitesTracked = uint16(sat)
-		}
-
-		if tmpSituation.SatellitesSeen == 0 {
-			tmpSituation.SatellitesSeen = uint16(sat)
-		}
+		tmpSituation.SatellitesTracked = uint16(sat)
+		tmpSituation.SatellitesSeen = uint16(sat)
 
 		// field 16: HDOP
 		// Accuracy estimate
