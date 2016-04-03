@@ -1,13 +1,7 @@
 #!/bin/bash
 
 ######################################################################
-#This is an example of using getopts in Bash. It also contains some
-#other bits of code I find useful.
-#Author: Linerd
-#Website: http://tuxtweaks.com/
-#Copyright 2014
-#License: Creative Commons Attribution-ShareAlike 4.0
-#http://creativecommons.org/licenses/by-sa/4.0/legalcode
+#                      STRATUX HOSTAPD MANAGER                      #
 ######################################################################
 
 #Set Script Name variable
@@ -45,7 +39,7 @@ function HELP {
   echo "Command line switches are optional. The following switches are recognized."
   echo "${REV}-s${NORM}  --Sets the SSID to ${BOLD}ssid${NORM}. \"-s stratux\""
   echo "${REV}-c${NORM}  --Sets the channel to ${BOLD}chan${NORM}. \"-c 1\""
-  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}pass${NORM}. 8-13 Printable Characters. Cannot be used with -o. \"-e password!\""
+  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o. \"-e password!\""
   echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e."
  # echo "${REV}-q${NORM}  --Run silently."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
