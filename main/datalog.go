@@ -14,7 +14,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/AvSquirrel/go-sqlite3"
 	"log"
 	"os"
 	"reflect"
@@ -216,16 +216,17 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 
 	batchVals := insertBatchIfs[tbl]
 	for len(batchVals) > 0 {
-		i := int(0) // Maximum of 25 rows per INSERT statement.
+		i := int(0)
 		stmt := ""
 		vals := make([]interface{}, 0)
-		querySize := uint64(0) // Size of the query in bytes.
-		for len(batchVals) > 0 && i < 1000 && querySize < 750000 {
+		querySize := uint64(0)                                    // Size of the query in bytes.
+		for len(batchVals) > 0 && i < 600 && querySize < 750000 { // Maximum of 30000 columns for INSERT on AvSquirrel's sqlite compile. trafficData is limiting function with 31 parameters; give overhead for future expansion.
 			if len(stmt) == 0 { // The first set will be covered by insertString.
 				stmt = insertString[tbl]
 				querySize += uint64(len(insertString[tbl]))
 			} else {
 				addStr := ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
+				stmt += addStr
 				querySize += uint64(len(addStr))
 			}
 			for _, val := range batchVals[0] {
@@ -235,9 +236,10 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 			batchVals = batchVals[1:]
 			i++
 		}
-		//		log.Printf("inserting %d rows to %s. querySize=%d\n", i, tbl, querySize)
+		// log.Printf("inserting %d rows to %s. querySize=%d\n", i, tbl, querySize) // debug
 		res, err = db.Exec(stmt, vals...)
 		if err != nil {
+			log.Printf("sqlite insert error: '%s'\n", err.Error())
 			return
 		}
 	}
@@ -338,7 +340,7 @@ func dataLogWriter(db *sql.DB) {
 	dataLogWriteChan = make(chan DataLogRow, 10240)
 	// The write queue. As data comes in via dataLogChan, it is timestamped and stored.
 	//  When writeTicker comes up, the queue is emptied.
-	writeTicker := time.NewTicker(10 * time.Second)
+	writeTicker := time.NewTicker(5 * time.Second)
 	rowsQueuedForWrite := make([]DataLogRow, 0)
 	for {
 		select {
@@ -362,6 +364,7 @@ func dataLogWriter(db *sql.DB) {
 			// Do the bulk inserts.
 			for tbl, _ := range tblsAffected {
 				bulkInsert(tbl, db)
+				// log.Printf("Doing bulk insert on %s\n",tbl)
 			}
 			// Close the transaction.
 			tx.Commit()
