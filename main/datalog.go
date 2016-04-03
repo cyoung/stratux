@@ -215,17 +215,21 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 	}
 
 	batchVals := insertBatchIfs[tbl]
+	numColsPerRow := len(batchVals[0])
+	maxRowBatch := int(999 / numColsPerRow) // SQLITE_MAX_VARIABLE_NUMBER = 999.
+	//	log.Printf("table %s. %d cols per row. max batch %d\n", tbl, numColsPerRow, maxRowBatch)
 	for len(batchVals) > 0 {
 		i := int(0) // Maximum of 25 rows per INSERT statement.
 		stmt := ""
 		vals := make([]interface{}, 0)
-		querySize := uint64(0) // Size of the query in bytes.
-		for len(batchVals) > 0 && i < 1000 && querySize < 750000 {
+		querySize := uint64(0)                                            // Size of the query in bytes.
+		for len(batchVals) > 0 && i < maxRowBatch && querySize < 750000 { // Maximum of 1,000,000 bytes per query.
 			if len(stmt) == 0 { // The first set will be covered by insertString.
 				stmt = insertString[tbl]
 				querySize += uint64(len(insertString[tbl]))
 			} else {
 				addStr := ", (" + strings.Join(strings.Split(strings.Repeat("?", len(batchVals[0])), ""), ",") + ")"
+				stmt += addStr
 				querySize += uint64(len(addStr))
 			}
 			for _, val := range batchVals[0] {
@@ -346,6 +350,12 @@ func dataLogWriter(db *sql.DB) {
 			// Accept timestamped row.
 			rowsQueuedForWrite = append(rowsQueuedForWrite, r)
 		case <-writeTicker.C:
+			//			for i := 0; i < 1000; i++ {
+			//				logSituation()
+			//			}
+			timeStart := stratuxClock.Time
+			nRows := len(rowsQueuedForWrite)
+			//log.Printf("Writing %d rows\n", nRows)
 			// Write the buffered rows. This will block while it is writing.
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
 			tblsAffected := make(map[string]bool)
@@ -366,6 +376,12 @@ func dataLogWriter(db *sql.DB) {
 			// Close the transaction.
 			tx.Commit()
 			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
+			timeElapsed := stratuxClock.Since(timeStart)
+			//rowsPerSecond := float64(nRows) / float64(timeElapsed.Seconds())
+			//log.Printf("Writing finished. %f rows per second.\n", rowsPerSecond)
+			if timeElapsed.Seconds() > 10.0 {
+				log.Printf("WARNING! SQLite logging is behind.\n")
+			}
 		}
 	}
 }
