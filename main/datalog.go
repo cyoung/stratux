@@ -354,7 +354,7 @@ func dataLogWriter(db *sql.DB) {
 			//				logSituation()
 			//			}
 			timeStart := stratuxClock.Time
-			nRows := len(rowsQueuedForWrite)
+			//nRows := len(rowsQueuedForWrite)
 			//log.Printf("Writing %d rows\n", nRows)
 			// Write the buffered rows. This will block while it is writing.
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
