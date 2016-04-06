@@ -47,6 +47,8 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 */
 
 func checkTimestamp() bool {
+	logTimestampMutex.Lock()
+	defer logTimestampMutex.Unlock()
 	if stratuxClock.Since(dataLogTimestamps[dataLogCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		var ts StratuxTimestamp
@@ -72,10 +74,8 @@ func checkTimestamp() bool {
 			}
 		}
 
-		logTimestampMutex.Lock()
 		dataLogCurTimestamp++
 		dataLogTimestamps[dataLogCurTimestamp] = ts
-		logTimestampMutex.Unlock()
 		return false
 	}
 	return true
