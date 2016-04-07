@@ -293,6 +293,8 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 
 	// Add the timestamp_id field to link up with the timestamp table.
 	if tbl != "timestamp" {
+		logTimestampMutex.Lock()
+		defer logTimestampMutex.Unlock()
 		keys = append(keys, "timestamp_id")
 		if dataLogTimestamps[ts_num].id == 0 {
 			//FIXME: This is somewhat convoluted. When insertData() is called for a ts_num that corresponds to a timestamp with no database id,
@@ -362,8 +364,8 @@ func dataLogWriter(db *sql.DB) {
 			//				logSituation()
 			//			}
 			timeStart := stratuxClock.Time
-			//nRows := len(rowsQueuedForWrite)
-			//log.Printf("Writing %d rows\n", nRows)
+			//	nRows := len(rowsQueuedForWrite)
+			//	log.Printf("Writing %d rows\n", nRows)
 			// Write the buffered rows. This will block while it is writing.
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
 			tblsAffected := make(map[string]bool)
@@ -385,10 +387,10 @@ func dataLogWriter(db *sql.DB) {
 			tx.Commit()
 			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
 			timeElapsed := stratuxClock.Since(timeStart)
-			//rowsPerSecond := float64(nRows) / float64(timeElapsed.Seconds())
-			//log.Printf("Writing finished. %f rows per second.\n", rowsPerSecond)
+			//	rowsPerSecond := float64(nRows) / float64(timeElapsed.Seconds())
+			//	log.Printf("Writing finished. %d rows in %.2f seconds (%.1f rows per second).\n", nRows, float64(timeElapsed.Seconds()), rowsPerSecond)
 			if timeElapsed.Seconds() > 10.0 {
-				log.Printf("WARNING! SQLite logging is behind.\n")
+				log.Printf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
 			}
 		}
 	}
