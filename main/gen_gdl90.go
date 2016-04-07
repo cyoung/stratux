@@ -269,7 +269,7 @@ func makeOwnshipReport() bool {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 	if isGPSGroundTrackValid() {
-		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
+		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
@@ -289,12 +289,24 @@ func makeOwnshipReport() bool {
 	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
 	msg[16] = byte(verticalVelocity & 0xFF)
 
-	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
+	// Track is degrees true, set from GPS true course.
 	groundTrack := float32(0)
 	if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
-	trk := uint8(groundTrack/TRACK_RESOLUTION - TRACK_RESOLUTION/2) // Resolution is ~1.4 degrees.
+
+	tempTrack := groundTrack + TRACK_RESOLUTION/2 // offset by half the 8-bit resolution to minimize binning error
+
+	for tempTrack > 360 {
+		tempTrack -= 360
+	}
+	for tempTrack < 0 {
+		tempTrack += 360
+	}
+
+	trk := uint8(tempTrack / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	//log.Printf("For groundTrack = %.2f°, tempTrack= %.2f, trk = %d (%f°)\n",groundTrack,tempTrack,trk,float32(trk)*TRACK_RESOLUTION)
 
 	msg[17] = byte(trk)
 
