@@ -290,11 +290,11 @@ func makeOwnshipReport() bool {
 	msg[16] = byte(verticalVelocity & 0xFF)
 
 	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
-	groundTrack := uint16(0)
+	groundTrack := float32(0)
 	if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
-	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+	trk := uint8(groundTrack/TRACK_RESOLUTION - TRACK_RESOLUTION/2) // Resolution is ~1.4 degrees.
 
 	msg[17] = byte(trk)
 

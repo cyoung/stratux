@@ -49,7 +49,7 @@ type SituationData struct {
 	AccuracyVert             float32 // 95% confidence for vertical position, meters
 	GPSVertVel               float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime         time.Time
-	TrueCourse               uint16
+	TrueCourse               float32
 	GroundSpeed              uint16
 	LastGroundTrackTime      time.Time
 	GPSTime                  time.Time
@@ -391,10 +391,10 @@ func validateNMEAChecksum(s string) (string, bool) {
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
-func setTrueCourse(groundSpeed, trueCourse uint16) {
+func setTrueCourse(groundSpeed uint16, trueCourse float64) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
+			myMPU6050.ResetHeading(trueCourse, 0.10)
 		}
 	}
 }
@@ -557,15 +557,15 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			tmpSituation.GroundSpeed = uint16(groundspeed)
 
 			// field 12 = track, deg
-			trueCourse := uint16(0)
+			trueCourse := float32(0.0)
 			tc, err := strconv.ParseFloat(x[12], 32)
 			if err != nil {
 				return false
 			}
 			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-				trueCourse = uint16(tc)
-				setTrueCourse(uint16(groundspeed), trueCourse)
-				tmpSituation.TrueCourse = uint16(trueCourse)
+				trueCourse = float32(tc)
+				setTrueCourse(uint16(groundspeed), tc)
+				tmpSituation.TrueCourse = trueCourse
 			} else {
 				// Negligible movement. Don't update course, but do use the slow speed.
 				// TO-DO: use average course over last n seconds?
@@ -690,15 +690,15 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		tmpSituation.GroundSpeed = uint16(groundspeed)
 
-		trueCourse := uint16(0)
+		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[1], 32)
 		if err != nil {
 			return false
 		}
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-			trueCourse = uint16(tc)
-			setTrueCourse(uint16(groundspeed), trueCourse)
-			tmpSituation.TrueCourse = uint16(trueCourse)
+			trueCourse = float32(tc)
+			setTrueCourse(uint16(groundspeed), tc)
+			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
@@ -909,15 +909,15 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		tmpSituation.GroundSpeed = uint16(groundspeed)
 
 		// ground track "True" (field 8)
-		trueCourse := uint16(0)
+		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[8], 32)
 		if err != nil {
 			return false
 		}
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-			trueCourse = uint16(tc)
-			setTrueCourse(uint16(groundspeed), trueCourse)
-			tmpSituation.TrueCourse = uint16(trueCourse)
+			trueCourse = float32(tc)
+			setTrueCourse(uint16(groundspeed), tc)
+			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
