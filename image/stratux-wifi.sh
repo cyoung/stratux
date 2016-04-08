@@ -19,7 +19,7 @@ echo 'LSUSB Returned: '$EW7811Un
 RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//'`
 
 if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ]  || [ "$RPI_REV" = "900092" ]   || [ "$RPI_REV" = "a02082" ]    || [ "$RPI_REV" = "a22082" ]; then
-# If this is a PRPi2/3 [ "$wlan0mac" = '74:da:38' ]
+# If this is a PRPi2/3 
   if [ "$EW7811Un" != '' ] && [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]; then
    # If there is an Edimax Nano at wlan0
    DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
