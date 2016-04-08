@@ -12,6 +12,9 @@ ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 
+#WiFi Config Manager
+cp -f hostapd_manager.sh /usr/sbin/
+
 #boot config
 cp -f config.txt /boot/config.txt
 
