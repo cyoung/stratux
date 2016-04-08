@@ -20,7 +20,12 @@ export PATH=/root/go/bin:${PATH}
 export GOROOT=/root/go
 export GOPATH=/root/go_path
 
-#This will allow users to keep an alias file after this file is added
+# This will allow users to keep an alias file after this file is added
 if [ -f /root/.aliases ]; then
+. /root/.aliases
+fi
+
+# Uesful aliases for stratux debugging
+if [ -f /root/.stxAliases ]; then
 . /root/.aliases
 fi
