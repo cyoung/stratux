@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
+	//	"sync"
 	"time"
 )
 
@@ -36,7 +36,7 @@ type StratuxTimestamp struct {
 	PreferredTime_value  time.Time
 }
 
-var dataLogTimestamps map[int64]StratuxTimestamp
+var dataLogTimestamps []StratuxTimestamp
 var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on dataLogTimestamps which is not necessarily the db id.
 
 /*
@@ -47,9 +47,8 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 */
 
 func checkTimestamp() bool {
-	logTimestampMutex.Lock()
-	defer logTimestampMutex.Unlock()
-	if stratuxClock.Since(dataLogTimestamps[dataLogCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
+	thisCurTimestamp := dataLogCurTimestamp
+	if stratuxClock.Since(dataLogTimestamps[thisCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		var ts StratuxTimestamp
 		ts.id = 0
@@ -59,9 +58,9 @@ func checkTimestamp() bool {
 		ts.PreferredTime_value = stratuxClock.Time
 
 		// Extrapolate from GPS timestamp, if possible.
-		if isGPSClockValid() && dataLogCurTimestamp > 0 {
+		if isGPSClockValid() && thisCurTimestamp > 0 {
 			// Was the last timestamp either extrapolated or GPS time?
-			last_ts := dataLogTimestamps[dataLogCurTimestamp]
+			last_ts := dataLogTimestamps[thisCurTimestamp]
 			if last_ts.Time_type_preference == 1 || last_ts.Time_type_preference == 2 {
 				// Extrapolate via stratuxClock.
 				timeSinceLastTS := ts.StratuxClock_value.Sub(last_ts.StratuxClock_value) // stratuxClock ticks since last timestamp.
@@ -74,8 +73,10 @@ func checkTimestamp() bool {
 			}
 		}
 
-		dataLogCurTimestamp++
-		dataLogTimestamps[dataLogCurTimestamp] = ts
+		//logTimestampMutex.Lock()		// if we need to protect against simultaneous insertions
+		dataLogTimestamps = append(dataLogTimestamps, ts)
+		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
+		//logTimestampMutex.Unlock()
 		return false
 	}
 	return true
@@ -221,7 +222,7 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 	maxRowBatch := int(999 / numColsPerRow) // SQLITE_MAX_VARIABLE_NUMBER = 999.
 	//	log.Printf("table %s. %d cols per row. max batch %d\n", tbl, numColsPerRow, maxRowBatch)
 	for len(batchVals) > 0 {
-		//timeInit := time.Now()
+		//     timeInit := time.Now()
 		i := int(0) // Variable number of rows per INSERT statement.
 
 		stmt := ""
@@ -245,8 +246,8 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 		}
 		//		log.Printf("inserting %d rows to %s. querySize=%d\n", i, tbl, querySize)
 		res, err = db.Exec(stmt, vals...)
-		//timeBatch := time.Since(timeInit)                                                                                                                     // debug
-		//log.Printf("SQLite: bulkInserted %d rows to %s. Took %f msec to build and insert query. querySize=%d\n", i, tbl, 1000*timeBatch.Seconds(), querySize) // debug
+		//      timeBatch := time.Since(timeInit)                                                                                                                     // debug
+		//      log.Printf("SQLite: bulkInserted %d rows to %s. Took %f msec to build and insert query. querySize=%d\n", i, tbl, 1000*timeBatch.Seconds(), querySize) // debug
 		if err != nil {
 			log.Printf("sqlite INSERT error: '%s'\n", err.Error())
 			return
@@ -293,8 +294,6 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 
 	// Add the timestamp_id field to link up with the timestamp table.
 	if tbl != "timestamp" {
-		logTimestampMutex.Lock()
-		defer logTimestampMutex.Unlock()
 		keys = append(keys, "timestamp_id")
 		if dataLogTimestamps[ts_num].id == 0 {
 			//FIXME: This is somewhat convoluted. When insertData() is called for a ts_num that corresponds to a timestamp with no database id,
@@ -342,7 +341,7 @@ type DataLogRow struct {
 	ts_num int64
 }
 
-var logTimestampMutex *sync.Mutex
+//var logTimestampMutex *sync.Mutex
 var dataLogChan chan DataLogRow
 var shutdownDataLog chan bool
 
@@ -364,8 +363,10 @@ func dataLogWriter(db *sql.DB) {
 			//				logSituation()
 			//			}
 			timeStart := stratuxClock.Time
-			//	nRows := len(rowsQueuedForWrite)
-			//	log.Printf("Writing %d rows\n", nRows)
+			nRows := len(rowsQueuedForWrite)
+			if globalSettings.DEBUG {
+				log.Printf("Writing %d rows\n", nRows)
+			}
 			// Write the buffered rows. This will block while it is writing.
 			// Save the names of the tables affected so that we can run bulkInsert() on after the insertData() calls.
 			tblsAffected := make(map[string]bool)
@@ -387,8 +388,10 @@ func dataLogWriter(db *sql.DB) {
 			tx.Commit()
 			rowsQueuedForWrite = make([]DataLogRow, 0) // Zero the queue.
 			timeElapsed := stratuxClock.Since(timeStart)
-			//	rowsPerSecond := float64(nRows) / float64(timeElapsed.Seconds())
-			//	log.Printf("Writing finished. %d rows in %.2f seconds (%.1f rows per second).\n", nRows, float64(timeElapsed.Seconds()), rowsPerSecond)
+			if globalSettings.DEBUG {
+				rowsPerSecond := float64(nRows) / float64(timeElapsed.Seconds())
+				log.Printf("Writing finished. %d rows in %.2f seconds (%.1f rows per second).\n", nRows, float64(timeElapsed.Seconds()), rowsPerSecond)
+			}
 			if timeElapsed.Seconds() > 10.0 {
 				log.Printf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
 			}
@@ -399,8 +402,18 @@ func dataLogWriter(db *sql.DB) {
 func dataLog() {
 	dataLogChan = make(chan DataLogRow, 10240)
 	shutdownDataLog = make(chan bool)
-	dataLogTimestamps = make(map[int64]StratuxTimestamp, 0)
-	logTimestampMutex = &sync.Mutex{}
+	dataLogTimestamps = make([]StratuxTimestamp, 0)
+	var ts StratuxTimestamp
+	ts.id = 0
+	ts.Time_type_preference = 0 // stratuxClock.
+	ts.StratuxClock_value = stratuxClock.Time
+	ts.GPSClock_value = time.Time{}
+	ts.PreferredTime_value = stratuxClock.Time
+	dataLogTimestamps = append(dataLogTimestamps, ts)
+	dataLogCurTimestamp = 0
+
+	//logTimestampMutex = &sync.Mutex{}
+
 	// Check if we need to create a new database.
 	createDatabase := false
 
@@ -468,10 +481,11 @@ func setDataLogTimeWithGPS(sit SituationData) {
 		ts.StratuxClock_value = stratuxClock.Time
 		ts.GPSClock_value = sit.GPSTime
 		ts.PreferredTime_value = sit.GPSTime
-		logTimestampMutex.Lock()
-		dataLogCurTimestamp++
-		dataLogTimestamps[dataLogCurTimestamp] = ts
-		logTimestampMutex.Unlock()
+
+		//logTimestampMutex.Lock()
+		dataLogTimestamps = append(dataLogTimestamps, ts)
+		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
+		//logTimestampMutex.Unlock()
 	}
 }
 
