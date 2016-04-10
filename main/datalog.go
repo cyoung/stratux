@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -46,6 +47,8 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 */
 
 func checkTimestamp() bool {
+	logTimestampMutex.Lock()
+	defer logTimestampMutex.Unlock()
 	if stratuxClock.Since(dataLogTimestamps[dataLogCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
 		//FIXME: mutex.
 		var ts StratuxTimestamp
@@ -73,7 +76,6 @@ func checkTimestamp() bool {
 
 		dataLogCurTimestamp++
 		dataLogTimestamps[dataLogCurTimestamp] = ts
-
 		return false
 	}
 	return true
@@ -219,7 +221,9 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 	maxRowBatch := int(999 / numColsPerRow) // SQLITE_MAX_VARIABLE_NUMBER = 999.
 	//	log.Printf("table %s. %d cols per row. max batch %d\n", tbl, numColsPerRow, maxRowBatch)
 	for len(batchVals) > 0 {
-		i := int(0) // Maximum of 25 rows per INSERT statement.
+		//timeInit := time.Now()
+		i := int(0) // Variable number of rows per INSERT statement.
+
 		stmt := ""
 		vals := make([]interface{}, 0)
 		querySize := uint64(0)                                            // Size of the query in bytes.
@@ -241,7 +245,10 @@ func bulkInsert(tbl string, db *sql.DB) (res sql.Result, err error) {
 		}
 		//		log.Printf("inserting %d rows to %s. querySize=%d\n", i, tbl, querySize)
 		res, err = db.Exec(stmt, vals...)
+		//timeBatch := time.Since(timeInit)                                                                                                                     // debug
+		//log.Printf("SQLite: bulkInserted %d rows to %s. Took %f msec to build and insert query. querySize=%d\n", i, tbl, 1000*timeBatch.Seconds(), querySize) // debug
 		if err != nil {
+			log.Printf("sqlite INSERT error: '%s'\n", err.Error())
 			return
 		}
 	}
@@ -333,6 +340,7 @@ type DataLogRow struct {
 	ts_num int64
 }
 
+var logTimestampMutex *sync.Mutex
 var dataLogChan chan DataLogRow
 var shutdownDataLog chan bool
 
@@ -390,7 +398,7 @@ func dataLog() {
 	dataLogChan = make(chan DataLogRow, 10240)
 	shutdownDataLog = make(chan bool)
 	dataLogTimestamps = make(map[int64]StratuxTimestamp, 0)
-
+	logTimestampMutex = &sync.Mutex{}
 	// Check if we need to create a new database.
 	createDatabase := false
 
@@ -458,8 +466,10 @@ func setDataLogTimeWithGPS(sit SituationData) {
 		ts.StratuxClock_value = stratuxClock.Time
 		ts.GPSClock_value = sit.GPSTime
 		ts.PreferredTime_value = sit.GPSTime
+		logTimestampMutex.Lock()
 		dataLogCurTimestamp++
 		dataLogTimestamps[dataLogCurTimestamp] = ts
+		logTimestampMutex.Unlock()
 	}
 }
 
