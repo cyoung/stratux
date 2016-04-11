@@ -20,6 +20,7 @@ cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 
 #go setup
 cp -f bashrc.txt /root/.bashrc
+cp -f stxAliases /root/.stxAliases
 
 # /etc/modules
 cp -f modules.txt /etc/modules
