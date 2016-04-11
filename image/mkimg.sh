@@ -66,7 +66,7 @@ cp -rf /root/go mnt/root/
 cp -f bashrc.txt mnt/root/.bashrc
 
 #debug aliases
-cp -f stxAliases mnt/root/.stxAliases
+cp -f stxAliases.txt mnt/root/.stxAliases
 
 #rtl-sdr setup
 cp -f rtl-sdr-blacklist.conf mnt/etc/modprobe.d/
