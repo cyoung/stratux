@@ -138,6 +138,8 @@ func initGPSSerial() bool {
 		device = "/dev/ttyACM0"
 	} else if _, err := os.Stat("/dev/ttyS0"); err == nil {
 		device = "/dev/ttyS0"
+	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
+		device = "/dev/ttyAMA0"
 	} else {
 		log.Printf("No suitable device found.\n")
 		return false
