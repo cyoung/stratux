@@ -699,19 +699,21 @@ func cpuTempMonitor() {
 		<-timer.C
 
 		// Update CPUTemp.
-		globalStatus.CPUTemp = float32(-99.0) // Default value - in case code below hangs.
-
 		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 		tempStr := strings.Trim(string(temp), "\n")
+		t := float32(-99.0)
 		if err == nil {
 			tInt, err := strconv.Atoi(tempStr)
 			if err == nil {
 				if tInt > 1000 {
-					globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+					t = float32(tInt) / float32(1000.0)
 				} else {
-					globalStatus.CPUTemp = float32(tInt) // case where Temp is returned as simple integer
+					t = float32(tInt) // case where Temp is returned as simple integer
 				}
 			}
+		}
+		if t >= -99.0 { // Only update if valid value was obtained.
+			globalStatus.CPUTemp = t
 		}
 
 	}
