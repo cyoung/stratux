@@ -29,8 +29,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ricochet2200/go-disk-usage/du"
 	humanize "github.com/dustin/go-humanize"
-
 	"../uatparse"
 )
 
@@ -71,6 +71,8 @@ const (
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
+
+var usage *du.DiskUsage
 
 var maxSignalStrength int
 
@@ -269,7 +271,7 @@ func makeOwnshipReport() bool {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 	if isGPSGroundTrackValid() {
-		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
+		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
@@ -289,12 +291,24 @@ func makeOwnshipReport() bool {
 	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
 	msg[16] = byte(verticalVelocity & 0xFF)
 
-	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
-	groundTrack := uint16(0)
+	// Track is degrees true, set from GPS true course.
+	groundTrack := float32(0)
 	if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
-	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	tempTrack := groundTrack + TRACK_RESOLUTION/2 // offset by half the 8-bit resolution to minimize binning error
+
+	for tempTrack > 360 {
+		tempTrack -= 360
+	}
+	for tempTrack < 0 {
+		tempTrack += 360
+	}
+
+	trk := uint8(tempTrack / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	//log.Printf("For groundTrack = %.2f°, tempTrack= %.2f, trk = %d (%f°)\n",groundTrack,tempTrack,trk,float32(trk)*TRACK_RESOLUTION)
 
 	msg[17] = byte(trk)
 
@@ -703,6 +717,10 @@ func cpuTempMonitor() {
 	}
 }
 
+
+
+
+
 func updateStatus() {
 	if mySituation.Quality == 2 {
 		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
@@ -733,6 +751,9 @@ func updateStatus() {
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
 	globalStatus.Clock = time.Now()
+	
+	usage = du.NewDiskUsage("/")
+	globalStatus.DiskBytesFree = usage.Free()
 }
 
 type WeatherMessage struct {
@@ -961,6 +982,7 @@ type status struct {
 	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
+	DiskBytesFree							   uint64
 	UAT_messages_last_minute                   uint
 	UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
@@ -1078,8 +1100,9 @@ func printStats() {
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
+		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%) \n",humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
-		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
+		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
@@ -1239,7 +1262,7 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
-	//FIXME: Only do this if data logging is enabled.
+	    //FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
 	initRY835AI()
@@ -1257,7 +1280,7 @@ func main() {
 
 	// Monitor RPi CPU temp.
 	go cpuTempMonitor()
-
+	
 	reader := bufio.NewReader(os.Stdin)
 
 	if *replayFlag == true {
