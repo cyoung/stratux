@@ -29,9 +29,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ricochet2200/go-disk-usage/du"
-	humanize "github.com/dustin/go-humanize"
 	"../uatparse"
+	humanize "github.com/dustin/go-humanize"
+	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -717,10 +717,6 @@ func cpuTempMonitor() {
 	}
 }
 
-
-
-
-
 func updateStatus() {
 	if mySituation.Quality == 2 {
 		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
@@ -751,7 +747,7 @@ func updateStatus() {
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
 	globalStatus.Clock = time.Now()
-	
+
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
 }
@@ -982,7 +978,7 @@ type status struct {
 	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
-	DiskBytesFree							   uint64
+	DiskBytesFree                              uint64
 	UAT_messages_last_minute                   uint
 	UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
@@ -1100,7 +1096,7 @@ func printStats() {
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
-		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%) \n",humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
+		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%) \n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
@@ -1262,7 +1258,7 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
-	    //FIXME: Only do this if data logging is enabled.
+	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
 	initRY835AI()
@@ -1280,7 +1276,7 @@ func main() {
 
 	// Monitor RPi CPU temp.
 	go cpuTempMonitor()
-	
+
 	reader := bufio.NewReader(os.Stdin)
 
 	if *replayFlag == true {
