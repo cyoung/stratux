@@ -160,17 +160,14 @@ func sendTrafficUpdates() {
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
-		/*
-			if isGPSValid() {
-				// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
-				dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
-				ti.Distance = dist
-				ti.Bearing = bearing
-			}
-		*/
+		if isGPSValid() {
+			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
+			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			ti.Distance = dist
+			ti.Bearing = bearing
+		}
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
-		logTraffic(ti)
 
 		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
 		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
@@ -189,6 +186,7 @@ func sendTrafficUpdates() {
 			trafficUpdate.Send(tiJSON)
 		}
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
+			logTraffic(ti) // only add to the SQLite log if it's not stale
 			msg = append(msg, makeTrafficReportMsg(ti)...)
 		}
 	}
@@ -200,7 +198,7 @@ func sendTrafficUpdates() {
 
 // Send update to attached JSON client.
 func registerTrafficUpdate(ti TrafficInfo) {
-	//logTraffic(ti)
+	//logTraffic(ti) // moved to sendTrafficUpdates() to reduce SQLite log size
 	/*
 		if !ti.Position_valid { // Don't send unless a valid position exists.
 			return
@@ -438,11 +436,9 @@ func parseDownlinkReport(s string, signalLevel int) {
 	if ti.Position_valid {
 		ti.Lat = lat
 		ti.Lng = lng
-		/*
-			if isGPSValid() {
-				ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
-			}
-		*/ // to-do
+		if isGPSValid() {
+			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
 	}
@@ -707,11 +703,9 @@ func esListen() {
 				if valid_position {
 					ti.Lat = lat
 					ti.Lng = lng
-					/*
-						if isGPSValid() {
-							ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
-						}
-					*/ // todo
+					if isGPSValid() {
+						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+					}
 					ti.Position_valid = true
 					ti.ExtrapolatedPosition = false
 					ti.Last_seen = stratuxClock.Time // only update "last seen" data on position updates
@@ -944,9 +938,8 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
 
-	/*
-		ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
-	*/ // todo
+	ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
 	ti.Alt = int32(mySituation.Alt + relAlt)
