@@ -255,7 +255,11 @@ func doReboot() {
 }
 
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
-	doReboot()
+	setNoCache(w)
+	setJSONHeaders(w)
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+	go delayReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.

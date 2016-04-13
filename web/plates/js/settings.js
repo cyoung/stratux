@@ -1,8 +1,8 @@
 angular.module('appControllers').controller('SettingsCtrl', SettingsCtrl); // get the main module contollers set
-SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$http']; // Inject my dependencies
+SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$location', '$window', '$http']; // Inject my dependencies
 
 // create our controller function with all necessary logic
-function SettingsCtrl($rootScope, $scope, $state, $http) {
+function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
@@ -111,11 +111,27 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 	};
 
 	$scope.postShutdown = function () {
-		$http.post('/shutdown');
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_SHUTDOWN).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
 	};
 
 	$scope.postReboot = function () {
-		$http.post('/reboot');
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_REBOOT).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
 	};
 
 	$scope.setUploadFile = function (files) {
