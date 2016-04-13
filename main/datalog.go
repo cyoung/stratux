@@ -447,6 +447,7 @@ func dataLog() {
 		makeTable(globalSettings, "settings", db)
 		makeTable(TrafficInfo{}, "traffic", db)
 		makeTable(msg{}, "messages", db)
+		makeTable(esmsg{}, "es_messages", db)
 		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
 	}
 
@@ -515,8 +516,16 @@ func logMsg(m msg) {
 	}
 }
 
+func logESMsg(m esmsg) {
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "es_messages", data: m}
+	}
+}
+
 func logDump1090TermMessage(m Dump1090TermMessage) {
-	dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
+	if globalSettings.DEBUG && globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
+	}
 }
 
 func initDataLog() {

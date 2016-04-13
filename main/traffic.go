@@ -138,6 +138,11 @@ type dump1090Data struct {
 	Timestamp           time.Time // time traffic last seen, UTC
 }
 
+type esmsg struct {
+	TimeReceived time.Time
+	Data         string
+}
+
 var traffic map[uint32]TrafficInfo
 var trafficMutex *sync.Mutex
 var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
@@ -592,7 +597,11 @@ func esListen() {
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = []byte(buf)
 			MsgLog = append(MsgLog, thisMsg)
-			logMsg(thisMsg)
+
+			var eslog esmsg
+			eslog.TimeReceived = stratuxClock.Time
+			eslog.Data = buf
+			logESMsg(eslog) // log raw dump1090:30006 output to SQLite log
 
 			var newTi *dump1090Data
 			err = json.Unmarshal([]byte(buf), &newTi)
@@ -601,9 +610,11 @@ func esListen() {
 				continue
 			}
 
-			if globalSettings.DEBUG && (newTi.Icao_addr == 0x07FFFFFF) { // used to signal heartbeat
-				log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
-				continue
+			if newTi.Icao_addr == 0x07FFFFFF { // used to signal heartbeat
+				if globalSettings.DEBUG {
+					log.Printf("No traffic last 60 seconds. Heartbeat message from dump1090: %s\n", buf)
+				}
+				continue // don't process heartbeat messages
 			}
 
 			if (newTi.Icao_addr & 0x01000000) != 0 { // bit 25 used by dump1090 to signal non-ICAO address
