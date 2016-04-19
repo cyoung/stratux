@@ -20,7 +20,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	//	"sync"
 	"time"
 )
 
@@ -49,7 +48,6 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 func checkTimestamp() bool {
 	thisCurTimestamp := dataLogCurTimestamp
 	if stratuxClock.Since(dataLogTimestamps[thisCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
-		//FIXME: mutex.
 		var ts StratuxTimestamp
 		ts.id = 0
 		ts.Time_type_preference = 0 // stratuxClock.
@@ -73,10 +71,8 @@ func checkTimestamp() bool {
 			}
 		}
 
-		//logTimestampMutex.Lock()		// if we need to protect against simultaneous insertions
 		dataLogTimestamps = append(dataLogTimestamps, ts)
 		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
-		//logTimestampMutex.Unlock()
 		return false
 	}
 	return true
@@ -341,7 +337,6 @@ type DataLogRow struct {
 	ts_num int64
 }
 
-//var logTimestampMutex *sync.Mutex
 var dataLogChan chan DataLogRow
 var shutdownDataLog chan bool
 
@@ -412,8 +407,6 @@ func dataLog() {
 	dataLogTimestamps = append(dataLogTimestamps, ts)
 	dataLogCurTimestamp = 0
 
-	//logTimestampMutex = &sync.Mutex{}
-
 	// Check if we need to create a new database.
 	createDatabase := false
 
@@ -474,7 +467,6 @@ func dataLog() {
 
 func setDataLogTimeWithGPS(sit SituationData) {
 	if isGPSClockValid() {
-		//FIXME: mutex.
 		var ts StratuxTimestamp
 		// Piggyback a GPS time update from this update.
 		ts.id = 0
@@ -483,10 +475,8 @@ func setDataLogTimeWithGPS(sit SituationData) {
 		ts.GPSClock_value = sit.GPSTime
 		ts.PreferredTime_value = sit.GPSTime
 
-		//logTimestampMutex.Lock()
 		dataLogTimestamps = append(dataLogTimestamps, ts)
 		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
-		//logTimestampMutex.Unlock()
 	}
 }
 
