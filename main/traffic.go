@@ -96,20 +96,22 @@ type TrafficInfo struct {
 	Vvel                int16     // feet per minute
 	Timestamp           time.Time // timestamp of traffic message, UTC
 
-	// Parameters starting at 'Age' are calculated after message receipt.
+	// Parameters starting at 'Age' are calculated from last message receipt on each call of sendTrafficUpdates().
 	// Mode S transmits position and track in separate messages, and altitude can also be
 	// received from interrogations.
 	Age                  float64   // Age of last valid position fix, seconds ago.
 	AgeLastAlt           float64   // Age of last altitude message, seconds ago.
-	Last_seen            time.Time // time of last position update, relative to Stratux startup. Used for timing out expired data.
-	Last_alt             time.Time // time of last altitude update, relative to Stratux startup
-	Last_GnssDiff        time.Time // time of last GnssDiffFromBaroAlt update, relative to Stratux startup
-	Last_GnssDiffAlt     int32     // altitude at last GnssDiffFromBaroAlt update
-	Last_speed           time.Time // time of last velocity / track update, relative to Stratux startup
-	Last_source          uint8     // last SDR on which this target was observed
+	Last_seen            time.Time // Time of last position update (stratuxClock). Used for timing out expired data.
+	Last_alt             time.Time // Time of last altitude update (stratuxClock).
+	Last_GnssDiff        time.Time // Time of last GnssDiffFromBaroAlt update (stratuxClock).
+	Last_GnssDiffAlt     int32     // Altitude at last GnssDiffFromBaroAlt update.
+	Last_speed           time.Time // Time of last velocity and track update (stratuxClock).
+	Last_source          uint8     // Last frequency on which this target was received.
 	ExtrapolatedPosition bool      // TO-DO: True if Stratux is "coasting" the target from last known position.
-	Bearing              float64   // TO-DO: Bearing in degrees true to traffic from ownship
-	Distance             float64   // TO-DO: Distance to traffic from ownship
+	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated.
+	Distance             float64   // Distance to traffic from ownship, if it can be calculated.
+	//FIXME: Some indicator that Bearing and Distance are valid, since they aren't always available.
+	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
 type dump1090Data struct {
