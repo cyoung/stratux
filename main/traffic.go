@@ -536,7 +536,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 func esListen() {
 	for {
-		if !globalSettings.ES_Enabled {
+		if !globalSettings.ES_Enabled && !globalSettings.Ping_Enabled {
 			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
 			continue
 		}
@@ -547,15 +547,15 @@ func esListen() {
 			continue
 		}
 		rdr := bufio.NewReader(inConn)
-		for globalSettings.ES_Enabled {
-			//log.Printf("ES enabled. Ready to read next message from dump1090\n")
+		for globalSettings.ES_Enabled || globalSettings.Ping_Enabled {
+			log.Printf("ES enabled. Ready to read next message from dump1090\n")
 			buf, err := rdr.ReadString('\n')
-			//log.Printf("String read from dump1090\n")
+			log.Printf("String read from dump1090\n")
 			if err != nil { // Must have disconnected?
 				break
 			}
 			buf = strings.Trim(buf, "\r\n")
-			//log.Printf("%s\n", buf)
+			log.Printf("%s\n", buf)
 			replayLog(buf, MSGCLASS_ES) // Log the raw message to nnnn-ES.log
 
 			var newTi *dump1090Data
@@ -585,9 +585,9 @@ func esListen() {
 			// Retrieve previous information on this ICAO code.
 			if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
 				ti = val
-				//log.Printf("Existing target %X imported for ES update\n", icao)
+				log.Printf("Existing target %X imported for ES update\n", icao)
 			} else {
-				//log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
+				log.Printf("New target %X created for ES update\n",newTi.Icao_addr)
 				ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
@@ -597,7 +597,6 @@ func esListen() {
 
 			// generate human readable summary of message types for debug
 			// TO-DO: Use for ES message statistics?
-			/*
 				var s1 string
 				if newTi.DF == 17 {
 					s1 = "ADS-B"
@@ -625,8 +624,7 @@ func esListen() {
 				if newTi.DF == 16 {
 					s1 = "Long Air-Air Surv."
 				}
-			*/
-			//log.Printf("Mode S message from icao=%X, DF=%02d, CA=%02d, TC=%02d (%s)\n", ti.Icao_addr, newTi.DF, newTi.CA, newTi.TypeCode, s1)
+			log.Printf("Mode S message from icao=%X, DF=%02d, CA=%02d, TC=%02d (%s)\n", ti.Icao_addr, newTi.DF, newTi.CA, newTi.TypeCode, s1)
 
 			// Altitude will be sent by dump1090 for ES ADS-B/TIS-B (DF=17 and DF=18)
 			// and Mode S messages (DF=0, DF = 4, and DF = 20).

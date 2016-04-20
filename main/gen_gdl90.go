@@ -885,6 +885,9 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	if isUplink && msglen == UPLINK_FRAME_DATA_BYTES {
 		msgtype = MSGTYPE_UPLINK
+	} else if msglen == 48 {
+		// With Reed Solomon appended
+		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 34 {
 		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 18 {
@@ -1019,6 +1022,7 @@ func getProductNameFromId(product_id int) string {
 type settings struct {
 	UAT_Enabled    bool
 	ES_Enabled     bool
+	Ping_Enabled   bool
 	GPS_Enabled    bool
 	NetworkOutputs []networkConnection
 	AHRS_Enabled   bool
@@ -1039,6 +1043,7 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	Ping_connected                             bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
@@ -1277,6 +1282,7 @@ func closeReplayLogs() {
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
+	pingKill()
 	//TODO: Any other graceful shutdown functions.
 	closeReplayLogs()
 	os.Exit(1)
@@ -1331,6 +1337,7 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
+	pingInit()
 	initTraffic()
 
 	globalStatus.Version = stratuxVersion
