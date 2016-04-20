@@ -50,6 +50,8 @@ cp -f interfaces mnt/etc/network/interfaces
 #custom hostapd start script
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
+#ping udev
+cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
