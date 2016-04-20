@@ -10,7 +10,6 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"os/exec"
 	"regexp"
@@ -47,6 +46,11 @@ var UATDev *UAT
 // ESDev holds a 1090 MHz dongle object
 var ESDev *ES
 
+type Dump1090TermMessage struct {
+	Text   string
+	Source string
+}
+
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
@@ -71,42 +75,66 @@ func (e *ES) read() {
 
 	log.Println("Executed /usr/bin/dump1090 successfully...")
 
-	scanStdout := bufio.NewScanner(stdout)
-	scanStderr := bufio.NewScanner(stderr)
+	done := make(chan bool)
 
-	for {
-		select {
-		case <-e.closeCh:
-			log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
-			err := cmd.Process.Kill()
-			if err != nil {
-				log.Printf("\t couldn't kill dump1090: %s\n", err)
-			} else {
-				cmd.Wait()
-				log.Println("\t kill successful...")
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-e.closeCh:
+				log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
+				err := cmd.Process.Kill()
+				if err == nil {
+					log.Println("\t kill successful...")
+				}
+				return
+			default:
+				time.Sleep(1 * time.Second)
 			}
-			return
-		default:
-			for scanStdout.Scan() {
-				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
-			}
-			if err := scanStdout.Err(); err != nil {
-				log.Printf("scanStdout error: %s\n", err)
-			}
+		}
+	}()
 
-			for scanStderr.Scan() {
-				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
-				if shutdownES != true {
-					shutdownES = true
+	stdoutBuf := make([]byte, 1024)
+	stderrBuf := make([]byte, 1024)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stdout.Read(stdoutBuf)
+				if err == nil && n > 0 {
+					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stdout"}
+					logDump1090TermMessage(m)
 				}
 			}
-			if err := scanStderr.Err(); err != nil {
-				log.Printf("scanStderr error: %s\n", err)
-			}
-
-			time.Sleep(1 * time.Second)
 		}
-	}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stderr.Read(stderrBuf)
+				if err == nil && n > 0 {
+					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stderr"}
+					logDump1090TermMessage(m)
+				}
+			}
+		}
+	}()
+
+	cmd.Wait()
+
+	// we get here if A) the dump1090 process died
+	// on its own or B) cmd.Process.Kill() was called
+	// from within the goroutine, either way close
+	// the "done" channel, which ensures we don't leak
+	// goroutines...
+	close(done)
 }
 
 func (u *UAT) read() {
@@ -311,6 +339,7 @@ func (u *UAT) shutdown() {
 	log.Println("UAT shutdown(): u.wg.Wait() returned...")
 	log.Println("UAT shutdown(): closing device ...")
 	u.dev.Close() // preempt the blocking ReadSync call
+	log.Println("UAT shutdown() complete ...")
 }
 
 func (e *ES) shutdown() {
@@ -318,7 +347,7 @@ func (e *ES) shutdown() {
 	close(e.closeCh) // signal to shutdown
 	log.Println("ES shutdown(): calling e.wg.Wait() ...")
 	e.wg.Wait() // Wait for the goroutine to shutdown
-	log.Println("ES shutdown(): e.wg.Wait() returned...")
+	log.Println("ES shutdown() complete ...")
 }
 
 var sdrShutdown bool
@@ -464,16 +493,18 @@ func sdrWatcher() {
 			shutdownES = false
 		}
 
+		// capture current state
+		esEnabled := globalSettings.ES_Enabled
+		uatEnabled := globalSettings.UAT_Enabled
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
-		// support two and only two dongles
+		// support up to two dongles
 		if count > 2 {
 			count = 2
 		}
 
-		if count == prevCount && prevESEnabled == globalSettings.ES_Enabled &&
-			prevUATEnabled == globalSettings.UAT_Enabled {
+		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled {
 			continue
 		}
 
@@ -486,17 +517,16 @@ func sdrWatcher() {
 			ESDev.shutdown()
 			ESDev = nil
 		}
-		configDevices(count, globalSettings.ES_Enabled, globalSettings.UAT_Enabled)
+		configDevices(count, esEnabled, uatEnabled)
 
 		prevCount = count
-		prevUATEnabled = globalSettings.UAT_Enabled
-		prevESEnabled = globalSettings.ES_Enabled
+		prevUATEnabled = uatEnabled
+		prevESEnabled = esEnabled
 	}
 }
 
 func sdrInit() {
 	go sdrWatcher()
 	go uatReader()
-	godump978.Dump978Init()
 	go godump978.ProcessDataFromChannel()
 }

@@ -103,14 +103,16 @@ func pingNetworkRepeater() {
 			return
 		default:
 			for scanStdout.Scan() {
-				replayLog(scanStdout.Text(), MSGCLASS_DUMP1090)
+				m := Dump1090TermMessage{Text: scanStdout.Text(), Source: "stdout"}
+				logDump1090TermMessage(m)
 			}
 			if err := scanStdout.Err(); err != nil {
 				log.Printf("scanStdout error: %s\n", err)
 			}
 
 			for scanStderr.Scan() {
-				replayLog(scanStderr.Text(), MSGCLASS_DUMP1090)
+				m := Dump1090TermMessage{Text: scanStderr.Text(), Source: "stderr"}
+				logDump1090TermMessage(m)
 				if shutdownES != true {
 					shutdownES = true
 				}

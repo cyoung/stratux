@@ -29,9 +29,9 @@ import (
 	"syscall"
 	"time"
 
-	humanize "github.com/dustin/go-humanize"
-
 	"../uatparse"
+	humanize "github.com/dustin/go-humanize"
+	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
@@ -44,6 +44,7 @@ const (
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 	logDirectory        = "/var/log/stratux"
+	dataLogFile         = "/var/log/stratux.sqlite"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -64,23 +65,16 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT      = 0
-	MSGCLASS_ES       = 1
-	MSGCLASS_GPS      = 3
-	MSGCLASS_AHRS     = 4
-	MSGCLASS_DUMP1090 = 5
+	MSGCLASS_UAT = 0
+	MSGCLASS_ES  = 1
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
-var maxSignalStrength int
+var usage *du.DiskUsage
 
-var uatReplayLog string
-var esReplayLog string
-var gpsReplayLog string
-var ahrsReplayLog string
-var dump1090ReplayLog string
+var maxSignalStrength int
 
 var stratuxBuild string
 var stratuxVersion string
@@ -100,13 +94,6 @@ type ReadCloser interface {
 	io.Reader
 	io.Closer
 }
-
-// File handles for replay logging.
-var uatReplayWriter WriteCloser
-var esReplayWriter WriteCloser
-var gpsReplayWriter WriteCloser
-var ahrsReplayWriter WriteCloser
-var dump1090ReplayWriter WriteCloser
 
 var developerMode bool
 
@@ -167,19 +154,6 @@ func constructFilenames() {
 	}
 	fo.Sync()
 	fo.Close()
-	if developerMode == true {
-		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log", logDirectory, fileIndexNumber)
-		esReplayLog = fmt.Sprintf("%s/%04d-es.log", logDirectory, fileIndexNumber)
-		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log", logDirectory, fileIndexNumber)
-		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log", logDirectory, fileIndexNumber)
-		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log", logDirectory, fileIndexNumber)
-	} else {
-		uatReplayLog = fmt.Sprintf("%s/%04d-uat.log.gz", logDirectory, fileIndexNumber)
-		esReplayLog = fmt.Sprintf("%s/%04d-es.log.gz", logDirectory, fileIndexNumber)
-		gpsReplayLog = fmt.Sprintf("%s/%04d-gps.log.gz", logDirectory, fileIndexNumber)
-		ahrsReplayLog = fmt.Sprintf("%s/%04d-ahrs.log.gz", logDirectory, fileIndexNumber)
-		dump1090ReplayLog = fmt.Sprintf("%s/%04d-dump1090.log.gz", logDirectory, fileIndexNumber)
-	}
 }
 
 // Construct the CRC table. Adapted from FAA ref above.
@@ -297,7 +271,7 @@ func makeOwnshipReport() bool {
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
 	if isGPSGroundTrackValid() {
-		msg[12] = msg[12] | 0x0B // "Airborne" + "True Heading"
+		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
@@ -317,12 +291,24 @@ func makeOwnshipReport() bool {
 	msg[15] = msg[15] | byte((verticalVelocity&0x0F00)>>8)
 	msg[16] = byte(verticalVelocity & 0xFF)
 
-	// Showing magnetic (corrected) on ForeFlight. Needs to be True Heading.
-	groundTrack := uint16(0)
+	// Track is degrees true, set from GPS true course.
+	groundTrack := float32(0)
 	if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
-	trk := uint8(float32(groundTrack) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	tempTrack := groundTrack + TRACK_RESOLUTION/2 // offset by half the 8-bit resolution to minimize binning error
+
+	for tempTrack > 360 {
+		tempTrack -= 360
+	}
+	for tempTrack < 0 {
+		tempTrack += 360
+	}
+
+	trk := uint8(tempTrack / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+
+	//log.Printf("For groundTrack = %.2f°, tempTrack= %.2f, trk = %d (%f°)\n",groundTrack,tempTrack,trk,float32(trk)*TRACK_RESOLUTION)
 
 	msg[17] = byte(trk)
 
@@ -347,11 +333,10 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B                 // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.Alt) // GPS Altitude.
-	alt = alt / 5
-	msg[1] = byte(alt >> 8)     // Altitude.
-	msg[2] = byte(alt & 0x00FF) // Altitude.
+	msg[0] = 0x0B                     // Message type "Ownship Geo Alt".
+	alt := int16(mySituation.Alt / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(alt >> 8)           // Altitude.
+	msg[2] = byte(alt & 0x00FF)       // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
@@ -417,7 +402,7 @@ func makeStratuxStatus() []byte {
 	// Valid and enabled flags.
 	// Valid/Enabled: GPS portion.
 	if isGPSValid() {
-		switch mySituation.quality {
+		switch mySituation.Quality {
 		case 1: // 1 = 3D GPS.
 			msg[13] = 1
 		case 2: // 2 = DGPS (SBAS /WAAS).
@@ -676,7 +661,7 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.uat_products_last_minute = products_last_minute
+	globalStatus.UAT_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -714,32 +699,34 @@ func cpuTempMonitor() {
 		<-timer.C
 
 		// Update CPUTemp.
-		globalStatus.CPUTemp = float32(-99.0) // Default value - in case code below hangs.
-
 		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 		tempStr := strings.Trim(string(temp), "\n")
+		t := float32(-99.0)
 		if err == nil {
 			tInt, err := strconv.Atoi(tempStr)
 			if err == nil {
 				if tInt > 1000 {
-					globalStatus.CPUTemp = float32(tInt) / float32(1000.0)
+					t = float32(tInt) / float32(1000.0)
 				} else {
-					globalStatus.CPUTemp = float32(tInt) // case where Temp is returned as simple integer
+					t = float32(tInt) // case where Temp is returned as simple integer
 				}
 			}
+		}
+		if t >= -99.0 { // Only update if valid value was obtained.
+			globalStatus.CPUTemp = t
 		}
 
 	}
 }
 
 func updateStatus() {
-	if mySituation.quality == 2 {
+	if mySituation.Quality == 2 {
 		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
-	} else if mySituation.quality == 1 {
+	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
-	} else if mySituation.quality == 6 {
+	} else if mySituation.Quality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else if mySituation.quality == 0 {
+	} else if mySituation.Quality == 0 {
 		globalStatus.GPS_solution = "No Fix"
 	} else {
 		globalStatus.GPS_solution = "Unknown"
@@ -749,7 +736,7 @@ func updateStatus() {
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
 		mySituation.SatellitesTracked = 0
-		mySituation.quality = 0
+		mySituation.Quality = 0
 		globalStatus.GPS_solution = "Disconnected"
 		globalStatus.GPS_connected = false
 	}
@@ -762,51 +749,9 @@ func updateStatus() {
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
 	globalStatus.Clock = time.Now()
-}
 
-type ReplayWriter struct {
-	fp *os.File
-}
-
-func (r ReplayWriter) Write(p []byte) (n int, err error) {
-	return r.fp.Write(p)
-}
-
-func (r ReplayWriter) Close() error {
-	return r.fp.Close()
-}
-
-func makeReplayLogEntry(msg string) string {
-	return fmt.Sprintf("%d,%s\n", time.Since(timeStarted).Nanoseconds(), msg)
-}
-
-func replayLog(msg string, msgclass int) {
-	if !globalSettings.ReplayLog { // Logging disabled.
-		return
-	}
-	msg = strings.Trim(msg, " \r\n")
-	if len(msg) == 0 { // Blank message.
-		return
-	}
-	var fp WriteCloser
-
-	switch msgclass {
-	case MSGCLASS_UAT:
-		fp = uatReplayWriter
-	case MSGCLASS_ES:
-		fp = esReplayWriter
-	case MSGCLASS_GPS:
-		fp = gpsReplayWriter
-	case MSGCLASS_AHRS:
-		fp = ahrsReplayWriter
-	case MSGCLASS_DUMP1090:
-		fp = dump1090ReplayWriter
-	}
-
-	if fp != nil {
-		s := makeReplayLogEntry(msg)
-		fp.Write([]byte(s))
-	}
+	usage = du.NewDiskUsage("/")
+	globalStatus.DiskBytesFree = usage.Free()
 }
 
 type WeatherMessage struct {
@@ -839,8 +784,7 @@ func registerADSBTextMessageReceived(msg string) {
 }
 
 func parseInput(buf string) ([]byte, uint16) {
-	replayLog(buf, MSGCLASS_UAT) // Log the raw message.
-
+	//FIXME: We're ignoring all invalid format UAT messages (not sending to datalog).
 	x := strings.Split(buf, ";") // Discard everything after the first ';'.
 	s := x[0]
 	if len(s) == 0 {
@@ -943,6 +887,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	}
 
 	MsgLog = append(MsgLog, thisMsg)
+	logMsg(thisMsg)
 
 	return frame, msgtype
 }
@@ -1036,10 +981,12 @@ type settings struct {
 type status struct {
 	Version                                    string
 	Build                                      string
+	HardwareBuild                              string
 	Devices                                    uint32
 	Connected_Users                            uint
+	DiskBytesFree                              uint64
 	UAT_messages_last_minute                   uint
-	uat_products_last_minute                   map[string]uint32
+	UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
@@ -1062,6 +1009,7 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	Errors                                     []string
 }
 
 var globalSettings settings
@@ -1070,7 +1018,7 @@ var globalStatus status
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
-	globalSettings.GPS_Enabled = false
+	globalSettings.GPS_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1108,46 +1056,22 @@ func readSettings() {
 	log.Printf("read in settings.\n")
 }
 
+func addSystemError(err error) {
+	globalStatus.Errors = append(globalStatus.Errors, err.Error())
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		log.Printf("can't save settings %s: %s\n", configLocation, err.Error())
+		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
 		return
 	}
 	defer fd.Close()
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
-}
-
-func replayMark(active bool) {
-	var t string
-	if !active {
-		t = fmt.Sprintf("PAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
-	} else {
-		t = fmt.Sprintf("UNPAUSE,%d\n", time.Since(timeStarted).Nanoseconds())
-	}
-
-	if uatReplayWriter != nil {
-		uatReplayWriter.Write([]byte(t))
-	}
-
-	if esReplayWriter != nil {
-		esReplayWriter.Write([]byte(t))
-	}
-
-	if gpsReplayWriter != nil {
-		gpsReplayWriter.Write([]byte(t))
-	}
-
-	if ahrsReplayWriter != nil {
-		ahrsReplayWriter.Write([]byte(t))
-	}
-
-	if dump1090ReplayWriter != nil {
-		dump1090ReplayWriter.Write([]byte(t))
-	}
-
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
@@ -1174,18 +1098,27 @@ func openReplay(fn string, compressed bool) (WriteCloser, error) {
 
 func printStats() {
 	statTimer := time.NewTicker(30 * time.Second)
+	diskUsageWarning := false
 	for {
 		<-statTimer.C
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
+		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
-		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s\n, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
+		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
-			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
+		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
+		if !diskUsageWarning && usage.Usage() > 95.0 {
+			err_p := fmt.Errorf("Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
+			addSystemError(err_p)
+			diskUsageWarning = true
+		}
+		logStatus()
 	}
 }
 
@@ -1258,33 +1191,14 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
-// Close replay log file handles.
-func closeReplayLogs() {
-	if uatReplayWriter != nil {
-		uatReplayWriter.Close()
-	}
-	if esReplayWriter != nil {
-		esReplayWriter.Close()
-	}
-	if gpsReplayWriter != nil {
-		gpsReplayWriter.Close()
-	}
-	if ahrsReplayWriter != nil {
-		ahrsReplayWriter.Close()
-	}
-	if dump1090ReplayWriter != nil {
-		dump1090ReplayWriter.Close()
-	}
-
-}
-
 // Graceful shutdown.
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	pingKill()
 	//TODO: Any other graceful shutdown functions.
-	closeReplayLogs()
+	// Shut down data logging.
+	shutdownDataLog <- true
 	os.Exit(1)
 }
 
@@ -1300,6 +1214,14 @@ func main() {
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
+
+	// Set up status.
+	globalStatus.Version = stratuxVersion
+	globalStatus.Build = stratuxBuild
+	globalStatus.Errors = make([]string, 0)
+	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "FlightBox"
+	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
@@ -1321,7 +1243,9 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Printf("Failed to open '%s': %s\n", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		addSystemError(err_log)
+		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
 		mfp := io.MultiWriter(fp, os.Stdout)
@@ -1340,9 +1264,7 @@ func main() {
 	pingInit()
 	initTraffic()
 
-	globalStatus.Version = stratuxVersion
-	globalStatus.Build = stratuxBuild
-
+	// Read settings.
 	readSettings()
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
@@ -1352,45 +1274,8 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
-	// Set up the replay logs. Keep these files open in any case, even if replay logging is disabled.
-
-	if uatwt, err := openReplay(uatReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		uatReplayWriter = uatwt
-		defer uatReplayWriter.Close()
-	}
-	// 1090ES replay log.
-	if eswt, err := openReplay(esReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		esReplayWriter = eswt
-		defer esReplayWriter.Close()
-	}
-	// GPS replay log.
-	if gpswt, err := openReplay(gpsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		gpsReplayWriter = gpswt
-		defer gpsReplayWriter.Close()
-	}
-	// AHRS replay log.
-	if ahrswt, err := openReplay(ahrsReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		ahrsReplayWriter = ahrswt
-		defer ahrsReplayWriter.Close()
-	}
-	// Dump1090 replay log.
-	if dump1090wt, err := openReplay(dump1090ReplayLog, !developerMode); err != nil {
-		globalSettings.ReplayLog = false
-	} else {
-		dump1090ReplayWriter = dump1090wt
-		defer dump1090ReplayWriter.Close()
-	}
-
-	// Mark the files (whether we're logging or not).
-	replayMark(globalSettings.ReplayLog)
+	//FIXME: Only do this if data logging is enabled.
+	initDataLog()
 
 	initRY835AI()
 

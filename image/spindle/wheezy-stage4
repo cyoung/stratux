@@ -59,8 +59,6 @@ scp_in_to_qemu /root/spindle/sshd_config /tmp/sshd_config.in
 scp_in_to_qemu /root/spindle/libdump978.so /tmp/libdump978.so.in
 scp_in_to_qemu /root/spindle/libimu.so /tmp/libimu.so.in
 scp_in_to_qemu /root/spindle/go.tgz /mnt/root/go.tgz
-scp_in_to_qemu /root/spindle/rc.local /tmp/rc.local.in
-scp_in_to_qemu /root/spindle/wifi_watch.sh /tmp/wifi_watch.sh.in
 
 
  ssh_in_to_qemu chroot /mnt sh -l -ex - <<\EOF
@@ -80,9 +78,6 @@ mv -f /tmp/dhcpd.conf.in /etc/dhcp/dhcpd.conf
 mv -f /tmp/hostapd.conf.in /etc/hostapd/hostapd.conf
 mv -f /tmp/isc-dhcp-server.in /etc/default/isc-dhcp-server
 mv -f /tmp/sshd_config.in /etc/ssh/sshd_config
-mv -f /tmp/wifi_watch.sh.in /usr/sbin/wifi_watch.sh
-chmod +x /usr/sbin/wifi_watch.sh
-mv -f /tmp/rc.local.in /etc/rc.local
 rm -f /usr/share/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service
 
 echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" >/etc/default/hostapd

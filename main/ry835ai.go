@@ -34,33 +34,35 @@ type SituationData struct {
 	mu_GPS *sync.Mutex
 
 	// From GPS.
-	lastFixSinceMidnightUTC float32
-	Lat                     float32
-	Lng                     float32
-	quality                 uint8
-	HeightAboveEllipsoid    float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
-	GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	Satellites              uint16  // satellites used in solution
-	SatellitesTracked       uint16  // satellites tracked (almanac data received)
-	SatellitesSeen          uint16  // satellites seen (signal received)
-	Accuracy                float32 // 95% confidence for horizontal position, meters.
-	NACp                    uint8   // NACp categories are defined in AC 20-165A
-	Alt                     float32 // Feet MSL
-	AccuracyVert            float32 // 95% confidence for vertical position, meters
-	GPSVertVel              float32 // GPS vertical velocity, feet per second
-	LastFixLocalTime        time.Time
-	TrueCourse              uint16
-	GroundSpeed             uint16
-	LastGroundTrackTime     time.Time
-	LastGPSTimeTime         time.Time
-	LastNMEAMessage         time.Time // time valid NMEA message last seen
+	LastFixSinceMidnightUTC  float32
+	Lat                      float32
+	Lng                      float32
+	Quality                  uint8
+	HeightAboveEllipsoid     float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
+	GeoidSep                 float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	Satellites               uint16  // satellites used in solution
+	SatellitesTracked        uint16  // satellites tracked (almanac data received)
+	SatellitesSeen           uint16  // satellites seen (signal received)
+	Accuracy                 float32 // 95% confidence for horizontal position, meters.
+	NACp                     uint8   // NACp categories are defined in AC 20-165A
+	Alt                      float32 // Feet MSL
+	AccuracyVert             float32 // 95% confidence for vertical position, meters
+	GPSVertVel               float32 // GPS vertical velocity, feet per second
+	LastFixLocalTime         time.Time
+	TrueCourse               float32
+	GroundSpeed              uint16
+	LastGroundTrackTime      time.Time
+	GPSTime                  time.Time
+	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
+	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
+	LastValidNMEAMessage     string    // last NMEA message processed.
 
 	mu_Attitude *sync.Mutex
 
 	// From BMP180 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
-	lastTempPressTime time.Time
+	LastTempPressTime time.Time
 
 	// From MPU6050 accel/gyro.
 	Pitch            float64
@@ -75,7 +77,7 @@ var serialPort *serial.Port
 var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
 
 /*
-file:///Users/c/Downloads/u-blox5_Referenzmanual.pdf
+u-blox5_Referenzmanual.pdf
 Platform settings
 Airborne <2g Recommended for typical airborne environment. No 2D position fixes supported.
 p.91 - CFG-MSG
@@ -128,21 +130,23 @@ func initGPSSerial() bool {
 	baudrate := int(9600)
 	isSirfIV := bool(false)
 
-	log.Printf("Configuring GPS\n")
-
 	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/ttyUSB0"
 	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
 		device = "/dev/ttyACM0"
-	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
+		//} else if _, err := os.Stat("/dev/ttyS0"); err == nil { // ttyS0 appears to be mini UART on RPi 3
+		//	device = "/dev/ttyS0"
+	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi
 		device = "/dev/ttyAMA0"
 	} else {
 		log.Printf("No suitable device found.\n")
 		return false
 	}
-	log.Printf("Using %s for GPS\n", device)
+	if globalSettings.DEBUG {
+		log.Printf("Using %s for GPS\n", device)
+	}
 
 	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start)
 		serialConfig = &serial.Config{Name: device, Baud: 38400}
@@ -226,7 +230,9 @@ func initGPSSerial() bool {
 		// Disable GSV.
 		p.Write(makeNMEACmd("PSRF103,03,00,00,01"))
 
-		log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
+		if globalSettings.DEBUG {
+			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
+		}
 	} else {
 		// Set 10Hz update. Little endian order.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
@@ -324,7 +330,9 @@ func initGPSSerial() bool {
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 		baudrate = 38400
 
-		log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
+		if globalSettings.DEBUG {
+			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
+		}
 	}
 	p.Close()
 
@@ -385,10 +393,10 @@ func validateNMEAChecksum(s string) (string, bool) {
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
-func setTrueCourse(groundSpeed, trueCourse uint16) {
+func setTrueCourse(groundSpeed uint16, trueCourse float64) {
 	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(float64(trueCourse), 0.10)
+			myMPU6050.ResetHeading(trueCourse, 0.10)
 		}
 	}
 }
@@ -424,8 +432,16 @@ return is true if parse occurs correctly and position is valid.
 
 */
 
-func processNMEALine(l string) bool {
-	replayLog(l, MSGCLASS_GPS)
+func processNMEALine(l string) (sentenceUsed bool) {
+	mySituation.mu_GPS.Lock()
+
+	defer func() {
+		if sentenceUsed || globalSettings.DEBUG {
+			logSituation()
+		}
+		mySituation.mu_GPS.Unlock()
+	}()
+
 	l_valid, validNMEAcs := validateNMEAChecksum(l)
 	if !validNMEAcs {
 		log.Printf("GPS error. Invalid NMEA string: %s\n", l_valid) // remove log message once validation complete
@@ -433,58 +449,50 @@ func processNMEALine(l string) bool {
 	}
 	x := strings.Split(l_valid, ",")
 
-	mySituation.LastNMEAMessage = stratuxClock.Time
+	mySituation.LastValidNMEAMessageTime = stratuxClock.Time
+	mySituation.LastValidNMEAMessage = l
 
 	if x[0] == "PUBX" { // UBX proprietary message
-		if x[1] == "00" { // position message
+		if x[1] == "00" { // Position fix.
 			if len(x) < 20 {
 				return false
 			}
 
-			mySituation.mu_GPS.Lock()
-			defer mySituation.mu_GPS.Unlock()
+			tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
 
 			// Do the accuracy / quality fields first to prevent invalid position etc. from being sent downstream
-
 			// field 8 = nav status
 			// DR = dead reckoning, G2= 2D GPS, G3 = 3D GPS, D2= 2D diff, D3 = 3D diff, RK = GPS+DR, TT = time only
-
-			okReturn := true
-
 			if x[8] == "D2" || x[8] == "D3" {
-				mySituation.quality = 2
+				tmpSituation.Quality = 2
 			} else if x[8] == "G2" || x[8] == "G3" {
-				mySituation.quality = 1
+				tmpSituation.Quality = 1
 			} else if x[8] == "DR" || x[8] == "RK" {
-				mySituation.quality = 6
+				tmpSituation.Quality = 6
 			} else if x[8] == "NF" {
-				mySituation.quality = 0
-				okReturn = false //  better to have no data than wrong data
+				tmpSituation.Quality = 0 // Just a note.
+				return false
 			} else {
-				mySituation.quality = 0
-				okReturn = false //  better to have no data than wrong data
+				tmpSituation.Quality = 0 // Just a note.
+				return false
 			}
 
 			// field 9 = horizontal accuracy, m
 			hAcc, err := strconv.ParseFloat(x[9], 32)
 			if err != nil {
-				okReturn = false
+				return false
 			}
-			mySituation.Accuracy = float32(hAcc * 2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
+			tmpSituation.Accuracy = float32(hAcc * 2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
 
 			// NACp estimate.
-			mySituation.NACp = calculateNACp(mySituation.Accuracy)
+			tmpSituation.NACp = calculateNACp(tmpSituation.Accuracy)
 
 			// field 10 = vertical accuracy, m
 			vAcc, err := strconv.ParseFloat(x[10], 32)
 			if err != nil {
-				okReturn = false
-			}
-			mySituation.AccuracyVert = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
-
-			if !okReturn {
 				return false
 			}
+			tmpSituation.AccuracyVert = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
 
 			// field 2 = time
 			if len(x[2]) < 8 {
@@ -497,10 +505,9 @@ func processNMEALine(l string) bool {
 				return false
 			}
 
-			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+			tmpSituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3-4 = lat
-
 			if len(x[3]) < 10 {
 				return false
 			}
@@ -511,9 +518,9 @@ func processNMEALine(l string) bool {
 				return false
 			}
 
-			mySituation.Lat = float32(hr) + float32(minf/60.0)
+			tmpSituation.Lat = float32(hr) + float32(minf/60.0)
 			if x[4] == "S" { // South = negative.
-				mySituation.Lat = -mySituation.Lat
+				tmpSituation.Lat = -tmpSituation.Lat
 			}
 
 			// field 5-6 = lon
@@ -526,9 +533,9 @@ func processNMEALine(l string) bool {
 				return false
 			}
 
-			mySituation.Lng = float32(hr) + float32(minf/60.0)
+			tmpSituation.Lng = float32(hr) + float32(minf/60.0)
 			if x[6] == "W" { // West = negative.
-				mySituation.Lng = -mySituation.Lng
+				tmpSituation.Lng = -tmpSituation.Lng
 			}
 
 			// field 7 = height above ellipsoid, m
@@ -537,11 +544,11 @@ func processNMEALine(l string) bool {
 			if err1 != nil {
 				return false
 			}
-			alt := float32(hae*3.28084) - mySituation.GeoidSep        // convert to feet and offset by geoid separation
-			mySituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
-			mySituation.Alt = alt
+			alt := float32(hae*3.28084) - tmpSituation.GeoidSep        // convert to feet and offset by geoid separation
+			tmpSituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
+			tmpSituation.Alt = alt
 
-			mySituation.LastFixLocalTime = stratuxClock.Time
+			tmpSituation.LastFixLocalTime = stratuxClock.Time
 
 			// field 11 = groundspeed, km/h
 			groundspeed, err := strconv.ParseFloat(x[11], 32)
@@ -549,30 +556,30 @@ func processNMEALine(l string) bool {
 				return false
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
-			mySituation.GroundSpeed = uint16(groundspeed)
+			tmpSituation.GroundSpeed = uint16(groundspeed)
 
 			// field 12 = track, deg
-			trueCourse := uint16(0)
+			trueCourse := float32(0.0)
 			tc, err := strconv.ParseFloat(x[12], 32)
 			if err != nil {
 				return false
 			}
 			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-				trueCourse = uint16(tc)
-				setTrueCourse(uint16(groundspeed), trueCourse)
-				mySituation.TrueCourse = uint16(trueCourse)
+				trueCourse = float32(tc)
+				setTrueCourse(uint16(groundspeed), tc)
+				tmpSituation.TrueCourse = trueCourse
 			} else {
 				// Negligible movement. Don't update course, but do use the slow speed.
 				// TO-DO: use average course over last n seconds?
 			}
-			mySituation.LastGroundTrackTime = stratuxClock.Time
+			tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
 			// field 13 = vertical velocity, m/s
 			vv, err := strconv.ParseFloat(x[13], 32)
 			if err != nil {
 				return false
 			}
-			mySituation.GPSVertVel = float32(vv * -3.28084) // convert to ft/sec and positive = up
+			tmpSituation.GPSVertVel = float32(vv * -3.28084) // convert to ft/sec and positive = up
 
 			// field 14 = age of diff corrections
 
@@ -581,8 +588,11 @@ func processNMEALine(l string) bool {
 			if err1 != nil {
 				return false
 			}
-			mySituation.Satellites = uint16(sat)
+			tmpSituation.Satellites = uint16(sat)
 
+			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+			mySituation = tmpSituation
+			return true
 		} else if x[1] == "03" { // satellite status message
 
 			// field 2 = number of satellites tracked
@@ -616,7 +626,7 @@ func processNMEALine(l string) bool {
 			                                x[7+6*i] // signal strength dB-Hz
 			                                x[8+6*i] // lock time, sec, 0-64
 			*/
-
+			return true
 		} else if x[1] == "04" { // clock message
 			// field 5 is UTC week (epoch = 1980-JAN-06). If this is invalid, do not parse date / time
 			utcWeek, err0 := strconv.Atoi(x[5])
@@ -641,7 +651,6 @@ func processNMEALine(l string) bool {
 			if err1 != nil || err2 != nil || err3 != nil {
 				return false
 			}
-			mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 			// field 3 is date
 
@@ -650,7 +659,10 @@ func processNMEALine(l string) bool {
 				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
 				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 				if err == nil {
+					// We only update ANY of the times if all of the time parsing is complete.
 					mySituation.LastGPSTimeTime = stratuxClock.Time
+					mySituation.GPSTime = gpsTime
+					mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
@@ -661,53 +673,57 @@ func processNMEALine(l string) bool {
 							log.Printf("Time set from GPS. Current time is %v\n", time.Now())
 						}
 					}
+					setDataLogTimeWithGPS(mySituation)
+					return true // All possible successes lead here.
 				}
 			}
-
 		}
 
 		// otherwise parse the NMEA standard messages as a compatibility option for SIRF, generic NMEA, etc.
 	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
-		if len(x) < 9 { // Reduce from 10 to 9 to allow parsing by devices pre-NMEA v2.3
+		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
+		if len(x) < 9 {             // Reduce from 10 to 9 to allow parsing by devices pre-NMEA v2.3
 			return false
 		}
-		mySituation.mu_GPS.Lock()
-		defer mySituation.mu_GPS.Unlock()
 
 		groundspeed, err := strconv.ParseFloat(x[5], 32) // Knots.
 		if err != nil {
 			return false
 		}
-		mySituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = uint16(groundspeed)
 
-		trueCourse := uint16(0)
+		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[1], 32)
 		if err != nil {
 			return false
 		}
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-			trueCourse = uint16(tc)
-			setTrueCourse(uint16(groundspeed), trueCourse)
-			mySituation.TrueCourse = uint16(trueCourse)
+			trueCourse = float32(tc)
+			setTrueCourse(uint16(groundspeed), tc)
+			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
 		}
-		mySituation.LastGroundTrackTime = stratuxClock.Time
+		tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
-	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // GPS fix.
+		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+		mySituation = tmpSituation
+		return true
+
+	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // Position fix.
+		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
+
 		if len(x) < 15 {
 			return false
 		}
-		mySituation.mu_GPS.Lock()
-		defer mySituation.mu_GPS.Unlock()
 
 		// Quality indicator.
 		q, err1 := strconv.Atoi(x[6])
 		if err1 != nil {
 			return false
 		}
-		mySituation.quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
+		tmpSituation.Quality = uint8(q) // 1 = 3D GPS; 2 = DGPS (SBAS /WAAS)
 
 		// Timestamp.
 		if len(x[1]) < 7 {
@@ -720,7 +736,7 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+		tmpSituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -733,9 +749,9 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.Lat = float32(hr) + float32(minf/60.0)
+		tmpSituation.Lat = float32(hr) + float32(minf/60.0)
 		if x[3] == "S" { // South = negative.
-			mySituation.Lat = -mySituation.Lat
+			tmpSituation.Lat = -tmpSituation.Lat
 		}
 
 		// Longitude.
@@ -748,9 +764,9 @@ func processNMEALine(l string) bool {
 			return false
 		}
 
-		mySituation.Lng = float32(hr) + float32(minf/60.0)
+		tmpSituation.Lng = float32(hr) + float32(minf/60.0)
 		if x[5] == "W" { // West = negative.
-			mySituation.Lng = -mySituation.Lng
+			tmpSituation.Lng = -tmpSituation.Lng
 		}
 
 		/* Satellite count and horizontal accuracy deprecated. Using PUBX,00 with fallback to GSA.
@@ -759,21 +775,21 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.Satellites = uint16(sat)
+		tmpSituation.Satellites = uint16(sat)
 
 		// Accuracy.
 		hdop, err1 := strconv.ParseFloat(x[8], 32)
 		if err1 != nil {
 			return false
 		}
-		if mySituation.quality == 2 {
-			mySituation.Accuracy = float32(hdop * 4.0) //Estimate for WAAS / DGPS solution
+		if tmpSituation.Quality == 2 {
+			tmpSituation.Accuracy = float32(hdop * 4.0) //Estimate for WAAS / DGPS solution
 		} else {
-			mySituation.Accuracy = float32(hdop * 8.0) //Estimate for 3D non-WAAS solution
+			tmpSituation.Accuracy = float32(hdop * 8.0) //Estimate for 3D non-WAAS solution
 		}
 
 		// NACp estimate.
-		mySituation.NACp = calculateNACp(mySituation.Accuracy)
+		tmpSituation.NACp = calculateNACp(tmpSituation.Accuracy)
 		*/
 
 		// Altitude.
@@ -781,7 +797,7 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.Alt = float32(alt * 3.28084) // Convert to feet.
+		tmpSituation.Alt = float32(alt * 3.28084) // Convert to feet.
 
 		// Geoid separation (Sep = HAE - MSL)
 		// (needed for proper MSL offset on PUBX,00 altitudes)
@@ -790,13 +806,19 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
-		mySituation.HeightAboveEllipsoid = mySituation.GeoidSep + mySituation.Alt
+		tmpSituation.GeoidSep = float32(geoidSep * 3.28084) // Convert to feet.
+		tmpSituation.HeightAboveEllipsoid = tmpSituation.GeoidSep + tmpSituation.Alt
 
 		// Timestamp.
-		mySituation.LastFixLocalTime = stratuxClock.Time
+		tmpSituation.LastFixLocalTime = stratuxClock.Time
 
-	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") {
+		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+		mySituation = tmpSituation
+		return true
+
+	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") { // Recommended Minimum data. FIXME: Is this needed anymore?
+		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
+
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 		/*						check RY835 man for NMEA version, if >2.2, add mode field
 				Where:
@@ -815,14 +837,10 @@ func processNMEALine(l string) bool {
 		if len(x) < 11 {
 			return false
 		}
-		mySituation.mu_GPS.Lock()
-		defer mySituation.mu_GPS.Unlock()
 
 		if x[2] != "A" { // invalid fix
-			mySituation.quality = 0
+			tmpSituation.Quality = 0 // Just a note.
 			return false
-		} else if mySituation.quality == 0 {
-			mySituation.quality = 1 // fallback option; indicate if the position fix is valid even if GGA or PUBX,00 aren't received
 		}
 
 		// Timestamp.
@@ -835,14 +853,15 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil || err3 != nil {
 			return false
 		}
-		mySituation.lastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
+		tmpSituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			if err == nil {
-				mySituation.LastGPSTimeTime = stratuxClock.Time
+				tmpSituation.LastGPSTimeTime = stratuxClock.Time
+				tmpSituation.GPSTime = gpsTime
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)
@@ -864,9 +883,9 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil {
 			return false
 		}
-		mySituation.Lat = float32(hr) + float32(minf/60.0)
+		tmpSituation.Lat = float32(hr) + float32(minf/60.0)
 		if x[4] == "S" { // South = negative.
-			mySituation.Lat = -mySituation.Lat
+			tmpSituation.Lat = -tmpSituation.Lat
 		}
 		// Longitude.
 		if len(x[5]) < 5 {
@@ -877,38 +896,45 @@ func processNMEALine(l string) bool {
 		if err1 != nil || err2 != nil {
 			return false
 		}
-		mySituation.Lng = float32(hr) + float32(minf/60.0)
+		tmpSituation.Lng = float32(hr) + float32(minf/60.0)
 		if x[6] == "W" { // West = negative.
-			mySituation.Lng = -mySituation.Lng
+			tmpSituation.Lng = -tmpSituation.Lng
 		}
 
-		mySituation.LastFixLocalTime = stratuxClock.Time
+		tmpSituation.LastFixLocalTime = stratuxClock.Time
 
 		// ground speed in kts (field 7)
 		groundspeed, err := strconv.ParseFloat(x[7], 32)
 		if err != nil {
 			return false
 		}
-		mySituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = uint16(groundspeed)
 
 		// ground track "True" (field 8)
-		trueCourse := uint16(0)
+		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[8], 32)
 		if err != nil {
 			return false
 		}
 		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
-			trueCourse = uint16(tc)
-			setTrueCourse(uint16(groundspeed), trueCourse)
-			mySituation.TrueCourse = uint16(trueCourse)
+			trueCourse = float32(tc)
+			setTrueCourse(uint16(groundspeed), tc)
+			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
 			// TO-DO: use average course over last n seconds?
 		}
 
-		mySituation.LastGroundTrackTime = stratuxClock.Time
+		tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
-	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") {
+		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+		mySituation = tmpSituation
+		setDataLogTimeWithGPS(mySituation)
+		return true
+
+	} else if (x[0] == "GNGSA") || (x[0] == "GPGSA") { // Satellite data.
+		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
+
 		if len(x) < 18 {
 			return false
 		}
@@ -917,7 +943,7 @@ func processNMEALine(l string) bool {
 		// M: manual forced to 2D or 3D mode
 		// A: automatic switching between 2D and 3D modes
 		if (x[1] != "A") && (x[1] != "M") { // invalid fix
-			mySituation.quality = 0
+			tmpSituation.Quality = 0 // Just a note.
 			return false
 		}
 
@@ -932,16 +958,11 @@ func processNMEALine(l string) bool {
 				sat++
 			}
 		}
-		mySituation.Satellites = uint16(sat)
+		tmpSituation.Satellites = uint16(sat)
 
 		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
-		if mySituation.SatellitesTracked == 0 {
-			mySituation.SatellitesTracked = uint16(sat)
-		}
-
-		if mySituation.SatellitesSeen == 0 {
-			mySituation.SatellitesSeen = uint16(sat)
-		}
+		tmpSituation.SatellitesTracked = uint16(sat)
+		tmpSituation.SatellitesSeen = uint16(sat)
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -949,14 +970,14 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		if mySituation.quality == 2 {
-			mySituation.Accuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
+		if tmpSituation.Quality == 2 {
+			tmpSituation.Accuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
 		} else {
-			mySituation.Accuracy = float32(hdop * 8.0) // Rough 95% confidence estimate for 3D non-WAAS solution
+			tmpSituation.Accuracy = float32(hdop * 8.0) // Rough 95% confidence estimate for 3D non-WAAS solution
 		}
 
 		// NACp estimate.
-		mySituation.NACp = calculateNACp(mySituation.Accuracy)
+		tmpSituation.NACp = calculateNACp(tmpSituation.Accuracy)
 
 		// field 17: VDOP
 		// accuracy estimate
@@ -964,9 +985,14 @@ func processNMEALine(l string) bool {
 		if err1 != nil {
 			return false
 		}
-		mySituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
+		tmpSituation.AccuracyVert = float32(vdop * 5) // rough estimate for 95% confidence
+
+		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+		mySituation = tmpSituation
+		return true
+
 	}
-	return true
+	return false
 }
 
 func gpsSerialReader() {
@@ -977,21 +1003,25 @@ func gpsSerialReader() {
 	scanner := bufio.NewScanner(serialPort)
 	for scanner.Scan() && globalStatus.GPS_connected && globalSettings.GPS_Enabled {
 		i++
-		if i%100 == 0 {
+		if globalSettings.DEBUG && i%100 == 0 {
 			log.Printf("gpsSerialReader() scanner loop iteration i=%d\n", i) // debug monitor
 		}
 
 		s := scanner.Text()
-		//fmt.Printf("Output: %s\n", s)
-		if !(processNMEALine(s)) {
-			//	fmt.Printf("processNMEALine() exited early -- %s\n",s) //debug code. comment out before pushing to github
+
+		if !processNMEALine(s) {
+			if globalSettings.DEBUG {
+				fmt.Printf("processNMEALine() exited early -- %s\n", s)
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("reading standard input: %s\n", err.Error())
 	}
 
-	log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
+	if globalSettings.DEBUG {
+		log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
+	}
 	globalStatus.GPS_connected = false
 	readyToInitGPS = true // TO-DO: replace with channel control to terminate goroutine when complete
 	return
@@ -1048,7 +1078,7 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			mySituation.lastTempPressTime = stratuxClock.Time
+			mySituation.LastTempPressTime = stratuxClock.Time
 		}
 	}
 	globalStatus.RY835AI_connected = false
@@ -1133,7 +1163,7 @@ func attitudeReaderSender() {
 }
 
 func isGPSConnected() bool {
-	return stratuxClock.Since(mySituation.LastNMEAMessage) < 5*time.Second
+	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
 func isGPSValid() bool {
@@ -1153,7 +1183,7 @@ func isAHRSValid() bool {
 }
 
 func isTempPressValid() bool {
-	return stratuxClock.Since(mySituation.lastTempPressTime) < 15*time.Second
+	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
 
 func initAHRS() error {

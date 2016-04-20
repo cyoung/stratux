@@ -20,6 +20,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"syscall"
 	"text/template"
@@ -210,7 +211,6 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
-							replayMark(v)
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
@@ -257,7 +257,11 @@ func doReboot() {
 }
 
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
-	doReboot()
+	setNoCache(w)
+	setJSONHeaders(w)
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+	go delayReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -284,6 +288,11 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
+	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
+	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(handler.Filename, globalStatus.HardwareBuild) {
+		w.WriteHeader(404)
+		return
+	}
 	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
 	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -312,6 +321,19 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 	//	setNoCache(w)
 
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
+}
+
+func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
+	out, err := exec.Command("/usr/sbin/rebuild_ro_part.sh").Output()
+
+	var ret_err error
+	if err != nil {
+		ret_err = fmt.Errorf("Rebuild RO Partition error: %s", err.Error())
+	} else {
+		ret_err = fmt.Errorf("Rebuild RO Partition success: %s", out)
+	}
+
+	addSystemError(ret_err)
 }
 
 // https://gist.github.com/alexisrobert/982674.
@@ -442,6 +464,7 @@ func managementInterface() {
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
+	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

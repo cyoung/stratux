@@ -20,9 +20,15 @@ cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
 cp init.d-stratux work/bin/
 cp dump1090/dump1090 work/bin/
-cp image/rc.local work/bin/
-cp image/wifi_watch.sh work/bin/
 cp -r web work/bin/
+cp image/hostapd.conf work/bin/
+cp image/config.txt work/bin/
+cp image/rtl-sdr-blacklist.conf work/bin/
+cp image/bashrc.txt work/bin/
+cp image/modules.txt work/bin/
+cp image/stxAliases.txt work/bin/
+cp image/hostapd_manager.sh work/bin/
+
 #TODO: librtlsdr.
 cd work/
 cat ../selfupdate/update_header.sh >update.sh
