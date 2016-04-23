@@ -38,12 +38,16 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 // chop off seconds for space
 	function dmsString(val) {
-		return [0 | val,
+		var deg;
+		var min;
+		deg = 0 | val;
+		min = 0 | (val < 0 ? val = -val : val) % 1 * 60;
+		
+		return [deg*deg < 100 ? "0" + deg : deg,
 				'° ',
-				0 | (val < 0 ? val = -val : val) % 1 * 60,
+				min < 10 ? "0" + min : min,
 				"' "].join('');
 	}
-	
 	
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
