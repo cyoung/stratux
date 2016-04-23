@@ -20,7 +20,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	//	"sync"
 	"time"
 )
 
@@ -34,8 +33,17 @@ type StratuxTimestamp struct {
 	StratuxClock_value   time.Time
 	GPSClock_value       time.Time // The value of this is either from the GPS or extrapolated from the GPS via stratuxClock if pref is 1 or 2. It is time.Time{} if 0.
 	PreferredTime_value  time.Time
+	StartupID            int64
 }
 
+// 'startup' table creates a new entry each time the daemon is started. This keeps track of sequential starts, even if the
+//  timestamp is ambiguous (units with no GPS). This struct is just a placeholder for an empty table (other than primary key).
+type StratuxStartup struct {
+	id   int64
+	Fill string
+}
+
+var stratuxStartupID int64
 var dataLogTimestamps []StratuxTimestamp
 var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on dataLogTimestamps which is not necessarily the db id.
 
@@ -49,7 +57,6 @@ var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on d
 func checkTimestamp() bool {
 	thisCurTimestamp := dataLogCurTimestamp
 	if stratuxClock.Since(dataLogTimestamps[thisCurTimestamp].StratuxClock_value) >= LOG_TIMESTAMP_RESOLUTION {
-		//FIXME: mutex.
 		var ts StratuxTimestamp
 		ts.id = 0
 		ts.Time_type_preference = 0 // stratuxClock.
@@ -73,10 +80,8 @@ func checkTimestamp() bool {
 			}
 		}
 
-		//logTimestampMutex.Lock()		// if we need to protect against simultaneous insertions
 		dataLogTimestamps = append(dataLogTimestamps, ts)
 		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
-		//logTimestampMutex.Unlock()
 		return false
 	}
 	return true
@@ -196,11 +201,12 @@ func makeTable(i interface{}, tbl string, db *sql.DB) {
 	}
 
 	// Add the timestamp_id field to link up with the timestamp table.
-	if tbl != "timestamp" {
+	if tbl != "timestamp" && tbl != "startup" {
 		fields = append(fields, "timestamp_id INTEGER")
 	}
 
 	tblCreate := fmt.Sprintf("CREATE TABLE %s (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, %s)", tbl, strings.Join(fields, ", "))
+
 	_, err := db.Exec(tblCreate)
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err.Error())
@@ -293,12 +299,13 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 	}
 
 	// Add the timestamp_id field to link up with the timestamp table.
-	if tbl != "timestamp" {
+	if tbl != "timestamp" && tbl != "startup" {
 		keys = append(keys, "timestamp_id")
 		if dataLogTimestamps[ts_num].id == 0 {
 			//FIXME: This is somewhat convoluted. When insertData() is called for a ts_num that corresponds to a timestamp with no database id,
 			// then it inserts that timestamp via the same interface and the id is updated in the structure via the below lines
 			// (dataLogTimestamps[ts_num].id = id).
+			dataLogTimestamps[ts_num].StartupID = stratuxStartupID
 			insertData(dataLogTimestamps[ts_num], "timestamp", db, ts_num) // Updates dataLogTimestamps[ts_num].id.
 		}
 		values = append(values, strconv.FormatInt(dataLogTimestamps[ts_num].id, 10))
@@ -319,11 +326,11 @@ func insertData(i interface{}, tbl string, db *sql.DB, ts_num int64) int64 {
 
 	insertBatchIfs[tbl] = append(insertBatchIfs[tbl], ifs)
 
-	if tbl == "timestamp" { // Immediate insert always for "timestamp" table.
-		res, err := bulkInsert("timestamp", db) // Bulk insert of 1, always.
+	if tbl == "timestamp" || tbl == "startup" { // Immediate insert always for "timestamp" and "startup" table.
+		res, err := bulkInsert(tbl, db) // Bulk insert of 1, always.
 		if err == nil {
 			id, err := res.LastInsertId()
-			if err == nil {
+			if err == nil && tbl == "timestamp" { // Special handling for timestamps. Update the timestamp ID.
 				ts := dataLogTimestamps[ts_num]
 				ts.id = id
 				dataLogTimestamps[ts_num] = ts
@@ -341,7 +348,6 @@ type DataLogRow struct {
 	ts_num int64
 }
 
-//var logTimestampMutex *sync.Mutex
 var dataLogChan chan DataLogRow
 var shutdownDataLog chan bool
 
@@ -412,8 +418,6 @@ func dataLog() {
 	dataLogTimestamps = append(dataLogTimestamps, ts)
 	dataLogCurTimestamp = 0
 
-	//logTimestampMutex = &sync.Mutex{}
-
 	// Check if we need to create a new database.
 	createDatabase := false
 
@@ -449,7 +453,11 @@ func dataLog() {
 		makeTable(msg{}, "messages", db)
 		makeTable(esmsg{}, "es_messages", db)
 		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
+		makeTable(StratuxStartup{}, "startup", db)
 	}
+
+	// The first entry to be created is the "startup" entry.
+	stratuxStartupID = insertData(StratuxStartup{}, "startup", db, 0)
 
 	for {
 		select {
@@ -474,7 +482,6 @@ func dataLog() {
 
 func setDataLogTimeWithGPS(sit SituationData) {
 	if isGPSClockValid() {
-		//FIXME: mutex.
 		var ts StratuxTimestamp
 		// Piggyback a GPS time update from this update.
 		ts.id = 0
@@ -483,10 +490,8 @@ func setDataLogTimeWithGPS(sit SituationData) {
 		ts.GPSClock_value = sit.GPSTime
 		ts.PreferredTime_value = sit.GPSTime
 
-		//logTimestampMutex.Lock()
 		dataLogTimestamps = append(dataLogTimestamps, ts)
 		dataLogCurTimestamp = int64(len(dataLogTimestamps) - 1)
-		//logTimestampMutex.Unlock()
 	}
 }
 

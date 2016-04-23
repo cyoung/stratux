@@ -136,9 +136,9 @@ func initGPSSerial() bool {
 		device = "/dev/ttyUSB0"
 	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
 		device = "/dev/ttyACM0"
-	} else if _, err := os.Stat("/dev/ttyS0"); err == nil {
-		device = "/dev/ttyS0"
-	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil {
+		//} else if _, err := os.Stat("/dev/ttyS0"); err == nil { // ttyS0 appears to be mini UART on RPi 3
+		//	device = "/dev/ttyS0"
+	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi
 		device = "/dev/ttyAMA0"
 	} else {
 		log.Printf("No suitable device found.\n")
