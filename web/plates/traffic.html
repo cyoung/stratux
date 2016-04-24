@@ -35,7 +35,7 @@
 					</span>
 				
 					<span class="col-xs-2">
-						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? " (TFID)" : ""}}</span></span>
+						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 						<span ng-show="showSquawk"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
 					</span>
 					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
@@ -65,13 +65,13 @@
 					<span class="col-xs-3"><ui-switch ng-model='showSquawk' settings-change></ui-switch></span>
 				</div>
 				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Distance</label>
+					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
+				</div>
+				<div class="col-sm-4">
 					<label class="control-label col-xs-6">GPS Status</label>
 					<span ng-show="GPS_connected" class="label label-success col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">Valid</span>
 					<span ng-hide="GPS_connected" class="label label-danger col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">No Fix</span>
-				</div>
-				<div class="col-sm-4">
-					<label class="control-label col-xs-6">Show Distance</label>
-					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
 				</div>
 			</div>
 		</div>
@@ -106,7 +106,7 @@
 						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
 						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
-					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? " (TFID)" : ""}}</span></span>
+					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
 				</div>
 
