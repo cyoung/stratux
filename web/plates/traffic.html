@@ -31,7 +31,7 @@
 				<div class="col-sm-6">
 					<span class="col-xs-3">
 						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[---]</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
 				
 					<span class="col-xs-2">
@@ -79,74 +79,55 @@
 	
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<span class="panel_label">Basic Mode S Messages and Other No-Position Traffic</span> 
+			<span class="panel_label">Basic Mode S and No-Position Messages</span> 
 		</div>
+
 		<div class="panel-body traffic-page">
 			<div class="row">
-				<div class="col-sm-5">
-					<span class="col-xs-3"><strong>Callsign</strong></span>
-					<span class="col-xs-3 text-right"><strong>Speed</strong></span>
-					<span class="col-xs-3 text-right"><strong>Altitude</strong></span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
-					<span class="col-xs-2 text-right"><strong>Course</strong></span>
+				<div class="col-sm-6">
+					<span class="col-xs-4"><strong>Callsign</strong></span>
+					<span class="col-xs-3"><strong>Code</strong></span>
+					<span class="col-xs-3"><strong>Squawk</strong></span>
 				</div>
-				<div class="col-sm-7">
-					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-4"><strong>Squawk</strong></span>
-					<span class="col-xs-2 text-right"><strong>Power (dB)</strong></span>
+				
+				<div class="col-sm-6">
+					<span class="col-xs-3 text-right"><strong>Altitude</strong></span><span class="col-xs-1">&nbsp;</span>
+					<span class="col-xs-2 text-right"><strong>Speed</strong></span>
+					<span class="col-xs-2 text-right"><strong>Course</strong></span>			
+					<span class="col-xs-2 text-right"><strong>Power</strong></span>
 					<span class="col-xs-2 text-right"><strong>Age</strong></span>
 				</div>
 			</div>
-
+		
 			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
-				<div class="col-sm-5">
-					<span class="col-xs-3">
-						<div class="row">
-							<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-							<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype" style="font-size:80%">{{aircraft.addr_symb}}<strong class="text-muted">&nbsp;[unknown]</strong></span>
-						</div>
-						<div class="row" style="margin:auto; font-size:70%">ICAO:&nbsp;{{aircraft.icao}}</div>
+				<div class="col-sm-6">
+					<span class="col-xs-4">
+						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
+					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? " (TFID)" : ""}}</span></span>
+					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+				</div>
 
-					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
+				<div class="col-sm-6">
 					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
 					<span class="col-xs-1 small col-padding-shift-right text-muted">
 						<span ng-show="aircraft.vspeed > 0"><span class="fa fa-ascent"></span>{{aircraft.vspeed}}</span>
 						<span ng-show="aircraft.vspeed < 0"><span class="fa fa-descent"></span>{{0-aircraft.vspeed}}</span>
 					</span>
-					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>
-				</div>
-				<div class="col-sm-7">
-					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-4"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
-					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}</span>
-					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
-					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}s</span>
+					<span class="col-xs-2 text-right">{{aircraft.speed}}<span style="font-size:50%">KTS</span></span>
+					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>				
+					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}<span style="font-size:50%">dB</span></span>
+					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}<span style="font-size:50%">s</span></span>
 				</div>
 			</div>
 		</div>
-
+		
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
 			<span class ="col-sm-12 small">Stratux has not received valid ADS-B position transmissions from the aircraft in this section. They will not appear on your EFB map. See help page for details.</span>
 		</div>
-		
-
-		<!--
-		<div class="panel-body traffic-footer">
-			<div class="separator"></div>
-			<div class="row">
-				<div class="col-sm-6 label_adj">
-					<span class="col-xs-4"><strong>Stratux Clock:</strong></span>
-					<span class="col-xs-8">{{Clock}}</span>
-				</div>
-				<div class="col-sm-6 label_adj">
-					<span class="col-xs-4"><strong>Device Clock:</strong></span>
-					<span class="col-xs-8">{{LocalClock}}</span>
-				</div>
-			</div>
-		</div>
-		-->
 	</div>
 </div>
 
