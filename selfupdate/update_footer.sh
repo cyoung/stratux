@@ -32,3 +32,7 @@ cp -f dump1090 /usr/bin/
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
+
+# Remove old Wi-Fi watcher script.
+rm -f /usr/sbin/wifi_watch.sh
+sed -i "/\bwifi_watch\b/d" /etc/rc.local
