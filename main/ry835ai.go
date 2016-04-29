@@ -130,15 +130,13 @@ func initGPSSerial() bool {
 	baudrate := int(9600)
 	isSirfIV := bool(false)
 
-	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
+	if _, err := os.Stat("/dev/ttyACM0"); err == nil { // u-blox receivers on native USB connection
+		device = "/dev/ttyACM0"
+	} else if _, err := os.Stat("/dev/ttyUSB0"); err == nil { // USB-to-serial bridge. Typical use is BU-353-S4 SIRF IV receivers, but could also be for other devices or serial-out (better detection is TODO)
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/ttyUSB0"
-	} else if _, err := os.Stat("/dev/ttyACM0"); err == nil {
-		device = "/dev/ttyACM0"
-		//} else if _, err := os.Stat("/dev/ttyS0"); err == nil { // ttyS0 appears to be mini UART on RPi 3
-		//	device = "/dev/ttyS0"
-	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi
+	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 	} else {
 		log.Printf("No suitable device found.\n")
@@ -1166,8 +1164,22 @@ func isGPSConnected() bool {
 	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
+/*
+isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
+and if the GPS subsystem has recently detected a GPS device.
+
+If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
+*/
+
 func isGPSValid() bool {
-	return stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second
+	isValid := false
+	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected {
+		isValid = true
+	} else {
+		mySituation.Quality = 0
+		mySituation.Satellites = 0
+	}
+	return isValid
 }
 
 func isGPSGroundTrackValid() bool {

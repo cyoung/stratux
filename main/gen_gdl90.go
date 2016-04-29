@@ -721,7 +721,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.Quality == 2 {
-		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
 	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.Quality == 6 {
