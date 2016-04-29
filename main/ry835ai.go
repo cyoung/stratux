@@ -1173,7 +1173,7 @@ If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in so
 
 func isGPSValid() bool {
 	isValid := false
-	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected {
+	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected && mySituation.Quality > 0 {
 		isValid = true
 	} else {
 		mySituation.Quality = 0
