@@ -502,11 +502,15 @@ func logSituation() {
 }
 
 func logStatus() {
-	dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
+	}
 }
 
 func logSettings() {
-	dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
+	if globalSettings.ReplayLog {
+		dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
+	}
 }
 
 func logTraffic(ti TrafficInfo) {
