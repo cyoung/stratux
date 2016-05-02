@@ -1191,8 +1191,14 @@ func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	//TODO: Any other graceful shutdown functions.
+
 	// Shut down data logging.
-	shutdownDataLog <- true
+	if dataLogStarted {
+		closeDataLog()
+		//log.Printf("Waiting for log file to close\n")
+		//time.Sleep(3*time.Second) // FIXME
+	}
+	// shutdownDataLog <- true
 	os.Exit(1)
 }
 
