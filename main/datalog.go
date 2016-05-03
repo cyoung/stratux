@@ -405,7 +405,7 @@ func dataLogWriter(db *sql.DB) {
 			}
 			if timeElapsed.Seconds() > 10.0 {
 				log.Printf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
-				dataLogCriticalErr := log.Errorf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
+				dataLogCriticalErr := fmt.Errorf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
 				addSystemError(dataLogCriticalErr)
 			}
 		case <-shutdownDataLogWriter: // Received a message on the channel to initiate a graceful shutdown, and to command dataLog() to shut down
