@@ -33,11 +33,12 @@ type networkMessage struct {
 }
 
 type networkConnection struct {
-	Conn         *net.UDPConn
-	Ip           string
-	Port         uint32
-	Capability   uint8
-	messageQueue [][]byte // Device message queue.
+	Conn            *net.UDPConn
+	Ip              string
+	Port            uint32
+	Capability      uint8
+	messageQueue    [][]byte // Device message queue.
+	MessageQueueLen uint64   // Length of the message queue. For debugging.
 	/*
 		Sleep mode/throttle variables. "sleep mode" is actually now just a very reduced packet rate, since we don't know positively
 		 when a client is ready to accept packets - we just assume so if we don't receive ICMP Unreachable packets in 5 secs.
@@ -292,6 +293,7 @@ func messageQueueSender() {
 						outSockets[k] = tmpConn
 					*/
 				}
+				outSockets[k].MessageQueueLen = len(outSockets[k].messageQueue)
 			}
 
 			if stratuxClock.Since(lastQueueTimeChange) >= 5*time.Second {
