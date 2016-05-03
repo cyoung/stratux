@@ -411,6 +411,7 @@ func dataLogWriter(db *sql.DB) {
 		case <-shutdownDataLogWriter: // Received a message on the channel (anything). Graceful shutdown (defer statement).
 			log.Printf("dataLogWriter() received shutdown message with len(dataLogWriteChan) = %d and rowsQueuedForWrite = %d\n", len(dataLogWriteChan), len(rowsQueuedForWrite))
 			shutdownDataLog <- true
+			defer close(shutdownDataLog)
 			return
 		}
 	}
@@ -449,6 +450,7 @@ func dataLog() {
 	defer func() {
 		db.Close()
 		dataLogStarted = false
+		close(dataLogChan)
 		log.Printf("dataLog() dB is now closed\n")
 	}()
 
@@ -599,6 +601,7 @@ func closeDataLog() {
 	dataLogReadyToWrite = false                                         // prevent any new messages from being sent down the channels
 	log.Printf("Shutting down SQLite data log\n")
 	shutdownDataLogWriter <- true
+	defer close(shutdownDataLogWriter)
 	log.Printf("Waiting for signal from dataLog()") //REMOVE -- DEBUG
 	for dataLogStarted {
 		log.Printf("closeDataLog(): dataLogStarted = %t\n", dataLogStarted) //REMOVE -- DEBUG
