@@ -405,6 +405,8 @@ func dataLogWriter(db *sql.DB) {
 			}
 			if timeElapsed.Seconds() > 10.0 {
 				log.Printf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
+				dataLogCriticalErr := log.Errorf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
+				addSystemError(dataLogCriticalErr)
 			}
 		case <-shutdownDataLogWriter: // Received a message on the channel to initiate a graceful shutdown, and to command dataLog() to shut down
 			log.Printf("datalog.go: dataLogWriter() received shutdown message with rowsQueuedForWrite = %d\n", len(rowsQueuedForWrite))
@@ -525,44 +527,48 @@ func setDataLogTimeWithGPS(sit SituationData) {
 		and if the log system is ready to accept writes.
 */
 
+func isDataLogReady() bool {
+	return dataLogReadyToWrite
+}
+
 func logSituation() {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
 	}
 }
 
 func logStatus() {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
 	}
 }
 
 func logSettings() {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
 	}
 }
 
 func logTraffic(ti TrafficInfo) {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
 	}
 }
 
 func logMsg(m msg) {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "messages", data: m}
 	}
 }
 
 func logESMsg(m esmsg) {
-	if globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "es_messages", data: m}
 	}
 }
 
 func logDump1090TermMessage(m Dump1090TermMessage) {
-	if globalSettings.DEBUG && globalSettings.ReplayLog && dataLogReadyToWrite {
+	if globalSettings.DEBUG && globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
 	}
 }
