@@ -962,16 +962,17 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled    bool
-	ES_Enabled     bool
-	GPS_Enabled    bool
-	NetworkOutputs []networkConnection
-	AHRS_Enabled   bool
-	DEBUG          bool
-	ReplayLog      bool
-	PPM            int
-	OwnshipModeS   string
-	WatchList      string
+	UAT_Enabled          bool
+	ES_Enabled           bool
+	GPS_Enabled          bool
+	NetworkOutputs       []networkConnection
+	AHRS_Enabled         bool
+	DisplayTrafficSource bool
+	DEBUG                bool
+	ReplayLog            bool
+	PPM                  int
+	OwnshipModeS         string
+	WatchList            string
 }
 
 type status struct {
@@ -1021,6 +1022,7 @@ func defaultSettings() {
 	}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
+	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 }
@@ -1190,15 +1192,14 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
-	//TODO: Any other graceful shutdown functions.
 
 	// Shut down data logging.
 	if dataLogStarted {
 		closeDataLog()
-		//log.Printf("Waiting for log file to close\n")
-		//time.Sleep(3*time.Second) // FIXME
 	}
-	// shutdownDataLog <- true
+
+	//TODO: Any other graceful shutdown functions.
+
 	os.Exit(1)
 }
 

@@ -46,7 +46,6 @@ type StratuxStartup struct {
 var dataLogStarted bool
 var dataLogReadyToWrite bool
 
-//var dataLogInShutdown  bool
 var stratuxStartupID int64
 var dataLogTimestamps []StratuxTimestamp
 var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on dataLogTimestamps which is not necessarily the db id.
@@ -369,7 +368,6 @@ func dataLogWriter(db *sql.DB) {
 		select {
 		case r := <-dataLogWriteChan:
 			// Accept timestamped row.
-			//log.Printf("Accepting timestamped row from dataLogWriteChan\n")
 			rowsQueuedForWrite = append(rowsQueuedForWrite, r)
 		case <-writeTicker.C:
 			//			for i := 0; i < 1000; i++ {
@@ -411,7 +409,6 @@ func dataLogWriter(db *sql.DB) {
 		case <-shutdownDataLogWriter: // Received a message on the channel to initiate a graceful shutdown, and to command dataLog() to shut down
 			log.Printf("datalog.go: dataLogWriter() received shutdown message with rowsQueuedForWrite = %d\n", len(rowsQueuedForWrite))
 			shutdownDataLog <- true
-			defer close(shutdownDataLog)
 			return
 		}
 	}
@@ -499,6 +496,7 @@ func dataLog() {
 		}
 	}
 	log.Printf("datalog.go: dataLog() shutting down\n")
+	close(shutdownDataLog)
 }
 
 /*

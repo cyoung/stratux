@@ -6,7 +6,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DEBUG', 'ReplayLog']; // DEBUG is 'DspTrafficSrc'
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -21,7 +21,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
 		$scope.AHRS_Enabled = settings.AHRS_Enabled;
-		$scope.PowerSave = settings.PowerSave
+		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.PPM = settings.PPM;
