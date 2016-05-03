@@ -293,7 +293,8 @@ func messageQueueSender() {
 						outSockets[k] = tmpConn
 					*/
 				}
-				outSockets[k].MessageQueueLen = len(outSockets[k].messageQueue)
+				netconn.MessageQueueLen = len(netconn.messageQueue)
+				outSockets[k] = netconn
 			}
 
 			if stratuxClock.Since(lastQueueTimeChange) >= 5*time.Second {
