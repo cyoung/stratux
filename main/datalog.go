@@ -446,7 +446,7 @@ func dataLog() {
 	defer func() {
 		db.Close()
 		dataLogStarted = false
-		close(dataLogChan)
+		//close(dataLogChan)
 		log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFile)
 	}()
 
@@ -571,10 +571,8 @@ func initDataLog() {
 	//log.Printf("dataLogStarted = %t. dataLogReadyToWrite = %t\n", dataLogStarted, dataLogReadyToWrite) //REMOVE -- DEBUG
 	insertString = make(map[string]string)
 	insertBatchIfs = make(map[string][][]interface{})
-	if globalSettings.ReplayLog {
-		go dataLog()
-	}
 	go dataLogWatchdog()
+
 	//log.Printf("datalog.go: initDataLog() complete.\n") //REMOVE -- DEBUG
 }
 
