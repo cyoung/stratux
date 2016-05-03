@@ -400,7 +400,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 	}
 
 	// This is a hack to show the source of the traffic on moving maps.
-	if globalSettings.DEBUG {
+	if globalSettings.DisplayTrafficSource {
 		type_code := " "
 		switch ti.TargetType {
 		case TARGET_TYPE_ADSB:
@@ -839,7 +839,7 @@ func esListen() {
 
 			// This is a hack to show the source of the traffic on moving maps.
 
-			if globalSettings.DEBUG {
+			if globalSettings.DisplayTrafficSource {
 				type_code := " "
 				switch ti.TargetType {
 				case TARGET_TYPE_ADSB:
