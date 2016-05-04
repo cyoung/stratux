@@ -43,6 +43,9 @@ type StratuxStartup struct {
 	Fill string
 }
 
+var dataLogStarted bool
+var dataLogReadyToWrite bool
+
 var stratuxStartupID int64
 var dataLogTimestamps []StratuxTimestamp
 var dataLogCurTimestamp int64 // Current timestamp bucket. This is an index on dataLogTimestamps which is not necessarily the db id.
@@ -350,11 +353,13 @@ type DataLogRow struct {
 
 var dataLogChan chan DataLogRow
 var shutdownDataLog chan bool
+var shutdownDataLogWriter chan bool
 
 var dataLogWriteChan chan DataLogRow
 
 func dataLogWriter(db *sql.DB) {
 	dataLogWriteChan = make(chan DataLogRow, 10240)
+	shutdownDataLogWriter = make(chan bool)
 	// The write queue. As data comes in via dataLogChan, it is timestamped and stored.
 	//  When writeTicker comes up, the queue is emptied.
 	writeTicker := time.NewTicker(10 * time.Second)
@@ -400,12 +405,21 @@ func dataLogWriter(db *sql.DB) {
 			}
 			if timeElapsed.Seconds() > 10.0 {
 				log.Printf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
+				dataLogCriticalErr := fmt.Errorf("WARNING! SQLite logging is behind. Last write took %.1f seconds.\n", float64(timeElapsed.Seconds()))
+				addSystemError(dataLogCriticalErr)
 			}
+		case <-shutdownDataLogWriter: // Received a message on the channel to initiate a graceful shutdown, and to command dataLog() to shut down
+			log.Printf("datalog.go: dataLogWriter() received shutdown message with rowsQueuedForWrite = %d\n", len(rowsQueuedForWrite))
+			shutdownDataLog <- true
+			return
 		}
 	}
+	log.Printf("datalog.go: dataLogWriter() shutting down\n")
 }
 
 func dataLog() {
+	dataLogStarted = true
+	log.Printf("datalog.go: dataLog() started\n")
 	dataLogChan = make(chan DataLogRow, 10240)
 	shutdownDataLog = make(chan bool)
 	dataLogTimestamps = make([]StratuxTimestamp, 0)
@@ -430,7 +444,13 @@ func dataLog() {
 	if err != nil {
 		log.Printf("sql.Open(): %s\n", err.Error())
 	}
-	defer db.Close()
+
+	defer func() {
+		db.Close()
+		dataLogStarted = false
+		//close(dataLogChan)
+		log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFile)
+	}()
 
 	_, err = db.Exec("PRAGMA journal_mode=WAL")
 	if err != nil {
@@ -441,6 +461,7 @@ func dataLog() {
 		log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
 	}
 
+	//log.Printf("Starting dataLogWriter\n") // REMOVE -- DEBUG
 	go dataLogWriter(db)
 
 	// Do we need to create the database?
@@ -459,6 +480,8 @@ func dataLog() {
 	// The first entry to be created is the "startup" entry.
 	stratuxStartupID = insertData(StratuxStartup{}, "startup", db, 0)
 
+	dataLogReadyToWrite = true
+	//log.Printf("Entering dataLog read loop\n") //REMOVE -- DEBUG
 	for {
 		select {
 		case r := <-dataLogChan:
@@ -469,10 +492,13 @@ func dataLog() {
 			r.ts_num = dataLogCurTimestamp
 			// Queue it for the scheduled write.
 			dataLogWriteChan <- r
-		case <-shutdownDataLog: // Received a message on the channel (anything). Graceful shutdown (defer statement).
+		case <-shutdownDataLog: // Received a message on the channel to complete a graceful shutdown (see the 'defer func()...' statement above).
+			log.Printf("datalog.go: dataLog() received shutdown message\n")
 			return
 		}
 	}
+	log.Printf("datalog.go: dataLog() shutting down\n")
+	close(shutdownDataLog)
 }
 
 /*
@@ -495,46 +521,118 @@ func setDataLogTimeWithGPS(sit SituationData) {
 	}
 }
 
+/*
+	logSituation(), logStatus(), ... pass messages from other functions to the logging
+		engine. These are only read into `dataLogChan` if the Replay Log is toggled on,
+		and if the log system is ready to accept writes.
+*/
+
+func isDataLogReady() bool {
+	return dataLogReadyToWrite
+}
+
 func logSituation() {
-	if globalSettings.ReplayLog {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
 	}
 }
 
 func logStatus() {
-	dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
+	if globalSettings.ReplayLog && isDataLogReady() {
+		dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
+	}
 }
 
 func logSettings() {
-	dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
+	if globalSettings.ReplayLog && isDataLogReady() {
+		dataLogChan <- DataLogRow{tbl: "settings", data: globalSettings}
+	}
 }
 
 func logTraffic(ti TrafficInfo) {
-	if globalSettings.ReplayLog {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
 	}
 }
 
 func logMsg(m msg) {
-	if globalSettings.ReplayLog {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "messages", data: m}
 	}
 }
 
 func logESMsg(m esmsg) {
-	if globalSettings.ReplayLog {
+	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "es_messages", data: m}
 	}
 }
 
 func logDump1090TermMessage(m Dump1090TermMessage) {
-	if globalSettings.DEBUG && globalSettings.ReplayLog {
+	if globalSettings.DEBUG && globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
 	}
 }
 
 func initDataLog() {
+	//log.Printf("dataLogStarted = %t. dataLogReadyToWrite = %t\n", dataLogStarted, dataLogReadyToWrite) //REMOVE -- DEBUG
 	insertString = make(map[string]string)
 	insertBatchIfs = make(map[string][][]interface{})
-	go dataLog()
+	go dataLogWatchdog()
+
+	//log.Printf("datalog.go: initDataLog() complete.\n") //REMOVE -- DEBUG
+}
+
+/*
+	dataLogWatchdog(): Watchdog function to control startup / shutdown of data logging subsystem.
+		Called by initDataLog as a goroutine. It iterates once per second to determine if
+		globalSettings.ReplayLog has toggled. If logging was switched from off to on, it starts
+		datalog() as a goroutine. If the log is running and we want it to stop, it calls
+		closeDataLog() to turn off the input channels, close the log, and tear down the dataLog
+		and dataLogWriter goroutines.
+*/
+
+func dataLogWatchdog() {
+	for {
+		if globalSettings.DEBUG {
+			log.Printf("datalog.go: Watchdog loop iterating. dataLogStarted = %t\n", dataLogStarted)
+		}
+		if !dataLogStarted && globalSettings.ReplayLog { // case 1: sqlite logging isn't running, and we want to start it
+			log.Printf("datalog.go: Watchdog wants to START logging.\n")
+			go dataLog()
+		} else if dataLogStarted && !globalSettings.ReplayLog { // case 2:  sqlite logging is running, and we want to shut it down
+			log.Printf("datalog.go: Watchdog wants to STOP logging.\n")
+			closeDataLog()
+		}
+		//log.Printf("Watchdog iterated.\n") //REMOVE -- DEBUG
+		time.Sleep(1 * time.Second)
+		//log.Printf("Watchdog sleep over.\n") //REMOVE -- DEBUG
+	}
+}
+
+/*
+	closeDataLog(): Handler for graceful shutdown of data logging goroutines. It is called by
+		by dataLogWatchdog(), gracefulShutdown(), and by any other function (disk space monitor?)
+		that needs to be able to shut down sqlite logging without corrupting data or blocking
+		execution.
+
+		This function turns off log message reads into the dataLogChan receiver, and sends a
+		message to a quit channel ('shutdownDataLogWriter`) in dataLogWriter(). dataLogWriter()
+		then sends a message to a quit channel to 'shutdownDataLog` in dataLog() to close *that*
+		goroutine. That function sets dataLogStarted=false once the logfile is closed. By waiting
+		for that signal, closeDataLog() won't exit until the log is safely written. This prevents
+		data loss on shutdown.
+*/
+
+func closeDataLog() {
+	//log.Printf("closeDataLog(): dataLogStarted = %t\n", dataLogStarted) //REMOVE -- DEBUG
+	dataLogReadyToWrite = false // prevent any new messages from being sent down the channels
+	log.Printf("datalog.go: Starting data log shutdown\n")
+	shutdownDataLogWriter <- true      //
+	defer close(shutdownDataLogWriter) // ... and close the channel so subsequent accidental writes don't stall execution
+	log.Printf("datalog.go: Waiting for shutdown signal from dataLog()")
+	for dataLogStarted {
+		//log.Printf("closeDataLog(): dataLogStarted = %t\n", dataLogStarted) //REMOVE -- DEBUG
+		time.Sleep(50 * time.Millisecond)
+	}
+	log.Printf("datalog.go: Data log shutdown successful.\n")
 }

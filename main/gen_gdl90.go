@@ -721,7 +721,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.Quality == 2 {
-		globalStatus.GPS_solution = "DGPS (SBAS / WAAS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
 	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.Quality == 6 {
@@ -965,17 +965,18 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled    bool
-	ES_Enabled     bool
-	Ping_Enabled   bool
-	GPS_Enabled    bool
-	NetworkOutputs []networkConnection
-	AHRS_Enabled   bool
-	DEBUG          bool
-	ReplayLog      bool
-	PPM            int
-	OwnshipModeS   string
-	WatchList      string
+	UAT_Enabled          bool
+	ES_Enabled           bool
+	Ping_Enabled         bool
+	GPS_Enabled          bool
+	NetworkOutputs       []networkConnection
+	AHRS_Enabled         bool
+	DisplayTrafficSource bool
+	DEBUG                bool
+	ReplayLog            bool
+	PPM                  int
+	OwnshipModeS         string
+	WatchList            string
 }
 
 type status struct {
@@ -1026,6 +1027,7 @@ func defaultSettings() {
 	}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
+	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 }
@@ -1196,9 +1198,14 @@ func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
 	pingKill()
-	//TODO: Any other graceful shutdown functions.
+
 	// Shut down data logging.
-	shutdownDataLog <- true
+	if dataLogStarted {
+		closeDataLog()
+	}
+
+	//TODO: Any other graceful shutdown functions.
+
 	os.Exit(1)
 }
 
