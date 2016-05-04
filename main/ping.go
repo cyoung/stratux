@@ -133,7 +133,7 @@ func pingNetworkConnection() {
 	// Send to dump1090 on port 30001
 	dump1090Addr := "127.0.0.1:30001"
 	dump1090Connection, connectionError = net.Dial("tcp", dump1090Addr)
-	// RCB monitoir for connection failure and redial
+	// RCB monitor for connection failure and redial
 }
 
 func pingSerialReader() {
@@ -153,6 +153,10 @@ func pingSerialReader() {
 		if s[0] == '*' {
 			// 1090ES report
 			//replayLog(s, MSGCLASS_DUMP1090);
+			if dump1090Connection == nil {
+				log.Println("Starting dump1090 network connection")
+				pingNetworkConnection()
+			}
 			if dump1090Connection != nil {
 				dump1090Connection.Write([]byte(s + "\r\n"))
 				log.Println("Relaying 1090ES message")
@@ -224,7 +228,7 @@ func pingWatcher() {
 			if globalStatus.Ping_connected {
 				//pingWG.Add(1)
 				go pingNetworkRepeater()
-				go pingNetworkConnection()
+				//pingNetworkConnection()
 				go pingSerialReader()
 				// Emulate SDR count
 				count = 2
