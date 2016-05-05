@@ -31,19 +31,22 @@ import (
 )
 
 const (
-	SAT_TYPE_GPS     = 1
-	SAT_TYPE_GLONASS = 2
-	SAT_TYPE_GALILEO = 3
-	SAT_TYPE_SBAS    = 10
+	SAT_TYPE_UNKNOWN = 0  // default type
+	SAT_TYPE_GPS     = 1  // GPxxx; NMEA IDs 1-32
+	SAT_TYPE_GLONASS = 2  // GLxxx; NMEA IDs 65-88
+	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs unknown
+	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
+	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 )
 
 type SatelliteInfo struct {
-	SatelliteID  uint8     // PRN or NMEA code. 1-32 for GPS, 33-48 for WAAS (?)
-	Elevation    int16     // Angle above local horizon, -xx to +90
-	Azimuth      int16     // Bearing (degrees true), 0-359
-	Signal       int8      // Signal strength, 0 - 99 (?)
-	Type         uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
-	TimeLastSeen time.Time // Time (system ticker) this satellite was last seen
+	SatelliteID     uint8     // PRN or NMEA code. 1-32 for GPS, 33-48 for WAAS (?)
+	Elevation       int16     // Angle above local horizon, -xx to +90
+	Azimuth         int16     // Bearing (degrees true), 0-359
+	Signal          int8      // Signal strength, 0 - 99; -99 indicates no reception
+	Type            uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
+	TimeLastSeen    time.Time // Time (system ticker) a signal was last received from this satellite
+	TimeLastTracked time.Time // Time (system ticker) this satellite was tracked (almanac data)
 }
 
 type SituationData struct {
@@ -1016,6 +1019,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		// field 1 = number of GPGSV messages
 		// field 2 = index of this GPGSV message
+		msgNum, err := strconv.Atoi(x[2])
+		if err != nil {
+			return false
+		}
+
 		// field 3 = number of GPS satellites tracked
 		satTracked, err := strconv.Atoi(x[3])
 		if err != nil {
@@ -1026,13 +1034,52 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
 
 		// field 4-7 = repeating block with satellite id, elevation, azimuth, and signal strengh (Cno)
-		var thisSatellite SatelliteInfo
-		thisSatellite.TimeLastSeen = stratuxClock.Time
-		log.Printf("Parsing thisSatellite @ %v\n", thisSatellite.TimeLastSeen)
-		satelliteMutex.Lock()
-		// do stuff with Satellites
 
-		satelliteMutex.Unlock()
+		lenGSV := len(x)
+		satsThisMsg := (lenGSV - 4) / 4
+		log.Printf("GSV message [%d] is %v fields long and describes %v satellites\n", msgNum, lenGSV, satsThisMsg)
+
+		//satelliteMutex.Lock()
+		var sv, elev, az, cno int
+		var svType uint8
+
+		for i := 0; i < satsThisMsg; i++ {
+			var thisSatellite SatelliteInfo
+			thisSatellite.TimeLastTracked = stratuxClock.Time
+
+			sv, err = strconv.Atoi(x[4+4*i]) // sv number
+			if err != nil {
+				return false
+			}
+			if sv < 33 { // indicates GPS
+				svType = SAT_TYPE_GPS
+			} else if sv < 65 { // indicates SBAS -- WAAS, EGNOS, etc.
+				svType = SAT_TYPE_SBAS
+				sv += 97 // add 97 to convert from NMEA to PRN
+			} else {
+				svType = SAT_TYPE_UNKNOWN
+			}
+
+			elev, err = strconv.Atoi(x[5+4*i]) // elevation
+			if err != nil {
+				return false
+			}
+
+			az, err = strconv.Atoi(x[6+4*i]) // azimuth
+			if err != nil {
+				return false
+			}
+
+			cno, err = strconv.Atoi(x[7+4*i]) // signal
+			if err != nil {                   // blank value means this satellite is in the almanac but not receiving
+				cno = -99 //
+			} else {
+				thisSatellite.TimeLastSeen = stratuxClock.Time
+			}
+
+			log.Printf("Satellite at index %d. Type = %d, PRN = %d, Elev = %d, Azimuth = %d, Cno = %d\n", i, svType, sv, elev, az, cno)
+		}
+		//satelliteMutex.Unlock()
 
 		return true
 	}
