@@ -225,8 +225,8 @@ func initGPSSerial() bool {
 		p.Write(makeNMEACmd("PSRF103,04,00,01,01"))
 		// Enable VTG.
 		p.Write(makeNMEACmd("PSRF103,05,00,01,01"))
-		// Disable GSV.
-		p.Write(makeNMEACmd("PSRF103,03,00,00,01"))
+		// Enable GSV (once every 5 position updates)
+		p.Write(makeNMEACmd("PSRF103,03,00,05,01"))
 
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
@@ -959,8 +959,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		tmpSituation.Satellites = uint16(sat)
 
 		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
-		tmpSituation.SatellitesTracked = uint16(sat)
-		tmpSituation.SatellitesSeen = uint16(sat)
+		//tmpSituation.SatellitesTracked = uint16(sat) -- moved to GPGSV parsing
+		//tmpSituation.SatellitesSeen = uint16(sat)
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -990,6 +990,29 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 
 	}
+
+	if x[0] == "GPGSV" { // GPS satellites in view message
+		if len(x) < 4 {
+			return false
+		}
+		// field 1 = number of GPGSV messages
+		// field 2 = index of this GPGSV message
+		// field 3 = number of GPS satellites tracked
+		satTracked, err := strconv.Atoi(x[3])
+		if err != nil {
+			return false
+		}
+
+		mySituation.SatellitesTracked = uint16(satTracked)
+		mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
+
+		// field 4-7 = repeating block with satellite id, elevation, azimuth, and signal strengh (Cno)
+		// TO-DO
+
+		return true
+	}
+
+	// if we've gotten this far, the message isn't one that we want to parse
 	return false
 }
 
