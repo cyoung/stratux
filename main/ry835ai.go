@@ -30,6 +30,22 @@ import (
 	"../mpu6050"
 )
 
+const (
+	SAT_TYPE_GPS     = 1
+	SAT_TYPE_GLONASS = 2
+	SAT_TYPE_GALILEO = 3
+	SAT_TYPE_SBAS    = 10
+)
+
+type SatelliteInfo struct {
+	SatelliteID  uint8     // PRN or NMEA code. 1-32 for GPS, 33-48 for WAAS (?)
+	Elevation    int16     // Angle above local horizon, -xx to +90
+	Azimuth      int16     // Bearing (degrees true), 0-359
+	Signal       int8      // Signal strength, 0 - 99 (?)
+	Type         uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
+	TimeLastSeen time.Time // Time (system ticker) this satellite was last seen
+}
+
 type SituationData struct {
 	mu_GPS *sync.Mutex
 
@@ -75,6 +91,9 @@ var serialConfig *serial.Config
 var serialPort *serial.Port
 
 var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
+
+var satelliteMutex *sync.Mutex
+var Satellites map[uint8]SatelliteInfo
 
 /*
 u-blox5_Referenzmanual.pdf
@@ -1007,7 +1026,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
 
 		// field 4-7 = repeating block with satellite id, elevation, azimuth, and signal strengh (Cno)
-		// TO-DO
+		var thisSatellite SatelliteInfo
+		thisSatellite.TimeLastSeen = stratuxClock.Time
+		log.Printf("Parsing thisSatellite @ %v\n", thisSatellite.TimeLastSeen)
+		satelliteMutex.Lock()
+		// do stuff with Satellites
+
+		satelliteMutex.Unlock()
 
 		return true
 	}
@@ -1267,6 +1292,8 @@ func pollRY835AI() {
 func initRY835AI() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_Attitude = &sync.Mutex{}
+	satelliteMutex = &sync.Mutex{}
+	Satellites = make(map[uint8]SatelliteInfo)
 
 	go pollRY835AI()
 }
