@@ -1025,13 +1025,15 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		// field 3 = number of GPS satellites tracked
+		/* Is this redundant if parsing from full constellation?
 		satTracked, err := strconv.Atoi(x[3])
 		if err != nil {
 			return false
 		}
+		*/
 
-		mySituation.SatellitesTracked = uint16(satTracked)
-		mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
+		//mySituation.SatellitesTracked = uint16(satTracked)
+		//mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
 
 		// field 4-7 = repeating block with satellite id, elevation, azimuth, and signal strengh (Cno)
 
@@ -1039,13 +1041,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		satsThisMsg := (lenGSV - 4) / 4
 		log.Printf("GSV message [%d] is %v fields long and describes %v satellites\n", msgNum, lenGSV, satsThisMsg)
 
-		//satelliteMutex.Lock()
 		var sv, elev, az, cno int
 		var svType uint8
 
 		for i := 0; i < satsThisMsg; i++ {
-			var thisSatellite SatelliteInfo
-			thisSatellite.TimeLastTracked = stratuxClock.Time
 
 			sv, err = strconv.Atoi(x[4+4*i]) // sv number
 			if err != nil {
@@ -1055,31 +1054,56 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				svType = SAT_TYPE_GPS
 			} else if sv < 65 { // indicates SBAS -- WAAS, EGNOS, etc.
 				svType = SAT_TYPE_SBAS
-				sv += 97 // add 97 to convert from NMEA to PRN
+				sv += 97 // add 97 to convert from NMEA to PRN. The u-blox PUBX,03 sentence reports SBAS satellites as PRN, so we should be consistent here.
 			} else {
 				svType = SAT_TYPE_UNKNOWN
 			}
 
-			elev, err = strconv.Atoi(x[5+4*i]) // elevation
-			if err != nil {
-				return false
+			var thisSatellite SatelliteInfo
+
+			// START OF PROTECTED BLOCK
+			satelliteMutex.Lock()
+
+			// Retrieve previous information on this ICAO code.
+			if val, ok := Satellites[uint8(sv)]; ok { // if we've already seen this satellite PRN, copy it in to do updates
+				thisSatellite = val
+				log.Printf("Satellite PRN %d already seen. Retrieving from 'Satellites'.\n", sv)
+			} else { // this satellite isn't in the Satellites data structure
+				thisSatellite.SatelliteID = uint8(sv)
+				thisSatellite.Type = uint8(svType)
+				log.Printf("Creating new satellite PRN %d.\n", sv)
 			}
+			thisSatellite.TimeLastTracked = stratuxClock.Time
+
+			elev, err = strconv.Atoi(x[5+4*i]) // elevation
+			if err != nil {                    // could be blank if no position fix. Represent as -999.
+				elev = -999
+			}
+			thisSatellite.Elevation = int16(elev)
 
 			az, err = strconv.Atoi(x[6+4*i]) // azimuth
-			if err != nil {
-				return false
+			if err != nil {                  // could be blank if no position fix. Represent as -999.
+				az = -999
 			}
+			thisSatellite.Azimuth = int16(az)
 
 			cno, err = strconv.Atoi(x[7+4*i]) // signal
-			if err != nil {                   // blank value means this satellite is in the almanac but not receiving
-				cno = -99 //
-			} else {
-				thisSatellite.TimeLastSeen = stratuxClock.Time
+			if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
+				cno = -99
+			} else if cno > 0 {
+				thisSatellite.TimeLastSeen = stratuxClock.Time //
 			}
+			thisSatellite.Signal = int8(cno)
 
 			log.Printf("Satellite at index %d. Type = %d, PRN = %d, Elev = %d, Azimuth = %d, Cno = %d\n", i, svType, sv, elev, az, cno)
+			log.Printf("Raw struct: %v\n", thisSatellite)
+
+			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
+			//registerSatelliteUpdate(thisSatellite) // TO-DO once we get add JSON interface
+			updateConstellation()
+			satelliteMutex.Unlock()
+			// END OF PROTECTED BLOCK
 		}
-		//satelliteMutex.Unlock()
 
 		return true
 	}
@@ -1253,6 +1277,32 @@ func attitudeReaderSender() {
 		mySituation.mu_Attitude.Unlock()
 	}
 	globalStatus.RY835AI_connected = false
+}
+
+/*
+	updateContellation(): Periodic cleanup and statistics calculation for 'Satellites'
+		data structure. Calling functions must protect this in a satelliteMutex.
+
+*/
+
+func updateConstellation() {
+	var tracked, seen uint8
+	for sv, thisSatellite := range Satellites {
+		if stratuxClock.Since(thisSatellite.TimeLastTracked) > 10*time.Second { // remove stale satellites if they haven't been tracked for 10 seconds
+			delete(Satellites, sv)
+		} else { // satellite almanac data is "fresh" even if it isn't being received.
+			tracked++
+			if thisSatellite.Signal > 0 {
+				seen++
+			}
+
+			// do anything other calculations needed for this satellite
+		}
+	}
+	log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
+	log.Printf("Satellite struct: %v\n", Satellites)                                               // DEBUG - REMOVE
+	mySituation.SatellitesTracked = uint16(tracked)
+	mySituation.SatellitesSeen = uint16(seen)
 }
 
 func isGPSConnected() bool {
