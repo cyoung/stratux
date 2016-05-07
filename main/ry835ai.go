@@ -991,7 +991,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				} else if sv < 97 { // GLONASS
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-				} else { // TO-DO: GLONASS, Galileo
+				} else { // TO-DO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1053,12 +1053,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	}
 
-	if x[0] == "GPGSV" { // GPS satellites in view message
+	if (x[0] == "GPGSV") || (x[0] == "GLGSV") { // GPS + SBAS or GLONASS satellites in view message
 		if len(x) < 4 {
 			return false
 		}
-		// field 1 = number of GPGSV messages
-		// field 2 = index of this GPGSV message
+		// field 1 = number of GSV messages
+		// field 2 = index of this GSV message
 
 		msgNum, err := strconv.Atoi(x[2])
 		if err != nil {
@@ -1100,7 +1100,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
 				svType = SAT_TYPE_SBAS
 				svStr = fmt.Sprintf("S%d", sv+97) // add 97 to convert from NMEA to PRN.
-			} else { // TO-DO: GLONASS, Galileo
+			} else if sv < 97 { // GLONASS
+				svType = SAT_TYPE_GLONASS
+				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
+			} else { // TO-DO: Galileo
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
 			}
