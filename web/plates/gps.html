@@ -54,6 +54,34 @@
 		</div>
 	</div>
 </div>
+<div class="col-sm-12">
+	<div class="col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="panel_label">GPS Satellites</span>
+			</div>
+			<div class="panel-body towers-page">
+				<div class="row">
+					<span class="col-xs-2"><strong>Satellite ID</strong></span>
+					<span class="col-xs-2 text-right"><strong>NMEA Code</strong></span>
+					<span class="col-xs-2 text-right"><strong>Elevation</strong></span>
+					<span class="col-xs-2 text-right"><strong>Azimuth</strong></span>
+					<span class="col-xs-2 text-right"><strong>Signal</strong></span>
+				</div>
+
+				<div class="row" ng-repeat="satellite in data_list | orderBy: 'SatelliteNMEA'">
+					<div class="separator"></div>
+					<span class="col-xs-2">{{satellite.SatelliteID}}</span>
+					<span class="col-xs-2 text-right">{{satellite.SatelliteNMEA}}</span>
+					<span class="col-xs-2 text-right">{{satellite.Elevation}}</span>
+					<span class="col-xs-2 text-right">{{satellite.Azimuth}}</span>
+					<span class="col-xs-2 text-right">{{satellite.Signal < 1 ? "---" : satellite.Signal}}</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
 <!--
 <div class="col-sm-12">
 	<div class="panel panel-default">
