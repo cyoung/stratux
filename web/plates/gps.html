@@ -73,8 +73,8 @@
 					<div class="separator"></div>
 					<span class="col-xs-2">{{satellite.SatelliteID}}</span>
 					<span class="col-xs-2 text-right">{{satellite.SatelliteNMEA}}</span>
-					<span class="col-xs-2 text-right">{{satellite.Elevation}}</span>
-					<span class="col-xs-2 text-right">{{satellite.Azimuth}}</span>
+					<span class="col-xs-2 text-right">{{satellite.Elevation < -5 ? "---" : satellite.Elevation}}</span>
+					<span class="col-xs-2 text-right">{{satellite.Azimuth < 0 ? "---" : satellite.Azimuth}}</span>
 					<span class="col-xs-2 text-right">{{satellite.Signal < 1 ? "---" : satellite.Signal}}</span>
 				</div>
 			</div>
