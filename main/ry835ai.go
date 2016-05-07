@@ -40,7 +40,8 @@ const (
 )
 
 type SatelliteInfo struct {
-	SatelliteID     uint8     // PRN or NMEA code. 1-32 for GPS, 33-48 for WAAS (?)
+	SatelliteNMEA   uint8     // NMEA ID of the satellite. 1-32 is GPS, 33-54 is SBAS, 65-88 is Glonass.
+	SatelliteID     string    // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
 	Elevation       int16     // Angle above local horizon, -xx to +90
 	Azimuth         int16     // Bearing (degrees true), 0-359
 	Signal          int8      // Signal strength, 0 - 99; -99 indicates no reception
@@ -96,7 +97,7 @@ var serialPort *serial.Port
 var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
 
 var satelliteMutex *sync.Mutex
-var Satellites map[uint8]SatelliteInfo
+var Satellites map[string]SatelliteInfo
 
 /*
 u-blox5_Referenzmanual.pdf
@@ -1043,6 +1044,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 		var sv, elev, az, cno int
 		var svType uint8
+		var svStr string
 
 		for i := 0; i < satsThisMsg; i++ {
 
@@ -1052,11 +1054,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			}
 			if sv < 33 { // indicates GPS
 				svType = SAT_TYPE_GPS
-			} else if sv < 65 { // indicates SBAS -- WAAS, EGNOS, etc.
+				svStr = fmt.Sprintf("G%d", sv)
+			} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
 				svType = SAT_TYPE_SBAS
-				sv += 97 // add 97 to convert from NMEA to PRN. The u-blox PUBX,03 sentence reports SBAS satellites as PRN, so we should be consistent here.
-			} else {
+				svStr = fmt.Sprintf("S%d", sv+97) // add 97 to convert from NMEA to PRN.
+			} else { // TO-DO: GLONASS, Galileo
 				svType = SAT_TYPE_UNKNOWN
+				svStr = fmt.Sprintf("U%d", sv)
 			}
 
 			var thisSatellite SatelliteInfo
@@ -1065,13 +1069,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			satelliteMutex.Lock()
 
 			// Retrieve previous information on this ICAO code.
-			if val, ok := Satellites[uint8(sv)]; ok { // if we've already seen this satellite PRN, copy it in to do updates
+			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 				thisSatellite = val
-				log.Printf("Satellite PRN %d already seen. Retrieving from 'Satellites'.\n", sv)
+				log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
 			} else { // this satellite isn't in the Satellites data structure
-				thisSatellite.SatelliteID = uint8(sv)
+				thisSatellite.SatelliteID = svStr
+				thisSatellite.SatelliteNMEA = uint8(sv)
 				thisSatellite.Type = uint8(svType)
-				log.Printf("Creating new satellite PRN %d.\n", sv)
+				log.Printf("Creating new satellite %s\n", svStr)
 			}
 			thisSatellite.TimeLastTracked = stratuxClock.Time
 
@@ -1095,11 +1100,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			}
 			thisSatellite.Signal = int8(cno)
 
-			log.Printf("Satellite at index %d. Type = %d, PRN = %d, Elev = %d, Azimuth = %d, Cno = %d\n", i, svType, sv, elev, az, cno)
+			log.Printf("Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno)
 			log.Printf("Raw struct: %v\n", thisSatellite)
 
 			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
-			//registerSatelliteUpdate(thisSatellite) // TO-DO once we get add JSON interface
 			updateConstellation()
 			satelliteMutex.Unlock()
 			// END OF PROTECTED BLOCK
@@ -1287,9 +1291,9 @@ func attitudeReaderSender() {
 
 func updateConstellation() {
 	var tracked, seen uint8
-	for sv, thisSatellite := range Satellites {
+	for svStr, thisSatellite := range Satellites {
 		if stratuxClock.Since(thisSatellite.TimeLastTracked) > 10*time.Second { // remove stale satellites if they haven't been tracked for 10 seconds
-			delete(Satellites, sv)
+			delete(Satellites, svStr)
 		} else { // satellite almanac data is "fresh" even if it isn't being received.
 			tracked++
 			if thisSatellite.Signal > 0 {
@@ -1390,7 +1394,7 @@ func initRY835AI() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
-	Satellites = make(map[uint8]SatelliteInfo)
+	Satellites = make(map[string]SatelliteInfo)
 
 	go pollRY835AI()
 }
