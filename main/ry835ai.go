@@ -1020,6 +1020,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		// field 1 = number of GPGSV messages
 		// field 2 = index of this GPGSV message
+
 		msgNum, err := strconv.Atoi(x[2])
 		if err != nil {
 			return false
@@ -1033,14 +1034,16 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		*/
 
-		//mySituation.SatellitesTracked = uint16(satTracked)
-		//mySituation.SatellitesSeen = mySituation.SatellitesTracked // FIXME
+		//mySituation.SatellitesTracked = uint16(satTracked) // Replaced with parsing of 'Satellites' data structure
 
 		// field 4-7 = repeating block with satellite id, elevation, azimuth, and signal strengh (Cno)
 
 		lenGSV := len(x)
 		satsThisMsg := (lenGSV - 4) / 4
-		log.Printf("GSV message [%d] is %v fields long and describes %v satellites\n", msgNum, lenGSV, satsThisMsg)
+
+		if globalSettings.DEBUG {
+			log.Printf("GSV message [%d] is %v fields long and describes %v satellites\n", msgNum, lenGSV, satsThisMsg) // remove later?
+		}
 
 		var sv, elev, az, cno int
 		var svType uint8
@@ -1071,12 +1074,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// Retrieve previous information on this ICAO code.
 			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 				thisSatellite = val
-				log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
+				//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
 			} else { // this satellite isn't in the Satellites data structure
 				thisSatellite.SatelliteID = svStr
 				thisSatellite.SatelliteNMEA = uint8(sv)
 				thisSatellite.Type = uint8(svType)
-				log.Printf("Creating new satellite %s\n", svStr)
+				//log.Printf("Creating new satellite %s\n", svStr)
 			}
 			thisSatellite.TimeLastTracked = stratuxClock.Time
 
@@ -1096,12 +1099,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
 				cno = -99
 			} else if cno > 0 {
-				thisSatellite.TimeLastSeen = stratuxClock.Time //
+				thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
 			}
 			thisSatellite.Signal = int8(cno)
 
-			log.Printf("Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno)
-			log.Printf("Raw struct: %v\n", thisSatellite)
+			if globalSettings.DEBUG {
+				log.Printf("Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno) // remove later?
+			}
 
 			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 			updateConstellation()
@@ -1303,8 +1307,8 @@ func updateConstellation() {
 			// do anything other calculations needed for this satellite
 		}
 	}
-	log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
-	log.Printf("Satellite struct: %v\n", Satellites)                                               // DEBUG - REMOVE
+	//log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
+	//log.Printf("Satellite struct: %v\n", Satellites)                                               // DEBUG - REMOVE
 	mySituation.SatellitesTracked = uint16(tracked)
 	mySituation.SatellitesSeen = uint16(seen)
 }
