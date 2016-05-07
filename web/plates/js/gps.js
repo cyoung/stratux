@@ -123,7 +123,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_satellite.Elevation = obj.Elevation;        // Angle above local horizon, -xx to +90
 		new_satellite.Azimuth = obj.Azimuth;         // Bearing (degrees true), 0-359
 		new_satellite.Signal = obj.Signal;          // Signal strength, 0 - 99; -99 indicates no reception
-		//new_satellite.Type = obj.Type;   
+		new_satellite.InSolution = obj.InSolution;   // is this satellite in the position solution
 	}
 
 	function loadSatellites(data) {

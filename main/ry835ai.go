@@ -48,6 +48,7 @@ type SatelliteInfo struct {
 	Type            uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
 	TimeLastSeen    time.Time // Time (system ticker) a signal was last received from this satellite
 	TimeLastTracked time.Time // Time (system ticker) this satellite was tracked (almanac data)
+	InSolution      bool      // True if satellite is used in the position solution (reported by GSA message or PUBX,03)
 }
 
 type SituationData struct {
@@ -972,18 +973,56 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// 1 = no solution; 2 = 2D fix, 3 = 3D fix. WAAS status is parsed from GGA message, so no need to get here
 
 		// fields 3-14: satellites in solution
+		var svStr string
+		var svType uint8
 		sat := 0
+
 		for _, svtxt := range x[3:15] {
-			_, err := strconv.Atoi(svtxt)
+			sv, err := strconv.Atoi(svtxt)
 			if err == nil {
 				sat++
+
+				if sv < 33 { // indicates GPS
+					svType = SAT_TYPE_GPS
+					svStr = fmt.Sprintf("G%d", sv)
+				} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
+					svType = SAT_TYPE_SBAS
+					svStr = fmt.Sprintf("S%d", sv+97) // add 97 to convert from NMEA to PRN.
+				} else if sv < 97 { // GLONASS
+					svType = SAT_TYPE_GLONASS
+					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
+				} else { // TO-DO: GLONASS, Galileo
+					svType = SAT_TYPE_UNKNOWN
+					svStr = fmt.Sprintf("U%d", sv)
+				}
+
+				var thisSatellite SatelliteInfo
+
+				// START OF PROTECTED BLOCK
+				satelliteMutex.Lock()
+
+				// Retrieve previous information on this satellite code.
+				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
+					thisSatellite = val
+					//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
+				} else { // this satellite isn't in the Satellites data structure, so create it
+					thisSatellite.SatelliteID = svStr
+					thisSatellite.SatelliteNMEA = uint8(sv)
+					thisSatellite.Type = uint8(svType)
+					log.Printf("Creating new satellite %s from GSA message\n", svStr) // DEBUG
+				}
+				thisSatellite.InSolution = true
+				thisSatellite.TimeLastSeen = stratuxClock.Time    // implied, since this satellite is used in the position solution
+				thisSatellite.TimeLastTracked = stratuxClock.Time // implied, since this satellite is used in the position solution
+
+				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
+				updateConstellation()
+				satelliteMutex.Unlock()
+				// END OF PROTECTED BLOCK
+
 			}
 		}
 		tmpSituation.Satellites = uint16(sat)
-
-		// Satellites tracked / seen should be parsed from GSV message (TO-DO) ... since we don't have it, just use satellites from solution
-		//tmpSituation.SatellitesTracked = uint16(sat) -- moved to GPGSV parsing
-		//tmpSituation.SatellitesSeen = uint16(sat)
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -1071,7 +1110,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// START OF PROTECTED BLOCK
 			satelliteMutex.Lock()
 
-			// Retrieve previous information on this ICAO code.
+			// Retrieve previous information on this satellite code.
 			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 				thisSatellite = val
 				//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
@@ -1102,6 +1141,17 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
 			}
 			thisSatellite.Signal = int8(cno)
+
+			// hack workaround for GSA 12-sv limitation... if this is a SBAS satellite, we have a SBAS solution, and signal is greater than some threshold, set InSolution
+			if thisSatellite.Type == SAT_TYPE_SBAS {
+				if mySituation.Quality == 2 {
+					if thisSatellite.Signal > 10 {
+						thisSatellite.InSolution = true
+					}
+				} else { // quality == 0 or 1
+					thisSatellite.InSolution = false
+				}
+			}
 
 			if globalSettings.DEBUG {
 				log.Printf("Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno) // remove later?
