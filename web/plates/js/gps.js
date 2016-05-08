@@ -53,14 +53,25 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 
-	function loadStatus(data) {
+	function loadStatus(data) { // mySituation
 		status = angular.fromJson(data);
 		// consider using angular.extend()
 		$scope.raw_data = angular.toJson(data, true); // makes it pretty
 
-		/*	not currently used
-		$scope.gps_satellites = status.Satellites;
-		*/
+		
+		$scope.Satellites = status.Satellites;
+		$scope.GPS_satellites_tracked = status.SatellitesTracked;
+		$scope.GPS_satellites_seen = status.SatellitesSeen;
+		$scope.Quality = status.Quality;
+		
+		var solutionText = "No Fix";
+		if (status.Quality == 2) {
+			solutionText = "GPS + SBAS (WAAS / EGNOS)";
+		} else if (status.Quality == 1) {
+			solutionText = "3D GPS"
+		}
+		$scope.SolutionText = solutionText;
+		
 		$scope.gps_accuracy = status.Accuracy.toFixed(1);
                 $scope.gps_vert_accuracy = (status.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
 

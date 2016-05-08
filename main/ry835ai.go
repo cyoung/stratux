@@ -1102,8 +1102,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			}
 		}
-		if sat < 12 {
-			tmpSituation.Satellites = uint16(sat) // GSA only reports up to 12 satellites in solution... this isn't a reliable count if higher. updateConstellation() may provide an accurate count in that case.
+		if sat < 12 || tmpSituation.Satellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
+			tmpSituation.Satellites = uint16(sat)
 		}
 		//log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
 
