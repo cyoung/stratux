@@ -301,10 +301,10 @@ func initGPSSerial() bool {
 		// Message output configuration -- disable standard NMEA messages except 1Hz GGA
 		//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GGA
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for every 5th position
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for every 5th position
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for every 5th position
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
@@ -316,9 +316,13 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
-
+		/*
+			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
+			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox,3
+			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
+		*/
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,3
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x05, 0x05, 0x05, 0x05, 0x05, 0x00})) // Ublox,3
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
 
 		// Reconfigure serial port.
@@ -619,7 +623,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err1 != nil {
 				return false
 			}
-			tmpSituation.Satellites = uint16(sat)
+			tmpSituation.Satellites = uint16(sat) // this seems to be reliable. UBX,03 handles >12 satellites solutions correctly.
 
 			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 			mySituation = tmpSituation
@@ -632,6 +636,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
+			log.Printf("PUBX,03 message with %d satellites is %d fields long.\n", satTracked, len(x))
+
 			if satTracked <= 20 {
 				mySituation.SatellitesTracked = uint16(satTracked)
 			}
@@ -1123,7 +1129,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			}
 		}
-		tmpSituation.Satellites = uint16(sat)
+		//tmpSituation.Satellites = uint16(sat)
+		log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -1451,7 +1458,7 @@ func attitudeReaderSender() {
 */
 
 func updateConstellation() {
-	var tracked, seen uint8
+	var sats, tracked, seen uint8
 	for svStr, thisSatellite := range Satellites {
 		if stratuxClock.Since(thisSatellite.TimeLastTracked) > 10*time.Second { // remove stale satellites if they haven't been tracked for 10 seconds
 			delete(Satellites, svStr)
@@ -1464,11 +1471,15 @@ func updateConstellation() {
 				thisSatellite.InSolution = false
 				Satellites[svStr] = thisSatellite
 			}
+			if thisSatellite.InSolution { // TESTING: Determine "In solution" from structure (fix for multi-GNSS overflow)
+				sats++
+			}
 			// do any other calculations needed for this satellite
 		}
 	}
 	//log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
 	//log.Printf("Satellite struct: %v\n", Satellites)                                               // DEBUG - REMOVE
+	mySituation.Satellites = uint16(sats)
 	mySituation.SatellitesTracked = uint16(tracked)
 	mySituation.SatellitesSeen = uint16(seen)
 }
