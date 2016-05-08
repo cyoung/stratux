@@ -257,7 +257,10 @@ func initGPSSerial() bool {
 		}
 	} else {
 		// Set 10Hz update. Little endian order.
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))
+		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
+
+		// Testing - Set 5Hz update. Little endian order.
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
@@ -270,17 +273,20 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
 		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
-		//
 		// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
+
+		// TESTING: 5Hz unified GPS + GLONASS
+
 		// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
 		// for SBAS (WAAS), so little real-world impact.
 
 		cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
-		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}
-		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}
+		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
+		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS (WAAS) with 2-3 tracking channels
 		beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
 		qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}
+		//glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
+		glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
 		cfgGnss = append(cfgGnss, beidou...)
@@ -295,8 +301,10 @@ func initGPSSerial() bool {
 		//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for USB only every 5th position
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for USB only every 5th position
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
@@ -618,7 +626,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		} else if x[1] == "03" { // satellite status message
 
 			// field 2 = number of satellites tracked
-			satSeen := 0 // satellites seen (signal present)
+			//satSeen := 0 // satellites seen (signal present)
 			satTracked, err := strconv.Atoi(x[2])
 			if err != nil {
 				return false
@@ -627,27 +635,109 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			// fields 3-8 are repeated block
 
+			var sv, elev, az, cno int
+			var svType uint8
+			var svStr string
+
+			/* Reference for constellation tracking
+			for i:= 0; i < satTracked; i++ {
+				x[3+6*i] // sv number
+				x[4+6*i] // status [ U | e | - ] indicates [U]sed in solution, [e]phemeris data only, [-] not used
+				x[5+6*i] // azimuth, deg, 0-359
+				x[6+6*i] // elevation, deg, 0-90
+				x[7+6*i] // signal strength dB-Hz
+				x[8+6*i] // lock time, sec, 0-64
+			}
+			*/
+
 			for i := 0; i < satTracked; i++ {
-				j := 7 + 6*i
-				if j < len(x) {
-					if x[j] != "" {
-						satSeen++
-					}
+				//field 3+6i is sv number. GPS NMEA = PRN. GLONASS NMEA = PRN + 65. SBAS is PRN; needs to be converted to NMEA for compatiblity with GSV messages.
+				sv, err = strconv.Atoi(x[3+6*i]) // sv number
+				if err != nil {
+					return false
 				}
+				if sv < 33 { // indicates GPS
+					svType = SAT_TYPE_GPS
+					svStr = fmt.Sprintf("G%d", sv)
+				} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
+					svType = SAT_TYPE_SBAS
+					svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
+				} else if sv < 97 { // GLONASS
+					svType = SAT_TYPE_GLONASS
+					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
+				} else if (sv >= 120) && (sv < 162) { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
+					svType = SAT_TYPE_SBAS
+					svStr = fmt.Sprintf("S%d", sv)
+					sv -= 87 // subtract 87 to convert to NMEA from PRN.
+				} else { // TO-DO: Galileo
+					svType = SAT_TYPE_UNKNOWN
+					svStr = fmt.Sprintf("U%d", sv)
+				}
+
+				var thisSatellite SatelliteInfo
+
+				// START OF PROTECTED BLOCK
+				satelliteMutex.Lock()
+
+				// Retrieve previous information on this satellite code.
+				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
+					thisSatellite = val
+					//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
+				} else { // this satellite isn't in the Satellites data structure
+					thisSatellite.SatelliteID = svStr
+					thisSatellite.SatelliteNMEA = uint8(sv)
+					thisSatellite.Type = uint8(svType)
+					//log.Printf("Creating new satellite %s\n", svStr)
+				}
+				thisSatellite.TimeLastTracked = stratuxClock.Time
+
+				// Field 6+6*i is elevation, deg, 0-90
+				elev, err = strconv.Atoi(x[6+6*i]) // elevation
+				if err != nil {                    // could be blank if no position fix. Represent as -999.
+					elev = -999
+				}
+				thisSatellite.Elevation = int16(elev)
+
+				// Field 5+6*i is azimuth, deg, 0-359
+				az, err = strconv.Atoi(x[5+6*i]) // azimuth
+				if err != nil {                  // could be blank if no position fix. Represent as -999.
+					az = -999
+				}
+				thisSatellite.Azimuth = int16(az)
+
+				// Field 7+6*i is signal strength dB-Hz
+				cno, err = strconv.Atoi(x[7+6*i]) // signal
+				if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
+					cno = -99
+				} else if cno > 0 {
+					thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
+				}
+				thisSatellite.Signal = int8(cno)
+
+				// Field 4+6*i is status: [ U | e | - ]: [U]sed in solution, [e]phemeris data only, [-] not used
+				if x[4+6*i] == "U" {
+					thisSatellite.InSolution = true
+				} else if x[4+6*i] == "e" {
+					thisSatellite.InSolution = false
+					log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr)
+					// do anything that needs to be done for ephemeris
+				} else {
+					thisSatellite.InSolution = false
+					log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr)
+				}
+
+				if globalSettings.DEBUG {
+					log.Printf("UBX: Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno) // remove later?
+				}
+
+				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
+				updateConstellation()
+				satelliteMutex.Unlock()
+				// END OF PROTECTED BLOCK
+
+				// end of satellite iteration loop
 			}
 
-			mySituation.SatellitesSeen = uint16(satSeen)
-			// log.Printf("Satellites with signal: %v\n",mySituation.SatellitesSeen)
-
-			/* Reference for future constellation tracking
-						for i:= 0; i < satTracked; i++ {
-							x[3+6*i] // sv number
-							x[4+6*i] // status [ U | e | - ] for used / ephemeris / not used
-			                                x[5+6*i] // azimuth, deg, 0-359
-			                                x[6+6*i] // elevation, deg, 0-90
-			                                x[7+6*i] // signal strength dB-Hz
-			                                x[8+6*i] // lock time, sec, 0-64
-			*/
 			return true
 		} else if x[1] == "04" { // clock message
 			// field 5 is UTC week (epoch = 1980-JAN-06). If this is invalid, do not parse date / time
@@ -987,7 +1077,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svStr = fmt.Sprintf("G%d", sv)
 				} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
 					svType = SAT_TYPE_SBAS
-					svStr = fmt.Sprintf("S%d", sv+97) // add 97 to convert from NMEA to PRN.
+					svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
 				} else if sv < 97 { // GLONASS
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
@@ -1099,7 +1189,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				svStr = fmt.Sprintf("G%d", sv)
 			} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
 				svType = SAT_TYPE_SBAS
-				svStr = fmt.Sprintf("S%d", sv+97) // add 97 to convert from NMEA to PRN.
+				svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
 			} else if sv < 97 { // GLONASS
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
@@ -1140,6 +1230,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			cno, err = strconv.Atoi(x[7+4*i]) // signal
 			if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
 				cno = -99
+				thisSatellite.InSolution = false // resets the "InSolution" status if the satellite disappears out of solution due to no signal. FIXME
+				log.Printf("Satellite %s is no longer in solution due to cno parse error - GSV\n", svStr)
 			} else if cno > 0 {
 				thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
 			}
@@ -1153,6 +1245,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					}
 				} else { // quality == 0 or 1
 					thisSatellite.InSolution = false
+					log.Printf("WAAS satellite %s is marked as out of solution GSV\n", svStr)
 				}
 			}
 
