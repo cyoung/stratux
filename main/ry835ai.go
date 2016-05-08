@@ -40,15 +40,16 @@ const (
 )
 
 type SatelliteInfo struct {
-	SatelliteNMEA   uint8     // NMEA ID of the satellite. 1-32 is GPS, 33-54 is SBAS, 65-88 is Glonass.
-	SatelliteID     string    // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
-	Elevation       int16     // Angle above local horizon, -xx to +90
-	Azimuth         int16     // Bearing (degrees true), 0-359
-	Signal          int8      // Signal strength, 0 - 99; -99 indicates no reception
-	Type            uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
-	TimeLastSeen    time.Time // Time (system ticker) a signal was last received from this satellite
-	TimeLastTracked time.Time // Time (system ticker) this satellite was tracked (almanac data)
-	InSolution      bool      // True if satellite is used in the position solution (reported by GSA message or PUBX,03)
+	SatelliteNMEA    uint8     // NMEA ID of the satellite. 1-32 is GPS, 33-54 is SBAS, 65-88 is Glonass.
+	SatelliteID      string    // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
+	Elevation        int16     // Angle above local horizon, -xx to +90
+	Azimuth          int16     // Bearing (degrees true), 0-359
+	Signal           int8      // Signal strength, 0 - 99; -99 indicates no reception
+	Type             uint8     // Type of satellite (GPS, GLONASS, Galileo, SBAS)
+	TimeLastSolution time.Time // Time (system ticker) a solution was last calculated using this satellite
+	TimeLastSeen     time.Time // Time (system ticker) a signal was last received from this satellite
+	TimeLastTracked  time.Time // Time (system ticker) this satellite was tracked (almanac data)
+	InSolution       bool      // True if satellite is used in the position solution (reported by GSA message or PUBX,03)
 }
 
 type SituationData struct {
@@ -717,13 +718,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				// Field 4+6*i is status: [ U | e | - ]: [U]sed in solution, [e]phemeris data only, [-] not used
 				if x[4+6*i] == "U" {
 					thisSatellite.InSolution = true
+					thisSatellite.TimeLastSolution = stratuxClock.Time
 				} else if x[4+6*i] == "e" {
 					thisSatellite.InSolution = false
-					log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr)
+					log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr) // DEBUG
 					// do anything that needs to be done for ephemeris
 				} else {
 					thisSatellite.InSolution = false
-					log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr)
+					log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr) // DEBUG
 				}
 
 				if globalSettings.DEBUG {
@@ -1054,13 +1056,20 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// field 1: operation mode
 		// M: manual forced to 2D or 3D mode
 		// A: automatic switching between 2D and 3D modes
-		if (x[1] != "A") && (x[1] != "M") { // invalid fix
-			tmpSituation.Quality = 0 // Just a note.
-			return false
-		}
+
+		/*
+			if (x[1] != "A") && (x[1] != "M") { // invalid fix
+				tmpSituation.Quality = 0 // Just a note.
+				return false
+			}
+		*/
 
 		// field 2: solution type
 		// 1 = no solution; 2 = 2D fix, 3 = 3D fix. WAAS status is parsed from GGA message, so no need to get here
+		if (x[2] == "") || (x[2] == "1") { // missing or no solution
+			tmpSituation.Quality = 0 // Just a note.
+			return false
+		}
 
 		// fields 3-14: satellites in solution
 		var svStr string
@@ -1102,6 +1111,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					log.Printf("Creating new satellite %s from GSA message\n", svStr) // DEBUG
 				}
 				thisSatellite.InSolution = true
+				thisSatellite.TimeLastSolution = stratuxClock.Time
 				thisSatellite.TimeLastSeen = stratuxClock.Time    // implied, since this satellite is used in the position solution
 				thisSatellite.TimeLastTracked = stratuxClock.Time // implied, since this satellite is used in the position solution
 
@@ -1449,8 +1459,11 @@ func updateConstellation() {
 			if thisSatellite.Signal > 0 {
 				seen++
 			}
-
-			// do anything other calculations needed for this satellite
+			if stratuxClock.Since(thisSatellite.TimeLastSolution) > 5*time.Second {
+				thisSatellite.InSolution = false
+				Satellites[svStr] = thisSatellite
+			}
+			// do any other calculations needed for this satellite
 		}
 	}
 	//log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
