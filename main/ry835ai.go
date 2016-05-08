@@ -300,12 +300,12 @@ func initGPSSerial() bool {
 
 		// Message output configuration -- disable standard NMEA messages except 1Hz GGA
 		//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x01})) // GGA
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GGA
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
 		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for USB only every 5th position
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for every 5th position
 		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for USB only every 5th position
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for every 5th position
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
@@ -624,7 +624,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 			mySituation = tmpSituation
 			return true
-		} else if x[1] == "03" { // satellite status message
+		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message. Order seems to be GPS, then SBAS, then GLONASS.
 
 			// field 2 = number of satellites tracked
 			//satSeen := 0 // satellites seen (signal present)
@@ -632,8 +632,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
-			mySituation.SatellitesTracked = uint16(satTracked)
-
+			if satTracked <= 20 {
+				mySituation.SatellitesTracked = uint16(satTracked)
+			}
 			// fields 3-8 are repeated block
 
 			var sv, elev, az, cno int
@@ -721,11 +722,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					thisSatellite.TimeLastSolution = stratuxClock.Time
 				} else if x[4+6*i] == "e" {
 					thisSatellite.InSolution = false
-					log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr) // DEBUG
+					//log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr) // DEBUG
 					// do anything that needs to be done for ephemeris
 				} else {
 					thisSatellite.InSolution = false
-					log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr) // DEBUG
+					//log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr) // DEBUG
 				}
 
 				if globalSettings.DEBUG {
@@ -1108,7 +1109,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					thisSatellite.SatelliteID = svStr
 					thisSatellite.SatelliteNMEA = uint8(sv)
 					thisSatellite.Type = uint8(svType)
-					log.Printf("Creating new satellite %s from GSA message\n", svStr) // DEBUG
+					//log.Printf("Creating new satellite %s from GSA message\n", svStr) // DEBUG
 				}
 				thisSatellite.InSolution = true
 				thisSatellite.TimeLastSolution = stratuxClock.Time
@@ -1241,7 +1242,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
 				cno = -99
 				thisSatellite.InSolution = false // resets the "InSolution" status if the satellite disappears out of solution due to no signal. FIXME
-				log.Printf("Satellite %s is no longer in solution due to cno parse error - GSV\n", svStr)
+				//log.Printf("Satellite %s is no longer in solution due to cno parse error - GSV\n", svStr) // DEBUG
 			} else if cno > 0 {
 				thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
 			}
@@ -1255,7 +1256,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					}
 				} else { // quality == 0 or 1
 					thisSatellite.InSolution = false
-					log.Printf("WAAS satellite %s is marked as out of solution GSV\n", svStr)
+					//log.Printf("WAAS satellite %s is marked as out of solution GSV\n", svStr) // DEBUG
 				}
 			}
 
