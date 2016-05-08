@@ -257,10 +257,8 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else {
-		// Set 10Hz update. Little endian order.
+		// Set 5 Hz update. Little endian order.
 		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
-
-		// Testing - Set 5Hz update. Little endian order.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
 
 		// Set navigation settings.
@@ -298,14 +296,16 @@ func initGPSSerial() bool {
 		// SBAS configuration for ublox 6 and higher
 		p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
-		// Message output configuration -- disable standard NMEA messages except 1Hz GGA
+		// Message output configuration: UBX,00 (position) on each calculated fix; UBX,03 (satellite info) every 5th fix,
+		//  UBX,04 (timing) every 10th, GGA (NMEA position) every 5th. All other NMEA messages disabled.
+
 		//                                             Msg   DDC   UART1 UART2 USB   I2C   Res
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GGA
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GGA enabled every 5th message
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL disabled
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled for every 5th position
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled disabled every 5th position (used for testing only)
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for every 5th position
+		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for every 5th position (used for testing only)
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
@@ -316,11 +316,6 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
-		/*
-			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
-			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox,3
-			p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
-		*/
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x05, 0x05, 0x05, 0x05, 0x05, 0x00})) // Ublox,3
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
@@ -628,7 +623,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 			mySituation = tmpSituation
 			return true
-		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message. Order seems to be GPS, then SBAS, then GLONASS.
+		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message for UBX firmware older than v3.0. Order seems to be GPS, then SBAS, then GLONASS.
 
 			// field 2 = number of satellites tracked
 			//satSeen := 0 // satellites seen (signal present)
@@ -636,11 +631,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
-			log.Printf("PUBX,03 message with %d satellites is %d fields long.\n", satTracked, len(x))
-
-			if satTracked <= 20 {
-				mySituation.SatellitesTracked = uint16(satTracked)
+			if globalSettings.DEBUG {
+				log.Printf("PUBX,03 message with %d satellites is %d fields long.\n", satTracked, len(x))
 			}
+
+			mySituation.SatellitesTracked = uint16(satTracked) // requires UBX M8N firmware v3.01 or later to report > 20 satellites
+
 			// fields 3-8 are repeated block
 
 			var sv, elev, az, cno int
@@ -690,12 +686,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 					thisSatellite = val
-					//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
+					//log.Printf("UBX,03: Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr) // DEBUG
 				} else { // this satellite isn't in the Satellites data structure
 					thisSatellite.SatelliteID = svStr
 					thisSatellite.SatelliteNMEA = uint8(sv)
 					thisSatellite.Type = uint8(svType)
-					//log.Printf("Creating new satellite %s\n", svStr)
+					//log.Printf("UBX,03: Creating new satellite %s\n", svStr) // DEBUG
 				}
 				thisSatellite.TimeLastTracked = stratuxClock.Time
 
@@ -890,29 +886,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			tmpSituation.Lng = -tmpSituation.Lng
 		}
 
-		/* Satellite count and horizontal accuracy deprecated. Using PUBX,00 with fallback to GSA.
-		// Satellites.
-		sat, err1 := strconv.Atoi(x[7])
-		if err1 != nil {
-			return false
-		}
-		tmpSituation.Satellites = uint16(sat)
-
-		// Accuracy.
-		hdop, err1 := strconv.ParseFloat(x[8], 32)
-		if err1 != nil {
-			return false
-		}
-		if tmpSituation.Quality == 2 {
-			tmpSituation.Accuracy = float32(hdop * 4.0) //Estimate for WAAS / DGPS solution
-		} else {
-			tmpSituation.Accuracy = float32(hdop * 8.0) //Estimate for 3D non-WAAS solution
-		}
-
-		// NACp estimate.
-		tmpSituation.NACp = calculateNACp(tmpSituation.Accuracy)
-		*/
-
 		// Altitude.
 		alt, err1 := strconv.ParseFloat(x[9], 32)
 		if err1 != nil {
@@ -1065,7 +1038,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// A: automatic switching between 2D and 3D modes
 
 		/*
-			if (x[1] != "A") && (x[1] != "M") { // invalid fix
+			if (x[1] != "A") && (x[1] != "M") { // invalid fix ... but x[2] is a better indicator of fix quality. Deprecating this.
 				tmpSituation.Quality = 0 // Just a note.
 				return false
 			}
@@ -1129,8 +1102,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			}
 		}
-		//tmpSituation.Satellites = uint16(sat)
-		log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
+		if sat < 12 {
+			tmpSituation.Satellites = uint16(sat) // GSA only reports up to 12 satellites in solution... this isn't a reliable count if higher. updateConstellation() may provide an accurate count in that case.
+		}
+		//log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -1161,14 +1136,20 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	}
 
-	if (x[0] == "GPGSV") || (x[0] == "GLGSV") { // GPS + SBAS or GLONASS satellites in view message
+	if (x[0] == "GPGSV") || (x[0] == "GLGSV") { // GPS + SBAS or GLONASS satellites in view message. Galileo is TBD.
 		if len(x) < 4 {
 			return false
 		}
-		// field 1 = number of GSV messages
+
+		// field 1 = number of GSV messages of this type
+		msgNum, err := strconv.Atoi(x[2])
+		if err != nil {
+			return false
+		}
+
 		// field 2 = index of this GSV message
 
-		msgNum, err := strconv.Atoi(x[2])
+		msgIndex, err := strconv.Atoi(x[2])
 		if err != nil {
 			return false
 		}
@@ -1189,7 +1170,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		satsThisMsg := (lenGSV - 4) / 4
 
 		if globalSettings.DEBUG {
-			log.Printf("GSV message [%d] is %v fields long and describes %v satellites\n", msgNum, lenGSV, satsThisMsg) // remove later?
+			log.Printf("%s message [%d of %d] is %v fields long and describes %v satellites\n", x[0], msgIndex, msgNum, lenGSV, satsThisMsg)
 		}
 
 		var sv, elev, az, cno int
@@ -1224,23 +1205,23 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// Retrieve previous information on this satellite code.
 			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 				thisSatellite = val
-				//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
-			} else { // this satellite isn't in the Satellites data structure
+				//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr) // DEBUG
+			} else { // this satellite isn't in the Satellites data structure, so create it new
 				thisSatellite.SatelliteID = svStr
 				thisSatellite.SatelliteNMEA = uint8(sv)
 				thisSatellite.Type = uint8(svType)
-				//log.Printf("Creating new satellite %s\n", svStr)
+				//log.Printf("Creating new satellite %s\n", svStr) // DEBUG
 			}
 			thisSatellite.TimeLastTracked = stratuxClock.Time
 
 			elev, err = strconv.Atoi(x[5+4*i]) // elevation
-			if err != nil {                    // could be blank if no position fix. Represent as -999.
+			if err != nil {                    // some firmwares leave this blank if there's no position fix. Represent as -999.
 				elev = -999
 			}
 			thisSatellite.Elevation = int16(elev)
 
 			az, err = strconv.Atoi(x[6+4*i]) // azimuth
-			if err != nil {                  // could be blank if no position fix. Represent as -999.
+			if err != nil {                  // UBX allows tracking up to 5(?) degrees below horizon. Some firmwares leave this blank if no position fix. Represent invalid as -999.
 				az = -999
 			}
 			thisSatellite.Azimuth = int16(az)
@@ -1253,9 +1234,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if cno > 0 {
 				thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
 			}
+			if cno > 127 { // make sure strong signals don't overflow. Normal range is 0-99 so it shouldn't, but take no chances.
+				cno = 127
+			}
 			thisSatellite.Signal = int8(cno)
 
 			// hack workaround for GSA 12-sv limitation... if this is a SBAS satellite, we have a SBAS solution, and signal is greater than some threshold, set InSolution
+			// drawback is this will show all SBAS satellites as being in solution.
 			if thisSatellite.Type == SAT_TYPE_SBAS {
 				if mySituation.Quality == 2 {
 					if thisSatellite.Signal > 10 {
