@@ -229,6 +229,9 @@ func (u *UAT) sdrConfig() (err error) {
 	}
 	log.Printf("\tSetTunerGain Successful\n")
 
+	tgain := u.dev.GetTunerGain()
+	log.Printf("\tGetTunerGain: %d\n", tgain)
+
 	//---------- Get/Set Sample Rate ----------
 	err = u.dev.SetSampleRate(SampleRate)
 	if err != nil {
