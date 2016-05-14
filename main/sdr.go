@@ -120,7 +120,7 @@ func (e *ES) read() {
 			default:
 				n, err := stderr.Read(stderrBuf)
 				if err == nil && n > 0 {
-					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stderr"}
+					m := Dump1090TermMessage{Text: string(stderrBuf[:n]), Source: "stderr"}
 					logDump1090TermMessage(m)
 				}
 			}
