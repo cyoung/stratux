@@ -625,14 +625,26 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return true
 		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message for UBX firmware older than v3.0. Order seems to be GPS, then SBAS, then GLONASS.
 
+			if len(x) < 3 { // malformed UBX,03 message that somehow passed checksum verification but is missing all of its fields
+				return false
+			}
+
 			// field 2 = number of satellites tracked
 			//satSeen := 0 // satellites seen (signal present)
 			satTracked, err := strconv.Atoi(x[2])
 			if err != nil {
 				return false
 			}
+
 			if globalSettings.DEBUG {
-				log.Printf("PUBX,03 message with %d satellites is %d fields long.\n", satTracked, len(x))
+				log.Printf("GPS PUBX,03 message with %d satellites is %d fields long. (Should be %d fields long)\n", satTracked, len(x), satTracked*6+3)
+			}
+
+			if len(x) < (satTracked*6 + 3) { // malformed UBX,03 message that somehow passed checksum verification but is missing some of its fields
+				if globalSettings.DEBUG {
+					log.Printf("GPS PUBX,03 message is missing fields\n")
+				}
+				return false
 			}
 
 			mySituation.SatellitesTracked = uint16(satTracked) // requires UBX M8N firmware v3.01 or later to report > 20 satellites
@@ -732,7 +744,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				}
 
 				if globalSettings.DEBUG {
-					log.Printf("UBX: Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno) // remove later?
+					inSolnStr := " "
+					if thisSatellite.InSolution {
+						inSolnStr = "+"
+					}
+					log.Printf("UBX: Satellite %s%s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", inSolnStr, svStr, i, svType, sv, elev, az, cno) // remove later?
 				}
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
@@ -1253,7 +1269,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			}
 
 			if globalSettings.DEBUG {
-				log.Printf("Satellite %s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", svStr, i, svType, sv, elev, az, cno) // remove later?
+				inSolnStr := " "
+				if thisSatellite.InSolution {
+					inSolnStr = "+"
+				}
+				log.Printf("GSV: Satellite %s%s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", inSolnStr, svStr, i, svType, sv, elev, az, cno) // remove later?
 			}
 
 			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
