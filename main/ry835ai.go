@@ -1070,6 +1070,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// fields 3-14: satellites in solution
 		var svStr string
 		var svType uint8
+		var svSBAS bool    // used to indicate whether this GSA message contains a SBAS satellite
+		var svGLONASS bool // used to indicate whether this GSA message contains GLONASS satellites
 		sat := 0
 
 		for _, svtxt := range x[3:15] {
@@ -1083,9 +1085,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
 					svType = SAT_TYPE_SBAS
 					svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
+					svSBAS = true
 				} else if sv < 97 { // GLONASS
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
+					svGLONASS = true
 				} else { // TO-DO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
@@ -1120,6 +1124,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		if sat < 12 || tmpSituation.Satellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
 			tmpSituation.Satellites = uint16(sat)
+			if (tmpSituation.Quality == 2) && !svSBAS && !svGLONASS { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
+				tmpSituation.Satellites++
+			}
 		}
 		//log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
 
@@ -1255,12 +1262,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			}
 			thisSatellite.Signal = int8(cno)
 
-			// hack workaround for GSA 12-sv limitation... if this is a SBAS satellite, we have a SBAS solution, and signal is greater than some threshold, set InSolution
-			// drawback is this will show all SBAS satellites as being in solution.
+			// hack workaround for GSA 12-sv limitation... if this is a SBAS satellite, we have a SBAS solution, and signal is greater than some arbitrary threshold, set InSolution
+			// drawback is this will show all tracked SBAS satellites as being in solution.
 			if thisSatellite.Type == SAT_TYPE_SBAS {
 				if mySituation.Quality == 2 {
-					if thisSatellite.Signal > 10 {
+					if thisSatellite.Signal > 16 {
 						thisSatellite.InSolution = true
+						thisSatellite.TimeLastSolution = stratuxClock.Time
 					}
 				} else { // quality == 0 or 1
 					thisSatellite.InSolution = false
@@ -1457,7 +1465,7 @@ func attitudeReaderSender() {
 }
 
 /*
-	updateContellation(): Periodic cleanup and statistics calculation for 'Satellites'
+	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
 		data structure. Calling functions must protect this in a satelliteMutex.
 
 */
