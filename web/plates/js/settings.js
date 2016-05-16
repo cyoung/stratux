@@ -91,9 +91,12 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.updatewatchlist = function () {
 		if ($scope.WatchList !== settings["WatchList"]) {
-			settings["WatchList"] = $scope.WatchList.toUpperCase();
+			settings["WatchList"] = "";
+			if ($scope.WatchList !== undefined) {
+				settings["WatchList"] = $scope.WatchList.toUpperCase();
+			}
 			newsettings = {
-				"WatchList": $scope.WatchList.toUpperCase()
+				"WatchList": settings["WatchList"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
