@@ -155,12 +155,15 @@ func initGPSSerial() bool {
 	baudrate := int(9600)
 	isSirfIV := bool(false)
 
-	if _, err := os.Stat("/dev/ttyACM0"); err == nil { // u-blox receivers on native USB connection
-		device = "/dev/ttyACM0"
-	} else if _, err := os.Stat("/dev/ttyUSB0"); err == nil { // USB-to-serial bridge. Typical use is BU-353-S4 SIRF IV receivers, but could also be for other devices or serial-out (better detection is TODO)
+	if _, err := os.Stat("/dev/vk172"); err == nil { // u-blox 7.
+		device = "/dev/vk172"
+	} else if _, err := os.Stat("/dev/vk162"); err == nil { // u-blox 6.
+		device = "/dev/vk162"
+	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
+		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
 		baudrate = 4800
-		device = "/dev/ttyUSB0"
+		device = "/dev/prolific0"
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 	} else {
