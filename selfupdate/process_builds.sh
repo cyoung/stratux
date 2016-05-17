@@ -8,7 +8,8 @@ ssh -i ~/.ssh/id_rsa.updates stratux-updates@updates.stratux.me 'ls -1 queue/' |
 	cd selfupdate
 	./makeupdate.sh
 	cd ..
-	for fl in `work/update*.sh` ; do
+	for fl in `ls work/update*.sh`
+	do
 		scp -i ~/.ssh/id_rsa.updates $fl stratux-updates@updates.stratux.me:uploading/
 		ssh -i ~/.ssh/id_rsa.updates stratux-updates@updates.stratux.me "mv uploading/${fl} finished/"
 	done
