@@ -57,6 +57,9 @@ cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
 #sshd config
 cp -f sshd_config mnt/etc/ssh/sshd_config
 
+#udev config
+cp -f 10-stratux.rules mnt/etc/udev/rules.d
+
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
 cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so

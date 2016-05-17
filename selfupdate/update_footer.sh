@@ -21,6 +21,9 @@ cp -f config.txt /boot/config.txt
 #modprobe.d blacklist
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 
+#udev config
+cp -f 10-stratux.rules /etc/udev/rules.d
+
 #go setup
 cp -f bashrc.txt /root/.bashrc
 cp -f stxAliases /root/.stxAliases
