@@ -155,10 +155,12 @@ func initGPSSerial() bool {
 	baudrate := int(9600)
 	isSirfIV := bool(false)
 
-	if _, err := os.Stat("/dev/vk172"); err == nil { // u-blox 7.
-		device = "/dev/vk172"
-	} else if _, err := os.Stat("/dev/vk162"); err == nil { // u-blox 6.
-		device = "/dev/vk162"
+	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI over USB).
+		device = "/dev/ublox8"
+	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, RY725AI over USB).
+		device = "/dev/ublox7"
+	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162).
+		device = "/dev/ublox6"
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
