@@ -3,10 +3,12 @@ package main
 import "math"
 
 var sampleFreq float32 = 512.0
-var beta float32 = 0.1
+var beta float32 = 0.1 //values of 0.02 or 0.025 have also been suggested
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
+// Gets the current attitude represented as X (roll) and Y (pitch) values, 
+// resulting in less computational load as the X (yaw) value is not calculated.
 func GetCurrentAttitudeXY()
 {
     var q0a, q1a, q2a, q3a float64
@@ -21,6 +23,7 @@ func GetCurrentAttitudeXY()
     return attitudeX, attitudeY, attitudeZ
 }
 
+// Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values.
 func GetCurrentAttitudeXYZ()
 {
     var q0a, q1a, q2a, q3a float64
@@ -36,11 +39,16 @@ func GetCurrentAttitudeXYZ()
     return attitudeX, attitudeY, attitudeZ
 }
 
+// Gets the current attitude in quaternion form, resulting in no computational load.
 func GetCurrentAttitudeQ()
 {
     return q0, q1, q2, q3
 }
 
+// Input values should be in radians/second, not degrees/second.
+// gx, gy, gz: gyroscope values
+// ax, ay, az: accelerometer values
+// mx, my, mz: magnetometer values
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
 {
     recipNorm float64
@@ -52,7 +60,7 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
     // Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if((mx == 0.0) && (my == 0.0) && (mz == 0.0)) {
 		AHRSupdateIMU(gx, gy, gz, ax, ay, az)
-		return;
+		return
 	}
     
     // Rate of change of quaternion from gyroscope
@@ -138,6 +146,9 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
 	q3 *= recipNorm
 }
 
+// Input values should be in radians/second, not degrees/second.
+// gx, gy, gz: gyroscope values
+// ax, ay, az: accelerometer values
 func AHRSupdateIMU(gx, gy, gz, ax, ay, az float32)
 {
     recipNorm float32
@@ -215,12 +226,17 @@ func invSqrt(x float64) float64 {
 	x = x * (1.5 - (xhalf * x * x))
 	return x
     
-    // the following line replaces the above. It may be faster, but it
+    // The following line replaces the above. It may be faster, but it
     // also may be more or less accurate. Need to test. At the time the 
     // above was written, CPUs did not have the instruction set built
     // into hardware. Now they do, but I'm not sure that applies to the
     // CPU that the RasPi is using. It appears that it does, but that is
     // not a guarantee of performance. There may also be a difference 
-    // between RasPi 2 and 3. 
-    //return 1.0 / Math.sqrt (x)
+    // between RasPi 2 and 3 CPUs. 
+    //return 1.0 / math.Sqrt(x)
+    
+    // Alternative implementation to the "hack", in C:
+    //uint32_t i = 0x5F1F1412 - (*(uint32_t*)&x >> 1);
+    //float tmp = *(float*)&i;
+    //return tmp * (1.69000231f - 0.714158168f * x * tmp * tmp);
 }
