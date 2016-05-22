@@ -9,17 +9,29 @@ var attitudeX, attitudeY, attitudeZ float32
 
 func GetCurrentAttitudeXY()
 {
-    attitudeX = math.Atan2(2(q0*q1 + q2*q3), 1-2((q1*q1) + (q2*q2)))
-    attitudeY = math.Asin(2(q0*q2 - q3*q1))
+    var q0a, q1a, q2a, q3a float64
+    q0a = q0
+    q1a = q1
+    q2a = q2
+    q3a = q3
+    
+    attitudeX = math.Atan2(2(q0a*q1a + q2a*q3a), 1-2((q1a*q1a) + (q2a*q2a)))
+    attitudeY = math.Asin(2(q0a*q2a - q3a*q1a))
     
     return attitudeX, attitudeY, attitudeZ
 }
 
 func GetCurrentAttitudeXYZ()
 {
-    attitudeX = math.Atan2(2(q0*q1 + q2*q3), 1-2((q1*q1) + (q2*q2)))
-    attitudeY = math.Asin(2(q0*q2 - q3*q1))
-    attitudeZ = math.Atan2(2(q0*q3 + q1*q2), 1-2((q2*q2) + (q3*q3)))
+    var q0a, q1a, q2a, q3a float64
+    q0a = q0
+    q1a = q1
+    q2a = q2
+    q3a = q3
+    
+    attitudeX = math.Atan2(2(q0a*q1a + q2a*q3a), 1-2((q1a*q1a) + (q2a*q2a)))
+    attitudeY = math.Asin(2(q0a*q2a - q3a*q1a))
+    attitudeZ = math.Atan2(2(q0a*q3a + q1a*q2a), 1-2((q2a*q2a) + (q3a*q3a)))
     
     return attitudeX, attitudeY, attitudeZ
 }
