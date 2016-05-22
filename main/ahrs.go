@@ -20,7 +20,7 @@ func GetCurrentAttitudeXY()
     attitudeX = math.Atan2(2(q0a*q1a + q2a*q3a), 1-2((q1a*q1a) + (q2a*q2a)))
     attitudeY = math.Asin(2(q0a*q2a - q3a*q1a))
     
-    return attitudeX, attitudeY, attitudeZ
+    return attitudeX, attitudeY
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values.
