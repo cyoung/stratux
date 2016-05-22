@@ -7,13 +7,26 @@ var beta float32 = 0.1
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
-func GetCurrentAttitude()
+func GetCurrentAttitudeXY()
+{
+    attitudeX = math.Atan2(2(q0*q1 + q2*q3), 1-2((q1*q1) + (q2*q2)))
+    attitudeY = math.Asin(2(q0*q2 - q3*q1))
+    
+    return attitudeX, attitudeY, attitudeZ
+}
+
+func GetCurrentAttitudeXYZ()
 {
     attitudeX = math.Atan2(2(q0*q1 + q2*q3), 1-2((q1*q1) + (q2*q2)))
     attitudeY = math.Asin(2(q0*q2 - q3*q1))
     attitudeZ = math.Atan2(2(q0*q3 + q1*q2), 1-2((q2*q2) + (q3*q3)))
     
     return attitudeX, attitudeY, attitudeZ
+}
+
+func GetCurrentAttitudeQ()
+{
+    return q0, q1, q2, q3
 }
 
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
