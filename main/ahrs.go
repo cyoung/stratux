@@ -3,6 +3,7 @@ package main
 import "math"
 
 var sampleFreq float32 = 512.0
+var beta float32 = 0.1
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
@@ -181,12 +182,20 @@ func AHRSupdateIMU(gx, gy, gz, ax, ay, az float32)
 	q3 *= recipNorm
 }
 
-func invSqrt(x float64) float64 {
-	halfx float64 = 0.5 * x
-	y float64 = x
-	i int64 = *(int64*)&y
-	i = 0x5f3759df - (i>>1)
-	y = *(float64*)&i
-	y = y * (1.5 - (halfx * y * y))
-	return y
+func invSqrt(x float64) float64 {    
+    xhalf := float32(0.5) * x
+	i := math.Float32bits(x)
+	i = 0x5f3759df - i>>1
+	x = math.Float32frombits(i)
+	x = x * (1.5 - (xhalf * x * x))
+	return x
+    
+    // the following line replaces the above. It may be faster, but it
+    // also may be more or less accurate. Need to test. At the time the 
+    // above was written, CPUs did not have the instruction set built
+    // into hardware. Now they do, but I'm not sure that applies to the
+    // CPU that the RasPi is using. It appears that it does, but that is
+    // not a guarantee of performance. There may also be a difference 
+    // between RasPi 2 and 3. 
+    //return 1.0 / Math.sqrt (x)
 }
