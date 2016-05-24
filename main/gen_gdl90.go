@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -125,6 +126,7 @@ type ADSBTower struct {
 }
 
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
+var ADSBTowerMutex *sync.Mutex
 
 func constructFilenames() {
 	var fileIndexNumber uint
@@ -493,7 +495,8 @@ func makeStratuxStatus() []byte {
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v & 0xFF)
 
-	// Number of ADS-B towers.
+	// Number of ADS-B towers. Map structure is protected by ADSBTowerMutex.
+	ADSBTowerMutex.Lock()
 	num_towers := uint8(len(ADSBTowers))
 
 	msg[28] = byte(num_towers)
@@ -510,7 +513,7 @@ func makeStratuxStatus() []byte {
 		msg = append(msg, tmp[1]) // Longitude.
 		msg = append(msg, tmp[2]) // Longitude.
 	}
-
+	ADSBTowerMutex.Unlock()
 	return prepareMessage(msg)
 }
 
@@ -628,6 +631,8 @@ func updateMessageStats() {
 	ES_messages_last_minute := uint(0)
 	products_last_minute := make(map[string]uint32)
 
+	ADSBTowerMutex.Lock()
+
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
 		tinf.Messages_last_minute = 0
@@ -681,6 +686,7 @@ func updateMessageStats() {
 		ADSBTowers[t] = tinf
 	}
 
+	ADSBTowerMutex.Unlock()
 }
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
@@ -1262,6 +1268,7 @@ func main() {
 	constructFilenames()
 
 	ADSBTowers = make(map[string]ADSBTower)
+	ADSBTowerMutex = &sync.Mutex{}
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
