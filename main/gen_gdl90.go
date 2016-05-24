@@ -629,7 +629,7 @@ func updateMessageStats() {
 	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
-	products_last_minute := make(map[string]uint32)
+	//products_last_minute := make(map[string]uint32)
 
 	ADSBTowerMutex.Lock()
 
@@ -645,9 +645,9 @@ func updateMessageStats() {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				for _, p := range MsgLog[i].Products {
-					products_last_minute[getProductNameFromId(int(p))]++
-				}
+				//for _, p := range MsgLog[i].Products {
+				//	products_last_minute[getProductNameFromId(int(p))]++
+				//}
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
 					twr := ADSBTowers[tid]
@@ -666,7 +666,7 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.UAT_products_last_minute = products_last_minute
+	//globalStatus.UAT_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -987,14 +987,14 @@ type settings struct {
 }
 
 type status struct {
-	Version                                    string
-	Build                                      string
-	HardwareBuild                              string
-	Devices                                    uint32
-	Connected_Users                            uint
-	DiskBytesFree                              uint64
-	UAT_messages_last_minute                   uint
-	UAT_products_last_minute                   map[string]uint32
+	Version                  string
+	Build                    string
+	HardwareBuild            string
+	Devices                  uint32
+	Connected_Users          uint
+	DiskBytesFree            uint64
+	UAT_messages_last_minute uint
+	//UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
