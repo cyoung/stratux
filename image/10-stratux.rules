@@ -1,8 +1,18 @@
 # To be placed in /etc/udev/rules.d.
 #  Auto-detect common USB stratux peripherals.
 
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="vk172"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="vk162"
+# u-blox devices. Known devices include
+#   ublox8: RY835AI, RY836AI
+#   ublox7: VK-172, RY725AI
+#   ublox6: VK-162
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a8", SYMLINK+="ublox8"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="ublox7"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="ublox6"
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="vk172"
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="vk162"
+
+
 
 # pl2303 devices are indistinguishable using idVendor and idProduct.
 #  Currently the BU-353-S4 and the TU-S9 (serialout) use the pl2303.
