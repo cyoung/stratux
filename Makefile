@@ -45,7 +45,6 @@ install:
 	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux
 	make www
 	cp -f dump1090/dump1090 /usr/bin/
-	cp -f image/10-stratux.rules
 
 clean:
 	rm -f gen_gdl90 libdump978.so
