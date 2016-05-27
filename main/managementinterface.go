@@ -401,6 +401,7 @@ type dirlisting struct {
 	ServerUA       string
 }
 
+//FIXME: This needs to be switched to show a "sessions log" from the sqlite database.
 func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 	names, err := ioutil.ReadDir("/var/log/stratux/")

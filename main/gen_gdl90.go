@@ -38,13 +38,11 @@ import (
 
 const (
 	configLocation      = "/etc/stratux.conf"
-	indexFilename       = "/var/log/stratux/LOGINDEX"
 	managementAddr      = ":80"
 	debugLog            = "/var/log/stratux.log"
+	dataLogFile         = "/var/log/stratux.sqlite"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
-	logDirectory        = "/var/log/stratux"
-	dataLogFile         = "/var/log/stratux.sqlite"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -125,36 +123,6 @@ type ADSBTower struct {
 }
 
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
-
-func constructFilenames() {
-	var fileIndexNumber uint
-
-	// First, create the log file directory if it does not exist
-	os.Mkdir(logDirectory, 0755)
-
-	f, err := os.Open(indexFilename)
-	if err != nil {
-		log.Printf("Unable to open index file %s using index of 0\n", indexFilename)
-		fileIndexNumber = 0
-	} else {
-		_, err := fmt.Fscanf(f, "%d\n", &fileIndexNumber)
-		if err != nil {
-			log.Printf("Unable to read index file %s using index of 0\n", indexFilename)
-		}
-		f.Close()
-		fileIndexNumber++
-	}
-	fo, err := os.Create(indexFilename)
-	if err != nil {
-		log.Printf("Error creating index file %s\n", indexFilename)
-	}
-	_, err2 := fmt.Fprintf(fo, "%d\n", fileIndexNumber)
-	if err2 != nil {
-		log.Printf("Error writing to index file %s\n", indexFilename)
-	}
-	fo.Sync()
-	fo.Close()
-}
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -1259,7 +1227,6 @@ func main() {
 	}
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
-	constructFilenames()
 
 	ADSBTowers = make(map[string]ADSBTower)
 	MsgLog = make([]msg, 0)
