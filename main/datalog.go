@@ -593,9 +593,6 @@ func initDataLog() {
 
 func dataLogWatchdog() {
 	for {
-		if globalSettings.DEBUG {
-			log.Printf("datalog.go: Watchdog loop iterating. dataLogStarted = %t\n", dataLogStarted)
-		}
 		if !dataLogStarted && globalSettings.ReplayLog { // case 1: sqlite logging isn't running, and we want to start it
 			log.Printf("datalog.go: Watchdog wants to START logging.\n")
 			go dataLog()
