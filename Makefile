@@ -40,6 +40,7 @@ install:
 	chmod 755 /usr/bin/gen_gdl90
 	cp init.d-stratux /etc/init.d/stratux
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
+	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
 	chmod 755 /etc/init.d/stratux
 	ln -sf /etc/init.d/stratux /etc/rc2.d/S01stratux
 	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux
