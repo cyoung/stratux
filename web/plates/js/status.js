@@ -44,6 +44,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.Version = status.Version;
 			$scope.Build = status.Build.substr(0, 10);
 			$scope.Devices = status.Devices;
+			$scope.Ping_connected = status.Ping_connected;
 			$scope.Connected_Users = status.Connected_Users;
 			$scope.UAT_messages_last_minute = status.UAT_messages_last_minute;
 			// $scope.UAT_products_last_minute = JSON.stringify(status.UAT_products_last_minute);
@@ -102,6 +103,11 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			settings = angular.fromJson(response.data);
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
+			$scope.visible_ping = settings.Ping_Enabled;
+			if (settings.Ping_Enabled) {
+				$scope.visible_uat = true;
+				$scope.visible_es = true;
+			}
 			$scope.visible_gps = settings.GPS_Enabled;
 			$scope.visible_ahrs = settings.AHRS_Enabled;
 		}, function (response) {

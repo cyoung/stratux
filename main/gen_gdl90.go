@@ -436,6 +436,11 @@ func makeStratuxStatus() []byte {
 		msg[13] = msg[13] | (1 << 6)
 	}
 
+	// Ping provides ES and UAT
+	if globalSettings.Ping_Enabled {
+		msg[13] = msg[13] | (1 << 5) | (1 << 6)
+	}
+
 	// Valid/Enabled: GPS Enabled portion.
 	if globalSettings.GPS_Enabled {
 		msg[13] = msg[13] | (1 << 7)
@@ -834,6 +839,9 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	if isUplink && msglen == UPLINK_FRAME_DATA_BYTES {
 		msgtype = MSGTYPE_UPLINK
+	} else if msglen == 48 {
+		// With Reed Solomon appended
+		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 34 {
 		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 18 {
@@ -969,6 +977,7 @@ func getProductNameFromId(product_id int) string {
 type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
+	Ping_Enabled         bool
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
 	AHRS_Enabled         bool
@@ -992,6 +1001,7 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	Ping_connected                             bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
@@ -1197,6 +1207,7 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
+	pingKill()
 
 	// Shut down data logging.
 	if dataLogStarted {
@@ -1267,6 +1278,7 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
+	pingInit()
 	initTraffic()
 
 	// Read settings.

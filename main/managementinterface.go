@@ -212,6 +212,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.UAT_Enabled = val.(bool)
 					case "ES_Enabled":
 						globalSettings.ES_Enabled = val.(bool)
+					case "Ping_Enabled":
+						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":

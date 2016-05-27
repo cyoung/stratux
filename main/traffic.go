@@ -573,7 +573,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 func esListen() {
 	for {
-		if !globalSettings.ES_Enabled {
+		if !globalSettings.ES_Enabled && !globalSettings.Ping_Enabled {
 			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
 			continue
 		}
@@ -584,7 +584,7 @@ func esListen() {
 			continue
 		}
 		rdr := bufio.NewReader(inConn)
-		for globalSettings.ES_Enabled {
+		for globalSettings.ES_Enabled || globalSettings.Ping_Enabled {
 			//log.Printf("ES enabled. Ready to read next message from dump1090\n")
 			buf, err := rdr.ReadString('\n')
 			//log.Printf("String read from dump1090\n")
