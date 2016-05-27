@@ -36,11 +36,17 @@ import (
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
+var debugLogf string    // Set according to OS config.
+var dataLogFilef string // Set according to OS config.
+
 const (
-	configLocation      = "/etc/stratux.conf"
-	managementAddr      = ":80"
-	debugLog            = "/var/log/stratux.log"
-	dataLogFile         = "/var/log/stratux.sqlite"
+	configLocation = "/etc/stratux.conf"
+	managementAddr = ":80"
+	debugLog       = "/var/log/stratux.log"
+	dataLogFile    = "/var/log/stratux.sqlite"
+	//FlightBox: log to /root.
+	debugLog_FB         = "/root/stratux.log"
+	dataLogFile_FB      = "/var/log/stratux.sqlite"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -1193,8 +1199,11 @@ func main() {
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]string, 0)
+	//FlightBox: detect via presence of /etc/FlightBox file.
 	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"
+		debugLogf = debugLog_FB
+		dataLogFilef = dataLogFile_FB
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
@@ -1215,9 +1224,9 @@ func main() {
 	}
 
 	// Duplicate log.* output to debugLog.
-	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
 		addSystemError(err_log)
 		log.Printf("%s\n", err_log.Error())
 	} else {
