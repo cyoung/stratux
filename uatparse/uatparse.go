@@ -476,8 +476,10 @@ func (f *UATFrame) decodeInfoFrame() {
 	switch f.Product_id {
 	case 413:
 		f.decodeTextFrame()
-	case 8, 11, 13:
-		f.decodeAirmet()
+		/*
+			case 8, 11, 13:
+				f.decodeAirmet()
+		*/
 	default:
 		fmt.Fprintf(ioutil.Discard, "don't know what to do with product id: %d\n", f.Product_id)
 	}
