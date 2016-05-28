@@ -17,14 +17,27 @@
 	  ga('create', 'UA-78463950-1', 'auto');
 	  ga('send', 'pageview');
 
+	  /**
+	  * Function that tracks a click on an outbound link in Analytics.
+	  * This function takes a valid URL string as an argument, and uses that URL string
+	  * as the event label. Setting the transport method to 'beacon' lets the hit be sent
+	  * using 'navigator.sendBeacon' in browser that support it.
+	  */
+	  var trackOutboundLink = function(url) {
+	     ga('send', 'event', 'outbound', 'click', url, {
+	       'transport': 'beacon',
+	       'hitCallback': function(){document.location = url;}
+	     });
+	  }
+
 	</script>
   </head>
   <body>
     <section class="page-header">
       <h1 class="project-name">Stratux</h1>
       <h2 class="project-tagline">Aviation weather and traffic receiver based on RTL-SDR.</h2>
-        <a href="https://github.com/cyoung/stratux" class="btn">View on GitHub</a>
-        <a href="https://github.com/cyoung/stratux/releases/download/v0.8r2/stratux-v0.8r2-db130aab76.img.zip" class="btn">Download</a>
+        <a href="https://github.com/cyoung/stratux" class="btn" onclick="trackOutboundLink('https://github.com/cyoung/stratux'); return false;">View on GitHub</a>
+        <a href="https://github.com/cyoung/stratux/releases/download/v0.8r2/stratux-v0.8r2-db130aab76.img.zip" class="btn" onclick="trackOutboundLink('https://github.com/cyoung/stratux/releases/download/v0.8r2/stratux-v0.8r2-db130aab76.img.zip'); return false;">Download</a>
     </section>
 
     <section class="main-content">
@@ -43,7 +56,7 @@
 <a id="quickbuild" class="anchor" href="#quickbuild" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quickbuild (FlightBox)</h2>
 <br/>
 Project contributor Steven Sokol has started a Kickstarter campaign to make Stratux easier and faster to build. He offers support, a case, and all of the parts to build a Stratux for less than ~$40 above the cost of sourcing the parts on your own.<br/>
-<a href="https://www.openflightsolutions.com/flightbox/">click here</a> for more information.<br/>
+<a href="https://www.openflightsolutions.com/flightbox/" onclick="trackOutboundLink('https://www.openflightsolutions.com/flightbox/'); return false;">click here</a> for more information.<br/>
 
 <h2>
 <a id="shopping-list" class="anchor" href="#shopping-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Shopping List (DIY)</h2>
@@ -66,7 +79,7 @@ Project contributor Steven Sokol has started a Kickstarter campaign to make Stra
 <ol>
 <li>Download the .zip file, latest linked above.</li>
 <li>Unzip the file. Look for the ".img" file.</li>
-<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md">Win32DiskImager</a>.</li>
+<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md" onclick="trackOutboundLink('https://www.raspberrypi.org/documentation/installation/installing-images/windows.md'); return false;">Win32DiskImager</a>.</li>
 <li>If using Mac, download and follow prompts for <a href="http://ivanx.com/raspberrypi/">Pi Filler</a>.</li>
 </ol>
 
@@ -216,15 +229,15 @@ Project contributor Steven Sokol has started a Kickstarter campaign to make Stra
 
 <p><a href="http://www.aviationconsumer.com/issues/82_2/avionicsreport/Stratux-ADS-B-DIY-and-Save-Big_6887-1.html">Aviation Consumer Magazine Article</a>.</p>
 
-<p><a href="http://slack.stratux.me">http://slack.stratux.me</a> - stratux Slack "chat". Ask for help or suggest/contribute improvements.</p>
+<p><a href="http://slack.stratux.me" onclick="trackOutboundLink('http://slack.stratux.me'); return false;">http://slack.stratux.me</a> - stratux Slack "chat". Ask for help or suggest/contribute improvements.</p>
 
-<p><a href="http://www.reddit.com/r/stratux">http://www.reddit.com/r/stratux</a> - stratux community. Ask for help or suggest/contribute improvements.</p>
+<p><a href="http://www.reddit.com/r/stratux" onclick="trackOutboundLink('http://www.reddit.com/r/stratux'); return false;">http://www.reddit.com/r/stratux</a> - stratux community. Ask for help or suggest/contribute improvements.</p>
 
 <p><a href="http://www.github.com/cyoung/stratux">http://www.github.com/cyoung/stratux</a> - latest developments.</p>
 
-<p><a href="http://www.thingiverse.com/groups/stratux/things">http://www.thingiverse.com/groups/stratux/things</a> - 3D printable cases.</p>
+<p><a href="http://www.thingiverse.com/groups/stratux/things" onclick="trackOutboundLink('http://www.thingiverse.com/groups/stratux/things'); return false;">http://www.thingiverse.com/groups/stratux/things</a> - 3D printable cases.</p>
 
-<p><a href="https://itunes.apple.com/us/app/aeroviereports-electronic/id819848629">AerovieReports</a> - Update Stratux firmware seamlessly on iOS. <a href="https://youtu.be/jetu2LUs8vg">demo here</a></p>
+<p><a href="https://itunes.apple.com/us/app/aeroviereports-electronic/id819848629" onclick="trackOutboundLink('https://itunes.apple.com/us/app/aeroviereports-electronic/id819848629'); return false;">AerovieReports</a> - Update Stratux firmware seamlessly on iOS. <a href="https://youtu.be/jetu2LUs8vg">demo here</a></p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/cyoung/stratux">Stratux</a> is maintained by <a href="https://github.com/cyoung">cyoung</a>.</span>
