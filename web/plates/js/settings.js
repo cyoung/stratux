@@ -79,10 +79,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	});
 
 	$scope.updateppm = function () {
+		settings["PPM"] = 0
 		if (($scope.PPM !== undefined) && ($scope.PPM !== null) && ($scope.PPM !== settings["PPM"])) {
 			settings["PPM"] = parseInt($scope.PPM);
 			newsettings = {
-				"PPM": parseInt($scope.PPM)
+				"PPM": settings["PPM"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
