@@ -8,9 +8,8 @@ var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
 // Gets the current attitude represented as X (roll) and Y (pitch) values, 
-// resulting in less computational load as the X (yaw) value is not calculated.
-func GetCurrentAttitudeXY()
-{
+// resulting in less computational load as the Z (yaw) value is not calculated.
+func GetCurrentAttitudeXY() (float32, float32) {
     var q0a, q1a, q2a, q3a float64
     q0a = q0
     q1a = q1
@@ -24,8 +23,7 @@ func GetCurrentAttitudeXY()
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values.
-func GetCurrentAttitudeXYZ()
-{
+func GetCurrentAttitudeXYZ() (float32, float32, float32) {
     var q0a, q1a, q2a, q3a float64
     q0a = q0
     q1a = q1
@@ -40,8 +38,7 @@ func GetCurrentAttitudeXYZ()
 }
 
 // Gets the current attitude in quaternion form, resulting in no computational load.
-func GetCurrentAttitudeQ()
-{
+func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
     return q0, q1, q2, q3
 }
 
@@ -49,8 +46,7 @@ func GetCurrentAttitudeQ()
 // gx, gy, gz: gyroscope values
 // ax, ay, az: accelerometer values
 // mx, my, mz: magnetometer values
-func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
-{
+func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32) {
     recipNorm float64
 	s0, s1, s2, s3 float64
 	qDot1, qDot2, qDot3, qDot4 float64
@@ -149,8 +145,7 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32)
 // Input values should be in radians/second, not degrees/second.
 // gx, gy, gz: gyroscope values
 // ax, ay, az: accelerometer values
-func AHRSupdateIMU(gx, gy, gz, ax, ay, az float32)
-{
+func AHRSupdateIMU(gx, gy, gz, ax, ay, az float32) {
     recipNorm float32
 	s0, s1, s2, s3 float32
 	qDot1, qDot2, qDot3, qDot4 float32
