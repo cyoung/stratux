@@ -110,6 +110,7 @@ type msg struct {
 	Signal_amplitude int
 	Signal_strength  float64
 	ADSBTowerID      string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
+	uatMsg           *uatparse.UATMsg
 }
 
 // Raw inputs.
@@ -126,7 +127,6 @@ type ADSBTower struct {
 	Energy_last_minute          uint64  // Summation of power observed for this tower across all messages last minute
 	Signal_strength_last_minute float64 // Average RSSI (dB) observed for this tower last minute
 	Messages_last_minute        uint64
-	Messages_total              uint64
 }
 
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
@@ -605,6 +605,7 @@ func updateMessageStats() {
 	ES_messages_last_minute := uint(0)
 
 	ADSBTowerMutex.Lock()
+	defer ADSBTowerMutex.Unlock()
 
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
@@ -620,7 +621,18 @@ func updateMessageStats() {
 				UAT_messages_last_minute++
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
+
+					if _, ok := ADSBTowers[tid]; !ok { // First time we've seen the tower? Start tracking.
+						var newTower ADSBTower
+						newTower.Lat = MsgLog[i].uatMsg.Lat
+						newTower.Lng = MsgLog[i].uatMsg.Lon
+						newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
+						ADSBTowers[tid] = newTower
+					}
+
 					twr := ADSBTowers[tid]
+					twr.Signal_strength_now = MsgLog[i].Signal_strength
+
 					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
 					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
@@ -655,7 +667,6 @@ func updateMessageStats() {
 		ADSBTowers[t] = tinf
 	}
 
-	ADSBTowerMutex.Unlock()
 }
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
@@ -839,18 +850,6 @@ func parseInput(buf string) ([]byte, uint16) {
 			uatMsg.DecodeUplink()
 			towerid := fmt.Sprintf("(%f,%f)", uatMsg.Lat, uatMsg.Lon)
 			thisMsg.ADSBTowerID = towerid
-			if _, ok := ADSBTowers[towerid]; !ok { // First time we've seen the tower. Start tracking.
-				var newTower ADSBTower
-				newTower.Lat = uatMsg.Lat
-				newTower.Lng = uatMsg.Lon
-				newTower.Signal_strength_now = thisMsg.Signal_strength
-				newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
-				ADSBTowers[towerid] = newTower
-			}
-			twr := ADSBTowers[towerid]
-			twr.Messages_total++
-			twr.Signal_strength_now = thisMsg.Signal_strength
-			ADSBTowers[towerid] = twr
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
@@ -860,6 +859,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			for _, r := range textReports {
 				registerADSBTextMessageReceived(r)
 			}
+			thisMsg.uatMsg = uatMsg
 		}
 	}
 
