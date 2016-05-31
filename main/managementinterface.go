@@ -151,6 +151,8 @@ func handleSituationRequest(w http.ResponseWriter, r *http.Request) {
 func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+
+	ADSBTowerMutex.Lock()
 	towersJSON, err := json.Marshal(&ADSBTowers)
 	if err != nil {
 		log.Printf("Error sending tower JSON data: %s\n", err.Error())
@@ -158,6 +160,7 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 	// for testing purposes, we can return a fixed reply
 	// towersJSON = []byte(`{"(38.490880,-76.135554)":{"Lat":38.49087953567505,"Lng":-76.13555431365967,"Signal_strength_last_minute":100,"Signal_strength_max":67,"Messages_last_minute":1,"Messages_total":1059},"(38.978698,-76.309276)":{"Lat":38.97869825363159,"Lng":-76.30927562713623,"Signal_strength_last_minute":495,"Signal_strength_max":32,"Messages_last_minute":45,"Messages_total":83},"(39.179285,-76.668413)":{"Lat":39.17928457260132,"Lng":-76.66841268539429,"Signal_strength_last_minute":50,"Signal_strength_max":24,"Messages_last_minute":1,"Messages_total":16},"(39.666309,-74.315300)":{"Lat":39.66630935668945,"Lng":-74.31529998779297,"Signal_strength_last_minute":9884,"Signal_strength_max":35,"Messages_last_minute":4,"Messages_total":134}}`)
 	fmt.Fprintf(w, "%s\n", towersJSON)
+	ADSBTowerMutex.Unlock()
 }
 
 // AJAX call - /getSatellites. Responds with all GNSS satellites that are being tracked, along with status information.

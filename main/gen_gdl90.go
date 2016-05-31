@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -129,6 +130,7 @@ type ADSBTower struct {
 }
 
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
+var ADSBTowerMutex *sync.Mutex
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -467,7 +469,8 @@ func makeStratuxStatus() []byte {
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v & 0xFF)
 
-	// Number of ADS-B towers.
+	// Number of ADS-B towers. Map structure is protected by ADSBTowerMutex.
+	ADSBTowerMutex.Lock()
 	num_towers := uint8(len(ADSBTowers))
 
 	msg[28] = byte(num_towers)
@@ -484,7 +487,7 @@ func makeStratuxStatus() []byte {
 		msg = append(msg, tmp[1]) // Longitude.
 		msg = append(msg, tmp[2]) // Longitude.
 	}
-
+	ADSBTowerMutex.Unlock()
 	return prepareMessage(msg)
 }
 
@@ -600,7 +603,9 @@ func updateMessageStats() {
 	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
-	products_last_minute := make(map[string]uint32)
+	//products_last_minute := make(map[string]uint32)
+
+	ADSBTowerMutex.Lock()
 
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
@@ -614,9 +619,9 @@ func updateMessageStats() {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				for _, p := range MsgLog[i].Products {
-					products_last_minute[getProductNameFromId(int(p))]++
-				}
+				//for _, p := range MsgLog[i].Products {
+				//	products_last_minute[getProductNameFromId(int(p))]++
+				//}
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
 					twr := ADSBTowers[tid]
@@ -635,7 +640,7 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.UAT_products_last_minute = products_last_minute
+	//globalStatus.UAT_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -655,6 +660,7 @@ func updateMessageStats() {
 		ADSBTowers[t] = tinf
 	}
 
+	ADSBTowerMutex.Unlock()
 }
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
@@ -955,14 +961,14 @@ type settings struct {
 }
 
 type status struct {
-	Version                                    string
-	Build                                      string
-	HardwareBuild                              string
-	Devices                                    uint32
-	Connected_Users                            uint
-	DiskBytesFree                              uint64
-	UAT_messages_last_minute                   uint
-	UAT_products_last_minute                   map[string]uint32
+	Version                  string
+	Build                    string
+	HardwareBuild            string
+	Devices                  uint32
+	Connected_Users          uint
+	DiskBytesFree            uint64
+	UAT_messages_last_minute uint
+	//UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
@@ -1238,6 +1244,7 @@ func main() {
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
 
 	ADSBTowers = make(map[string]ADSBTower)
+	ADSBTowerMutex = &sync.Mutex{}
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
