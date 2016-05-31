@@ -738,6 +738,11 @@ func updateStatus() {
 	}
 
 	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
+
+		satelliteMutex.Lock()
+		Satellites = make(map[string]SatelliteInfo)
+		satelliteMutex.Unlock()
+
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
 		mySituation.SatellitesTracked = 0

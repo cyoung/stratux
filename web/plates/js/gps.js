@@ -4,7 +4,8 @@ GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // I
 // create our controller function with all necessary logic
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/gps-help.html';
-
+	$scope.data_list = [];
+	
 	var status = {};
 	var display_area_size = -1;
 
@@ -52,14 +53,25 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 
-	function loadStatus(data) {
+	function loadStatus(data) { // mySituation
 		status = angular.fromJson(data);
 		// consider using angular.extend()
 		$scope.raw_data = angular.toJson(data, true); // makes it pretty
 
-		/*	not currently used
-		$scope.gps_satellites = status.Satellites;
-		*/
+		
+		$scope.Satellites = status.Satellites;
+		$scope.GPS_satellites_tracked = status.SatellitesTracked;
+		$scope.GPS_satellites_seen = status.SatellitesSeen;
+		$scope.Quality = status.Quality;
+		
+		var solutionText = "No Fix";
+		if (status.Quality == 2) {
+			solutionText = "GPS + SBAS (WAAS / EGNOS)";
+		} else if (status.Quality == 1) {
+			solutionText = "3D GPS"
+		}
+		$scope.SolutionText = solutionText;
+		
 		$scope.gps_accuracy = status.Accuracy.toFixed(1);
                 $scope.gps_vert_accuracy = (status.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
 
@@ -106,9 +118,48 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		});
 	};
 
+	function getSatellites() {
+		// Simple GET request example (note: response is asynchronous)
+		$http.get(URL_SATELLITES_GET).
+		then(function (response) {
+			loadSatellites(response.data);
+		}, function (response) {
+			$scope.raw_data = "error getting satellite data";
+		});
+	};
+
+	function setSatellite(obj, new_satellite) {
+		new_satellite.SatelliteNMEA = obj.SatelliteNMEA;
+		new_satellite.SatelliteID = obj.SatelliteID;     // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
+		new_satellite.Elevation = obj.Elevation;        // Angle above local horizon, -xx to +90
+		new_satellite.Azimuth = obj.Azimuth;         // Bearing (degrees true), 0-359
+		new_satellite.Signal = obj.Signal;          // Signal strength, 0 - 99; -99 indicates no reception
+		new_satellite.InSolution = obj.InSolution;   // is this satellite in the position solution
+	}
+
+	function loadSatellites(data) {
+		if (($scope === undefined) || ($scope === null))
+			return; // we are getting called once after clicking away from the status page
+
+		var satellites = data; // it seems the json was already converted to an object list by the http request
+		$scope.raw_data = angular.toJson(data, true);
+
+		$scope.data_list.length = 0; // clear array
+		// we need to use an array so AngularJS can perform sorting; it also means we need to loop to find a tower in the towers set
+		for (var key in satellites) {
+			//if (satellites[key].Messages_last_minute > 0) {
+				var new_satellite = {};
+				setSatellite(satellites[key], new_satellite);
+				$scope.data_list.push(new_satellite); // add to start of array
+			//}
+		}
+		// $scope.$apply();
+	}
+	
 	var updateStatus = $interval(function () {
 		// refresh GPS/AHRS status once each half second (aka polling)
 		getStatus();
+		getSatellites();
 	}, (1 * 500), 0, false);
 
 	$state.get('gps').onEnter = function () {

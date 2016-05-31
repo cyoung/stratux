@@ -120,7 +120,7 @@ func (e *ES) read() {
 			default:
 				n, err := stderr.Read(stderrBuf)
 				if err == nil && n > 0 {
-					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stderr"}
+					m := Dump1090TermMessage{Text: string(stderrBuf[:n]), Source: "stderr"}
 					logDump1090TermMessage(m)
 				}
 			}
@@ -228,6 +228,9 @@ func (u *UAT) sdrConfig() (err error) {
 		return
 	}
 	log.Printf("\tSetTunerGain Successful\n")
+
+	tgain := u.dev.GetTunerGain()
+	log.Printf("\tGetTunerGain: %d\n", tgain)
 
 	//---------- Get/Set Sample Rate ----------
 	err = u.dev.SetSampleRate(SampleRate)
@@ -426,6 +429,8 @@ func configDevices(count int, esEnabled, uatEnabled bool) {
 	for i := 0; i < count; i++ {
 		_, _, s, err := rtl.GetDeviceUsbStrings(i)
 		if err == nil {
+			//FIXME: Trim NULL from the serial. Best done in gortlsdr, but putting this here for now.
+			s = strings.Trim(s, "\x00")
 			// no need to check if createXDev returned an error; if it
 			// failed to config the error is logged and we can ignore
 			// it here so it doesn't get queued up again

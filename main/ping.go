@@ -12,14 +12,14 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"strings"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	//"sync/atomic"
-	"time"
 	"net"
 	"os/exec"
+	"time"
 
 	// Using forked version of tarm/serial to force Linux
 	// instead of posix code, allowing for higher baud rates
@@ -38,9 +38,7 @@ func initPingSerial() bool {
 
 	log.Printf("Configuring Ping ADS-B\n")
 
-	if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
-		device = "/dev/ttyUSB0"
-	} else if _, err := os.Stat("/dev/ping"); err == nil {
+	if _, err := os.Stat("/dev/ping"); err == nil {
 		device = "/dev/ping"
 	} else {
 		log.Printf("No suitable Ping device found.\n")
@@ -150,7 +148,7 @@ func pingSerialReader() {
 		s := scanner.Text()
 		// Trimspace removes newlines as well as whitespace
 		s = strings.TrimSpace(s)
-		logString := fmt.Sprintf("Ping received: %s", s);
+		logString := fmt.Sprintf("Ping received: %s", s)
 		log.Println(logString)
 		if s[0] == '*' {
 			// 1090ES report
@@ -169,19 +167,19 @@ func pingSerialReader() {
 				log.Println("Starting dump1090 network connection")
 				pingNetworkConnection()
 			}
-			if (len(report[0]) != 0 && dump1090Connection != nil) {
+			if len(report[0]) != 0 && dump1090Connection != nil {
 				dump1090Connection.Write([]byte(report[0] + ";\r\n"))
 				//log.Println("Relaying 1090ES message")
 				//logString := fmt.Sprintf("Relaying 1090ES: %s;", report[0]);
 				//log.Println(logString)
 			}
-		} else if (s[0] == '+' || s[0] == '-') {
+		} else if s[0] == '+' || s[0] == '-' {
 			// UAT report
 			// Ping appends a signal strength and RS bit errors corrected
 			// at the end of the message
 			// e.g. -08A5DFDF3907E982585F029B00040080105C3AB4BC5C240700A206000000000000003A13C82F96C80A63191F05FCB231;rs=1;ss=A2;
 			// We need to rescale the signal strength for interpretation by dump978,
-			// which expects a 0-1000 base 10 (linear?) scale 
+			// which expects a 0-1000 base 10 (linear?) scale
 			// RSSI is in hex and represents an int8 with -128 (0x80) representing an
 			// errored measurement. There will be some offset from actual due to loss
 			// in the path. In one example we measured 0x93 (-98) when injecting a
@@ -191,7 +189,7 @@ func pingSerialReader() {
 				//logString = fmt.Sprintf("Relaying message, type=%d", msgtype)
 				//log.Println(logString)
 				relayMessage(msgtype, o)
-			} else if (o == nil) {
+			} else if o == nil {
 				//log.Println("Not relaying message, o == nil")
 			} else {
 				//log.Println("Not relaying message, msgtype == 0")

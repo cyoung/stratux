@@ -11,6 +11,7 @@ ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
+cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
@@ -20,6 +21,10 @@ cp -f config.txt /boot/config.txt
 
 #modprobe.d blacklist
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
+
+#udev config
+cp -f 10-stratux.rules /etc/udev/rules.d
+cp -f 99-uavionix.rules /etc/udev/rules.d
 
 #go setup
 cp -f bashrc.txt /root/.bashrc
