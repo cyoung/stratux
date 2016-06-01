@@ -2,8 +2,8 @@ package main
 
 import "math"
 
-var sampleFreq float32 = 512.0
-var beta float32 = 0.1 //values of 0.02 or 0.025 have also been suggested
+var sampleFreq float64 = 512.0
+var beta float64 = 0.1 //values of 0.02 or 0.025 have also been suggested
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
@@ -46,12 +46,12 @@ func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
 // gx, gy, gz: gyroscope values
 // ax, ay, az: accelerometer values
 // mx, my, mz: magnetometer values
-func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32) {
+func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	var recipNorm float64
 	var s0, s1, s2, s3 float64
 	var qDot1, qDot2, qDot3, qDot4 float64
 	var hx, hy float64
-	var _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3 float32
+	var _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3 float64
 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if (mx == 0.0) && (my == 0.0) && (mz == 0.0) {
@@ -145,11 +145,11 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float32) {
 // Input values should be in radians/second, not degrees/second.
 // gx, gy, gz: gyroscope values
 // ax, ay, az: accelerometer values
-func AHRSupdateIMU(gx, gy, gz, ax, ay, az float32) {
-	var recipNorm float32
-	var s0, s1, s2, s3 float32
-	var qDot1, qDot2, qDot3, qDot4 float32
-	var _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3 float32
+func AHRSupdateIMU(gx, gy, gz, ax, ay, az float64) {
+	var recipNorm float64
+	var s0, s1, s2, s3 float64
+	var qDot1, qDot2, qDot3, qDot4 float64
+	var _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3 float64
 
 	// Rate of change of quaternion from gyroscope
 	qDot1 = 0.5 * (-q1*gx - q2*gy - q3*gz)
