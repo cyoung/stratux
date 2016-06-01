@@ -105,7 +105,7 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 		// Reference direction of Earth's magnetic field
 		hx = mx*q0q0 - _2q0my*q3 + _2q0mz*q2 + mx*q1q1 + _2q1*my*q2 + _2q1*mz*q3 - mx*q2q2 - mx*q3q3
 		hy = _2q0mx*q3 + my*q0q0 - _2q0mz*q1 + _2q1mx*q2 - my*q1q1 + my*q2q2 + _2q2*mz*q3 - my*q3q3
-		_2bx = sqrt(hx*hx + hy*hy)
+		_2bx = math.Sqrt(hx*hx + hy*hy)
 		_2bz = -_2q0mx*q2 + _2q0my*q1 + mz*q0q0 + _2q1mx*q3 - mz*q1q1 + _2q2*my*q3 - mz*q2q2 + mz*q3q3
 		_4bx = 2.0 * _2bx
 		_4bz = 2.0 * _2bz
@@ -214,12 +214,12 @@ func AHRSupdateIMU(gx, gy, gz, ax, ay, az float64) {
 }
 
 func invSqrt(x float64) float64 {
-	xhalf := float32(0.5) * x
-	i := math.Float32bits(x)
-	i = 0x5f3759df - i>>1
-	x = math.Float32frombits(i)
-	x = x * (1.5 - (xhalf * x * x))
-	return x
+	// xhalf := float32(0.5) * x
+	// i := math.Float32bits(x)
+	// i = 0x5f3759df - i>>1
+	// x = math.Float32frombits(i)
+	// x = x * (1.5 - (xhalf * x * x))
+	// return x
 
 	// The following line replaces the above. It may be faster, but it
 	// also may be more or less accurate. Need to test. At the time the
@@ -228,7 +228,7 @@ func invSqrt(x float64) float64 {
 	// CPU that the RasPi is using. It appears that it does, but that is
 	// not a guarantee of performance. There may also be a difference
 	// between RasPi 2 and 3 CPUs.
-	//return 1.0 / math.Sqrt(x)
+	return 1.0 / math.Sqrt(x)
 
 	// Alternative implementation to the "hack", in C:
 	//uint32_t i = 0x5F1F1412 - (*(uint32_t*)&x >> 1);
