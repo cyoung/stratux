@@ -27,7 +27,7 @@ import (
 	"os"
 	"os/exec"
 
-	"../mpu6050"
+	"../linux-mpu9150/mpu"
 )
 
 const (
@@ -86,9 +86,10 @@ type SituationData struct {
 	Pressure_alt      float64
 	LastTempPressTime time.Time
 
-	// From MPU6050 accel/gyro.
+	// From MPU9250 mag and MPU6050 accel/gyro.
 	Pitch            float64
 	Roll             float64
+	Yaw              float64
 	Gyro_heading     float64
 	LastAttitudeTime time.Time
 }
@@ -1334,7 +1335,6 @@ func gpsSerialReader() {
 
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
-var myMPU6050 *mpu6050.MPU6050
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	temp, err := myBMP180.Temperature()
@@ -1349,18 +1349,14 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	return temp, altitude, nil
 }
 
-func readMPU6050() (float64, float64, error) { //TODO: error checking.
-	pitch, roll := myMPU6050.PitchAndRoll()
-	return pitch, roll, nil
-}
-
 func initBMP180() error {
 	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
 	return nil
 }
 
-func initMPU6050() error {
-	myMPU6050 = mpu6050.New() //TODO: error checking.
+func initMPU9150() error {
+	mpu.InitMPU(time.NewTicker(2*time.Millisecond), 0)
+	mpu.DisableFusion()
 	return nil
 }
 
@@ -1437,23 +1433,22 @@ func makeAHRSGDL90Report() {
 }
 
 func attitudeReaderSender() {
-	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
+	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
+	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
+
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read pitch and roll.
-		pitch, roll, err_mpu6050 := readMPU6050()
-
-		if err_mpu6050 != nil {
-			log.Printf("readMPU6050(): %s\n", err_mpu6050.Error())
-			globalStatus.RY835AI_connected = false
-			break
-		}
+		// get data from 9250, calculate, then set pitch and roll
+		var d = mpu.ReadData()
+		AHRSupdate(d.gx, d.gy, d.gz, d.ax, d.ay, d.az, d.mx, d.my, d.mz)
+		//pitch, roll, err_mpu6050 := readMPU6050()
+		pitch, roll := GetCurrentAttitudeXY()
 
 		mySituation.mu_Attitude.Lock()
-
 		mySituation.Pitch = pitch
 		mySituation.Roll = roll
-		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
+		//mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		// Send, if valid.
@@ -1546,7 +1541,7 @@ func initAHRS() error {
 		i2cbus.Close()
 		return err
 	}
-	if err := initMPU6050(); err != nil { // I2C accel/gyro.
+	if err := initMPU9150(); err != nil { // I2C accel/gyro.
 		i2cbus.Close()
 		myBMP180.Close()
 		return err
