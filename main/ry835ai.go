@@ -428,11 +428,11 @@ func validateNMEAChecksum(s string) (string, bool) {
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed uint16, trueCourse float64) {
-	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	/*if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
 			myMPU6050.ResetHeading(trueCourse, 0.10)
 		}
-	}
+	}*/
 }
 
 func calculateNACp(accuracy float32) uint8 {
@@ -1355,7 +1355,7 @@ func initBMP180() error {
 }
 
 func initMPU9150() error {
-	mpu.InitMPU(time.NewTicker(2*time.Millisecond), 0)
+	mpu.InitMPU(500, 0)
 	mpu.DisableFusion()
 	return nil
 }
@@ -1440,14 +1440,14 @@ func attitudeReaderSender() {
 		<-timer.C
 		// Read pitch and roll.
 		// get data from 9250, calculate, then set pitch and roll
-		var d = mpu.ReadData()
+		var d = mpu.ReadMPURaw()
 		AHRSupdate(d.gx, d.gy, d.gz, d.ax, d.ay, d.az, d.mx, d.my, d.mz)
 		//pitch, roll, err_mpu6050 := readMPU6050()
 		pitch, roll := GetCurrentAttitudeXY()
 
 		mySituation.mu_Attitude.Lock()
-		mySituation.Pitch = pitch
-		mySituation.Roll = roll
+		mySituation.Pitch = float64(pitch)
+		mySituation.Roll = float64(roll)
 		//mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
