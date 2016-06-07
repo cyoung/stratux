@@ -75,6 +75,15 @@ const (
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
+
+	GPS_TYPE_NMEA     = 0x01
+	GPS_TYPE_UBX      = 0x02
+	GPS_TYPE_SIRF     = 0x03
+	GPS_TYPE_MEDIATEK = 0x04
+	GPS_TYPE_FLARM    = 0x05
+	GPS_TYPE_GARMIN   = 0x06
+	// other GPS types to be defined as needed
+
 )
 
 var usage *du.DiskUsage
@@ -953,6 +962,8 @@ type settings struct {
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
+	AHRS_GDL90_Enabled   bool
+	GPSAttitude_Enabled  bool
 }
 
 type status struct {
@@ -971,6 +982,7 @@ type status struct {
 	GPS_satellites_tracked                     uint16
 	GPS_connected                              bool
 	GPS_solution                               string
+	GPS_detected_type                          uint
 	RY835AI_connected                          bool
 	Uptime                                     int64
 	Clock                                      time.Time
@@ -1004,6 +1016,8 @@ func defaultSettings() {
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.AHRS_GDL90_Enabled = false
+	globalSettings.GPSAttitude_Enabled = false
 }
 
 func readSettings() {
