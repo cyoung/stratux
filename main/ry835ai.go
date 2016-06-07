@@ -1442,7 +1442,6 @@ func attitudeReaderSender() {
 		// get data from 9250, calculate, then set pitch and roll
 		d, err := mpu.ReadMPURaw()
 		if err != nil {
-			log.Printf("error: attitudeReaderSender(): %s\n", err.Error())
 			continue
 		}
 		AHRSupdate(float64(d.Gx), float64(d.Gy), float64(d.Gz), float64(d.Ax), float64(d.Ay), float64(d.Az), float64(d.Mx), float64(d.My), float64(d.Mz))
