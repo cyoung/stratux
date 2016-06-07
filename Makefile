@@ -9,8 +9,8 @@ endif
 all:
 	make xdump978
 	make xdump1090
-	make xlinux-mpu9150
 	make xgen_gdl90
+	make xlinux-mpu9150
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test github.com/ccicchitelli/linux-mpu9150/mpu ./godump978 ./mpu6050 ./uatparse
