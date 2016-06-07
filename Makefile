@@ -12,23 +12,22 @@ all:
 	make xlinux-mpu9150
 	make xgen_gdl90
 
-xgen_gdl90:
-	go get -t -d -v ./main ./test ./godump978 ./mpu6050 ./uatparse
-	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/ahrs.go
+xdump978:
+	cd dump978 && make lib
+	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 xdump1090:
 	git submodule update --init
 	cd dump1090 && make
 
-xdump978:
-	cd dump978 && make lib
-	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
-
 xlinux-mpu9150:
 	git submodule update --init
-	go get -d -v github.com/cyoung/linux-mpu9150/mpu
 	cd linux-mpu9150 && make -f Makefile-native-shared
 	go build -o linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
+
+xgen_gdl90:
+	go get -t -d -v ./main ./test ./godump978 ./mpu6050 ./uatparse
+	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/ahrs.go
 
 .PHONY: test
 test:
