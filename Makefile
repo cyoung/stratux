@@ -13,7 +13,7 @@ all:
 	make xgen_gdl90
 
 xgen_gdl90:
-	go get -t -d -v ./main ./test https://github.com/ccicchitelli/linux-mpu9150/mpu ./godump978 ./mpu6050 ./uatparse
+	go get -t -d -v ./main ./test github.com/ccicchitelli/linux-mpu9150/mpu ./godump978 ./mpu6050 ./uatparse
 	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/ahrs.go
 
 xdump1090:
