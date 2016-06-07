@@ -27,7 +27,7 @@ xdump978:
 xlinux-mpu9150:
 	go get -d -v github.com/cyoung/linux-mpu9150/mpu
 	cd linux-mpu9150 && make -f Makefile-native-shared
-	go build -o $(BUILDINFO) linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
+	go build -o linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
 
 .PHONY: test
 test:
