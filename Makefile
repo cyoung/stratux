@@ -25,9 +25,9 @@ xdump978:
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 xlinux-mpu9150:
-	go get -d -v github.com/ccicchitelli/linux-mpu9150/mpu
+	go get -d -v github.com/cyoung/linux-mpu9150/mpu
 	cd linux-mpu9150 && make -f Makefile-native-shared
-	go build -o $(BUILDINFO) linux-mpu9150/mpu/mpu.go 
+	go build -o $(BUILDINFO) linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
 
 .PHONY: test
 test:
