@@ -1440,8 +1440,12 @@ func attitudeReaderSender() {
 		<-timer.C
 		// Read pitch and roll.
 		// get data from 9250, calculate, then set pitch and roll
-		var d = mpu.ReadMPURaw()
-		AHRSupdate(d.gx, d.gy, d.gz, d.ax, d.ay, d.az, d.mx, d.my, d.mz)
+		d, err := mpu.ReadMPURaw()
+		if err != nil {
+			log.Printf("error: attitudeReaderSender(): %s\n", err.Error())
+			continue
+		}
+		AHRSupdate(float64(d.Gx), float64(d.Gy), float64(d.Gz), float64(d.Ax), float64(d.Ay), float64(d.Az), float64(d.Mx), float64(d.My), float64(d.Mz))
 		//pitch, roll, err_mpu6050 := readMPU6050()
 		pitch, roll := GetCurrentAttitudeXY()
 
