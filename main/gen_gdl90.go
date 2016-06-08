@@ -1204,6 +1204,9 @@ func main() {
 		globalStatus.HardwareBuild = "FlightBox"
 		debugLogf = debugLog_FB
 		dataLogFilef = dataLogFile_FB
+	} else { // if not using the FlightBox config, use "normal" log file locations
+		debugLogf = debugLog
+		dataLogFilef = dataLogFile
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
