@@ -1948,8 +1948,12 @@ func gpsAttitudeSender() {
 					//	makeFFAHRSSimReport()
 					//} else if globalSettings.AHRS_GDL90_Enabled == true {
 					//globalSettings.ForeFlightSimMode = false // both can't be simultaneoussly active
-					makeAHRSGDL90Report()
+					//makeAHRSGDL90Report()
 					//}
+
+					if globalSettings.AHRS_GDL90_Enabled == true {
+						makeAHRSGDL90Report()
+					}
 				}
 				mySituation.mu_GPSPerf.Unlock()
 			}
@@ -1980,9 +1984,9 @@ func attitudeReaderSender() {
 		//		if isGPSGroundTrackValid(), etc.
 
 		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		//if globalSettings.AHRS_GDL90_Enabled == true {
-		makeAHRSGDL90Report()
-		//}
+		if globalSettings.AHRS_GDL90_Enabled == true {
+			makeAHRSGDL90Report()
+		}
 
 		mySituation.mu_Attitude.Unlock()
 	}

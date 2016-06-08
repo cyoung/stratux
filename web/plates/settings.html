@@ -23,7 +23,7 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="control-label col-xs-7">AHRS</label>
+					<label class="control-label col-xs-7"><a ui-turn-on="modalAHRSHardwareInfo">AHRS Module</a></label>
 					<div class="col-xs-5">
 						<ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
 					</div>
@@ -64,6 +64,12 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Configuration</div>
 			<div class="panel-body">
+				<div class="form-group">
+					<label class="control-label col-xs-7"><a ui-turn-on="modalAHRSWarning">AHRS Output to EFB</a></label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='AHRS_GDL90_Enabled' settings-change ui-turn-on="modalAHRSWarning"></ui-switch>
+					</div>
+				</div>
 				<div class="form-group reset-flow">
 					<label class="control-label col-xs-5">Mode S Code (Hex)</label>
 					<form name="modeForm" ng-submit="updatemodes()" novalidate>
@@ -188,6 +194,50 @@
     	  </div>
     </div>
   </div> 
+  
+	<div class="modal" ui-if="modalAHRSHardwareInfo" ui-state="modalAHRSHardwareInfo">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalAHRSHardwareInfo"></button>
+						<h4 class="modal-title">AHRS Module Support: Information Note</h4>
+					</div>
+					<div class="modal-body">
+						<p>Enabling this option will allow Stratux to read a BMP180 pressure sensor and a MPU6050 6-axis gyro / accelerometer connected to the Raspberry Pi GPIO (I2C) pins. The Reyax RY835AI AHRS / GPS module includes both of these sensors.</p>
+						<p><strong>AHRS support is still experimental, and will not correctly indicate roll angle during coordinated turns.</strong></p>
+						<p>Refer to the README / FAQ at <a href="http://stratux.me">stratux.me</a> for current hardware support.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalAHRSHardwareInfo" class="btn btn-primary">Acknowledge</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div> 
 
+	<div class="modal" ui-if="modalAHRSWarning" ui-state="modalAHRSWarning">
+		<div class="modal-overlay "></div>
+       	<div class="vertical-alignment-helper center-block">
+        	<div class="modal-dialog vertical-align-center">
+   			  <div class="modal-content">
+				<div class="modal-header">
+				  <button class="close" 
+						  ui-turn-off="modalAHRSWarning"></button>
+				  <h4 class="modal-title">AHRS Output to EFB: Compatibility Note</h4>
+				</div>
+				<div class="modal-body">
+				  <p>This option must be enabled to send AHRS messages to compatible EFBs (WingX, iFly, etc.) over the WiFi interface using the GDL90 protocol. If <strong>AHRS Module</strong> is not enabled or AHRS hardware is not present, Stratux will estimate pitch and bank angles from GPS groundspeed, climb rate, and turn rate.</p>
+				  <p><strong>AHRS output is not compatible with ForeFlight 7.6, and must be disabled for ForeFlight 7.6 to work at all. Stratux will automatically disable AHRS output if it detects a connected ForeFlight client.</strong></p>
+				</div>
+				<div class="modal-footer">
+				  <a ui-turn-off="modalAHRSWarning" class="btn btn-primary">Acknowledge</a>
+				</div>
+			  </div>
+    	  </div>
+    </div>
+  </div> 
+	
 </div>
 
