@@ -3,16 +3,6 @@
 		<p><strong>Version: <span>{{Version}} ({{Build}})</span></strong></p>
 	</div>
 	<div class="panel panel-default">
-		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
-			<span class="panel_label">Errors</span>
-		</div>
-		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
-			<ul>
-				<li class="status-error" ng-repeat="err in Errors">
-					<span class="fa fa-exclamation-triangle icon-red"></span> <span class="icon-red">{{err}}</span>
-				</li>
-			</ul>
-		</div>
 		<div class="panel-heading">
 			<span class="panel_label">Status</span>
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
@@ -93,8 +83,8 @@
 						<span class="col-xs-7">{{CPUTemp}}</span>
 					</div>
 				</div>
-
-				<div class="separator"></div>
+				
+				<!--				
 				<div class="row">
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-4"><strong>Stratux Clock:</strong></span>
@@ -109,7 +99,27 @@
 						<span class="col-xs-8">{{SecondsFast}} sec</span>
 					</div>
 				</div>
+				-->	
+				
 			</div>
-		</div>
+		</div>	
 	</div>
+
+	<div class="panel panel-default">
+		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
+			<span class="panel_label">Errors</span>
+		</div>
+		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
+			<ul>
+				<li class="status-error" ng-repeat="err in Errors">
+					<span class="fa fa-exclamation-triangle icon-red"></span> <span class="icon-red">{{err}}</span>
+				</li>
+				</ul>
+			</div>
+	</div>
+				
+				
+		
+				
+			
 </div>

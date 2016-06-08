@@ -963,7 +963,6 @@ type settings struct {
 	OwnshipModeS         string
 	WatchList            string
 	AHRS_GDL90_Enabled   bool
-	GPSAttitude_Enabled  bool
 }
 
 type status struct {
@@ -1017,7 +1016,6 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.AHRS_GDL90_Enabled = false
-	globalSettings.GPSAttitude_Enabled = false
 }
 
 func readSettings() {
@@ -1218,7 +1216,7 @@ func main() {
 		globalStatus.HardwareBuild = "FlightBox"
 		debugLogf = debugLog_FB
 		dataLogFilef = dataLogFile_FB
-	} else {
+	} else { // if not using the FlightBox config, use "normal" log file locations
 		debugLogf = debugLog
 		dataLogFilef = dataLogFile
 	}
