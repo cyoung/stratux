@@ -1218,6 +1218,9 @@ func main() {
 		globalStatus.HardwareBuild = "FlightBox"
 		debugLogf = debugLog_FB
 		dataLogFilef = dataLogFile_FB
+	} else {
+		debugLogf = debugLog
+		dataLogFilef = dataLogFile
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")

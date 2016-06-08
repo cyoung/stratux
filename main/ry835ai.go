@@ -659,7 +659,8 @@ func calcGPSAttitude() bool {
 				log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
 				return false
 			} else {
-				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
+				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810   // units are knots, converted to feet/sec
+				log.Printf("Avg speed %f calculated from %d RMC messages\n", v_x, lengthSpeed) // FIXME
 			}
 		}
 
@@ -685,8 +686,8 @@ func calcGPSAttitude() bool {
 				log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
 				return false
 			} else {
-				v_z = slope // units are feet/sec
-
+				v_z = slope                                                                 // units are feet/sec
+				log.Printf("Avg VV %f calculated from %d GGA messages\n", v_z, lengthSpeed) // FIXME
 			}
 		}
 
@@ -708,6 +709,7 @@ func calcGPSAttitude() bool {
 		if globalSettings.DEBUG {
 			log.Printf("%s", buf) // FIXME. Send to sqlite log or other file?
 		}
+		logGPSAttitude(myGPSPerfStats[index])
 		//replayLog(buf, MSGCLASS_AHRS)
 
 		return true
@@ -820,7 +822,7 @@ func calcGPSAttitude() bool {
 	if globalSettings.DEBUG {
 		log.Printf("%s", buf) // FIXME. Send to sqlite log or other file?
 	}
-
+	logGPSAttitude(myGPSPerfStats[index])
 	//replayLog(buf, MSGCLASS_AHRS)
 	return true
 }
