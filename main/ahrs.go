@@ -5,7 +5,6 @@ import "math"
 var sampleFreq float64 = 512.0
 var beta float64 = 0.1 //values of 0.02 or 0.025 have also been suggested
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
-var attitudeX, attitudeY, attitudeZ float32
 
 // Gets the current attitude represented as X (roll) and Y (pitch) values,
 // resulting in less computational load as the Z (yaw) value is not calculated.
@@ -16,8 +15,8 @@ func GetCurrentAttitudeXY() (float32, float32) {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
-	attitudeY = float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
+	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
+	attitudeY := float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
 
 	return attitudeX, attitudeY
 }
@@ -30,9 +29,9 @@ func GetCurrentAttitudeXYZ() (float32, float32, float32) {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
-	attitudeY = float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
-	attitudeZ = float32(math.Atan2(2*(q0a*q3a+q1a*q2a), 1-2*((q2a*q2a)+(q3a*q3a))))
+	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
+	attitudeY := float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
+	attitudeZ := float32(math.Atan2(2*(q0a*q3a+q1a*q2a), 1-2*((q2a*q2a)+(q3a*q3a))))
 
 	return attitudeX, attitudeY, attitudeZ
 }
