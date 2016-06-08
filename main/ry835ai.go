@@ -570,7 +570,7 @@ func calcGPSAttitude() bool {
 	var lengthHeading, lengthSpeed int
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
-	halfwidth := float64(2.0)                         // width of regression evaluation window. Default of 2.0 seconds for 5 Hz sampling; can increase to 5 sec @ 1 Hz
+	halfwidth := float64(1.4)                         // width of regression evaluation window. Default of 1.4 seconds for 5 Hz sampling; can increase to 3.5 sec @ 1 Hz
 
 	// frequency detection
 	tempSpeedTime = make([]float64, 0)
@@ -586,16 +586,16 @@ func calcGPSAttitude() bool {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
 		}
-		halfwidth = 10 * dt_avg
+		halfwidth = 7 * dt_avg
 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
 		}
-		halfwidth = 3.0
+		halfwidth = 3.5
 	}
 
-	if halfwidth > 5 {
-		halfwidth = 5 // limit calculation window to 5 seconds of data for 2 Hz or slower samples
+	if halfwidth > 3.5 {
+		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
 	}
 
 	if globalStatus.GPS_detected_type == GPS_TYPE_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
@@ -659,8 +659,8 @@ func calcGPSAttitude() bool {
 				log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
 				return false
 			} else {
-				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810   // units are knots, converted to feet/sec
-				log.Printf("Avg speed %f calculated from %d RMC messages\n", v_x, lengthSpeed) // FIXME
+				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
+				//log.Printf("Avg speed %f calculated from %d RMC messages\n", v_x, lengthSpeed) // DEBUG
 			}
 		}
 
@@ -686,8 +686,8 @@ func calcGPSAttitude() bool {
 				log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
 				return false
 			} else {
-				v_z = slope                                                                 // units are feet/sec
-				log.Printf("Avg VV %f calculated from %d GGA messages\n", v_z, lengthSpeed) // FIXME
+				v_z = slope // units are feet/sec
+				//log.Printf("Avg VV %f calculated from %d GGA messages\n", v_z, lengthSpeed) // DEBUG
 			}
 		}
 
