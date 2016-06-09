@@ -1,0 +1,56 @@
+alias stratux-off='shutdown -P now'
+
+alias eeprom='rtl_eeprom'
+alias sa='service --status-all'
+alias stxrestart='service stratux restart'
+alias stxstop='service stratux stop'
+alias stxstart='service stratux start'
+
+alias sdr0='rtl_eeprom -d 0'
+alias sdr1='rtl_eeprom -d 1'
+
+alias sdrs='sdr0 || sdr1'
+
+alias d90='dump1090'
+alias d900='dump1090 --device-index 0 --interactive'
+alias d901='dump1090 --device-index 1 --interactive'
+
+alias kal0='kal -d 0 -s GSM850 -g 47'
+alias kal1='kal -d 1 -s GSM850 -g 47'
+
+alias kalChan0='function _kalChan0 () { kal -d 0 -g 47 -c $1; unset -f _kalChan0; }; _kalChan0'
+alias kalChan1='function _kalChan1 () { kal -d 1 -g 47 -c $1; unset -f _kalChan1; }; _kalChan1'
+
+alias setSerial0='function _setSerial0 () { rtl_eeprom -d 0 -s stx:0:$1; unset -f _setSerial0; }; _setSerial0'
+alias setSerial1='function _setSerial0 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
+
+
+alias stratux-help='_stxhelp'
+
+function _stxhelp() {
+echo ""
+echo "###################################################"
+echo ""
+echo "These are commands avalible to you to debug Stratux"
+echo ""
+echo "###################################################"
+echo ""
+echo "stratux-off               Shutdown Stratux"
+echo "sa                        List all services running, check for '[+] stratux'"
+echo "stxrestart                Restart Startux service only"
+echo "stxstop                   Stop Stratux Service."
+echo "stxstart          Start Stratux Service."
+echo "sdr0                      Test to see if sdr0 is in use by Stratux."
+echo "sdr1                      Test to see if sdr1 is in use by Startux."
+echo "sdrs                      Test to see if both SDRs are in use by Stratux."
+echo "d90                       List my SDRs with serials"
+echo "d900                      Run dump1090 on SDR0 in interactive mode."
+echo "d901                      Run dump1090 on SDR0 in interactive mode."
+echo "kal0                      Find Channels for calibrating PPM of SDR0."
+echo "kal1                      Find Channels for calibrating PPM of SDR1."
+echo "kalChan0          Use the Chan from above to get ppm pf SDR0. Example: kalChan0 151"
+echo "kalChan1          Use the Chan from above to get ppm pf SDR1. Example: kalChan1 151"
+echo "setSerial0                Set the PPM error to SDR0. Value from kalChan0. Example: setSerial0 -45"
+echo "setSerial1                Set the PPM error to SDR1. Value from kalChan1. Example: setSerial0 23"
+
+}

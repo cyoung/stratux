@@ -160,6 +160,19 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", towersJSON)
 }
 
+// AJAX call - /getSatellites. Responds with all GNSS satellites that are being tracked, along with status information.
+func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	setJSONHeaders(w)
+	satelliteMutex.Lock()
+	satellitesJSON, err := json.Marshal(&Satellites)
+	if err != nil {
+		log.Printf("Error sending GNSS satellite JSON data: %s\n", err.Error())
+	}
+	fmt.Fprintf(w, "%s\n", satellitesJSON)
+	satelliteMutex.Unlock()
+}
+
 // AJAX call - /getSettings. Responds with all stratux.conf data.
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
@@ -205,11 +218,12 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.AHRS_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
+					case "DisplayTrafficSource":
+						globalSettings.DisplayTrafficSource = val.(bool)
 					case "ReplayLog":
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
-							replayMark(v)
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
@@ -256,7 +270,11 @@ func doReboot() {
 }
 
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
-	doReboot()
+	setNoCache(w)
+	setJSONHeaders(w)
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+	go delayReboot()
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -453,6 +471,7 @@ func managementInterface() {
 	http.HandleFunc("/getStatus", handleStatusRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
+	http.HandleFunc("/getSatellites", handleSatellitesRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
 	http.HandleFunc("/shutdown", handleShutdownRequest)

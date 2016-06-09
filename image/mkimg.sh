@@ -37,6 +37,9 @@ cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
 #hostapd config
 cp -f hostapd.conf mnt/etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-edimax.conf
+#hostapd manager script
+cp -f hostapd_manager.sh mnt/usr/sbin/hostapd_manager.sh
+chmod 755 mnt/usr/sbin/hostapd_manager.sh
 #hostapd
 cp -f hostapd-edimax mnt/usr/sbin/hostapd-edimax
 chmod 755 mnt/usr/sbin/hostapd-edimax
@@ -54,6 +57,9 @@ cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
 #sshd config
 cp -f sshd_config mnt/etc/ssh/sshd_config
 
+#udev config
+cp -f 10-stratux.rules mnt/etc/udev/rules.d
+
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
 cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
@@ -61,6 +67,9 @@ cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
 cp -f bashrc.txt mnt/root/.bashrc
+
+#debug aliases
+cp -f stxAliases.txt mnt/root/.stxAliases
 
 #rtl-sdr setup
 cp -f rtl-sdr-blacklist.conf mnt/etc/modprobe.d/

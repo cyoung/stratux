@@ -1,12 +1,12 @@
 angular.module('appControllers').controller('SettingsCtrl', SettingsCtrl); // get the main module contollers set
-SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$http']; // Inject my dependencies
+SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$location', '$window', '$http']; // Inject my dependencies
 
 // create our controller function with all necessary logic
-function SettingsCtrl($rootScope, $scope, $state, $http) {
+function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DEBUG', 'ReplayLog']; // DEBUG is 'DspTrafficSrc'
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -21,7 +21,7 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
 		$scope.AHRS_Enabled = settings.AHRS_Enabled;
-		$scope.PowerSave = settings.PowerSave
+		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.PPM = settings.PPM;
@@ -91,9 +91,12 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 
 	$scope.updatewatchlist = function () {
 		if ($scope.WatchList !== settings["WatchList"]) {
-			settings["WatchList"] = $scope.WatchList.toUpperCase();
+			settings["WatchList"] = "";
+			if ($scope.WatchList !== undefined) {
+				settings["WatchList"] = $scope.WatchList.toUpperCase();
+			}
 			newsettings = {
-				"WatchList": $scope.WatchList.toUpperCase()
+				"WatchList": settings["WatchList"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
@@ -111,11 +114,27 @@ function SettingsCtrl($rootScope, $scope, $state, $http) {
 	};
 
 	$scope.postShutdown = function () {
-		$http.post('/shutdown');
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_SHUTDOWN).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
 	};
 
 	$scope.postReboot = function () {
-		$http.post('/reboot');
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_REBOOT).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
 	};
 
 	$scope.setUploadFile = function (files) {
