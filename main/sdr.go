@@ -46,6 +46,11 @@ var UATDev *UAT
 // ESDev holds a 1090 MHz dongle object
 var ESDev *ES
 
+type Dump1090TermMessage struct {
+	Text   string
+	Source string
+}
+
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
@@ -100,7 +105,8 @@ func (e *ES) read() {
 			default:
 				n, err := stdout.Read(stdoutBuf)
 				if err == nil && n > 0 {
-					replayLog(string(stdoutBuf[:n]), MSGCLASS_DUMP1090)
+					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stdout"}
+					logDump1090TermMessage(m)
 				}
 			}
 		}
@@ -114,7 +120,8 @@ func (e *ES) read() {
 			default:
 				n, err := stderr.Read(stderrBuf)
 				if err == nil && n > 0 {
-					replayLog(string(stderrBuf[:n]), MSGCLASS_DUMP1090)
+					m := Dump1090TermMessage{Text: string(stderrBuf[:n]), Source: "stderr"}
+					logDump1090TermMessage(m)
 				}
 			}
 		}
@@ -221,6 +228,9 @@ func (u *UAT) sdrConfig() (err error) {
 		return
 	}
 	log.Printf("\tSetTunerGain Successful\n")
+
+	tgain := u.dev.GetTunerGain()
+	log.Printf("\tGetTunerGain: %d\n", tgain)
 
 	//---------- Get/Set Sample Rate ----------
 	err = u.dev.SetSampleRate(SampleRate)
@@ -419,6 +429,8 @@ func configDevices(count int, esEnabled, uatEnabled bool) {
 	for i := 0; i < count; i++ {
 		_, _, s, err := rtl.GetDeviceUsbStrings(i)
 		if err == nil {
+			//FIXME: Trim NULL from the serial. Best done in gortlsdr, but putting this here for now.
+			s = strings.Trim(s, "\x00")
 			// no need to check if createXDev returned an error; if it
 			// failed to config the error is logged and we can ignore
 			// it here so it doesn't get queued up again

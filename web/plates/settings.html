@@ -37,13 +37,19 @@
 			<div class="panel-heading">Diagnostics</div>
 			<div class="panel-body">
 				<div class="form-group">
-					<label class="control-label col-xs-7">Traffic Markings</label>
+					<label class="control-label col-xs-7">Show Traffic Source in Callsign</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='DisplayTrafficSource' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Verbose Message Log</label>
 					<div class="col-xs-5">
 						<ui-switch ng-model='DEBUG' settings-change></ui-switch>
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="control-label col-xs-7">Record Logs</label>
+					<label class="control-label col-xs-7">Record Replay Logs</label>
 					<div class="col-xs-5">
 						<ui-switch ng-model='ReplayLog' settings-change></ui-switch>
 					</div>
