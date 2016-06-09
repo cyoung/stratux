@@ -466,11 +466,11 @@ func ffMonitor() {
 
 	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
-	defer conn.Close()
 	if err != nil {
 		log.Printf("ffMonitor(): error listening on port 50113: %s\n", err.Error())
 		return
 	}
+	defer conn.Close()
 	for {
 		buf := make([]byte, 1024)
 		n, addr, err := conn.ReadFrom(buf)
