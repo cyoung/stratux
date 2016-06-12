@@ -21,7 +21,7 @@ xdump1090:
 	cd dump1090 && make
 
 xlinux-mpu9150:
-	go get -d -v github.com/cyoung/linux-mpu9150/mpu
+	go get -d -v github.com/ccicchitelli/linux-mpu9150/mpu
 	cd linux-mpu9150 && make -f Makefile-native-shared
 	go build -o linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
 
