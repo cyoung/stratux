@@ -16,7 +16,7 @@ import (
 	"log"
 	"math"
 	"net"
-	//"strconv"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -149,6 +149,8 @@ var traffic map[uint32]TrafficInfo
 var trafficMutex *sync.Mutex
 var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
+var OwnshipTrafficInfo TrafficInfo
+
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
 		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
@@ -166,6 +168,7 @@ func sendTrafficUpdates() {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
+	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
 	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
@@ -194,7 +197,13 @@ func sendTrafficUpdates() {
 		}
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
-			msg = append(msg, makeTrafficReportMsg(ti)...)
+
+			if ti.Icao_addr == uint32(code) { //
+				log.Printf("Ownship target detected for code %X\n", code) // DEBUG - REMOVE
+				OwnshipTrafficInfo = ti
+			} else {
+				msg = append(msg, makeTrafficReportMsg(ti)...)
+			}
 		}
 	}
 
@@ -597,7 +606,7 @@ func esListen() {
 			var thisMsg msg
 			thisMsg.MessageClass = MSGCLASS_ES
 			thisMsg.TimeReceived = stratuxClock.Time
-			thisMsg.Data = []byte(buf)
+			thisMsg.Data = buf
 			MsgLog = append(MsgLog, thisMsg)
 
 			var eslog esmsg
