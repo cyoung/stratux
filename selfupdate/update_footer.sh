@@ -32,6 +32,9 @@ cp -f stxAliases /root/.stxAliases
 # /etc/modules
 cp -f modules.txt /etc/modules
 
+#motd
+cp -f motd /etc/motd
+
 cp -f dump1090 /usr/bin/
 
 # Web files install.
