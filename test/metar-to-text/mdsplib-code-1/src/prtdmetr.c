@@ -20,6 +20,58 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "metar_structs.h"
 
 
+void say_text(char *speech, char *text) {
+ int i;
+ char tmp[2];
+ for (i = 0; i < strlen(text); i++) {
+  switch(text[i]) {
+   case '-':
+    strcat(speech, "minus");
+    break;
+   case '0':
+    strcat(speech, "zero");
+    break;
+   case '1':
+    strcat(speech, "one");
+    break;
+   case '2':
+    strcat(speech, "two");
+    break;
+   case '3':
+    strcat(speech, "three");
+    break;
+   case '4':
+    strcat(speech, "four");
+    break;
+   case '5':
+    strcat(speech, "five");
+    break;
+   case '6':
+    strcat(speech, "six");
+    break;
+   case '7':
+    strcat(speech, "seven");
+    break;
+   case '8':
+    strcat(speech, "eight");
+    break;
+   case '9':
+    strcat(speech, "niner");
+    break;
+   case '@':
+    strcat(speech, "at");
+    break;
+   default:
+    sprintf(tmp, "%c", text[i]);
+    strcat(speech, tmp);
+    break;
+  }
+  strcat(speech, " ");
+ }
+}
+
+
+
 void sprint_metar (char * string, Decoded_METAR *Mptr)
 {
  
@@ -34,116 +86,87 @@ void sprint_metar (char * string, Decoded_METAR *Mptr)
    /* START BODY OF ROUTINE */
    /*************************/
  
-   sprintf(string, "\n\n\n/*******************************************/\n");
-   strcat(string, "/*    THE DECODED METAR REPORT FOLLOWS     */\n");
-   strcat(string, "/*******************************************/\n\n");
- 
-   if ( Mptr->codeName[ 0 ] != '\0' ) {
-      sprintf(temp, "REPORT CODE NAME    : %s\n",Mptr->codeName);
-      strcat(string, temp);
+
+   strcat(string, "ME TAR. ");
+
+   if ( Mptr->stnid[ 0 ] == '\0' ) {
+    strcat(string, "Error");
+    return;
+   }
+
+   for (i = 0; i < strlen(Mptr->stnid); i++) {
+     sprintf(temp, "%c ", Mptr->stnid[i]);
+     strcat(string, temp);
+   }
+   strcat(string, ". ");
+
+   if (Mptr->ob_hour != MAXINT && Mptr->ob_minute != MAXINT) {
+      if (Mptr->AUTO) {
+       strcat(string, "Automated ");
+      }
+      if (Mptr->COR) {
+       strcat(string, "Corrected ");
+      }
+      strcat(string, "Observation ");
+      sprintf(temp, "%d%d", Mptr->ob_hour, Mptr->ob_minute);
+      say_text(string, temp);
+      strcat(string, "zulu. ");
    }
  
-   if ( Mptr->stnid[ 0 ] != '\0' ) {
-      sprintf(temp, "STATION ID          : %s\n",Mptr->stnid);
-      strcat(string, temp);
+   strcat(string, "Wind ");
+   if (Mptr->winData.windDir != MAXINT) {
+    sprintf(temp, "%03d", Mptr->winData.windDir);
+    say_text(string, temp);
    }
- 
-   if ( Mptr->ob_date != MAXINT ) {
-      sprintf(temp, "OBSERVATION DAY     : %d\n",Mptr->ob_date);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->ob_hour != MAXINT ) {
-      sprintf(temp, "OBSERVATION HOUR    : %d\n",Mptr->ob_hour);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->ob_minute != MAXINT ) {
-      sprintf(temp, "OBSERVATION MINUTE  : %d\n",Mptr->ob_minute);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->NIL_rpt ) {
-      sprintf(temp, "NIL REPORT          : TRUE\n");
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->AUTO ) {
-      sprintf(temp, "AUTO REPORT         : TRUE\n");
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->COR ) {
-      sprintf(temp, "CORRECTED REPORT    : TRUE\n");
-      strcat(string, temp);
-   }
- 
+
    if ( Mptr->winData.windVRB ) {
-      sprintf(temp, "WIND DIRECTION VRB  : TRUE\n");
-      strcat(string, temp);
+      strcat(string, "variable ");
    }
  
-   if ( Mptr->winData.windDir != MAXINT ) {
-      sprintf(temp, "WIND DIRECTION      : %d\n",Mptr->winData.windDir);
-      strcat(string, temp);
+  //FIXME.
+   if ( Mptr->minWnDir != MAXINT ) {
+      sprintf(temp, "%03d", Mptr->minWnDir);
+      say_text(string, temp);
    }
+
+   //FIXME.
+   if ( Mptr->maxWnDir != MAXINT ) {
+      sprintf(temp, "%03d", Mptr->maxWnDir);
+      say_text(string, temp);
+   }
+
  
    if ( Mptr->winData.windSpeed != MAXINT ) {
-      sprintf(temp, "WIND SPEED          : %d\n",Mptr->winData.windSpeed);
-      strcat(string, temp);
+      sprintf(temp, "@%d", Mptr->winData.windSpeed);
+      say_text(string, temp);
+   } else {
+    strcat(string, "calm ");
    }
  
    if ( Mptr->winData.windGust != MAXINT ) {
-      sprintf(temp, "WIND GUST           : %d\n",Mptr->winData.windGust);
-      strcat(string, temp);
+      strcat(string, "gusting ");
+      sprintf(temp, "%d", Mptr->winData.windGust);
+      say_text(string, temp);
    }
- 
-   if ( Mptr->winData.windUnits[ 0 ] != '\0' ) {
-      sprintf(temp, "WIND UNITS          : %s\n",Mptr->winData.windUnits);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->minWnDir != MAXINT ) {
-      sprintf(temp, "MIN WIND DIRECTION  : %d\n",Mptr->minWnDir);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->maxWnDir != MAXINT ) {
-      sprintf(temp, "MAX WIND DIRECTION  : %d\n",Mptr->maxWnDir);
-      strcat(string, temp);
-   }
- 
+
+   strcat(string, ". ");
+  
    if ( Mptr->prevail_vsbyM != (float) MAXINT ) {
-      sprintf(temp, "PREVAIL VSBY (M)    : %f\n",Mptr->prevail_vsbyM);
-      strcat(string, temp);
+      strcat(string, "Visibility ");
+      sprintf(temp, "%d", (int)Mptr->prevail_vsbyM);
+      say_text(string, temp);
+      strcat(string, "miles. ");
    }
- 
-   if ( Mptr->prevail_vsbyKM != (float) MAXINT ) {
-      sprintf(temp, "PREVAIL VSBY (KM)   : %f\n",Mptr->prevail_vsbyKM);
-      strcat(string, temp);
-   }
- 
+  
    if ( Mptr->prevail_vsbySM != (float) MAXINT ) {
-      sprintf(temp, "PREVAIL VSBY (SM)   : %.3f\n",Mptr->prevail_vsbySM);
-      strcat(string, temp);
+      strcat(string, "Visibility ");
+      sprintf(temp, "%d", (int)Mptr->prevail_vsbySM);
+      say_text(string, temp);
+      strcat(string, "miles. ");
    }
-/*
-   if ( Mptr->charPrevailVsby[0] != '\0' ) {
-      sprintf(temp, "PREVAIL VSBY (CHAR) : %s\n",Mptr->charPrevailVsby);
-      strcat(string, temp);
-   }
-*/
-   if ( Mptr->vsby_Dir[ 0 ] != '\0' ) {
-      sprintf(temp, "VISIBILITY DIRECTION: %s\n",Mptr->vsby_Dir);
-      strcat(string, temp);
-   }
- 
-   if ( Mptr->RVRNO ) {
-      sprintf(temp, "RVRNO               : TRUE\n");
-      strcat(string, temp);
-   }
- 
-   for ( i = 0; i < 12; i++ )
+
+
+/*   for ( i = 0; i < 12; i++ )
    {
       if( Mptr->RRVR[i].runway_designator[0] != '\0' ) {
          sprintf(temp, "RUNWAY DESIGNATOR   : %s\n",
@@ -220,6 +243,7 @@ void sprint_metar (char * string, Decoded_METAR *Mptr)
       strcat(string, temp);
    }
  
+
    i = 0;
    while ( Mptr->WxObstruct[i][0] != '\0' && i < MAXWXSYMBOLS )
    {
@@ -253,61 +277,89 @@ void sprint_metar (char * string, Decoded_METAR *Mptr)
             &(Mptr->PartialObscurationPhenom[1][0]));
       strcat(string, temp);
    }
- 
+ */
+
+   strcat(string, "Sky condition ");
+
    i = 0;
    while ( Mptr->cldTypHgt[ i ].cloud_type[0] != '\0' &&
                      i < 6 )
    {
       if ( Mptr->cldTypHgt[ i ].cloud_type[0] != '\0' ) {
-         sprintf(temp, "CLOUD COVER         : %s\n",
-            Mptr->cldTypHgt[ i ].cloud_type);
-         strcat(string, temp);
+		  if (strcmp(Mptr->cldTypHgt[ i ].cloud_type, "CLR") == 0) {
+			  strcat(string, "clear. ");
+		  } else {
+			  if (strcmp(Mptr->cldTypHgt[ i ].cloud_type, "FEW") == 0) {
+				  strcat(string, "scattered ");
+			  }
+			  if (strcmp(Mptr->cldTypHgt[ i ].cloud_type, "SCT") == 0) {
+				  strcat(string, "scattered ");
+			  }
+			  if (strcmp(Mptr->cldTypHgt[ i ].cloud_type, "BKN") == 0) {
+				  strcat(string, "broken ");
+			  }
+			  if (strcmp(Mptr->cldTypHgt[ i ].cloud_type, "OVC") == 0) {
+				  strcat(string, "overcast ");
+			  }
+			  //TODO: Others?
+		  }
       }
  
       if ( Mptr->cldTypHgt[ i ].cloud_hgt_char[0] != '\0' ) {
-         sprintf(temp, "CLOUD HGT (CHARAC.) : %s\n",
-            Mptr->cldTypHgt[ i ].cloud_hgt_char);
-         strcat(string, temp);
+		  char thousands[4];
+		  char hundreds[4];
+		  int height = atoi(Mptr->cldTypHgt[i].cloud_hgt_char);
+		  if ((height - (height%10)) > 0) {
+			  sprintf(thousands, "%d", height/10);
+			  say_text(string, thousands);
+			  strcat(string, "thousand ");
+		  }
+		  if (height%10) {
+			  sprintf(hundreds, "%d", height%10);
+			  say_text(string, hundreds);
+			  strcat(string, "hundred ");
+		  }
       }
  
-      if ( Mptr->cldTypHgt[ i ].cloud_hgt_meters != MAXINT) {
-         sprintf(temp, "CLOUD HGT (METERS)  : %d\n",
-            Mptr->cldTypHgt[ i ].cloud_hgt_meters);
-         strcat(string, temp);
-      }
- 
+	  strcat(string, ". ");
+	  /*
+	  //TODO: TCU, Towering Cumulus, etc.
       if ( Mptr->cldTypHgt[ i ].other_cld_phenom[0] != '\0' ) {
          sprintf(temp, "OTHER CLOUD PHENOM  : %s\n",
             Mptr->cldTypHgt[ i ].other_cld_phenom);
          strcat(string, temp);
       }
+	  */
  
       i++;
  
    }
  
    if ( Mptr->temp != MAXINT ) {
-      sprintf(temp, "TEMP. (CELSIUS)     : %d\n", Mptr->temp);
-      strcat(string, temp);
+	   strcat(string, "Temperature ");
+	   sprintf(temp, "%d", Mptr->temp);
+	   say_text(string, temp);
+	   strcat(string, "celsius. ");
    }
  
    if ( Mptr->dew_pt_temp != MAXINT ) {
-      sprintf(temp, "D.P. TEMP. (CELSIUS): %d\n", Mptr->dew_pt_temp);
-      strcat(string, temp);
+	   strcat(string, "Dew point ");
+	   sprintf(temp, "%d", Mptr->dew_pt_temp);
+	   say_text(string, temp);
+	   strcat(string, "celsius. ");
    }
  
    if ( Mptr->A_altstng ) {
-      sprintf(temp, "ALTIMETER (INCHES)  : %.2f\n",
-         Mptr->inches_altstng );
-      strcat(string, temp);
+	   strcat(string, "Altimeter ");
+	   sprintf(temp, "%d", (int)Mptr->inches_altstng);
+	   say_text(string, temp);
+	   strcat(string, ", ");
+	   sprintf(temp, "%02d", (int)(100*Mptr->inches_altstng)%100);
+	   say_text(string, temp);
+	   strcat(string, ". ");
    }
  
-   if ( Mptr->Q_altstng ) {
-      sprintf(temp, "ALTIMETER (PASCALS) : %d\n",
-         Mptr->hectoPasc_altstng );
-      strcat(string, temp);
-   }
- 
+ /* 
    if ( Mptr->TornadicType[0] != '\0' ) {
       sprintf(temp, "TORNADIC ACTVTY TYPE: %s\n",
          Mptr->TornadicType );
@@ -870,13 +922,14 @@ void sprint_metar (char * string, Decoded_METAR *Mptr)
                   Mptr->VertVsby );
       strcat(string, temp);
    }
+   */
  
  /*
    if( Mptr->charVertVsby[0] != '\0' )
       sprintf(temp, "Vert. Vsby (CHAR)   : %s\n",
                   Mptr->charVertVsby );
  */
- 
+   /*
    if ( Mptr->QFE != MAXINT ) {
       sprintf(temp, "QFE                 : %d\n", Mptr->QFE);
       strcat(string, temp);
@@ -895,7 +948,7 @@ void sprint_metar (char * string, Decoded_METAR *Mptr)
       sprintf(temp, "MAX VRBL WIND DIR   : %d\n",Mptr->max_vrbl_wind_dir);
       strcat(string, temp);
    }
- 
+ */
  
    strcat(string, "\n\n\n");
 }
@@ -908,5 +961,3 @@ void prtDMETR (Decoded_METAR *Mptr)
 	sprint_metar(string, Mptr);
 	printf(string);
 }
-
-
