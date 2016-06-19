@@ -499,7 +499,7 @@ func ffMonitor() {
 			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
 			globalSettings.AHRS_GDL90_Enabled = false
 			if !ff_warned {
-				e := errors.New("Stratux AHRS is not currently supported by ForeFlight, and AHRS output has been disabled for all connected clients. See the README for a list of apps that officially support Stratux.")
+				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)
 				ff_warned = true
 			}
