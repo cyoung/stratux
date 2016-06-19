@@ -606,7 +606,7 @@ func esListen() {
 			var thisMsg msg
 			thisMsg.MessageClass = MSGCLASS_ES
 			thisMsg.TimeReceived = stratuxClock.Time
-			thisMsg.Data = []byte(buf)
+			thisMsg.Data = buf
 			MsgLog = append(MsgLog, thisMsg)
 
 			var eslog esmsg

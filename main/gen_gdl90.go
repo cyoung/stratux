@@ -114,7 +114,7 @@ var developerMode bool
 type msg struct {
 	MessageClass     uint
 	TimeReceived     time.Time
-	Data             []byte
+	Data             string
 	Products         []uint32
 	Signal_amplitude int
 	Signal_strength  float64
@@ -848,7 +848,7 @@ func parseInput(buf string) ([]byte, uint16) {
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = stratuxClock.Time
-	thisMsg.Data = frame
+	thisMsg.Data = buf
 	thisMsg.Signal_amplitude = thisSignalStrength
 	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
 	thisMsg.Products = make([]uint32, 0)

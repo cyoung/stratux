@@ -31,6 +31,9 @@ cp -f root mnt/etc/ssh/authorized_keys/root
 chown root.root mnt/etc/ssh/authorized_keys/root
 chmod 644 mnt/etc/ssh/authorized_keys/root
 
+#motd
+cp -f motd mnt/etc/motd
+
 #dhcpd config
 cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
 
