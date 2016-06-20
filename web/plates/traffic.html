@@ -9,7 +9,8 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-3"><strong>Callsign</strong></span>
+					<span class="col-xs-3" ng-hide="showReg"><strong>Callsign</strong></span>
+					<span class="col-xs-3" ng-show="showReg"><strong>Tail Num</strong></span>
 					<span class="col-xs-2" ng-hide="showSquawk"><strong>Code</strong></span>
 					<span class="col-xs-2" ng-show="showSquawk"><strong>Squawk</strong></span>
 					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
@@ -29,11 +30,15 @@
 			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3">
+					<span class="col-xs-3" ng-hide="showReg">
 						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
 						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					</span>					
+					<span class="col-xs-3" ng-show="showReg">
+						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
+						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
-				
+
 					<span class="col-xs-2">
 						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 						<span ng-show="showSquawk"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
@@ -61,18 +66,25 @@
 			<div class="separator"></div>
 			<div class="row">
 				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Tail Number</label>
+					<span class="col-xs-3"><ui-switch ng-model='showReg' settings-change></ui-switch></span>
+				</div>
+				<div class="col-sm-4">
 					<label class="control-label col-xs-6">Show Squawk</label>
 					<span class="col-xs-3"><ui-switch ng-model='showSquawk' settings-change></ui-switch></span>
 				</div>
 				<div class="col-sm-4">
-					<label class="control-label col-xs-6">Show Distance</label>
+					<label class="control-label col-xs-6" ng-show="GPS_connected">Show Distance</label>
+					<label class="control-label text-muted col-xs-6" ng-hide="GPS_connected">Show Distance N/A</label>
 					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
 				</div>
+				<!--
 				<div class="col-sm-4">
 					<label class="control-label col-xs-6">GPS Status</label>
 					<span ng-show="GPS_connected" class="label label-success col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">Valid</span>
 					<span ng-hide="GPS_connected" class="label label-danger col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">No Fix</span>
 				</div>
+				-->
 			</div>
 		</div>
 	</div>
@@ -85,7 +97,8 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-4"><strong>Callsign</strong></span>
+					<span class="col-xs-4" ng-hide="showReg"><strong>Callsign</strong></span>
+					<span class="col-xs-4" ng-show="showReg"><strong>Tail Num</strong></span>
 					<span class="col-xs-3"><strong>Code</strong></span>
 					<span class="col-xs-3"><strong>Squawk</strong></span>
 				</div>
@@ -102,9 +115,13 @@
 			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-4">
+					<span class="col-xs-4" ng-hide="showReg">
 						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
 						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					</span>					
+					<span class="col-xs-4" ng-show="showReg">
+						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
+						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
 					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
