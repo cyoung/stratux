@@ -599,9 +599,14 @@ func New(buf string) (*UATMsg, error) {
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
 	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 
+	if len(x) < 2 {
+		return ret, errors.New(fmt.Sprintf("New UATMsg: Invalid format (%s).", buf))
+	}
+
 	/*
-		RS_Err         int
-		SignalStrength int
+		Parse _;rs=?;ss=? - if available.
+			RS_Err         int
+			SignalStrength int
 	*/
 	ret.SignalStrength = -1
 	ret.RS_Err = -1
@@ -628,10 +633,10 @@ func New(buf string) (*UATMsg, error) {
 	}
 
 	if s[0] != '+' { // Only want + ("Uplink") messages currently. - (Downlink) or messages that start with other are discarded.
-		return ret, errors.New("New UATMsg: expecting uplink frames.")
+		return ret, errors.New("New UATMsg: expecting uplink frame.")
 	}
 
-	s = s[1:]
+	s = s[1:] // Remove the preceding '+' or '-' character.
 
 	// Convert the hex string into a byte array.
 	frame := make([]byte, UPLINK_FRAME_DATA_BYTES)
