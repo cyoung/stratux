@@ -2,7 +2,7 @@
 
 	icao2reg: Converts a 24-bit numeric value to a tail number of FAA
     or Canadian registry.
-	
+
 	(c) 2016 AvSquirrel
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -63,8 +63,7 @@ func icao2reg(icao_addr uint32) (string, bool) {
 	nationalOffset := uint32(0xA00001) // default is US
 	tail := ""
 	nation := ""
-	
-	
+
 	// Determine nationality
 	if (icao_addr >= 0xA00001) && (icao_addr <= 0xAFFFFF) {
 		nation = "US"
@@ -75,43 +74,42 @@ func icao2reg(icao_addr uint32) (string, bool) {
 		return "NON-NA", false
 	}
 
-	if (nation =="CA") { // Canada decoding
+	if nation == "CA" { // Canada decoding
 		// First, discard addresses that are not assigned to aircraft on the civil registry
 		if icao_addr > 0xC0CDF8 {
 			//fmt.Printf("%X is a Canada aircraft, but not a CF-, CG-, or CI- registration.\n", icao_addr)
 			return "CA-MIL", false
 		}
-	
+
 		nationalOffset := uint32(0xC00001)
 		serial := int32(icao_addr - nationalOffset)
-		
+
 		// Fifth letter
 		e := serial % 26
-		
+
 		// Fourth letter
-		d := (serial/26) % 26
-		
+		d := (serial / 26) % 26
+
 		// Third letter
-		c := (serial/676) % 26 // 676 == 26*26
-	
+		c := (serial / 676) % 26 // 676 == 26*26
+
 		// Second letter
-		b := (serial/17576) % 26 // 17576 == 26*26*26
-	
-		b_str :="FGI"
-		
-		fmt.Printf("B = %d, C = %d, D = %d, E = %d\n",b,c,d,e)
-		tail = fmt.Sprintf("C%c%c%c%c",b_str[b],c+65,d+65,e+65)
+		b := (serial / 17576) % 26 // 17576 == 26*26*26
+
+		b_str := "FGI"
+
+		fmt.Printf("B = %d, C = %d, D = %d, E = %d\n", b, c, d, e)
+		tail = fmt.Sprintf("C-%c%c%c%c", b_str[b], c+65, d+65, e+65)
 	}
-	
-	if (nation == "US") { // FAA decoding
+
+	if nation == "US" { // FAA decoding
 		// First, discard addresses that are not assigned to aircraft on the civil registry
 		if icao_addr > 0xADF7C7 {
 			//fmt.Printf("%X is a US aircraft, but not on the civil registry.\n", icao_addr)
 			return "US-MIL", false
 		}
 
-
-	serial := int32(icao_addr - nationalOffset)
+		serial := int32(icao_addr - nationalOffset)
 		// First digit
 		a := (serial / 101711) + 1
 
@@ -167,11 +165,9 @@ func icao2reg(icao_addr uint32) (string, bool) {
 			}
 		}
 
-
 		tail = "N" + a_char + b_char + c_char + d_char + e_char
-	
+
 	}
-	
-	
+
 	return tail, true
 }

@@ -1082,7 +1082,7 @@ func icao2reg(icao_addr uint32) (string, bool) {
 		b_str := "FGI"
 
 		//fmt.Printf("B = %d, C = %d, D = %d, E = %d\n",b,c,d,e)
-		tail = fmt.Sprintf("C%c%c%c%c", b_str[b], c+65, d+65, e+65)
+		tail = fmt.Sprintf("C-%c%c%c%c", b_str[b], c+65, d+65, e+65)
 	}
 
 	if nation == "US" { // FAA decoding
