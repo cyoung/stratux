@@ -189,7 +189,7 @@ func formatDLACData(p string) []string {
 
 // Whole frame contents is DLAC encoded text.
 func (f *UATFrame) decodeTextFrame() {
-	if len(f.FISB_data) < f.FISB_length {
+	if len(f.FISB_data) < int(f.FISB_length) {
 		return
 	}
 
