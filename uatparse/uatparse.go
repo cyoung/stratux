@@ -112,6 +112,10 @@ func dlac_decode(data []byte, data_len uint32) string {
 //TODO: Make a new "FISB Time" structure that also encodes the type of timestamp received.
 //TODO: pass up error.
 func (f *UATFrame) decodeTimeFormat() {
+	if len(f.Raw_data) < 3 {
+		return // Can't determine time format.
+	}
+
 	t_opt := ((uint32(f.Raw_data[1]) & 0x01) << 1) | (uint32(f.Raw_data[2]) >> 7)
 
 	var fisb_data []byte
@@ -185,6 +189,10 @@ func formatDLACData(p string) []string {
 
 // Whole frame contents is DLAC encoded text.
 func (f *UATFrame) decodeTextFrame() {
+	if len(f.FISB_data) < len(f.FISB_length) {
+		return
+	}
+
 	p := dlac_decode(f.FISB_data, f.FISB_length)
 
 	f.Text_data = formatDLACData(p)
@@ -473,6 +481,10 @@ func (f *UATFrame) decodeAirmet() {
 
 func (f *UATFrame) decodeInfoFrame() {
 
+	if len(f.Raw_data) < 2 {
+		return // Can't determine Product_id.
+	}
+
 	f.Product_id = ((uint32(f.Raw_data[0]) & 0x1f) << 6) | (uint32(f.Raw_data[1]) >> 2)
 
 	if f.Frame_type != 0 {
@@ -541,9 +553,11 @@ func (u *UATMsg) DecodeUplink() error {
 		if pos+int(frame_length) > total_len {
 			break // Overrun?
 		}
-		if frame_length == 0 && frame_type == 0 {
-			break // No more frames.
+
+		if frame_length == 0 { // Empty frame. Quit here.
+			break
 		}
+
 		pos = pos + 2
 
 		data = data[2 : frame_length+2]
