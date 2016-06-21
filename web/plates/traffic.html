@@ -1,66 +1,133 @@
 <div class="col-sm-12">
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<span class="panel_label">Traffic</span> 
+			<span class="panel_label">ADS-B and TIS-B Traffic</span> 
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
 			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
 		</div>
+
 		<div class="panel-body traffic-page">
 			<div class="row">
-				<div class="col-sm-5">
-					<span class="col-xs-3"><strong>Flight</strong></span>
-					<span class="col-xs-3 text-right">Speed</span>
-					<span class="col-xs-3 text-right">Altitude</span><span class="col-xs-1 col-padding-shift-right">&nbsp;</span>
-					<span class="col-xs-2 text-right">Course</span>
+				<div class="col-sm-6">
+					<span class="col-xs-3"><strong>Callsign</strong></span>
+					<span class="col-xs-2" ng-hide="showSquawk"><strong>Code</strong></span>
+					<span class="col-xs-2" ng-show="showSquawk"><strong>Squawk</strong></span>
+					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
+					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist"><strong>Dist</strong></span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
 				</div>
-				<div class="col-sm-7">
-					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-5">Location</span>
-					<span class="col-xs-2">Power (dB)</span>
-					<span class="col-xs-2 text-right">Age</span>
+				
+				<div class="col-sm-6">
+					<span class="col-xs-3 text-right"><strong>Altitude</strong></span><span class="col-xs-1">&nbsp;</span>
+					<span class="col-xs-2 text-right"><strong>Speed</strong></span>
+					<span class="col-xs-2 text-right"><strong>Course</strong></span>			
+					<span class="col-xs-2 text-right"><strong>Power</strong></span>
+					<span class="col-xs-2 text-right"><strong>Age</strong></span>
 				</div>
 			</div>
-
-			<div class="row" ng-repeat="aircraft in data_list | orderBy: -age">
+			
+			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
-				<div class="col-sm-5">
+				<div class="col-sm-6">
 					<span class="col-xs-3">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype"><strong>{{aircraft.addr_symb}}&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype"><strong class="text-muted">{{aircraft.addr_symb}}&nbsp;{{aircraft.icao}}</strong></span>
+						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
+				
+					<span class="col-xs-2">
+						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
+						<span ng-show="showSquawk"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+					</span>
+					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
+					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}<span style="font-size:50%">NM</span></span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
 
-					<span class="col-xs-3 text-right">{{aircraft.speed}} KTS</span>
+				</div>
+				<div class="col-sm-6">
 					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
 					<span class="col-xs-1 small col-padding-shift-right text-muted">
 						<span ng-show="aircraft.vspeed > 0"><span class="fa fa-ascent"></span>{{aircraft.vspeed}}</span>
 						<span ng-show="aircraft.vspeed < 0"><span class="fa fa-descent"></span>{{0-aircraft.vspeed}}</span>
 					</span>
-					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>
-				</div>
-				<div class="col-sm-7">
-					<span class="col-xs-2">&nbsp;</span>
-					<span class="col-xs-5">{{aircraft.lat}} {{aircraft.lon}}</span>
-					<span class="col-xs-2">{{aircraft.signal}}</span>
-					<!--<span class="col-xs-3 text-right">{{aircraft.time}}</span>-->
-					<span class="col-xs-2 text-right">{{aircraft.age}}s</span>
+					<span class="col-xs-2 text-right">{{aircraft.speed}}<span style="font-size:50%">KTS</span></span>
+					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>				
+					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}<span style="font-size:50%">dB</span></span>
+					<span class="col-xs-2 text-right">{{aircraft.age.toFixed(1)}}<span style="font-size:50%">s</span></span>
 				</div>
 			</div>
 		</div>
-		<!--
+
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
 			<div class="row">
-				<div class="col-sm-6 label_adj">
-					<span class="col-xs-4"><strong>Stratux Clock:</strong></span>
-					<span class="col-xs-8">{{Clock}}</span>
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Squawk</label>
+					<span class="col-xs-3"><ui-switch ng-model='showSquawk' settings-change></ui-switch></span>
 				</div>
-				<div class="col-sm-6 label_adj">
-					<span class="col-xs-4"><strong>Device Clock:</strong></span>
-					<span class="col-xs-8">{{LocalClock}}</span>
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">Show Distance</label>
+					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
+				</div>
+				<div class="col-sm-4">
+					<label class="control-label col-xs-6">GPS Status</label>
+					<span ng-show="GPS_connected" class="label label-success col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">Valid</span>
+					<span ng-hide="GPS_connected" class="label label-danger col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">No Fix</span>
 				</div>
 			</div>
 		</div>
-		-->
+	</div>
+	
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Basic Mode S and No-Position Messages</span> 
+		</div>
+
+		<div class="panel-body traffic-page">
+			<div class="row">
+				<div class="col-sm-6">
+					<span class="col-xs-4"><strong>Callsign</strong></span>
+					<span class="col-xs-3"><strong>Code</strong></span>
+					<span class="col-xs-3"><strong>Squawk</strong></span>
+				</div>
+				
+				<div class="col-sm-6">
+					<span class="col-xs-3 text-right"><strong>Altitude</strong></span><span class="col-xs-1">&nbsp;</span>
+					<span class="col-xs-2 text-right"><strong>Speed</strong></span>
+					<span class="col-xs-2 text-right"><strong>Course</strong></span>			
+					<span class="col-xs-2 text-right"><strong>Power</strong></span>
+					<span class="col-xs-2 text-right"><strong>Age</strong></span>
+				</div>
+			</div>
+		
+			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
+				<div class="separator"></div>
+				<div class="col-sm-6">
+					<span class="col-xs-4">
+						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					</span>
+					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
+					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+				</div>
+
+				<div class="col-sm-6">
+					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
+					<span class="col-xs-1 small col-padding-shift-right text-muted">
+						<span ng-show="aircraft.vspeed > 0"><span class="fa fa-ascent"></span>{{aircraft.vspeed}}</span>
+						<span ng-show="aircraft.vspeed < 0"><span class="fa fa-descent"></span>{{0-aircraft.vspeed}}</span>
+					</span>
+					<span class="col-xs-2 text-right">{{aircraft.speed}}<span style="font-size:50%">KTS</span></span>
+					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>				
+					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}<span style="font-size:50%">dB</span></span>
+					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}<span style="font-size:50%">s</span></span>
+				</div>
+			</div>
+		</div>
+		
+		<div class="panel-body traffic-footer">
+			<div class="separator"></div>
+			<span class ="col-sm-12 small">Stratux has not received valid ADS-B position transmissions from the aircraft in this section. They will not appear on your EFB map. See help page for details.</span>
+		</div>
 	</div>
 </div>
 

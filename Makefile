@@ -14,7 +14,7 @@ all:
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./linux-mpu9150/mpu ./godump978 ./mpu6050 ./uatparse
-	go build $(BUILDINFO) main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go
+	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry835ai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go
 
 xdump1090:
 	git submodule update --init
@@ -39,6 +39,7 @@ install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
 	cp init.d-stratux /etc/init.d/stratux
+	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
 	chmod 755 /etc/init.d/stratux
 	ln -sf /etc/init.d/stratux /etc/rc2.d/S01stratux
 	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux

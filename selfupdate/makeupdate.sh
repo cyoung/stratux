@@ -26,6 +26,10 @@ cp image/config.txt work/bin/
 cp image/rtl-sdr-blacklist.conf work/bin/
 cp image/bashrc.txt work/bin/
 cp image/modules.txt work/bin/
+cp image/stxAliases.txt work/bin/
+cp image/hostapd_manager.sh work/bin/
+cp image/10-stratux.rules work/bin/
+cp image/motd work/bin/
 
 #TODO: librtlsdr.
 cd work/

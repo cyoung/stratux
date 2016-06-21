@@ -33,11 +33,12 @@ type networkMessage struct {
 }
 
 type networkConnection struct {
-	Conn         *net.UDPConn
-	Ip           string
-	Port         uint32
-	Capability   uint8
-	messageQueue [][]byte // Device message queue.
+	Conn            *net.UDPConn
+	Ip              string
+	Port            uint32
+	Capability      uint8
+	messageQueue    [][]byte // Device message queue.
+	MessageQueueLen int      // Length of the message queue. For debugging.
 	/*
 		Sleep mode/throttle variables. "sleep mode" is actually now just a very reduced packet rate, since we don't know positively
 		 when a client is ready to accept packets - we just assume so if we don't receive ICMP Unreachable packets in 5 secs.
@@ -292,6 +293,8 @@ func messageQueueSender() {
 						outSockets[k] = tmpConn
 					*/
 				}
+				netconn.MessageQueueLen = len(netconn.messageQueue)
+				outSockets[k] = netconn
 			}
 
 			if stratuxClock.Since(lastQueueTimeChange) >= 5*time.Second {
@@ -463,11 +466,11 @@ func ffMonitor() {
 
 	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
-	defer conn.Close()
 	if err != nil {
 		log.Printf("ffMonitor(): error listening on port 50113: %s\n", err.Error())
 		return
 	}
+	defer conn.Close()
 	for {
 		buf := make([]byte, 1024)
 		n, addr, err := conn.ReadFrom(buf)
