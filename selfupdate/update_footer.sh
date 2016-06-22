@@ -4,10 +4,15 @@ cp -f libimu.so /usr/lib/libimu.so
 
 
 # Startup script.
-cp -f init.d-stratux /etc/init.d/stratux
-chmod 755 /etc/init.d/stratux
-ln -fs /etc/init.d/stratux /etc/rc2.d/S01stratux
-ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
+rm -f /etc/init.d/stratux
+rm -f /etc/rc2.d/S01stratux
+rm -f /etc/rc6.d/K01stratux
+
+cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
+cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
+chmod 644 /lib/systemd/system/stratux.service
+chmod 744 /root/stratux-pre-start.sh
+ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
