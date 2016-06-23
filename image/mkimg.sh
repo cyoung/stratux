@@ -121,8 +121,3 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 #boot settings
 cp -f config.txt mnt/boot/
 
-#clean up old init scripts.
-rm -f /etc/init.d/stratux
-rm -f /etc/rc2.d/S01stratux
-rm -f /etc/rc6.d/K01stratux
-
