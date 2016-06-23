@@ -120,11 +120,6 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
 #boot settings
 cp -f config.txt mnt/boot/
-cp -f ../__lib__systemd__system__stratux.service mnt/lib/systemd/system/stratux.service
-cp -f ../__root__stratux-pre-start.sh mnt/root/stratux-pre-start.sh
-chmod 644 mnt/lib/systemd/system/stratux.service
-chmod 744 mnt/root/stratux-pre-start.sh
-ln -fs mnt/lib/systemd/system/stratux.service mnt/etc/systemd/system/multi-user.target.wants/stratux.service
 
 #clean up old init scripts.
 rm -f /etc/init.d/stratux
