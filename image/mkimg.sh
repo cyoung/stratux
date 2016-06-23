@@ -97,7 +97,6 @@ git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make
 make install
-systemctl enable stratux
 
 #system tweaks
 cp -f modules.txt mnt/etc/modules
