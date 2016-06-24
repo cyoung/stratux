@@ -5,7 +5,7 @@ cp -f libimu.so /usr/lib/libimu.so
 
 # Startup script.
 RASPBIAN_VERSION=`cat /etc/debian_version`
-if [ "$RASPBIAN_VERSION" == "8.0" ] ; then
+if test "$RASPBIAN_VERSION" = "8.0" ; then
 	# Install the systemd startup scripts in any case, even if they won't be used. If this is being run, then the old init.d script
 	#  is still intact and we just leave it. If running Wheezy, then remove the old init.d script.
 	rm -f /etc/init.d/stratux
