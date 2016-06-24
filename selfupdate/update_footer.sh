@@ -4,9 +4,14 @@ cp -f libimu.so /usr/lib/libimu.so
 
 
 # Startup script.
-rm -f /etc/init.d/stratux
-rm -f /etc/rc2.d/S01stratux
-rm -f /etc/rc6.d/K01stratux
+RASPBIAN_VERSION=`cat /etc/debian_version`
+if [ "$RASPBIAN_VERSION" == "8.0" ] ; then
+	# Install the systemd startup scripts in any case, even if they won't be used. If this is being run, then the old init.d script
+	#  is still intact and we just leave it. If running Wheezy, then remove the old init.d script.
+	rm -f /etc/init.d/stratux
+	rm -f /etc/rc2.d/S01stratux
+	rm -f /etc/rc6.d/K01stratux
+fi
 
 cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
 cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
