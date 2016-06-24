@@ -1208,6 +1208,21 @@ func main() {
 		debugLogf = debugLog
 		dataLogFilef = dataLogFile
 	}
+	// Check if Raspbian version is <8.0. Throw a warning if so.
+	vt, err := ioutil.ReadFile("/etc/debian_version")
+	if err == nil {
+		vtS := strings.Trim(string(vt), "\n")
+		vtF, err := strconv.ParseFloat(vtS, 32)
+		if err == nil && vtF < 8.0 {
+			var err_os error
+			if globalStatus.HardwareBuild == "FlightBox" {
+				err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
+			} else {
+				err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
+			}
+			addSystemError(err_os)
+		}
+	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
