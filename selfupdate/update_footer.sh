@@ -45,6 +45,10 @@ cp -f modules.txt /etc/modules
 #motd
 cp -f motd /etc/motd
 
+#fan control utility
+cp -f fancontrol.py /usr/bin/
+chmod 755 /usr/bin/fancontrol.py
+
 cp -f dump1090 /usr/bin/
 
 # Web files install.

@@ -54,8 +54,8 @@ cp -f interfaces mnt/etc/network/interfaces
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
 #fan/temp control script
-cp fancontrol.py mnt/root/
-chmod 755 mnt/root/fancontrol.py
+cp fancontrol.py mnt/usr/bin/
+chmod 755 mnt/usr/bin/fancontrol.py
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
