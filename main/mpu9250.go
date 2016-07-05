@@ -5,13 +5,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
 )
 
 //https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
 
-var i2cbus embd.I2CBus
+// var i2cbus embd.I2CBus
 
 func chkErr(err error) {
 	if err != nil {
@@ -29,7 +28,7 @@ func setSetting(addr, val byte) {
 
 func initMPU9250() {
 	globalSettings.AHRS_Enabled = true
-	i2cbus = embd.NewI2CBus(1)
+	// i2cbus = embd.NewI2CBus(1)
 
 	//TODO: Calibration.
 

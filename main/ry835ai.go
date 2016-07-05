@@ -1337,7 +1337,7 @@ func gpsSerialReader() {
 	return
 }
 
-//var i2cbus embd.I2CBus
+var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
@@ -1355,12 +1355,6 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 
 func initBMP180() error {
 	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initMPU9150() error {
-	mpu.InitMPU(500, 0)
-	mpu.DisableFusion()
 	return nil
 }
 
@@ -1532,32 +1526,8 @@ func isGPSClockValid() bool {
 	return stratuxClock.Since(mySituation.LastGPSTimeTime) < 15*time.Second
 }
 
-func isAHRSValid() bool {
-	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
-}
-
 func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
-}
-
-func initAHRS() error {
-	if err := initI2C(); err != nil { // I2C bus.
-		return err
-	}
-	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
-		i2cbus.Close()
-		return err
-	}
-	if err := initMPU9150(); err != nil { // I2C accel/gyro.
-		i2cbus.Close()
-		myBMP180.Close()
-		return err
-	}
-	globalStatus.RY835AI_connected = true
-	go attitudeReaderSender()
-	go tempAndPressureReader()
-
-	return nil
 }
 
 func pollRY835AI() {
@@ -1570,14 +1540,6 @@ func pollRY835AI() {
 			globalStatus.GPS_connected = initGPSSerial()
 			if globalStatus.GPS_connected {
 				go gpsSerialReader()
-			}
-		}
-		// RY835AI I2C enabled, was not connected previously?
-		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
-			err := initAHRS()
-			if err != nil {
-				log.Printf("initAHRS(): %s\ndisabling AHRS sensors.\n", err.Error())
-				globalStatus.RY835AI_connected = false
 			}
 		}
 	}
