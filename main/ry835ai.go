@@ -1337,7 +1337,7 @@ func gpsSerialReader() {
 	return
 }
 
-var i2cbus embd.I2CBus
+//var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
