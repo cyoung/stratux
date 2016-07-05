@@ -144,10 +144,21 @@ void make_atan2_table(void) {
 }
 
 static void convert_to_phi(uint16_t *dest, uint16_t *src, int n) {
-  int i;
+    int i;
 
-  for (i = 0; i < n; ++i)
-    dest[i] = iqphase[src[i]];
+    // unroll the loop. n is always > 2048, usually 36864
+    for (i = 0; i+8 <= n; i += 8) {
+        dest[i] = iqphase[src[i]];
+        dest[i+1] = iqphase[src[i+1]];
+        dest[i+2] = iqphase[src[i+2]];
+        dest[i+3] = iqphase[src[i+3]];
+        dest[i+4] = iqphase[src[i+4]];
+        dest[i+5] = iqphase[src[i+5]];
+        dest[i+6] = iqphase[src[i+6]];
+        dest[i+7] = iqphase[src[i+7]];
+    }
+    for (; i < n; ++i)
+        dest[i] = iqphase[src[i]];
 }
 
 static void calc_power(uint16_t *samples, int len) { // sets signal_strength to scaled amplitude. 0 = no signal, 1000 = saturated receiver on all samples in measurement.
