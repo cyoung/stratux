@@ -1286,7 +1286,8 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY835AI()
+	//initRY835AI()
+	initMPU9250()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
-	"time"
 )
 
 //https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
@@ -25,7 +27,8 @@ func setSetting(addr, val byte) {
 	time.Sleep(1000 * time.Microsecond)
 }
 
-func main() {
+func initMPU9250() {
+	globalSettings.AHRS_Enabled = true
 	i2cbus = embd.NewI2CBus(1)
 
 	//TODO: Calibration.
@@ -54,7 +57,7 @@ func main() {
 		chkErr(err)
 		z_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3f)
 
-		fmt.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
+		log.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
 
 		// Get gyro data.
 		x_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x43)
@@ -63,7 +66,7 @@ func main() {
 		chkErr(err)
 		z_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x47)
 
-		fmt.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
+		log.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
 
 		// Get magnetometer data.
 		setSetting(0x25, 0x0c|0x80) // Set the I2C slave addres of AK8963 and set for read.
@@ -76,7 +79,7 @@ func main() {
 		chkErr(err)
 		z_mag, err := i2cbus.ReadWordFromReg(0x68, 0x54)
 
-		fmt.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
+		log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
 		time.Sleep(250 * time.Millisecond)
 	}
