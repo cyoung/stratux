@@ -15,8 +15,8 @@ func GetCurrentAttitudeXY() (float32, float32) {
 	q2a = q2
 	q3a = q3
 
-	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a)))) * 180 / math.Pi
-	attitudeY := float32(math.Asin(2*(q0a*q2a-q3a*q1a))) * 180 / math.Pi
+	attitudeX := float32(math.Atan2(q0*q1+q2*q3, 0.5-q1*q1-q2*q2)) * 180 / math.Pi
+	attitudeY := float32(math.Asin(-2.0*(q1*q3-q0*q2))) * 180 / math.Pi
 
 	return attitudeX, attitudeY
 }
@@ -29,9 +29,9 @@ func GetCurrentAttitudeXYZ() (float32, float32, float32) {
 	q2a = q2
 	q3a = q3
 
-	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a)))) * 180 / math.Pi
-	attitudeY := float32(math.Asin(2*(q0a*q2a-q3a*q1a))) * 180 / math.Pi
-	attitudeZ := float32(math.Atan2(2*(q0a*q3a+q1a*q2a), 1-2*((q2a*q2a)+(q3a*q3a)))) * 180 / math.Pi
+	attitudeX := float32(math.Atan2(q0*q1+q2*q3, 0.5-q1*q1-q2*q2)) * 180 / math.Pi
+	attitudeY := float32(math.Asin(-2.0*(q1*q3-q0*q2))) * 180 / math.Pi
+	attitudeZ := float32(math.Atan2(q1*q2+q0*q3, 0.5-q2*q2-q3*q3)) * 180 / math.Pi
 
 	return attitudeX, attitudeY, attitudeZ
 }
