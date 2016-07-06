@@ -89,5 +89,5 @@ func readRawData() {
 
 func convertToRadians(value uint16) float64 {
 	//return float64((value/65535)*360.0) * math.Pi / 180.0
-	return float64(value)
+	return float64((value / 65535) * 360.0)
 }
