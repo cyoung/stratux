@@ -1526,6 +1526,10 @@ func isGPSClockValid() bool {
 	return stratuxClock.Since(mySituation.LastGPSTimeTime) < 15*time.Second
 }
 
+func isAHRSValid() bool {
+	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
+}
+
 func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
