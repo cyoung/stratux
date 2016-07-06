@@ -1390,11 +1390,12 @@ func attitudeReaderSender() {
 		// get data from 9250, calculate, then set pitch and roll
 
 		//pitch, roll, err_mpu6050 := readMPU6050()
-		pitch, roll := GetCurrentAttitudeXY()
+		pitch, roll, yaw := GetCurrentAttitudeXYZ()
 
 		mySituation.mu_Attitude.Lock()
 		mySituation.Pitch = float64(pitch)
 		mySituation.Roll = float64(roll)
+		mySituation.Yaw = float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
