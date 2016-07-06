@@ -82,7 +82,7 @@ func readRawData() {
 
 		log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
-		AHRSupdate(convertToDegrees(x_gyro), convertToDegrees(y_gyro), convertToDegrees(z_gyro), convertToDegrees(x_acc), convertToDegrees(y_acc), convertToDegrees(z_acc), convertToDegrees(x_mag), convertToDegrees(y_mag), convertToDegrees(z_mag))
+		AHRSupdate(convertToRadians(x_gyro), convertToRadians(y_gyro), convertToRadians(z_gyro), convertToRadians(x_acc), convertToRadians(y_acc), convertToRadians(z_acc), convertToRadians(x_mag), convertToRadians(y_mag), convertToRadians(z_mag))
 		pitch, roll := GetCurrentAttitudeXY()
 		log.Printf("%f,%f", pitch, roll)
 		time.Sleep(250 * time.Millisecond)
