@@ -1337,7 +1337,7 @@ func gpsSerialReader() {
 	return
 }
 
-//var i2cbus embd.I2CBus
+var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
@@ -1554,8 +1554,8 @@ func initRY835AI() {
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
-	//initI2C()
-	//initBMP180()
+	initI2C()
+	initBMP180()
 
 	go pollRY835AI()
 }
