@@ -1383,7 +1383,7 @@ func tempAndPressureReader() {
 
 func attitudeReaderSender() {
 	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz update
+	timer := time.NewTicker(1000 * time.Millisecond) // 50 Hz update
 
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
@@ -1396,7 +1396,7 @@ func attitudeReaderSender() {
 		mySituation.Yaw = float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
-
+		log.Printf("x=%d, y=%d, z=%d\n", mySituation.Roll, mySituation.Pitch, mySituation.Yaw)
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
