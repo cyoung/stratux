@@ -54,8 +54,11 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if (mx == 0.0) && (my == 0.0) && (mz == 0.0) {
-		AHRSupdateIMU(gx, gy, gz, ax, ay, az)
-		return
+		// AHRSupdateIMU(gx, gy, gz, ax, ay, az)
+		// return
+		mx = 0.1
+		my = 0.1
+		mz = 0.1
 	}
 
 	// Rate of change of quaternion from gyroscope
