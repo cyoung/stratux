@@ -30,8 +30,9 @@ func initMPU9250() {
 	//i2cbus = embd.NewI2CBus(1)
 
 	//TODO: Calibration.
+
+	setSetting(0x6B, 0x80) // Reset.
 	/*
-		setSetting(0x6B, 0x80) // Reset.
 		setSetting(0x6B, 0x01) // Clock source.
 		setSetting(0x6C, 0x00) // Enable accelerometer and gyro.
 
