@@ -46,8 +46,8 @@ func initMPU9250() {
 
 	setSetting(0x26, 0x0A) // I2C slave 0 register address from where to begin data transfer.
 	setSetting(0x63, 0x12) // Register value to 8Hz continuous measurement in 16bit.
-
-	for { /*
+	/*
+		for {
 			// Get accelerometer data.
 			x_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3b)
 			chkErr(err)
@@ -78,7 +78,7 @@ func initMPU9250() {
 			z_mag, err := i2cbus.ReadWordFromReg(0x68, 0x54)
 
 			log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
-		*/
-		time.Sleep(250 * time.Millisecond)
-	}
+
+			time.Sleep(250 * time.Millisecond)
+		}*/
 }
