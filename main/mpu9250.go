@@ -81,7 +81,7 @@ func readRawData() {
 
 		log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
-		AHRSupdate(float64(x_gyro/360.0), float64(y_gyro/360.0), float64(z_gyro/360.0), float64(x_acc/360.0), float64(y_acc/360.0), float64(x_acc/360.0), float64(x_mag/360.0), float64(y_mag/360.0), float64(z_mag/360.0))
+		AHRSupdate(float64(x_gyro/360.0), float64(y_gyro/360.0), float64(z_gyro/360.0), float64(x_acc/360.0), float64(y_acc/360.0), float64(z_acc/360.0), float64(x_mag/360.0), float64(y_mag/360.0), float64(z_mag/360.0))
 		pitch, roll := GetCurrentAttitudeXY()
 		fmt.Printf("%f,%f", pitch, roll)
 		time.Sleep(250 * time.Millisecond)
