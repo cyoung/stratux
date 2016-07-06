@@ -1554,14 +1554,8 @@ func initRY835AI() {
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
-
-	if err := initI2C(); err != nil { // I2C bus.
-		return err
-	}
-	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
-		i2cbus.Close()
-		return err
-	}
+	initI2C()
+	initBMP180()
 
 	go pollRY835AI()
 }
