@@ -1364,7 +1364,7 @@ func initI2C() error {
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY835AI_connected {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
