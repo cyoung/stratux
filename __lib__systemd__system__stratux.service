@@ -1,0 +1,16 @@
+[Unit]
+Description=Stratux
+After=network.target
+
+[Service]
+ExecStartPre=/root/stratux-pre-start.sh
+ExecStart=/usr/bin/gen_gdl90
+ExecStop=pkill dump1090
+KillMode=process
+Restart=always
+RestartSec=5
+LimitCORE=1073741824
+
+[Install]
+WantedBy=multi-user.target
+

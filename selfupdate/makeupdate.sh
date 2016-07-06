@@ -18,7 +18,8 @@ mkdir -p work/bin
 cp gen_gdl90 work/bin/
 cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
-cp init.d-stratux work/bin/
+cp __lib__systemd__system__stratux.service work/bin/
+cp __root__stratux-pre-start.sh work/bin/
 cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
 cp image/hostapd.conf work/bin/
@@ -29,6 +30,8 @@ cp image/modules.txt work/bin/
 cp image/stxAliases.txt work/bin/
 cp image/hostapd_manager.sh work/bin/
 cp image/10-stratux.rules work/bin/
+cp image/motd work/bin/
+cp image/fancontrol.py work/bin/
 
 #TODO: librtlsdr.
 cd work/

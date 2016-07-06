@@ -112,6 +112,10 @@ func dlac_decode(data []byte, data_len uint32) string {
 //TODO: Make a new "FISB Time" structure that also encodes the type of timestamp received.
 //TODO: pass up error.
 func (f *UATFrame) decodeTimeFormat() {
+	if len(f.Raw_data) < 3 {
+		return // Can't determine time format.
+	}
+
 	t_opt := ((uint32(f.Raw_data[1]) & 0x01) << 1) | (uint32(f.Raw_data[2]) >> 7)
 
 	var fisb_data []byte
@@ -185,6 +189,10 @@ func formatDLACData(p string) []string {
 
 // Whole frame contents is DLAC encoded text.
 func (f *UATFrame) decodeTextFrame() {
+	if len(f.FISB_data) < int(f.FISB_length) {
+		return
+	}
+
 	p := dlac_decode(f.FISB_data, f.FISB_length)
 
 	f.Text_data = formatDLACData(p)
@@ -473,6 +481,10 @@ func (f *UATFrame) decodeAirmet() {
 
 func (f *UATFrame) decodeInfoFrame() {
 
+	if len(f.Raw_data) < 2 {
+		return // Can't determine Product_id.
+	}
+
 	f.Product_id = ((uint32(f.Raw_data[0]) & 0x1f) << 6) | (uint32(f.Raw_data[1]) >> 2)
 
 	if f.Frame_type != 0 {
@@ -541,9 +553,11 @@ func (u *UATMsg) DecodeUplink() error {
 		if pos+int(frame_length) > total_len {
 			break // Overrun?
 		}
-		if frame_length == 0 && frame_type == 0 {
-			break // No more frames.
+
+		if frame_length == 0 { // Empty frame. Quit here.
+			break
 		}
+
 		pos = pos + 2
 
 		data = data[2 : frame_length+2]
@@ -599,9 +613,14 @@ func New(buf string) (*UATMsg, error) {
 	buf = strings.Trim(buf, "\r\n") // Remove newlines.
 	x := strings.Split(buf, ";")    // We want to discard everything before the first ';'.
 
+	if len(x) < 2 {
+		return ret, errors.New(fmt.Sprintf("New UATMsg: Invalid format (%s).", buf))
+	}
+
 	/*
-		RS_Err         int
-		SignalStrength int
+		Parse _;rs=?;ss=? - if available.
+			RS_Err         int
+			SignalStrength int
 	*/
 	ret.SignalStrength = -1
 	ret.RS_Err = -1
@@ -628,10 +647,10 @@ func New(buf string) (*UATMsg, error) {
 	}
 
 	if s[0] != '+' { // Only want + ("Uplink") messages currently. - (Downlink) or messages that start with other are discarded.
-		return ret, errors.New("New UATMsg: expecting uplink frames.")
+		return ret, errors.New("New UATMsg: expecting uplink frame.")
 	}
 
-	s = s[1:]
+	s = s[1:] // Remove the preceding '+' or '-' character.
 
 	// Convert the hex string into a byte array.
 	frame := make([]byte, UPLINK_FRAME_DATA_BYTES)
