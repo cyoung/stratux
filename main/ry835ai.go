@@ -1387,16 +1387,16 @@ func attitudeReaderSender() {
 
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
-		// get data from 9250, calculate, then set pitch and roll
-		pitch, roll, yaw := GetCurrentAttitudeXYZ()
+
+		pitch, roll := GetCurrentAttitudeXY()
 
 		mySituation.mu_Attitude.Lock()
 		mySituation.Pitch = float64(pitch)
 		mySituation.Roll = float64(roll)
-		mySituation.Yaw = float64(yaw)
+		//mySituation.Yaw = float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
-		log.Printf("x=%f, y=%f, z=%f\n", roll, pitch, yaw)
+		log.Printf("x=%f, y=%f\n", roll, pitch)
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
