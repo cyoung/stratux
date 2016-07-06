@@ -84,7 +84,7 @@ type SituationData struct {
 	Pressure_alt      float64
 	LastTempPressTime time.Time
 
-	// From MPU9250 mag and MPU6050 accel/gyro.
+	// From MPU9250 gyro/accel/mag.
 	Pitch            float64
 	Roll             float64
 	Yaw              float64
@@ -1396,7 +1396,7 @@ func attitudeReaderSender() {
 		mySituation.Yaw = float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
-		log.Printf("x=%s, y=%s, z=%s\n", roll, pitch, yaw)
+		log.Printf("x=%f, y=%f, z=%f\n", roll, pitch, yaw)
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
