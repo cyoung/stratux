@@ -33,13 +33,13 @@ func GetCurrentAttitudeXYZ() (float32, float32, float32) {
 	//y = sin(yaw)*cos(pitch)
 	//z = sin(pitch)
 
-	eX := float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a))
-	eY := float32(math.Asin(-2.0 * (q1a*q3a - q0a*q2a)))
-	eZ := float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a))
+	eX := float64(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a))
+	eY := float64(math.Asin(-2.0 * (q1a*q3a - q0a*q2a)))
+	eZ := float64(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a))
 
-	attitudeX := math.Cos(eZ) * math.Cos(eY)
-	attitudeY := math.Sin(eZ) * math.Cos(eY)
-	attitudeZ := math.Sin(eY)
+	attitudeX := float32(math.Cos(eZ) * math.Cos(eY))
+	attitudeY := float32(math.Sin(eZ) * math.Cos(eY))
+	attitudeZ := float32(math.Sin(eY))
 
 	return attitudeX, attitudeY, attitudeZ
 }
