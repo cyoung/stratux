@@ -29,6 +29,10 @@ func GetCurrentAttitudeXYZ() (float32, float32, float32) {
 	q2a = q2
 	q3a = q3
 
+	//x = cos(yaw)*cos(pitch)
+	//y = sin(yaw)*cos(pitch)
+	//z = sin(pitch)
+
 	attitudeX := float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
 	attitudeY := float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
 	attitudeZ := float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
