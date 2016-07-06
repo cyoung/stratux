@@ -1397,14 +1397,16 @@ func attitudeReaderSender() {
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 		log.Printf("x=%f, y=%f\n", roll, pitch)
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
 
 		q0, q1, q2, q3 := GetCurrentAttitudeQ()
 		log.Printf("q0=%f, q1=%f, q2=%f, q3=%f\n", q0, q1, q2, q3)
 
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later.
+		// Send, if valid.
+		//		if isGPSGroundTrackValid(), etc.
+
+		// Simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later.
 		// Function definition will be kept for AHRS debugging and future workarounds.
+		// makeFFAHRSSimReport()
 		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()
