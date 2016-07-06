@@ -1263,7 +1263,7 @@ func main() {
 	initDataLog()
 
 	initRY835AI()
-	//initMPU9250()
+	initMPU9250()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
