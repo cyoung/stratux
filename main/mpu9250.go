@@ -88,6 +88,6 @@ func readRawData() {
 	}
 }
 
-func convertToDegrees(int value) float64 {
+func convertToDegrees(value int) float64 {
 	return float64((value / 65536) * 360.0)
 }
