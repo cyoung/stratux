@@ -1396,7 +1396,7 @@ func attitudeReaderSender() {
 		mySituation.Yaw = float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
-		log.Printf("x=%s, y=%s, z=%s\n", mySituation.Roll, mySituation.Pitch, mySituation.Yaw)
+		log.Printf("x=%s, y=%s, z=%s\n", roll, pitch, yaw)
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
