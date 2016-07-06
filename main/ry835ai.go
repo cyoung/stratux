@@ -26,8 +26,6 @@ import (
 
 	"os"
 	"os/exec"
-
-	"../linux-mpu9150/mpu"
 )
 
 const (
@@ -1434,15 +1432,10 @@ func attitudeReaderSender() {
 	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
 
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalSettings.AHRS_Enabled {
 		<-timer.C
-		// Read pitch and roll.
 		// get data from 9250, calculate, then set pitch and roll
-		d, err := mpu.ReadMPURaw()
-		if err != nil {
-			continue
-		}
-		AHRSupdate(float64(d.Gx), float64(d.Gy), float64(d.Gz), float64(d.Ax), float64(d.Ay), float64(d.Az), float64(d.Mx), float64(d.My), float64(d.Mz))
+
 		//pitch, roll, err_mpu6050 := readMPU6050()
 		pitch, roll := GetCurrentAttitudeXY()
 
@@ -1460,7 +1453,6 @@ func attitudeReaderSender() {
 
 		mySituation.mu_Attitude.Unlock()
 	}
-	globalStatus.RY835AI_connected = false
 }
 
 /*

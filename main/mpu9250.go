@@ -8,9 +8,12 @@ import (
 	_ "github.com/kidoman/embd/host/rpi"
 )
 
-//https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
+// Raw data struct
+type RawData struct {
+	Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz float32
+}
 
-//var i2cbus embd.I2CBus
+//https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
 
 func chkErr(err error) {
 	if err != nil {
@@ -28,7 +31,6 @@ func setSetting(addr, val byte) {
 
 func initMPU9250() {
 	globalSettings.AHRS_Enabled = true
-	//i2cbus = embd.NewI2CBus(1)
 
 	//TODO: Calibration.
 
@@ -84,6 +86,8 @@ func readRawData() {
 
 		log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
-		time.Sleep(250 * time.Millisecond)
+		AHRSupdate(float64(x_gyro/360.0), float64(y_gyro/360.0), float64(z_gyro/360.0), float64(x_acc/360.0), float64(y_acc/360.0), float64(x_acc/360.0), float64(x_mag/360.0), float64(y_mag/360.0), float64(z_mag/360.0))
+
+		time.Sleep(10 * time.Millisecond)
 	}
 }
