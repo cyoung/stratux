@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"math"
 	"time"
 
 	_ "github.com/kidoman/embd/host/rpi"
@@ -79,16 +79,14 @@ func readRawData() {
 		chkErr(err)
 		z_mag, err := i2cbus.ReadWordFromReg(0x68, 0x54)
 
-		log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
+		//log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
 		AHRSupdate(convertToRadians(x_gyro), convertToRadians(y_gyro), convertToRadians(z_gyro), convertToRadians(x_acc), convertToRadians(y_acc), convertToRadians(z_acc), convertToRadians(x_mag), convertToRadians(y_mag), convertToRadians(z_mag))
-		pitch, roll := GetCurrentAttitudeXY()
-		log.Printf("%f,%f", pitch, roll)
-		time.Sleep(250 * time.Millisecond)
+
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
 func convertToRadians(value uint16) float64 {
-	//return float64((value/65535)*360.0) * math.Pi / 180.0
-	return float64(value)
+	return float64((value/65535)*360.0) * math.Pi / 180.0
 }

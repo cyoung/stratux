@@ -1383,13 +1383,11 @@ func tempAndPressureReader() {
 
 func attitudeReaderSender() {
 	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
+	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz update
 
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
 		// get data from 9250, calculate, then set pitch and roll
-
-		//pitch, roll, err_mpu6050 := readMPU6050()
 		pitch, roll, yaw := GetCurrentAttitudeXYZ()
 
 		mySituation.mu_Attitude.Lock()
@@ -1402,7 +1400,8 @@ func attitudeReaderSender() {
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
 
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
+		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later.
+		// Function definition will be kept for AHRS debugging and future workarounds.
 		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()
@@ -1456,12 +1455,8 @@ func makeAHRSGDL90Report() {
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
 
-/*
-	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
-		data structure. Calling functions must protect this in a satelliteMutex.
-
-*/
-
+// updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
+// data structure. Calling functions must protect this in a satelliteMutex.
 func updateConstellation() {
 	var sats, tracked, seen uint8
 	for svStr, thisSatellite := range Satellites {
@@ -1493,13 +1488,9 @@ func isGPSConnected() bool {
 	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
-/*
-isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
-and if the GPS subsystem has recently detected a GPS device.
-
-If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
-*/
-
+// isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
+// and if the GPS subsystem has recently detected a GPS device.
+// If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
 func isGPSValid() bool {
 	isValid := false
 	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected && mySituation.Quality > 0 {
