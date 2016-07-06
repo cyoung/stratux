@@ -43,11 +43,11 @@ func initMPU9250() {
 
 	setSetting(0x63, 0x01) // Reset AK8963.
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
+
+	setSetting(0x26, 0x0A) // I2C slave 0 register address from where to begin data transfer.
+	setSetting(0x63, 0x12) // Register value to 8Hz continuous measurement in 16bit.
+
 	/*
-
-		setSetting(0x26, 0x0A) // I2C slave 0 register address from where to begin data transfer.
-		setSetting(0x63, 0x12) // Register value to 8Hz continuous measurement in 16bit.
-
 		for {
 			// Get accelerometer data.
 			x_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3b)
