@@ -388,9 +388,9 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS portion.
-	if isAHRSValid() {
-		msg[13] = msg[13] | (1 << 2)
-	}
+	// if isAHRSValid() {
+	// 	msg[13] = msg[13] | (1 << 2)
+	// }
 
 	// Valid/Enabled: Pressure altitude portion.
 	if isTempPressValid() {
@@ -508,9 +508,9 @@ func makeStratuxHeartbeat() []byte {
 	if isGPSValid() {
 		msg[1] = 0x02
 	}
-	if isAHRSValid() {
-		msg[1] = msg[1] | 0x01
-	}
+	// if isAHRSValid() {
+	// 	msg[1] = msg[1] | 0x01
+	// }
 
 	protocolVers := int8(1)
 	msg[1] = msg[1] | byte(protocolVers<<2)
@@ -1287,6 +1287,7 @@ func main() {
 	initDataLog()
 
 	initRY835AI()
+	initMPU9250()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
