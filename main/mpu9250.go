@@ -89,5 +89,5 @@ func readRawData() {
 }
 
 func convertToDegrees(value uint16) float64 {
-	return float64((value / 65536) * 360.0)
+	return float64((value / 65535) * 360.0)
 }
