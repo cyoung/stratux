@@ -88,6 +88,6 @@ func readRawData() {
 
 		AHRSupdate(float64(x_gyro/360.0), float64(y_gyro/360.0), float64(z_gyro/360.0), float64(x_acc/360.0), float64(y_acc/360.0), float64(x_acc/360.0), float64(x_mag/360.0), float64(y_mag/360.0), float64(z_mag/360.0))
 
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 	}
 }
