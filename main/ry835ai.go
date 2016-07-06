@@ -1383,7 +1383,7 @@ func tempAndPressureReader() {
 
 func attitudeReaderSender() {
 	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	timer := time.NewTicker(100 * time.Millisecond) // 50 Hz update
+	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz update
 
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
@@ -1397,7 +1397,7 @@ func attitudeReaderSender() {
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
-		log.Printf("x=%f, y=%f\n", roll, pitch)
+		//log.Printf("x=%f, y=%f\n", roll, pitch)
 		// q0, q1, q2, q3 := GetCurrentAttitudeQ()
 		// log.Printf("q0=%f, q1=%f, q2=%f, q3=%f\n", q0, q1, q2, q3)
 
