@@ -8,11 +8,6 @@ import (
 	_ "github.com/kidoman/embd/host/rpi"
 )
 
-// Raw data struct
-type RawData struct {
-	Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz float32
-}
-
 //https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
 
 func chkErr(err error) {
@@ -88,6 +83,6 @@ func readRawData() {
 
 		AHRSupdate(float64(x_gyro/360.0), float64(y_gyro/360.0), float64(z_gyro/360.0), float64(x_acc/360.0), float64(y_acc/360.0), float64(x_acc/360.0), float64(x_mag/360.0), float64(y_mag/360.0), float64(z_mag/360.0))
 
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }

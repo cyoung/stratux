@@ -1432,7 +1432,7 @@ func attitudeReaderSender() {
 	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
 
-	for globalSettings.AHRS_Enabled {
+	for { //globalSettings.AHRS_Enabled
 		<-timer.C
 		// get data from 9250, calculate, then set pitch and roll
 
