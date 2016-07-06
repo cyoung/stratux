@@ -1550,4 +1550,6 @@ func initRY835AI() {
 	initBMP180()
 
 	go pollRY835AI()
+	go attitudeReaderSender()
+	go tempAndPressureReader()
 }
