@@ -421,7 +421,7 @@ func makeStratuxStatus() []byte {
 	if globalSettings.AHRS_Enabled {
 		msg[12] = 1 << 0
 	}
-
+	msg[12] = 1
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
