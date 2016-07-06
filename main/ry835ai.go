@@ -1338,6 +1338,16 @@ func gpsSerialReader() {
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
+func initI2C() error {
+	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
+	return nil
+}
+
+func initBMP180() error {
+	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
+	return nil
+}
+
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	temp, err := myBMP180.Temperature()
 	if err != nil {
@@ -1349,16 +1359,6 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 		return temp, altitude, err
 	}
 	return temp, altitude, nil
-}
-
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initI2C() error {
-	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
-	return nil
 }
 
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
@@ -1379,6 +1379,33 @@ func tempAndPressureReader() {
 		}
 	}
 	globalStatus.RY835AI_connected = false
+}
+
+func attitudeReaderSender() {
+	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
+	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
+
+	for { //globalSettings.AHRS_Enabled
+		<-timer.C
+		// get data from 9250, calculate, then set pitch and roll
+
+		//pitch, roll, err_mpu6050 := readMPU6050()
+		pitch, roll := GetCurrentAttitudeXY()
+
+		mySituation.mu_Attitude.Lock()
+		mySituation.Pitch = float64(pitch)
+		mySituation.Roll = float64(roll)
+		//mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
+		mySituation.LastAttitudeTime = stratuxClock.Time
+
+		// Send, if valid.
+		//		if isGPSGroundTrackValid(), etc.
+
+		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
+		makeAHRSGDL90Report()
+
+		mySituation.mu_Attitude.Unlock()
+	}
 }
 
 func makeFFAHRSSimReport() {
@@ -1426,33 +1453,6 @@ func makeAHRSGDL90Report() {
 	msg[15] = byte(g & 0xFF)
 
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
-}
-
-func attitudeReaderSender() {
-	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
-
-	for { //globalSettings.AHRS_Enabled
-		<-timer.C
-		// get data from 9250, calculate, then set pitch and roll
-
-		//pitch, roll, err_mpu6050 := readMPU6050()
-		pitch, roll := GetCurrentAttitudeXY()
-
-		mySituation.mu_Attitude.Lock()
-		mySituation.Pitch = float64(pitch)
-		mySituation.Roll = float64(roll)
-		//mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-		mySituation.LastAttitudeTime = stratuxClock.Time
-
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
-
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		makeAHRSGDL90Report()
-
-		mySituation.mu_Attitude.Unlock()
-	}
 }
 
 /*
