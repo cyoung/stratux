@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"time"
 
@@ -57,7 +58,7 @@ func readRawData() {
 		chkErr(err)
 		z_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3f)
 
-		//log.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
+		log.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
 
 		// Get gyro data.
 		x_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x43)
@@ -66,7 +67,7 @@ func readRawData() {
 		chkErr(err)
 		z_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x47)
 
-		//log.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
+		log.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
 
 		// Get magnetometer data.
 		setSetting(0x25, 0x0c|0x80) // Set the I2C slave addres of AK8963 and set for read.
@@ -83,7 +84,7 @@ func readRawData() {
 
 		AHRSupdate(convertToRadians(x_gyro), convertToRadians(y_gyro), convertToRadians(z_gyro), convertToRadians(x_acc), convertToRadians(y_acc), convertToRadians(z_acc), convertToRadians(x_mag), convertToRadians(y_mag), convertToRadians(z_mag))
 
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 }
 
