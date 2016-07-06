@@ -33,11 +33,11 @@ func initMPU9250() {
 
 	setSetting(0x6B, 0x80) // Reset.
 	setSetting(0x6B, 0x01) // Clock source.
-	/*
-		setSetting(0x6C, 0x00) // Enable accelerometer and gyro.
+	setSetting(0x6C, 0x00) // Enable accelerometer and gyro.
 
-		setSetting(0x6A, 0x20) // I2C Master mode.
-		setSetting(0x24, 0x0D) // I2C configuration multi-master, IIC 400KHz.
+	setSetting(0x6A, 0x20) // I2C Master mode.
+	setSetting(0x24, 0x0D) // I2C configuration multi-master, IIC 400KHz.
+	/*
 
 		setSetting(0x25, 0x0C) // Set the I2C slave addres of AK8963 and set for write.
 		setSetting(0x26, 0x0B) // I2C slave 0 register address from where to begin data transfer.
