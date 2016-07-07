@@ -6,6 +6,7 @@ dump978/uat2json
 dump978/uat2text
 gen_gdl90
 libdump978.so
+libdump1090.so
 
 *.mp4
 

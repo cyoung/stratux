@@ -9,9 +9,18 @@
 
 package main
 
+/*
+#cgo linux LDFLAGS: -ldump1090 -lm
+
+#include <stdlib.h>
+#include <stdint.h>
+#include "../dump1090/stratux_exports.h"
+*/
+import "C"
+
 import (
+	"errors"
 	"log"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,90 +60,10 @@ type Dump1090TermMessage struct {
 	Source string
 }
 
-func (e *ES) read() {
-	defer e.wg.Done()
-	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--oversample", "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
-	stdout, _ := cmd.StdoutPipe()
-	stderr, _ := cmd.StderrPipe()
-
-	err := cmd.Start()
-	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err)
-		// don't return immediately, use the proper shutdown procedure
-		shutdownES = true
-		for {
-			select {
-			case <-e.closeCh:
-				return
-			default:
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}
-
-	log.Println("Executed /usr/bin/dump1090 successfully...")
-
-	done := make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-e.closeCh:
-				log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
-				err := cmd.Process.Kill()
-				if err == nil {
-					log.Println("\t kill successful...")
-				}
-				return
-			default:
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}()
-
-	stdoutBuf := make([]byte, 1024)
-	stderrBuf := make([]byte, 1024)
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			default:
-				n, err := stdout.Read(stdoutBuf)
-				if err == nil && n > 0 {
-					m := Dump1090TermMessage{Text: string(stdoutBuf[:n]), Source: "stdout"}
-					logDump1090TermMessage(m)
-				}
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			default:
-				n, err := stderr.Read(stderrBuf)
-				if err == nil && n > 0 {
-					m := Dump1090TermMessage{Text: string(stderrBuf[:n]), Source: "stderr"}
-					logDump1090TermMessage(m)
-				}
-			}
-		}
-	}()
-
-	cmd.Wait()
-
-	// we get here if A) the dump1090 process died
-	// on its own or B) cmd.Process.Kill() was called
-	// from within the goroutine, either way close
-	// the "done" channel, which ensures we don't leak
-	// goroutines...
-	close(done)
+//export log1090
+func log1090(s *C.char) {
+	m := Dump1090TermMessage{Text: C.GoString(s), Source: "stderr"}
+	logDump1090TermMessage(m)
 }
 
 func (u *UAT) read() {
@@ -189,7 +118,9 @@ func getPPM(serial string) int {
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
 	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
-	return
+	s := int(C.start1090(C.int(e.indexID), C.int(e.ppm)))
+	if s == 0 { return nil }
+	return errors.New("C.Dump1090Start failed...")
 }
 
 // 978 UAT configuration settings
@@ -347,9 +278,7 @@ func (u *UAT) shutdown() {
 
 func (e *ES) shutdown() {
 	log.Println("Entered ES shutdown() ...")
-	close(e.closeCh) // signal to shutdown
-	log.Println("ES shutdown(): calling e.wg.Wait() ...")
-	e.wg.Wait() // Wait for the goroutine to shutdown
+	C.stop1090()
 	log.Println("ES shutdown() complete ...")
 }
 
@@ -412,11 +341,7 @@ func createESDev(id int, serial string, idSet bool) error {
 		ESDev = nil
 		return err
 	}
-	ESDev.wg = &sync.WaitGroup{}
 	ESDev.idSet = idSet
-	ESDev.closeCh = make(chan int)
-	ESDev.wg.Add(1)
-	go ESDev.read()
 	return nil
 }
 

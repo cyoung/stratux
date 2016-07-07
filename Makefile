@@ -18,11 +18,12 @@ xgen_gdl90:
 
 xdump1090:
 	git submodule update --init
-	cd dump1090 && make
+	cd dump1090 && make lib
+	cp -f ./libdump1090.so /usr/lib/libdump1090.so
 
 xdump978:
 	cd dump978 && make lib
-	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
+	cp -f ./libdump978.so /usr/lib/libdump978.so
 
 xlinux-mpu9150:
 	git submodule update --init
@@ -49,7 +50,7 @@ install:
 	cp -f dump1090/dump1090 /usr/bin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so
+	rm -f gen_gdl90 libdump978.so libdump1090.so
 	cd dump1090 && make clean
 	cd dump978 && make clean
 	rm -f linux-mpu9150/*.o linux-mpu9150/*.so
