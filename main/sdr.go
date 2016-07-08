@@ -4,6 +4,8 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
+	Modifications (c) 2015-2016 Joseph D Poirier (https://github.com/jpoirier)
+
 	sdr.go: SDR monitoring, SDR management, data input from UAT/1090ES channels.
 */
 
