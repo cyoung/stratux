@@ -1398,8 +1398,8 @@ func attitudeReaderSender() {
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		log.Printf("x=%f, y=%f, z=%f\n", roll, pitch, yaw)
-		q0, q1, q2, q3 := GetCurrentAttitudeQ()
-		log.Printf("q0=%f, q1=%f, q2=%f, q3=%f\n", q0, q1, q2, q3)
+		// q0, q1, q2, q3 := GetCurrentAttitudeQ()
+		// log.Printf("q0=%f, q1=%f, q2=%f, q3=%f\n", q0, q1, q2, q3)
 
 		// Send, if valid.
 		//		if isGPSGroundTrackValid(), etc.
