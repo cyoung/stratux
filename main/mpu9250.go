@@ -69,7 +69,7 @@ func initMPU9250() {
 	setSetting(0x1C, 0x00) // Set accelerometer scale to +/- 2G.
 
 	if !checkMagConnection() {
-		fmt.Printf("magnetometer is offline.\n")
+		log.Printf("magnetometer is offline.\n")
 		return
 	}
 
