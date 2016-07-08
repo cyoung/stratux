@@ -84,9 +84,9 @@ func readRawData() {
 		chkErr(err)
 		z_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3F)
 
-		x_acc_f := float64(int16(x_acc)) / 16384.0
-		y_acc_f := float64(int16(y_acc)) / 16384.0
-		z_acc_f := float64(int16(z_acc)) / 16384.0
+		// x_acc_f := float64(int16(x_acc)) / 16384.0
+		// y_acc_f := float64(int16(y_acc)) / 16384.0
+		// z_acc_f := float64(int16(z_acc)) / 16384.0
 
 		// fmt.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
 
@@ -97,9 +97,9 @@ func readRawData() {
 		chkErr(err)
 		z_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x47)
 
-		x_gyro_f := float64(int16(x_gyro)) / 131.0
-		y_gyro_f := float64(int16(y_gyro)) / 131.0
-		z_gyro_f := float64(int16(z_gyro)) / 131.0
+		// x_gyro_f := float64(int16(x_gyro)) / 131.0
+		// y_gyro_f := float64(int16(y_gyro)) / 131.0
+		// z_gyro_f := float64(int16(z_gyro)) / 131.0
 
 		// fmt.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
 
