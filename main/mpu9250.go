@@ -125,7 +125,7 @@ func readRawData() {
 		// y_mag_f := float64(int16(y_mag)) / 32760.0
 		// z_mag_f := float64(int16(z_mag)) / 32760.0
 
-		// "heading" not working with MPU9250 breakout board.
+		// // "heading" not working with MPU9250 breakout board.
 
 		// hdg := math.Atan2(y_mag_f, x_mag_f)
 
@@ -141,7 +141,7 @@ func readRawData() {
 
 		//log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
-		go AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), convertToRadians(x_acc_f), convertToRadians(y_acc_f), convertToRadians(z_acc_f), convertToRadians(x_mag_f), convertToRadians(y_mag_f), convertToRadians(z_mag_f))
+		go AHRSupdate(convertToRadians(x_gyro), convertToRadians(y_gyro), convertToRadians(z_gyro), convertToRadians(x_acc), convertToRadians(y_acc), convertToRadians(z_acc), convertToRadians(x_mag), convertToRadians(y_mag), convertToRadians(z_mag))
 
 		time.Sleep(2 * time.Millisecond)
 	}
