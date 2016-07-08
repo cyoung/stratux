@@ -72,7 +72,7 @@ func initMPU9250() {
 		return
 	}
 
-	go readRawData()
+	//go readRawData()
 }
 
 func readRawData() {
