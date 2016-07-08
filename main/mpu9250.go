@@ -127,17 +127,17 @@ func readRawData() {
 
 		// "heading" not working with MPU9250 breakout board.
 
-		hdg := math.Atan2(y_mag_f, x_mag_f)
+		// hdg := math.Atan2(y_mag_f, x_mag_f)
 
-		if hdg < 0 {
-			hdg += 2 * math.Pi
-		}
+		// if hdg < 0 {
+		// 	hdg += 2 * math.Pi
+		// }
 
-		hdgDeg := hdg * 180.0 / math.Pi
+		// hdgDeg := hdg * 180.0 / math.Pi
 
-		fmt.Printf("---x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
-		fmt.Printf("---x_mag_f=%f, y_mag_f=%f, z_mag_f=%f\n", x_mag_f, y_mag_f, z_mag_f)
-		fmt.Printf("***hdgDeg=%f\n", hdgDeg)
+		// fmt.Printf("---x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
+		// fmt.Printf("---x_mag_f=%f, y_mag_f=%f, z_mag_f=%f\n", x_mag_f, y_mag_f, z_mag_f)
+		// fmt.Printf("***hdgDeg=%f\n", hdgDeg)
 
 		//log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
