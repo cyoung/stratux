@@ -84,9 +84,9 @@ func readRawData() {
 		chkErr(err)
 		z_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3F)
 
-		x_acc_f := float64(int16(x_acc)) / 16384.0
-		y_acc_f := float64(int16(y_acc)) / 16384.0
-		z_acc_f := float64(int16(z_acc)) / 16384.0
+		// x_acc_f := float64(int16(x_acc)) / 16384.0
+		// y_acc_f := float64(int16(y_acc)) / 16384.0
+		// z_acc_f := float64(int16(z_acc)) / 16384.0
 
 		// fmt.Printf("x_acc=%d, y_acc=%d, z_acc=%d\n", x_acc, y_acc, z_acc)
 
@@ -97,9 +97,9 @@ func readRawData() {
 		chkErr(err)
 		z_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x47)
 
-		x_gyro_f := float64(int16(x_gyro)) / 131.0
-		y_gyro_f := float64(int16(y_gyro)) / 131.0
-		z_gyro_f := float64(int16(z_gyro)) / 131.0
+		// x_gyro_f := float64(int16(x_gyro)) / 131.0
+		// y_gyro_f := float64(int16(y_gyro)) / 131.0
+		// z_gyro_f := float64(int16(z_gyro)) / 131.0
 
 		// fmt.Printf("x_gyro=%d, y_gyro=%d, z_gyro=%d\n", x_gyro, y_gyro, z_gyro)
 
@@ -121,9 +121,9 @@ func readRawData() {
 			continue // Don't use measurement.
 		}
 
-		x_mag_f := float64(int16(x_mag)) / 32760.0
-		y_mag_f := float64(int16(y_mag)) / 32760.0
-		z_mag_f := float64(int16(z_mag)) / 32760.0
+		// x_mag_f := float64(int16(x_mag)) / 32760.0
+		// y_mag_f := float64(int16(y_mag)) / 32760.0
+		// z_mag_f := float64(int16(z_mag)) / 32760.0
 
 		// // "heading" not working with MPU9250 breakout board.
 
@@ -141,7 +141,7 @@ func readRawData() {
 
 		//log.Printf("x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
 
-		go AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
+		go AHRSupdate(convertToRadians(x_gyro), convertToRadians(y_gyro), convertToRadians(z_gyro), float64(x_acc), float64(y_acc), float64(z_acc), float64(x_mag), float64(y_mag), float64(z_mag))
 
 		time.Sleep(2 * time.Millisecond)
 	}
