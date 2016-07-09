@@ -1388,7 +1388,7 @@ func attitudeReaderSender() {
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
 
-		pitch, roll := GetCurrentAttitudeXYZ()
+		pitch, roll := GetCurrentAttitudeXY()
 
 		mySituation.mu_Attitude.Lock()
 		mySituation.Pitch = float64(pitch)
