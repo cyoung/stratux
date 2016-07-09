@@ -10,7 +10,7 @@ var attitudeX, attitudeY, attitudeZ, heading float64
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
-	magXcomp := magX*math.Cos(attitudeY) + maxZ*math.Sin(attitudeY)
+	magXcomp := magX*math.Cos(attitudeY) + magZ*math.Sin(attitudeY)
 	magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
 	heading = 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
 
