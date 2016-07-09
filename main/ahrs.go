@@ -10,11 +10,9 @@ var attitudeX, attitudeY, attitudeZ, heading float32
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
-	// magXcomp = *mag_raw*cos(pitch)+*(mag_raw+2)*sin(pitch);
-	// magYcomp = *mag_raw*sin(roll)*sin(pitch)+*(mag_raw+1)*cos(roll)-*(mag_raw+2)*sin(roll)*cos(pitch);
-	magXcomp := magX*math.Cos(attitudeY) + maxZ*math.Sin(attitudeY)
-	magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
-	heading = 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
+	magXcomp := magX*math.Cos(float32(attitudeY) + maxZ*math.Sin(float32(attitudeY))
+	magYcomp := magX*math.Sin(float32(attitudeX))*math.Sin(float32(attitudeY)) + magY*math.Cos(float32(attitudeX)) - magZ*math.Sin(float32(attitudeX))*math.Cos(float32(attitudeY))
+	heading = float32(180 * math.Atan2(magYcomp, magXcomp) / math.Pi)
 
 	if heading < 0 {
 		heading += 360
