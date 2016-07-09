@@ -131,8 +131,12 @@ func readRawData() {
 		setSetting(0x26, 0x10) // I2C slave 0 register address from where to begin data transfer.
 		setSetting(0x27, 0x87) // Read 3 bytes from the magnetometer (CalX+CalY+CalZ).
 		mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x49)
+		chkErr(err)
 		mycal, err := i2cbus.ReadWordFromReg(0x68, 0x4A)
+		chkErr(err)
 		mzcal, err := i2cbus.ReadWordFromReg(0x68, 0x4B)
+		chkErr(err)
+
 		log.Printf("%u,%x,%u\n", mxcal, mycal, mzcal)
 
 		st2, err := i2cbus.ReadByteFromReg(0x68, 0x4F) // ST2 register. Unlatch measurement data for next sample.
