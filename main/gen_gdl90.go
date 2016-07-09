@@ -421,7 +421,7 @@ func makeStratuxStatus() []byte {
 	if globalSettings.AHRS_Enabled {
 		msg[12] = 1 << 0
 	}
-
+	msg[12] = 1
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
@@ -1208,30 +1208,6 @@ func main() {
 		debugLogf = debugLog
 		dataLogFilef = dataLogFile
 	}
-	//FIXME: All of this should be removed by 08/01/2016.
-	// Check if Raspbian version is <8.0. Throw a warning if so.
-	vt, err := ioutil.ReadFile("/etc/debian_version")
-	if err == nil {
-		vtS := strings.Trim(string(vt), "\n")
-		vtF, err := strconv.ParseFloat(vtS, 32)
-		if err == nil {
-			if vtF < 8.0 {
-				var err_os error
-				if globalStatus.HardwareBuild == "FlightBox" {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
-				} else {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
-				}
-				addSystemError(err_os)
-			} else {
-				// Running Jessie or better. Remove some old init.d files.
-				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
-				os.Remove("/etc/init.d/stratux")
-				os.Remove("/etc/rc2.d/S01stratux")
-				os.Remove("/etc/rc6.d/K01stratux")
-			}
-		}
-	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
@@ -1287,6 +1263,7 @@ func main() {
 	initDataLog()
 
 	initRY835AI()
+	initMPU9250()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

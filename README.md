@@ -15,7 +15,8 @@ Supported Wi-Fi adapters:
 * Built-in Wi-Fi for Pi 3
 
 Tested RTL-SDR:
-* NooElec NESDR Nano 2 (best)
+* NooElec NESDR Nano 2+ (best)
+* NooElec NESDR Nano 2 (better)
 * NooElec NESDR Mini 2
 * Generic R820T (degraded performance)
 
