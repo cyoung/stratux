@@ -81,7 +81,7 @@ func initMPU9250() {
 }
 
 func readRawData() {
-	timer := time.NewTicker(1 * time.Millisecond)
+	timer := time.NewTicker(2 * time.Millisecond)
 
 	for {
 		<-timer.C
@@ -155,7 +155,7 @@ func readRawData() {
 }
 
 func calculateAttitude() {
-	timer := time.NewTicker(10 * time.Millisecond) // 100 Hz
+	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz
 
 	for {
 		<-timer.C
