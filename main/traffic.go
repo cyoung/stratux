@@ -397,8 +397,12 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.NACp = int((frame[25] >> 4) & 0x0F)
 	}
 
-	power := 20 * (math.Log10(float64(signalLevel) / 1000)) // reported amplitude is 0-1000. Normalize to max = 1 and do amplitude dB calculation (20 dB per decade)
-
+	var power float64
+	if signalLevel > 0 {
+		power = 20 * (math.Log10(float64(signalLevel) / 1000)) // reported amplitude is 0-1000. Normalize to max = 1 and do amplitude dB calculation (20 dB per decade)
+	} else {
+		power = -999
+	}
 	//log.Printf("%s (%X) seen with amplitude of %d, corresponding to normalized power of %f.2 dB\n",ti.Tail,ti.Icao_addr,signalLevel,power)
 
 	ti.SignalLevel = power
@@ -666,7 +670,11 @@ func esListen() {
 				}
 			}
 
-			ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
+			if newTi.SignalLevel > 0 {
+				ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
+			} else {
+				ti.SignalLevel = -999
+			}
 
 			// generate human readable summary of message types for debug
 			// TO-DO: Use for ES message statistics?
