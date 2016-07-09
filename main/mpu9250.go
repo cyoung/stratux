@@ -128,6 +128,14 @@ func readRawData() {
 		chkErr(err)
 		z_mag, err := i2cbus.ReadWordFromReg(0x68, 0x4D)
 
+		st2, err := i2cbus.ReadByteFromReg(0x68, 0x4F) // ST2 register. Unlatch measurement data for next sample.
+		chkErr(err)
+
+		if st2&0x08 != 0 { // Measurement overflow. HOFL.
+			fmt.Printf("mag: measurement overflow\n")
+			continue // Don't use measurement.
+		}
+
 		setSetting(0x26, 0x10) // I2C slave 0 register address from where to begin data transfer.
 		setSetting(0x27, 0x87) // Read 3 bytes from the magnetometer (CalX+CalY+CalZ).
 		mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x49)
@@ -138,14 +146,6 @@ func readRawData() {
 		chkErr(err)
 
 		log.Printf("%u,%x,%u\n", mxcal, mycal, mzcal)
-
-		st2, err := i2cbus.ReadByteFromReg(0x68, 0x4F) // ST2 register. Unlatch measurement data for next sample.
-		chkErr(err)
-
-		if st2&0x08 != 0 { // Measurement overflow. HOFL.
-			fmt.Printf("mag: measurement overflow\n")
-			continue // Don't use measurement.
-		}
 
 		x_mag_f := float64(int16(x_mag))*1.28785103785104 - 470.0
 		y_mag_f := float64(int16(y_mag))*1.28785103785104 - 120.0
