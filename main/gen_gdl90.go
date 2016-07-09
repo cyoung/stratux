@@ -659,7 +659,7 @@ func updateMessageStats() {
 
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
-		if tinf.Messages_last_minute == 0 || Energy_last_minute == 0 {
+		if tinf.Messages_last_minute == 0 || tinf.Energy_last_minute == 0 {
 			tinf.Signal_strength_last_minute = -999
 		} else {
 			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
