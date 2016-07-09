@@ -67,6 +67,7 @@ func initMPU9250() {
 
 	setSetting(0x1B, 0x00) // Set gyro sensitivity to 250dps.
 	setSetting(0x1C, 0x00) // Set accelerometer scale to +/- 2G.
+	setSetting(0x19, 0x00) // Set 200hz sample rate.
 
 	if !checkMagConnection() {
 		log.Printf("magnetometer is offline.\n")
