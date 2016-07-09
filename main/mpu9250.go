@@ -121,7 +121,7 @@ func readRawData() {
 		// Get magnetometer data.
 		setSetting(0x25, 0x0C|0x80) // Set the I2C slave addres of AK8963 and set for read.
 		setSetting(0x26, 0x03)      // I2C slave 0 register address from where to begin data transfer.
-		setSetting(0x27, 0x83)      // Read 7 bytes from the magnetometer (HX+HY+HZ+ST2).
+		setSetting(0x27, 0x87)      // Read 7 bytes from the magnetometer (HX+HY+HZ+ST2).
 		x_mag, err := i2cbus.ReadWordFromReg(0x68, 0x49)
 		chkErr(err)
 		y_mag, err := i2cbus.ReadWordFromReg(0x68, 0x4B)
