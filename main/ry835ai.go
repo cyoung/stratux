@@ -1382,7 +1382,7 @@ func tempAndPressureReader() {
 }
 
 func attitudeReaderSender() {
-	timer := time.NewTicker(40 * time.Millisecond) // 25 Hz update.
+	timer := time.NewTicker(20 * time.Millisecond) // 25 Hz update.
 	//timer := time.NewTicker(100 * time.Millisecond) // 10 Hz update
 
 	for { //globalSettings.AHRS_Enabled
