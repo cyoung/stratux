@@ -64,9 +64,9 @@ func initMPU9250() {
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
 
 	mxcal, err := i2cbus.ReadWordFromReg(0x0C, 0x10)
-	mycal, err := i2cbus.ReadWordFromReg(0x0C, 0x11)
-	mzcal, err := i2cbus.ReadWordFromReg(0x0C, 0x12)
-	log.Printf("%u,%u,%u\n", mxcal, mycal, mzcal)
+	// mycal, err := i2cbus.ReadWordFromReg(0x0C, 0x11)
+	// mzcal, err := i2cbus.ReadWordFromReg(0x0C, 0x12)
+	log.Printf("%u\n", mxcal)
 
 	if err != nil {
 		log.Printf("Unable to read calibration values from the magnetometer.")
