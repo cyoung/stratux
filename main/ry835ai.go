@@ -1427,7 +1427,7 @@ func makeAHRSGDL90Report() {
 	roll := int16(float64(mySituation.Roll) * float64(10.0))
 	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
 	slip_skid := int16(float64(0) * float64(10.0))
-	yaw_rate := int16(float64(0) * float64(10.0))
+	yaw_rate := int16(float64(mySituation.Yaw) * float64(10.0))
 	g := int16(float64(1.0) * float64(10.0))
 
 	// Roll.
