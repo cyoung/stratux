@@ -2,37 +2,39 @@ package main
 
 import "math"
 
-var sampleFreq float64 = 512.0
-var beta float64 = 0.1 //values of 0.02 or 0.025 have also been suggested
+var sampleFreq float64 = 500.0
+var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
+var attitudeX, attitudeY, attitudeZ float32
 
-// Gets the current attitude represented as X (roll) and Y (pitch) values,
+// Calculates the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
 // resulting in less computational load as the Z (yaw) value is not calculated.
-func GetCurrentAttitudeXY() (float32, float32) {
+func CalculateCurrentAttitudeXY() {
 	var q0a, q1a, q2a, q3a float64
 	q0a = q0
 	q1a = q1
 	q2a = q2
 	q3a = q3
 
-	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
-	attitudeY := float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
-
-	return attitudeX, attitudeY
+	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
+	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
 }
 
-// Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values.
-func GetCurrentAttitudeXYZ() (float32, float32, float32) {
+// Calculates the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
+func CalculateCurrentAttitudeXYZ() {
 	var q0a, q1a, q2a, q3a float64
 	q0a = q0
 	q1a = q1
 	q2a = q2
 	q3a = q3
 
-	attitudeX := float32(math.Atan2(2*(q0a*q1a+q2a*q3a), 1-2*((q1a*q1a)+(q2a*q2a))))
-	attitudeY := float32(math.Asin(2 * (q0a*q2a - q3a*q1a)))
-	attitudeZ := float32(math.Atan2(2*(q0a*q3a+q1a*q2a), 1-2*((q2a*q2a)+(q3a*q3a))))
+	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
+	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+	attitudeZ = float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
+}
 
+// Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
+func GetCurrentAttitudeXYZ() (float32, float32, float32) {
 	return attitudeX, attitudeY, attitudeZ
 }
 
@@ -213,24 +215,5 @@ func AHRSupdateIMU(gx, gy, gz, ax, ay, az float64) {
 }
 
 func invSqrt(x float64) float64 {
-	// xhalf := float32(0.5) * x
-	// i := math.Float32bits(x)
-	// i = 0x5f3759df - i>>1
-	// x = math.Float32frombits(i)
-	// x = x * (1.5 - (xhalf * x * x))
-	// return x
-
-	// The following line replaces the above. It may be faster, but it
-	// also may be more or less accurate. Need to test. At the time the
-	// above was written, CPUs did not have the instruction set built
-	// into hardware. Now they do, but I'm not sure that applies to the
-	// CPU that the RasPi is using. It appears that it does, but that is
-	// not a guarantee of performance. There may also be a difference
-	// between RasPi 2 and 3 CPUs.
 	return 1.0 / math.Sqrt(x)
-
-	// Alternative implementation to the "hack", in C:
-	//uint32_t i = 0x5F1F1412 - (*(uint32_t*)&x >> 1);
-	//float tmp = *(float*)&i;
-	//return tmp * (1.69000231f - 0.714158168f * x * tmp * tmp);
 }

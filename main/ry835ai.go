@@ -26,8 +26,6 @@ import (
 
 	"os"
 	"os/exec"
-
-	"../linux-mpu9150/mpu"
 )
 
 const (
@@ -86,7 +84,7 @@ type SituationData struct {
 	Pressure_alt      float64
 	LastTempPressTime time.Time
 
-	// From MPU9250 mag and MPU6050 accel/gyro.
+	// From MPU9250 gyro/accel/mag.
 	Pitch            float64
 	Roll             float64
 	Yaw              float64
@@ -1340,6 +1338,16 @@ func gpsSerialReader() {
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
 
+func initI2C() error {
+	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
+	return nil
+}
+
+func initBMP180() error {
+	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
+	return nil
+}
+
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	temp, err := myBMP180.Temperature()
 	if err != nil {
@@ -1353,20 +1361,10 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	return temp, altitude, nil
 }
 
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initI2C() error {
-	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
-	return nil
-}
-
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY835AI_connected {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
@@ -1381,6 +1379,39 @@ func tempAndPressureReader() {
 		}
 	}
 	globalStatus.RY835AI_connected = false
+}
+
+func attitudeReaderSender() {
+	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz update.
+	//timer := time.NewTicker(50 * time.Millisecond) // 20 Hz update
+	//timer := time.NewTicker(100 * time.Millisecond) // 10 Hz update
+
+	for { //globalSettings.AHRS_Enabled
+		<-timer.C
+
+		pitch, roll, yaw := GetCurrentAttitudeXYZ()
+
+		mySituation.mu_Attitude.Lock()
+		mySituation.Pitch = float64(pitch)
+		mySituation.Roll = float64(roll)
+		mySituation.Yaw = float64(yaw)
+		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
+		mySituation.LastAttitudeTime = stratuxClock.Time
+
+		//log.Printf("x=%f, y=%f, z=%f\n", roll, pitch, yaw)
+		// q0, q1, q2, q3 := GetCurrentAttitudeQ()
+		// log.Printf("q0=%f, q1=%f, q2=%f, q3=%f\n", q0, q1, q2, q3)
+
+		// Send, if valid.
+		//		if isGPSGroundTrackValid(), etc.
+
+		// Simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later.
+		// Function definition will be kept for AHRS debugging and future workarounds.
+		// makeFFAHRSSimReport()
+		makeAHRSGDL90Report()
+
+		mySituation.mu_Attitude.Unlock()
+	}
 }
 
 func makeFFAHRSSimReport() {
@@ -1430,45 +1461,8 @@ func makeAHRSGDL90Report() {
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
 
-func attitudeReaderSender() {
-	//timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	timer := time.NewTicker(2 * time.Millisecond) // 500 Hz update
-
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
-		// Read pitch and roll.
-		// get data from 9250, calculate, then set pitch and roll
-		d, err := mpu.ReadMPURaw()
-		if err != nil {
-			continue
-		}
-		AHRSupdate(float64(d.Gx), float64(d.Gy), float64(d.Gz), float64(d.Ax), float64(d.Ay), float64(d.Az), float64(d.Mx), float64(d.My), float64(d.Mz))
-		//pitch, roll, err_mpu6050 := readMPU6050()
-		pitch, roll := GetCurrentAttitudeXY()
-
-		mySituation.mu_Attitude.Lock()
-		mySituation.Pitch = float64(pitch)
-		mySituation.Roll = float64(roll)
-		//mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-		mySituation.LastAttitudeTime = stratuxClock.Time
-
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
-
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		makeAHRSGDL90Report()
-
-		mySituation.mu_Attitude.Unlock()
-	}
-	globalStatus.RY835AI_connected = false
-}
-
-/*
-	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
-		data structure. Calling functions must protect this in a satelliteMutex.
-
-*/
-
+// updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
+// data structure. Calling functions must protect this in a satelliteMutex.
 func updateConstellation() {
 	var sats, tracked, seen uint8
 	for svStr, thisSatellite := range Satellites {
@@ -1500,13 +1494,9 @@ func isGPSConnected() bool {
 	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
-/*
-isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
-and if the GPS subsystem has recently detected a GPS device.
-
-If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
-*/
-
+// isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
+// and if the GPS subsystem has recently detected a GPS device.
+// If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
 func isGPSValid() bool {
 	isValid := false
 	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected && mySituation.Quality > 0 {
@@ -1524,6 +1514,10 @@ func isGPSGroundTrackValid() bool {
 
 func isGPSClockValid() bool {
 	return stratuxClock.Since(mySituation.LastGPSTimeTime) < 15*time.Second
+}
+
+func isAHRSValid() bool {
+	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
 }
 
 func isTempPressValid() bool {
@@ -1550,6 +1544,10 @@ func initRY835AI() {
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
+	initI2C()
+	initBMP180()
 
 	go pollRY835AI()
+	go attitudeReaderSender()
+	go tempAndPressureReader()
 }
