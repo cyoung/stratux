@@ -80,7 +80,10 @@ func initMPU9250() {
 }
 
 func readRawData() {
+	timer := time.NewTicker(50 * time.Millisecond)
+
 	for {
+		<-timer.C
 		// Get accelerometer data.
 		x_acc, err := i2cbus.ReadWordFromReg(0x68, 0x3B)
 		chkErr(err)
@@ -146,9 +149,7 @@ func readRawData() {
 		// fmt.Printf("---x_mag_f=%f, y_mag_f=%f, z_mag_f=%f\n", x_mag_f, y_mag_f, z_mag_f)
 		// fmt.Printf("***hdgDeg=%f\n", hdgDeg)
 
-		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
-
-		time.Sleep(5 * time.Millisecond)
+		go AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
 	}
 }
 
