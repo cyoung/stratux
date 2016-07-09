@@ -11,12 +11,12 @@ var headingHistory [10]float64
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
-	//magXcomp := magX*math.Cos(attitudeY) + magZ*math.Sin(attitudeY)
-	//magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
-	tempHeading := 180 * math.Atan2(magY, magX) / math.Pi
+	magXcomp := magX*math.Cos(attitudeY) + magZ*math.Sin(attitudeY)
+	magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
+	tempHeading := 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
 
-	if heading < 0 {
-		heading += 360
+	if tempHeading < 0 {
+		tempHeading += 360
 	}
 
 	headingHistory[9] = headingHistory[8]
