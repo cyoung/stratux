@@ -149,7 +149,7 @@ func readRawData() {
 		// fmt.Printf("---x_mag_f=%f, y_mag_f=%f, z_mag_f=%f\n", x_mag_f, y_mag_f, z_mag_f)
 		// fmt.Printf("***hdgDeg=%f\n", hdgDeg)
 
-		go AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
+		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
 	}
 }
 
