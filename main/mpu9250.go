@@ -63,6 +63,10 @@ func initMPU9250() {
 	setSetting(0x63, 0x16) // Register value to 100Hz continuous measurement in 16bit.
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
 
+	mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x10)
+	mycal, err := i2cbus.ReadWordFromReg(0x68, 0x11)
+	mzcal, err := i2cbus.ReadWordFromReg(0x68, 0x12)
+	log.Printf(mxcal + " " + mycal + " " + mzcal)
 	// Accelerometer and gyro init.
 
 	setSetting(0x19, 0x00) // Set Gyro 1000 Hz sample rate. rate = gyroscope output rate/(1 + value)
