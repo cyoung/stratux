@@ -68,6 +68,18 @@ func initMPU9250() {
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
 
 	setSetting(0x25, 0x0C) // Set the I2C slave addres of AK8963 and set for write.
+	setSetting(0x26, 0x10) // I2C slave 0 register address from where to begin data transfer.
+	setSetting(0x27, 0x83) // Read 3 bytes from the magnetometer (CalX+CalY+CalZ).
+	mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x49)
+	chkErr(err)
+	mycal, err := i2cbus.ReadWordFromReg(0x68, 0x4D)
+	chkErr(err)
+	mzcal, err := i2cbus.ReadWordFromReg(0x68, 0x4B)
+	chkErr(err)
+
+	log.Printf("%u,%x,%u\n", mxcal, mycal, mzcal)
+
+	setSetting(0x25, 0x0C) // Set the I2C slave addres of AK8963 and set for write.
 	setSetting(0x26, 0x0A) // I2C slave 0 register address from where to begin data transfer.
 	setSetting(0x63, 0x16) // Register value to 100Hz continuous measurement in 16bit.
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
@@ -91,7 +103,7 @@ func initMPU9250() {
 }
 
 func readRawData() {
-	timer := time.NewTicker(200 * time.Millisecond)
+	timer := time.NewTicker(2 * time.Millisecond)
 
 	for {
 		<-timer.C
@@ -135,17 +147,6 @@ func readRawData() {
 			fmt.Printf("mag: measurement overflow\n")
 			continue // Don't use measurement.
 		}
-
-		setSetting(0x26, 0x10) // I2C slave 0 register address from where to begin data transfer.
-		setSetting(0x27, 0x83) // Read 3 bytes from the magnetometer (CalX+CalY+CalZ).
-		mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x49)
-		chkErr(err)
-		mycal, err := i2cbus.ReadWordFromReg(0x68, 0x4A)
-		chkErr(err)
-		mzcal, err := i2cbus.ReadWordFromReg(0x68, 0x4B)
-		chkErr(err)
-
-		log.Printf("%u,%x,%u\n", mxcal, mycal, mzcal)
 
 		x_mag_f := float64(int16(x_mag))*1.28785103785104 - 470.0
 		y_mag_f := float64(int16(y_mag))*1.28785103785104 - 120.0
