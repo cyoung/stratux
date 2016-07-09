@@ -36,7 +36,23 @@ func checkMagConnection() bool {
 	r, err := i2cbus.ReadByteFromReg(0x68, 0x49)
 	chkErr(err)
 
-	return r == 0x48
+	ret := r == 0x48
+
+	// Read calibration data.
+	setSetting(0x25, 0x0C|0x80)
+	setSetting(0x26, 0x10)
+	setSetting(0x27, 0x83) // Read three bytes, (CalX, CalY, CalZ).
+
+	mxcal, err := i2cbus.ReadByteFromReg(0x68, 0x49)
+	chkErr(err)
+	mycal, err := i2cbus.ReadByteFromReg(0x68, 0x4A)
+	chkErr(err)
+	mzcal, err := i2cbus.ReadByteFromReg(0x68, 0x4B)
+	chkErr(err)
+
+	log.Printf("mxcal=%d, mycal=%d, mzcal=%d\n", mxcal, mycal, mzcal)
+
+	return ret
 }
 
 func initMPU9250() {
