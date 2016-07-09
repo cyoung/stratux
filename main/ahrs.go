@@ -6,13 +6,13 @@ var sampleFreq float64 = 500.0
 var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
-var attitudeX, attitudeY, attitudeZ, heading float32
+var attitudeX, attitudeY, attitudeZ, heading float64
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
-	magXcomp := magX*math.Cos(float32(attitudeY) + maxZ*math.Sin(float32(attitudeY))
-	magYcomp := magX*math.Sin(float32(attitudeX))*math.Sin(float32(attitudeY)) + magY*math.Cos(float32(attitudeX)) - magZ*math.Sin(float32(attitudeX))*math.Cos(float32(attitudeY))
-	heading = float32(180 * math.Atan2(magYcomp, magXcomp) / math.Pi)
+	magXcomp := magX*math.Cos(attitudeY) + maxZ*math.Sin(attitudeY)
+	magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
+	heading = 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
 
 	if heading < 0 {
 		heading += 360
@@ -28,8 +28,8 @@ func CalculateCurrentAttitudeXY() {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
 }
 
 // Calculates the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
@@ -40,18 +40,18 @@ func CalculateCurrentAttitudeXYZ() {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
-	attitudeZ = float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
+	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
+	attitudeZ = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
 }
 
 // Gets the current attitude and heading.
-func GetCurrentAHRS() (float32, float32, float32, float32) {
+func GetCurrentAHRS() (float64, float64, float64, float64) {
 	return attitudeX, attitudeY, attitudeZ, heading
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
-func GetCurrentAttitudeXYZ() (float32, float32, float32) {
+func GetCurrentAttitudeXYZ() (float64, float64, float64) {
 	return attitudeX, attitudeY, attitudeZ
 }
 
