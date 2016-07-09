@@ -80,7 +80,7 @@ func initMPU9250() {
 }
 
 func readRawData() {
-	timer := time.NewTicker(2 * time.Millisecond)
+	timer := time.NewTicker(1 * time.Millisecond)
 
 	for {
 		<-timer.C
