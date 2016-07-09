@@ -1395,7 +1395,7 @@ func attitudeReaderSender() {
 		mySituation.Pitch = float64(pitch)
 		mySituation.Roll = float64(roll)
 		mySituation.Yaw = float64(yaw)
-		mySituation.Gyro_heading = float64(heading)
+		mySituation.Gyro_heading = float64(yaw)
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		// Send, if valid.
