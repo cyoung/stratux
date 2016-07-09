@@ -659,8 +659,8 @@ func updateMessageStats() {
 
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
-		if tinf.Messages_last_minute == 0 {
-			tinf.Signal_strength_last_minute = -99
+		if tinf.Messages_last_minute == 0 || Energy_last_minute == 0 {
+			tinf.Signal_strength_last_minute = -999
 		} else {
 			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
 		}
@@ -841,7 +841,11 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = buf
 	thisMsg.Signal_amplitude = thisSignalStrength
-	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	if thisSignalStrength > 0 {
+		thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	} else {
+		thisMsg.Signal_strength = -999
+	}
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
