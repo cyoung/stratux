@@ -53,6 +53,15 @@ func initMPU9250() {
 
 	// AK8963 init.
 
+	// mxcal, err := i2cbus.ReadWordFromReg(0x0C, 0x10)
+	// // mycal, err := i2cbus.ReadWordFromReg(0x0C, 0x11)
+	// // mzcal, err := i2cbus.ReadWordFromReg(0x0C, 0x12)
+	// log.Printf("%u\n", mxcal)
+
+	// if err != nil {
+	// 	log.Printf("Unable to read calibration values from the magnetometer.")
+	// }
+
 	setSetting(0x25, 0x0C) // Set the I2C slave addres of AK8963 and set for write.
 	setSetting(0x26, 0x0B) // I2C slave 0 register address from where to begin data transfer.
 	setSetting(0x63, 0x01) // Reset AK8963.
@@ -62,15 +71,6 @@ func initMPU9250() {
 	setSetting(0x26, 0x0A) // I2C slave 0 register address from where to begin data transfer.
 	setSetting(0x63, 0x16) // Register value to 100Hz continuous measurement in 16bit.
 	setSetting(0x27, 0x81) // Enable I2C and set 1 byte.
-
-	mxcal, err := i2cbus.ReadWordFromReg(0x0C, 0x10)
-	// mycal, err := i2cbus.ReadWordFromReg(0x0C, 0x11)
-	// mzcal, err := i2cbus.ReadWordFromReg(0x0C, 0x12)
-	log.Printf("%u\n", mxcal)
-
-	if err != nil {
-		log.Printf("Unable to read calibration values from the magnetometer.")
-	}
 
 	// Accelerometer and gyro init.
 
@@ -127,6 +127,8 @@ func readRawData() {
 		y_mag, err := i2cbus.ReadWordFromReg(0x68, 0x4B)
 		chkErr(err)
 		z_mag, err := i2cbus.ReadWordFromReg(0x68, 0x4D)
+		mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x4A)
+		log.Printf("%u\n", mxcal)
 
 		st2, err := i2cbus.ReadByteFromReg(0x68, 0x4F) // ST2 register. Unlatch measurement data for next sample.
 		chkErr(err)
