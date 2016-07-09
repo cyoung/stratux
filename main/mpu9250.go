@@ -97,8 +97,6 @@ func readRawData() {
 		y_acc_f := float64(int16(y_acc)) * 0.00006103515625
 		z_acc_f := float64(int16(z_acc)) * 0.00006103515625
 
-		// log.Printf("x_acc=%f, y_acc=%f, z_acc=%f\n", x_acc_f, y_acc_f, z_acc_f)
-
 		// Get gyro data.
 		x_gyro, err := i2cbus.ReadWordFromReg(0x68, 0x43)
 		chkErr(err)
@@ -109,8 +107,6 @@ func readRawData() {
 		x_gyro_f := float64(int16(x_gyro)) * 0.00006103515625
 		y_gyro_f := float64(int16(y_gyro)) * 0.00006103515625
 		z_gyro_f := float64(int16(z_gyro)) * 0.00006103515625
-
-		// log.Printf("x_gyro=%f, y_gyro=%f, z_gyro=%f\n", x_gyro_f, y_gyro_f, z_gyro_f)
 
 		// Get magnetometer data.
 		setSetting(0x25, 0x0C|0x80) // Set the I2C slave addres of AK8963 and set for read.
@@ -134,10 +130,7 @@ func readRawData() {
 		y_mag_f := float64(int16(y_mag)) * (10.0 * 4219.0 / 32760.0)
 		z_mag_f := float64(int16(z_mag)) * (10.0 * 4219.0 / 32760.0)
 
-		// log.Printf("x_mag=%f, y_mag=%f, z_mag=%f\n", x_mag_f, y_mag_f, z_mag_f)
-
-		// // "heading" not working with MPU9250 breakout board.
-
+		// "heading" not working with MPU9250 breakout board.
 		// hdg := math.Atan2(y_mag_f, x_mag_f)
 
 		// if hdg < 0 {
@@ -145,10 +138,6 @@ func readRawData() {
 		// }
 
 		// hdgDeg := hdg * 180.0 / math.Pi
-
-		// fmt.Printf("---x_mag=%d, y_mag=%d, z_mag=%d\n", x_mag, y_mag, z_mag)
-		// fmt.Printf("---x_mag_f=%f, y_mag_f=%f, z_mag_f=%f\n", x_mag_f, y_mag_f, z_mag_f)
-		// fmt.Printf("***hdgDeg=%f\n", hdgDeg)
 
 		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
 	}
@@ -164,8 +153,5 @@ func calculateAttitude() {
 }
 
 func convertToRadians(value float64) float64 {
-	//return float64(value)
-	//return float64((value/65535)*360.0) * math.Pi / 180.0
-	//return float64((value / 65535) * 360.0)
 	return value * math.Pi / 180.0
 }
