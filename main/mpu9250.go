@@ -77,6 +77,7 @@ func initMPU9250() {
 	}
 
 	go readRawData()
+	go calculateAttitude()
 }
 
 func readRawData() {
@@ -150,6 +151,15 @@ func readRawData() {
 		// fmt.Printf("***hdgDeg=%f\n", hdgDeg)
 
 		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
+	}
+}
+
+func calculateAttitude() {
+	timer := time.NewTicker(100 * time.Millisecond) // 10 Hz
+
+	for {
+		<-timer.C
+		CalculateCurrentAttitudeXYZ()
 	}
 }
 

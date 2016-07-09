@@ -5,34 +5,36 @@ import "math"
 var sampleFreq float64 = 500.0
 var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0)) //0.1 //values of 0.02 or 0.025 have also been suggested
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
+var attitudeX, attitudeY, attitudeZ float64
 
-// Gets the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
+// Calculates the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
 // resulting in less computational load as the Z (yaw) value is not calculated.
-func GetCurrentAttitudeXY() (float32, float32) {
+func CalculateCurrentAttitudeXY() {
 	var q0a, q1a, q2a, q3a float64
 	q0a = q0
 	q1a = q1
 	q2a = q2
 	q3a = q3
 
-	attitudeX := float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY := float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
+	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+}
 
-	return attitudeX, attitudeY
+// Calculates the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
+func CalculateCurrentAttitudeXYZ() {
+	var q0a, q1a, q2a, q3a float64
+	q0a = q0
+	q1a = q1
+	q2a = q2
+	q3a = q3
+
+	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
+	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+	attitudeZ = float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
 func GetCurrentAttitudeXYZ() (float32, float32, float32) {
-	var q0a, q1a, q2a, q3a float64
-	q0a = q0
-	q1a = q1
-	q2a = q2
-	q3a = q3
-
-	attitudeX := float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY := float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
-	attitudeZ := float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
-
 	return attitudeX, attitudeY, attitudeZ
 }
 
