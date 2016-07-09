@@ -3,7 +3,7 @@ package main
 import "math"
 
 var sampleFreq float64 = 500.0
-var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
+var beta float64 = 1.0 //math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var attitudeX, attitudeY, attitudeZ float32
 
