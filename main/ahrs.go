@@ -3,7 +3,7 @@ package main
 import "math"
 
 var sampleFreq float64 = 500.0
-var beta float64 = 0.1 //values of 0.02 or 0.025 have also been suggested
+var beta float64 = 0.02 //values of 0.02 or 0.025 have also been suggested
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 
 // Gets the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
