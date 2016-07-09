@@ -1388,12 +1388,12 @@ func attitudeReaderSender() {
 	for { //globalSettings.AHRS_Enabled
 		<-timer.C
 
-		pitch, roll, yaw := GetCurrentAttitudeXYZ()
+		pitch, roll := GetCurrentAttitudeXYZ()
 
 		mySituation.mu_Attitude.Lock()
 		mySituation.Pitch = float64(pitch)
 		mySituation.Roll = float64(roll)
-		mySituation.Yaw = float64(yaw)
+		mySituation.Yaw = 0          //float64(yaw)
 		mySituation.Gyro_heading = 1 //myMPU6050.Heading() //FIXME. Experimental.
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
