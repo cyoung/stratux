@@ -91,7 +91,7 @@ func initMPU9250() {
 }
 
 func readRawData() {
-	timer := time.NewTicker(2 * time.Millisecond)
+	timer := time.NewTicker(200 * time.Millisecond)
 
 	for {
 		<-timer.C
@@ -150,15 +150,9 @@ func readRawData() {
 		x_mag_f := float64(int16(x_mag))*1.28785103785104 - 470.0
 		y_mag_f := float64(int16(y_mag))*1.28785103785104 - 120.0
 		z_mag_f := float64(int16(z_mag))*1.28785103785104 - 125.0
-
-		// "heading" not working with MPU9250 breakout board.
-		// hdg := math.Atan2(y_mag_f, x_mag_f)
-
-		// if hdg < 0 {
-		// 	hdg += 2 * math.Pi
-		// }
-
-		// hdgDeg := hdg * 180.0 / math.Pi
+		// x_mag_f := float64(int16(x_mag))*1.28785103785104*float64(mxcal) - 470.0
+		// y_mag_f := float64(int16(y_mag))*1.28785103785104*float64(mycal) - 120.0
+		// z_mag_f := float64(int16(z_mag))*1.28785103785104*float64(mzcal) - 125.0
 
 		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
 	}
