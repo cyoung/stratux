@@ -66,12 +66,7 @@ func initMPU9250() {
 	mxcal, err := i2cbus.ReadWordFromReg(0x68, 0x10)
 	mycal, err := i2cbus.ReadWordFromReg(0x68, 0x11)
 	mzcal, err := i2cbus.ReadWordFromReg(0x68, 0x12)
-	log.Printf(mxcal)
-	log.Printf("\n")
-	log.Printf(mycal)
-	log.Printf("\n")
-	log.Printf(mzcal)
-	log.Printf("\n")
+	log.Printf("%u,%u,%u\n", mxcal, mycal, mzcal)
 	// Accelerometer and gyro init.
 
 	setSetting(0x19, 0x00) // Set Gyro 1000 Hz sample rate. rate = gyroscope output rate/(1 + value)
