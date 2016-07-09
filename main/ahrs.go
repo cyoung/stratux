@@ -7,6 +7,7 @@ var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
+var headingHistory [10]float64
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
@@ -17,6 +18,24 @@ func CalculateHeading() {
 	if heading < 0 {
 		heading += 360
 	}
+
+	headingHistory[9] = headingHistory[8]
+	headingHistory[8] = headingHistory[7]
+	headingHistory[7] = headingHistory[6]
+	headingHistory[6] = headingHistory[5]
+	headingHistory[5] = headingHistory[4]
+	headingHistory[4] = headingHistory[3]
+	headingHistory[3] = headingHistory[2]
+	headingHistory[2] = headingHistory[1]
+	headingHistory[1] = headingHistory[0]
+	headingHistory[0] = heading
+
+	var total float64 = 0
+	for _, value := range headingHistory {
+		total += value
+	}
+
+	heading = total / float64(len(headingHistory))
 }
 
 // Calculates the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
