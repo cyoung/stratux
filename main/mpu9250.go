@@ -126,9 +126,9 @@ func readRawData() {
 			continue // Don't use measurement.
 		}
 
-		x_mag_f := float64(int16(x_mag)) * (10.0 * 4219.0 / 32760.0)
-		y_mag_f := float64(int16(y_mag)) * (10.0 * 4219.0 / 32760.0)
-		z_mag_f := float64(int16(z_mag)) * (10.0 * 4219.0 / 32760.0)
+		x_mag_f := float64(int16(x_mag)) * 1.28785103785104
+		y_mag_f := float64(int16(y_mag)) * 1.28785103785104
+		z_mag_f := float64(int16(z_mag)) * 1.28785103785104
 
 		// "heading" not working with MPU9250 breakout board.
 		// hdg := math.Atan2(y_mag_f, x_mag_f)
