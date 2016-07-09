@@ -13,7 +13,7 @@ var headingHistory [10]float64
 func CalculateHeading() {
 	//magXcomp := magX*math.Cos(attitudeY) + magZ*math.Sin(attitudeY)
 	//magYcomp := magX*math.Sin(attitudeX)*math.Sin(attitudeY) + magY*math.Cos(attitudeX) - magZ*math.Sin(attitudeX)*math.Cos(attitudeY)
-	heading = 180 * math.Atan2(magY, magX) / math.Pi
+	tempHeading = 180 * math.Atan2(magY, magX) / math.Pi
 
 	if heading < 0 {
 		heading += 360
@@ -28,7 +28,7 @@ func CalculateHeading() {
 	headingHistory[3] = headingHistory[2]
 	headingHistory[2] = headingHistory[1]
 	headingHistory[1] = headingHistory[0]
-	headingHistory[0] = heading
+	headingHistory[0] = tempHeading
 
 	var total float64 = 0
 	for _, value := range headingHistory {
