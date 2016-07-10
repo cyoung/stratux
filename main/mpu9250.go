@@ -99,7 +99,7 @@ func initMPU9250() {
 
 	go readRawData()
 	go calculateAttitude()
-	go calculateHeading()
+	//go calculateHeading()
 }
 
 func readRawData() {
