@@ -9,7 +9,6 @@ endif
 all:
 	make xdump978
 	make xdump1090
-	make xlinux-mpu9150
 	make xgen_gdl90
 
 xdump978:
@@ -19,11 +18,6 @@ xdump978:
 xdump1090:
 	git submodule update --init
 	cd dump1090 && make
-
-xlinux-mpu9150:
-	go get -d -v github.com/ccicchitelli/linux-mpu9150/mpu
-	cd linux-mpu9150 && make -f Makefile-native-shared
-	go build -o linux-mpu9150/mpu/mpu.a linux-mpu9150/mpu/mpu.go 
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./godump978 ./uatparse
@@ -53,4 +47,3 @@ clean:
 	rm -f gen_gdl90 libdump978.so
 	cd dump1090 && make clean
 	cd dump978 && make clean
-	rm -f linux-mpu9150/*.o linux-mpu9150/*.so
