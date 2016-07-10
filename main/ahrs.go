@@ -1,11 +1,44 @@
 package main
 
-import "math"
+import (
+	"math"
+	"time"
+)
 
 var sampleFreq float64 = 500.0
 var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
-var attitudeX, attitudeY, attitudeZ float32
+var magX, magY, magZ float64
+var attitudeX, attitudeY, attitudeZ, heading float64
+var headingHistory [50]float64
+
+// Calculates the current heading, optionally compensating for the current attitude
+func CalculateHeading() {
+	magXtemp := magX
+	magYtemp := magY
+	// magZtemp := magZ
+	// these equations account for tilt error
+	// magXcomp := magXtemp*math.Cos(attitudeY) + magZtemp*math.Sin(attitudeY)
+	// magYcomp := magXtemp*math.Sin(attitudeX)*math.Sin(attitudeY) + magYtemp*math.Cos(attitudeX) - magZtemp*math.Sin(attitudeX)*math.Cos(attitudeY)
+	tempHeading := 180 * math.Atan2(magYtemp, magXtemp) / math.Pi
+
+	if tempHeading < 0 {
+		tempHeading += 360
+	}
+
+	for i := len(headingHistory) - 1; i > 0; i-- {
+		headingHistory[i] = headingHistory[i-1]
+	}
+
+	headingHistory[0] = tempHeading
+
+	var total float64 = 0
+	for _, value := range headingHistory {
+		total += value
+	}
+
+	heading = total / float64(len(headingHistory))
+}
 
 // Calculates the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
 // resulting in less computational load as the Z (yaw) value is not calculated.
@@ -16,8 +49,8 @@ func CalculateCurrentAttitudeXY() {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
+	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
 }
 
 // Calculates the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
@@ -28,13 +61,18 @@ func CalculateCurrentAttitudeXYZ() {
 	q2a = q2
 	q3a = q3
 
-	attitudeX = float32(math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a)) * 180 / math.Pi
-	attitudeY = float32(math.Asin(-2.0*(q1a*q3a-q0a*q2a))) * 180 / math.Pi
-	attitudeZ = float32(math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a)) * 180 / math.Pi
+	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
+	attitudeZ = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
+}
+
+// Gets the current attitude and heading.
+func GetCurrentAHRS() (float64, float64, float64, float64) {
+	return attitudeX, attitudeY, attitudeZ, heading
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
-func GetCurrentAttitudeXYZ() (float32, float32, float32) {
+func GetCurrentAttitudeXYZ() (float64, float64, float64) {
 	return attitudeX, attitudeY, attitudeZ
 }
 
@@ -53,6 +91,11 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	var qDot1, qDot2, qDot3, qDot4 float64
 	var hx, hy float64
 	var _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3 float64
+
+	// store magnetometer raw values for later heading calculation
+	magX = mx
+	magY = my
+	magZ = mz
 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if (mx == 0.0) && (my == 0.0) && (mz == 0.0) {
@@ -212,6 +255,10 @@ func AHRSupdateIMU(gx, gy, gz, ax, ay, az float64) {
 	q1 *= recipNorm
 	q2 *= recipNorm
 	q3 *= recipNorm
+}
+
+func isAHRSValid() bool {
+	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
 }
 
 func invSqrt(x float64) float64 {
