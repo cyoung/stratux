@@ -10,9 +10,9 @@ var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
-var headingHistory [100]float64
+var headingHistory [50]float64
 
-// Calculates the currening heading, based on the current attitude
+// Calculates the current heading, optionally compensating for the current attitude
 func CalculateHeading() {
 	magXtemp := magX
 	magYtemp := magY
@@ -92,7 +92,7 @@ func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	var hx, hy float64
 	var _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3 float64
 
-	// store magnetometer raw values for 10 Hz heading calculation in separate thread
+	// store magnetometer raw values for later heading calculation
 	magX = mx
 	magY = my
 	magZ = mz
