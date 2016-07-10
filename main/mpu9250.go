@@ -6,12 +6,20 @@ import (
 	"math"
 	"time"
 
+	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/rpi"
 )
 
 //https://github.com/brianc118/MPU9250/blob/master/MPU9250.cpp
 
 var magXcal, magYcal, magZcal float64
+
+var i2cbus embd.I2CBus
+
+func initI2C() error {
+	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
+	return nil
+}
 
 func chkErr(err error) {
 	if err != nil {
@@ -60,6 +68,7 @@ func checkMagConnection() bool {
 }
 
 func initMPU9250() {
+	initI2C()
 	globalSettings.AHRS_Enabled = true
 
 	//TODO: Calibration.
