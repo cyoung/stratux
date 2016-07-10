@@ -65,6 +65,7 @@ func initMPU9250() {
 	//TODO: Calibration.
 
 	setSetting(0x6B, 0x80) // Reset.
+	time.Sleep(time.Millisecond * 100)
 	setSetting(0x6B, 0x01) // Clock source.
 	setSetting(0x6C, 0x00) // Enable accelerometer and gyro.
 
@@ -165,7 +166,7 @@ func calculateAttitude() {
 }
 
 func calculateHeading() {
-	timer := time.NewTicker(100 * time.Millisecond) // 10 Hz
+	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz
 
 	for {
 		<-timer.C

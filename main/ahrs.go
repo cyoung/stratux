@@ -7,7 +7,7 @@ var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
-var headingHistory [15]float64
+var headingHistory [30]float64
 
 // Calculates the currening heading, based on the current attitude
 func CalculateHeading() {
@@ -22,6 +22,21 @@ func CalculateHeading() {
 		tempHeading += 360
 	}
 
+	headingHistory[29] = headingHistory[28]
+	headingHistory[28] = headingHistory[27]
+	headingHistory[27] = headingHistory[26]
+	headingHistory[26] = headingHistory[25]
+	headingHistory[25] = headingHistory[24]
+	headingHistory[24] = headingHistory[23]
+	headingHistory[23] = headingHistory[22]
+	headingHistory[22] = headingHistory[21]
+	headingHistory[21] = headingHistory[20]
+	headingHistory[20] = headingHistory[19]
+	headingHistory[19] = headingHistory[18]
+	headingHistory[18] = headingHistory[17]
+	headingHistory[17] = headingHistory[16]
+	headingHistory[16] = headingHistory[15]
+	headingHistory[15] = headingHistory[14]
 	headingHistory[14] = headingHistory[13]
 	headingHistory[13] = headingHistory[12]
 	headingHistory[12] = headingHistory[11]
