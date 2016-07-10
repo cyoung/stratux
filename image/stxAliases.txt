@@ -51,6 +51,6 @@ echo "kal1                      Find Channels for calibrating PPM of SDR1."
 echo "kalChan0          Use the Chan from above to get ppm pf SDR0. Example: kalChan0 151"
 echo "kalChan1          Use the Chan from above to get ppm pf SDR1. Example: kalChan1 151"
 echo "setSerial0                Set the PPM error to SDR0. Value from kalChan0. Example: setSerial0 -45"
-echo "setSerial1                Set the PPM error to SDR1. Value from kalChan1. Example: setSerial0 23"
+echo "setSerial1                Set the PPM error to SDR1. Value from kalChan1. Example: setSerial1 23"
 
 }
