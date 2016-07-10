@@ -21,7 +21,6 @@ import (
 
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
-	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
 	"os"
@@ -1335,52 +1334,6 @@ func gpsSerialReader() {
 	return
 }
 
-var i2cbus embd.I2CBus
-var myBMP180 *bmp180.BMP180
-
-func initI2C() error {
-	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
-	return nil
-}
-
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func readBMP180() (float64, float64, error) { // ºCelsius, Meters
-	temp, err := myBMP180.Temperature()
-	if err != nil {
-		return temp, 0.0, err
-	}
-	altitude, err := myBMP180.Altitude()
-	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
-	if err != nil {
-		return temp, altitude, err
-	}
-	return temp, altitude, nil
-}
-
-// Unused at the moment. 5 second update, since read functions in bmp180 are slow.
-func tempAndPressureReader() {
-	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected {
-		<-timer.C
-		// Read temperature and pressure altitude.
-		temp, alt, err_bmp180 := readBMP180()
-		// Process.
-		if err_bmp180 != nil {
-			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			globalStatus.RY835AI_connected = false
-		} else {
-			mySituation.Temp = temp
-			mySituation.Pressure_alt = alt
-			mySituation.LastTempPressTime = stratuxClock.Time
-		}
-	}
-	globalStatus.RY835AI_connected = false
-}
-
 func attitudeReaderSender() {
 	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz update.
 	//timer := time.NewTicker(50 * time.Millisecond) // 20 Hz update
@@ -1520,7 +1473,7 @@ func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
 
-func pollRY835AI() {
+func pollRY83XAI() {
 	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	for {
@@ -1540,10 +1493,7 @@ func initRY835AI() {
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
-	initI2C()
-	initBMP180()
 
-	go pollRY835AI()
+	go pollRY83XAI()
 	go attitudeReaderSender()
-	go tempAndPressureReader()
 }
