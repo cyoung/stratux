@@ -4,7 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	ry835ai.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
+	gps.go: GPS functions, GPS init
 */
 
 package main
@@ -1451,5 +1451,6 @@ func initRY835AI() {
 	Satellites = make(map[string]SatelliteInfo)
 
 	go pollRY83XAI()
+	log.Printf("now starting ahrs sender")
 	go attitudeReaderSender()
 }
