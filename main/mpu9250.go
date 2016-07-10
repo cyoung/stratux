@@ -99,7 +99,7 @@ func initMPU9250() {
 
 	go readRawData()
 	go calculateAttitude()
-	//go calculateHeading()
+	go calculateHeading()
 }
 
 func readRawData() {
@@ -162,12 +162,11 @@ func calculateAttitude() {
 	for {
 		<-timer.C
 		CalculateCurrentAttitudeXYZ()
-		CalculateHeading()
 	}
 }
 
 func calculateHeading() {
-	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz
+	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz
 
 	for {
 		<-timer.C
