@@ -65,7 +65,7 @@ func initMPU9250() {
 	//TODO: Calibration.
 
 	setSetting(0x6B, 0x80) // Reset.
-	time.Sleep(time.Millisecond * 100)
+	//time.Sleep(time.Millisecond * 100)
 	setSetting(0x6B, 0x01) // Clock source.
 	setSetting(0x6C, 0x00) // Enable accelerometer and gyro.
 
@@ -99,7 +99,7 @@ func initMPU9250() {
 
 	go readRawData()
 	go calculateAttitude()
-	//go calculateHeading()
+	go calculateHeading()
 }
 
 func readRawData() {
