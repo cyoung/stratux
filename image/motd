@@ -16,3 +16,5 @@ with sufficient signal or enable ntpd (internet connection required).
 
 Everything here comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
+
+Type 'stratux-help' for a few debugging commands.
