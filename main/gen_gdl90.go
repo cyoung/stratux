@@ -90,6 +90,48 @@ var Crc16Table [256]uint16
 // Current AHRS, pressure altitude, etc.
 var mySituation SituationData
 
+type SituationData struct {
+	mu_GPS *sync.Mutex
+
+	// From GPS.
+	LastFixSinceMidnightUTC  float32
+	Lat                      float32
+	Lng                      float32
+	Quality                  uint8
+	HeightAboveEllipsoid     float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
+	GeoidSep                 float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	Satellites               uint16  // satellites used in solution
+	SatellitesTracked        uint16  // satellites tracked (almanac data received)
+	SatellitesSeen           uint16  // satellites seen (signal received)
+	Accuracy                 float32 // 95% confidence for horizontal position, meters.
+	NACp                     uint8   // NACp categories are defined in AC 20-165A
+	Alt                      float32 // Feet MSL
+	AccuracyVert             float32 // 95% confidence for vertical position, meters
+	GPSVertVel               float32 // GPS vertical velocity, feet per second
+	LastFixLocalTime         time.Time
+	TrueCourse               float32
+	GroundSpeed              uint16
+	LastGroundTrackTime      time.Time
+	GPSTime                  time.Time
+	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
+	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
+	LastValidNMEAMessage     string    // last NMEA message processed.
+
+	mu_Attitude *sync.Mutex
+
+	// From BMP180 pressure sensor.
+	Temp              float64
+	Pressure_alt      float64
+	LastTempPressTime time.Time
+
+	// From MPU9250 gyro/accel/mag.
+	Pitch            float64
+	Roll             float64
+	Yaw              float64
+	Gyro_heading     float64
+	LastAttitudeTime time.Time
+}
+
 type WriteCloser interface {
 	io.Writer
 	io.Closer

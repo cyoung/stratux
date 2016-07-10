@@ -105,7 +105,7 @@ func initMPU9250() {
 		log.Printf("magnetometer is offline.\n")
 		return
 	}
-
+	log.Printf("now starting ahrs readers")
 	go readRawData()
 	go calculateAttitude()
 }
