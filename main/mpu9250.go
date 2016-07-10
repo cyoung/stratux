@@ -98,7 +98,6 @@ func initMPU9250() {
 
 	go readRawData()
 	go calculateAttitude()
-	go calculateHeading()
 }
 
 func readRawData() {
@@ -147,9 +146,9 @@ func readRawData() {
 			continue // Don't use measurement.
 		}
 
-		x_mag_f := float64(int16(x_mag)) * 1.28785103785104 * magXcal // - 470.0
-		y_mag_f := float64(int16(y_mag)) * 1.28785103785104 * magYcal // - 120.0
-		z_mag_f := float64(int16(z_mag)) * 1.28785103785104 * magZcal // - 125.0
+		x_mag_f := float64(int16(x_mag))*1.28785103785104*magXcal - 470.0
+		y_mag_f := float64(int16(y_mag))*1.28785103785104*magYcal - 120.0
+		z_mag_f := float64(int16(z_mag))*1.28785103785104*magZcal - 125.0
 
 		AHRSupdate(convertToRadians(x_gyro_f), convertToRadians(y_gyro_f), convertToRadians(z_gyro_f), float64(x_acc_f), float64(y_acc_f), float64(z_acc_f), float64(x_mag_f), float64(y_mag_f), float64(z_mag_f))
 	}
@@ -161,14 +160,6 @@ func calculateAttitude() {
 	for {
 		<-timer.C
 		CalculateCurrentAttitudeXYZ()
-	}
-}
-
-func calculateHeading() {
-	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz
-
-	for {
-		<-timer.C
 		CalculateHeading()
 	}
 }
