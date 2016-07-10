@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/kidoman/embd"
@@ -71,6 +72,7 @@ func checkMagConnection() bool {
 func initMPU9250() {
 	initI2C()
 	globalSettings.AHRS_Enabled = true
+	mySituation.mu_Attitude = &sync.Mutex{}
 
 	//TODO: Calibration.
 

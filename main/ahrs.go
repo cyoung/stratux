@@ -1,6 +1,9 @@
 package main
 
-import "math"
+import (
+	"math"
+	"time"
+)
 
 var sampleFreq float64 = 500.0
 var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
@@ -296,6 +299,10 @@ func AHRSupdateIMU(gx, gy, gz, ax, ay, az float64) {
 	q1 *= recipNorm
 	q2 *= recipNorm
 	q3 *= recipNorm
+}
+
+func isAHRSValid() bool {
+	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
 }
 
 func invSqrt(x float64) float64 {

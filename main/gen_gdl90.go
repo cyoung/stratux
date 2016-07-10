@@ -1230,6 +1230,86 @@ func signalWatcher() {
 	gracefulShutdown()
 }
 
+func attitudeReaderSender() {
+	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz update.
+	//timer := time.NewTicker(50 * time.Millisecond) // 20 Hz update
+	//timer := time.NewTicker(100 * time.Millisecond) // 10 Hz update
+
+	for {
+		<-timer.C
+
+		pitch, roll, yaw, heading := GetCurrentAHRS()
+
+		mySituation.mu_Attitude.Lock()
+		mySituation.Pitch = pitch
+		mySituation.Roll = roll
+		mySituation.Yaw = yaw
+		mySituation.Gyro_heading = heading
+		mySituation.LastAttitudeTime = stratuxClock.Time
+
+		// Send, if valid.
+		//		if isGPSGroundTrackValid(), etc.
+
+		// Simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later.
+		// Function definition will be kept for AHRS debugging and future workarounds.
+		// makeFFAHRSSimReport()
+		makeAHRSGDL90Report()
+
+		mySituation.mu_Attitude.Unlock()
+	}
+}
+
+func makeFFAHRSSimReport() {
+	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.Gyro_heading, mySituation.Pitch, mySituation.Roll)
+
+	sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
+}
+
+func makeAHRSGDL90Report() {
+	msg := make([]byte, 16)
+	msg[0] = 0x4c
+	msg[1] = 0x45
+	msg[2] = 0x01
+	msg[3] = 0x00
+
+	pitch := int16(mySituation.Pitch * 10.0)
+	roll := int16(mySituation.Roll * 10.0)
+	hdg := uint16(mySituation.Gyro_heading * 10.0)
+	slipSkid := int16(float64(0) * float64(10.0))
+	yawRate := int16(mySituation.Yaw * 10.0)
+	g := int16(float64(1.0) * float64(10.0))
+
+	// Roll.
+	msg[4] = byte((roll >> 8) & 0xFF)
+	msg[5] = byte(roll & 0xFF)
+
+	// Pitch.
+	msg[6] = byte((pitch >> 8) & 0xFF)
+	msg[7] = byte(pitch & 0xFF)
+
+	// Heading.
+	msg[8] = byte((hdg >> 8) & 0xFF)
+	msg[9] = byte(hdg & 0xFF)
+
+	// Slip/skid.
+	msg[10] = byte((slipSkid >> 8) & 0xFF)
+	msg[11] = byte(slipSkid & 0xFF)
+
+	// Yaw rate.
+	msg[12] = byte((yawRate >> 8) & 0xFF)
+	msg[13] = byte(yawRate & 0xFF)
+
+	// "G".
+	msg[14] = byte((g >> 8) & 0xFF)
+	msg[15] = byte(g & 0xFF)
+
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+}
+
+func isTempPressValid() bool {
+	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
+}
+
 func main() {
 	// Catch signals for graceful shutdown.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -1304,8 +1384,9 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY835AI()
+	initGPS()
 	initMPU9250()
+	go attitudeReaderSender()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
