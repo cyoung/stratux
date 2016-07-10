@@ -25,7 +25,7 @@ if [ -f /root/.aliases ]; then
 . /root/.aliases
 fi
 
-# Uesful aliases for stratux debugging
+# Useful aliases for stratux debugging
 if [ -f /root/.stxAliases ]; then
 . /root/.stxAliases
 fi
