@@ -19,8 +19,6 @@ import (
 
 	"bufio"
 
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/all"
 	"github.com/tarm/serial"
 
 	"os"
