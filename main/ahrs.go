@@ -103,9 +103,9 @@ func CalculateCurrentAttitudeXYZ() {
 
 	lZ := total / float64(len(attitudeZhistory))
 
-	attitudeX = 0.75*hX + 0.25*lX
-	attitudeY = 0.75*hY + 0.25*lY
-	attitudeZ = 0.75*hZ + 0.25*lZ
+	attitudeX = hX // 0.75*hX + 0.25*lX
+	attitudeY = hY // 0.75*hY + 0.25*lY
+	attitudeZ = hZ // 0.75*hZ + 0.25*lZ
 }
 
 // Gets the current attitude and heading.
