@@ -11,9 +11,9 @@ var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
 var headingHistory [50]float64
-var attitudeXhistory [50]float64
-var attitudeYhistory [50]float64
-var attitudeZhistory [50]float64
+var attitudeXhistory [100]float64
+var attitudeYhistory [100]float64
+var attitudeZhistory [100]float64
 
 // Calculates the current heading, optionally compensating for the current attitude
 func CalculateHeading() {
