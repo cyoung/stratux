@@ -62,71 +62,50 @@ func CalculateCurrentAttitudeXYZ() {
 	attitudeZhistory[0] = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
 
 	var total float64 = 0
-	for i := len(attitudeXhistory) - 71; i >= 0; i-- {
+	for i := len(attitudeXhistory) - 51; i > 0; i-- {
 		total += attitudeXhistory[i]
 	}
 
 	hX := total / float64(len(attitudeXhistory))
 
 	total = 0
-	for i := len(attitudeYhistory) - 71; i >= 0; i-- {
+	for i := len(attitudeYhistory) - 51; i > 0; i-- {
 		total += attitudeYhistory[i]
 	}
 
 	hY := total / float64(len(attitudeYhistory))
 
 	total = 0
-	for i := len(attitudeZhistory) - 71; i >= 0; i-- {
+	for i := len(attitudeZhistory) - 51; i > 0; i-- {
 		total += attitudeZhistory[i]
 	}
 
 	hZ := total / float64(len(attitudeZhistory))
 
 	total = 0
-	for i := len(attitudeXhistory) - 41; i > 29; i-- {
-		total += attitudeXhistory[i]
-	}
-
-	mX := total / float64(len(attitudeXhistory))
-
-	total = 0
-	for i := len(attitudeYhistory) - 41; i > 29; i-- {
-		total += attitudeYhistory[i]
-	}
-
-	mY := total / float64(len(attitudeYhistory))
-
-	total = 0
-	for i := len(attitudeZhistory) - 41; i > 29; i-- {
-		total += attitudeZhistory[i]
-	}
-
-	mZ := total / float64(len(attitudeZhistory))
-
-	total = 0
-	for i := len(attitudeXhistory) - 1; i >= 60; i-- {
+	for i := len(attitudeXhistory) - 1; i > 49; i-- {
 		total += attitudeXhistory[i]
 	}
 
 	lX := total / float64(len(attitudeXhistory))
 
 	total = 0
-	for i := len(attitudeYhistory) - 1; i >= 60; i-- {
+	for i := len(attitudeYhistory) - 1; i > 49; i-- {
 		total += attitudeYhistory[i]
 	}
 
 	lY := total / float64(len(attitudeYhistory))
 
 	total = 0
-	for i := len(attitudeZhistory) - 1; i >= 60; i-- {
+	for i := len(attitudeZhistory) - 1; i > 49; i-- {
 		total += attitudeZhistory[i]
 	}
 
 	lZ := total / float64(len(attitudeZhistory))
 
-	attitudeX = 0.60*hX + 0.25*mX + 0.15*lX
-	attitudeY = 0.60*hY + 0.25*mY + 0.15*lY
-	attitudeZ = 0.60*hZ + 0.25*mZ + 0.15*lZ
+	attitudeX = 0.75*hX + 0.25*lX
+	attitudeY = 0.75*hY + 0.25*lY
+	attitudeZ = 0.75*hZ + 0.25*lZ
 }
 
 // Gets the current attitude and heading.
