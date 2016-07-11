@@ -87,7 +87,7 @@ func CalculateCurrentAttitudeXYZ() {
 func GetCurrentAHRS() (float64, float64, float64, float64) {
 	var totalX, totalY, totalZ float64
 
-	for i := 9; i >= 0; i-- {
+	for i := 29; i >= 0; i-- {
 		totalX += attitudeXhistory[i]
 		totalY += attitudeYhistory[i]
 		totalZ += attitudeZhistory[i]
