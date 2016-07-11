@@ -1231,8 +1231,8 @@ func signalWatcher() {
 }
 
 func attitudeReaderSender() {
-	//timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz update.
-	timer := time.NewTicker(50 * time.Millisecond) // 20 Hz update
+	timer := time.NewTicker(33 * time.Millisecond) // ~30.3 Hz update.
+	//timer := time.NewTicker(50 * time.Millisecond) // 20 Hz update
 	//timer := time.NewTicker(100 * time.Millisecond) // 10 Hz update
 
 	for {
