@@ -93,7 +93,7 @@ func GetCurrentAHRS() (float64, float64, float64, float64) {
 		totalZ += attitudeZhistory[i]
 	}
 
-	return totalX / 10.0, totalY / 10.0, totalZ / 10.0, heading
+	return totalX / 29.0, totalY / 29.0, totalZ / 29.0, heading
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
