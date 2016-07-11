@@ -64,7 +64,7 @@ func CalculateCurrentAttitudeXYZ() {
 	q2a = q2
 	q3a = q3
 
-	for i := len(headingHistory) - 1; i > 0; i-- {
+	for i := len(attitudeXhistory) - 1; i > 0; i-- {
 		attitudeXhistory[i] = attitudeXhistory[i-1]
 		attitudeYhistory[i] = attitudeYhistory[i-1]
 		attitudeZhistory[i] = attitudeZhistory[i-1]
