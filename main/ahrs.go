@@ -43,19 +43,6 @@ func CalculateHeading() {
 	heading = total / float64(len(headingHistory))
 }
 
-// Calculates the current attitude represented as X (roll) and Y (pitch) values as Euler angles,
-// resulting in less computational load as the Z (yaw) value is not calculated.
-func CalculateCurrentAttitudeXY() {
-	var q0a, q1a, q2a, q3a float64
-	q0a = q0
-	q1a = q1
-	q2a = q2
-	q3a = q3
-
-	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
-	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
-}
-
 // Calculates the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
 func CalculateCurrentAttitudeXYZ() {
 	var q0a, q1a, q2a, q3a float64
@@ -98,7 +85,15 @@ func CalculateCurrentAttitudeXYZ() {
 
 // Gets the current attitude and heading.
 func GetCurrentAHRS() (float64, float64, float64, float64) {
-	return attitudeX, attitudeY, attitudeZ, heading
+	var totalX, totalY, totalZ float64
+
+	for i := 9; i >= 0; i-- {
+		totalX += attitudeXhistory[i]
+		totalY += attitudeYhistory[i]
+		totalZ += attitudeZhistory[i]
+	}
+
+	return totalX / 10.0, totalY / 10.0, totalZ / 10.0, heading
 }
 
 // Gets the current attitude represented as X (roll), Y (pitch), and Z (yaw) values as Euler angles.
