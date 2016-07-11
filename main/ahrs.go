@@ -63,42 +63,42 @@ func CalculateCurrentAttitudeXYZ() {
 
 	var total float64 = 0
 	for i := len(attitudeXhistory) - 51; i > 0; i-- {
-		total += value
+		total += attitudeXhistory[i]
 	}
 
 	hX := total / float64(len(attitudeXhistory))
 
 	total = 0
 	for i := len(attitudeYhistory) - 51; i > 0; i-- {
-		total += value
+		total += attitudeYhistory[i]
 	}
 
 	hY := total / float64(len(attitudeYhistory))
 
 	total = 0
 	for i := len(attitudeZhistory) - 51; i > 0; i-- {
-		total += value
+		total += attitudeZhistory[i]
 	}
 
 	hZ := total / float64(len(attitudeZhistory))
 
 	total = 0
 	for i := len(attitudeXhistory) - 1; i > 49; i-- {
-		total += value
+		total += attitudeXhistory[i]
 	}
 
 	lX := total / float64(len(attitudeXhistory))
 
 	total = 0
 	for i := len(attitudeYhistory) - 1; i > 49; i-- {
-		total += value
+		total += attitudeYhistory[i]
 	}
 
 	lY := total / float64(len(attitudeYhistory))
 
 	total = 0
 	for i := len(attitudeZhistory) - 1; i > 49; i-- {
-		total += value
+		total += attitudeZhistory[i]
 	}
 
 	lZ := total / float64(len(attitudeZhistory))
