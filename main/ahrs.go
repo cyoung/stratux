@@ -11,9 +11,9 @@ var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
 var headingHistory [50]float64
-var attitudeXhistory [100]float64
-var attitudeYhistory [100]float64
-var attitudeZhistory [100]float64
+var attitudeXhistory [10]float64
+var attitudeYhistory [10]float64
+var attitudeZhistory [10]float64
 
 // Calculates the current heading, optionally compensating for the current attitude
 func CalculateHeading() {
@@ -57,30 +57,30 @@ func CalculateCurrentAttitudeXYZ() {
 		attitudeZhistory[i] = attitudeZhistory[i-1]
 	}
 
-	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
-	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
-	attitudeZ = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
+	attitudeXhistory[0] = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeYhistory[0] = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
+	attitudeZhistory[0] = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
 
-	// var total float64 = 0
-	// for _, value := range attitudeXhistory {
-	// 	total += value
-	// }
+	var total float64 = 0
+	for _, value := range attitudeXhistory {
+		total += value
+	}
 
-	// attitudeX = total / float64(len(attitudeXhistory))
+	attitudeX = total / float64(len(attitudeXhistory))
 
-	// total = 0
-	// for _, value := range attitudeYhistory {
-	// 	total += value
-	// }
+	total = 0
+	for _, value := range attitudeYhistory {
+		total += value
+	}
 
-	// attitudeY = total / float64(len(attitudeYhistory))
+	attitudeY = total / float64(len(attitudeYhistory))
 
-	// total = 0
-	// for _, value := range attitudeZhistory {
-	// 	total += value
-	// }
+	total = 0
+	for _, value := range attitudeZhistory {
+		total += value
+	}
 
-	// attitudeZ = total / float64(len(attitudeZhistory))
+	attitudeZ = total / float64(len(attitudeZhistory))
 }
 
 // Gets the current attitude and heading.
