@@ -168,7 +168,7 @@ func readRawData() {
 }
 
 func calculateAttitude() {
-	timer := time.NewTicker(20 * time.Millisecond) // 50 Hz
+	timer := time.NewTicker(10 * time.Millisecond) // 50 Hz
 
 	for {
 		<-timer.C
