@@ -9,11 +9,11 @@ import urllib2
 import json
 import time
 
-font2 = ImageFont.truetype('/root/ssd1306/fonts/C&C Red Alert [INET].ttf', 12)
+font2 = ImageFont.truetype('/root/stratux/test/screen/CnC_Red_Alert.ttf', 12)
 oled = ssd1306(port=1, address=0x3C)
 
 with canvas(oled) as draw:
-    logo = Image.open('/root/logo.bmp')
+    logo = Image.open('/root/stratux/test/screen/logo.bmp')
     draw.bitmap((32, 0), logo, fill=1)
 
 time.sleep(10)
