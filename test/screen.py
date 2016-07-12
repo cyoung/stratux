@@ -18,6 +18,8 @@ with canvas(oled) as draw:
 
 time.sleep(10)
 
+n = 0
+
 while 1:
     time.sleep(1)
     response = urllib2.urlopen('http://localhost/getStatus')
@@ -61,5 +63,15 @@ while 1:
         draw.text((pad, 34), str(es_current), font=font2, fill=255)
         draw.text(((2*pad) + text_margin + status_bar_width_max, 34), str(es_max), font=font2, fill=255)
         # Other stats.
-        t = "CPU: %0.1fC, Towers: %d" % (CPUTemp, NumTowers)
+        seq = (n / 5) % 2
+        t = ""
+        if seq == 0:
+            t = "CPU: %0.1fC, Towers: %d" % (CPUTemp, NumTowers)
+        if seq == 1:
+            t = "GPS Sat: %d/%d/%d" % (getStatusData["GPS_satellites_locked"], getStatusData["GPS_satellites_seen"], getStatusData["GPS_satellites_tracked"])
+            if getStatusData["GPS_solution"] == "GPS + SBAS (WAAS / EGNOS)":
+                t = t + " (WAAS)"
+        print t
         draw.text((pad, 45), t, font=font2, fill=255)
+    
+    n = n+1
