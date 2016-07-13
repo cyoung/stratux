@@ -1,6 +1,6 @@
 // Package mpu6050 allows interfacing with InvenSense mpu6050 barometric pressure sensor. This sensor
 // has the ability to provided compensated temperature and pressure readings.
-package mpu6050
+package mpu
 
 import (
 	"../linux-mpu9150/mpu"
@@ -40,7 +40,7 @@ type MPU6050 struct {
 }
 
 // New returns a handle to a MPU6050 sensor.
-func New() *MPU6050 {
+func NewMPU6050() *MPU6050 {
 	n := &MPU6050{poll: pollDelay}
 	n.startUp()
 	return n
@@ -185,3 +185,8 @@ func (d *MPU6050) Close() {
 		d.quit <- struct{}{}
 	}
 }
+
+func (d *MPU6050) MagHeading() (float64, error) {return 0, nil}
+func (d *MPU6050) SlipSkid() (float64, error) {return 0, nil}
+func (d *MPU6050) RateOfTurn() (float64, error) {return 0, nil}
+func (d *MPU6050) GLoad() (float64, error) {return 0, nil}

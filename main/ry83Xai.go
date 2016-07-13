@@ -86,10 +86,14 @@ type SituationData struct {
 	Pressure_alt      float64
 	LastTempPressTime time.Time
 
-	// From MPU6050 accel/gyro.
+	// From MPU6050 or MPU9250 accel/gyro.
 	Pitch            float64
 	Roll             float64
 	Gyro_heading     float64
+	Mag_heading	 float64
+	SlipSkid	 float64
+	RateOfTurn	 float64
+	GLoad		 float64
 	LastAttitudeTime time.Time
 }
 
@@ -428,10 +432,11 @@ func validateNMEAChecksum(s string) (string, bool) {
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
+//westphae: Do I need to do anything here?
 func setTrueCourse(groundSpeed uint16, trueCourse float64) {
-	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	if myMPU != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(trueCourse, 0.10)
+			myMPU.ResetHeading(trueCourse, 0.10)
 		}
 	}
 }
@@ -1338,7 +1343,7 @@ func gpsSerialReader() {
 
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
-var myMPU6050 *mpu6050.MPU6050
+var myMPU mpu.MPU
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	temp, err := myBMP180.Temperature()
@@ -1358,8 +1363,9 @@ func initBMP180() error {
 	return nil
 }
 
-func initMPU6050() error {
-	myMPU6050 = mpu6050.New() //TODO: error checking.
+//TODO westphae: set up myMPU as MPU6050 or MPU9250, depending on which exists
+func initMPU() error {
+	myMPU = mpu.NewMPU6050() //TODO: error checking.
 	return nil
 }
 
@@ -1404,9 +1410,9 @@ func makeAHRSGDL90Report() {
 	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
 	roll := int16(float64(mySituation.Roll) * float64(10.0))
 	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
-	slip_skid := int16(float64(0) * float64(10.0))
-	yaw_rate := int16(float64(0) * float64(10.0))
-	g := int16(float64(1.0) * float64(10.0))
+	slip_skid := int16(float64(mySituation.SlipSkid) * float64(10.0))
+	turn_rate := int16(float64(mySituation.RateOfTurn) * float64(10.0))
+	g := int16(float64(mySituation.GLoad) * float64(10.0))
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
@@ -1425,8 +1431,8 @@ func makeAHRSGDL90Report() {
 	msg[11] = byte(slip_skid & 0xFF)
 
 	// Yaw rate.
-	msg[12] = byte((yaw_rate >> 8) & 0xFF)
-	msg[13] = byte(yaw_rate & 0xFF)
+	msg[12] = byte((turn_rate >> 8) & 0xFF)
+	msg[13] = byte(turn_rate & 0xFF)
 
 	// "G".
 	msg[14] = byte((g >> 8) & 0xFF)
@@ -1440,14 +1446,14 @@ func attitudeReaderSender() {
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read pitch and roll.
-		pitch, err_pitch := myMPU6050.Pitch()
+		pitch, err_pitch := myMPU.Pitch()
 		if err_pitch != nil {
 			log.Printf("readMPU6050(): %s\n", err_pitch.Error())
 			globalStatus.RY835AI_connected = false
 			break
 		}
 
-		roll, err_roll := myMPU6050.Roll()
+		roll, err_roll := myMPU.Roll()
 
 		if err_roll != nil {
 			log.Printf("readMPU6050(): %s\n", err_roll.Error())
@@ -1455,7 +1461,7 @@ func attitudeReaderSender() {
 			break
 		}
 
-		heading, err_heading := myMPU6050.Heading() //FIXME. Experimental.
+		heading, err_heading := myMPU.Heading() //FIXME. Experimental.
 		if err_heading != nil {
 			log.Printf("readMPU6050(): %s\n", err_heading.Error())
 			globalStatus.RY835AI_connected = false
@@ -1559,7 +1565,8 @@ func initAHRS() error {
 		i2cbus.Close()
 		return err
 	}
-	if err := initMPU6050(); err != nil { // I2C accel/gyro.
+	// TODO westphae: Initialize MPU9250 here
+	if err := initMPU(); err != nil { // I2C accel/gyro.
 		i2cbus.Close()
 		myBMP180.Close()
 		return err

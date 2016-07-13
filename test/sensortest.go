@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var attSensor *mpu6050.MPU6050
+var attSensor mpu.MPU
 
 func readMPU6050() (float64, float64) {
 	pitch, _ := attSensor.Pitch()
@@ -17,7 +17,7 @@ func readMPU6050() (float64, float64) {
 }
 
 func initMPU6050() {
-	attSensor = mpu6050.New()
+	attSensor = mpu.NewMPU6050()
 }
 
 func main() {
