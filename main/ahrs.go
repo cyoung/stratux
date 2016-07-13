@@ -10,17 +10,17 @@ var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64
-var headingHistory [20]float64
+var headingHistory [30]float64
 
 // Calculates the current heading, optionally compensating for the current attitude
 func CalculateHeading() {
 	magXtemp := magX
 	magYtemp := magY
-	// magZtemp := magZ
-	// these equations account for tilt error
-	// magXcomp := magXtemp*math.Cos(attitudeY) + magZtemp*math.Sin(attitudeY)
-	// magYcomp := magXtemp*math.Sin(attitudeX)*math.Sin(attitudeY) + magYtemp*math.Cos(attitudeX) - magZtemp*math.Sin(attitudeX)*math.Cos(attitudeY)
-	tempHeading := 180 * math.Atan2(magYtemp, magXtemp) / math.Pi
+	magZtemp := magZ
+	these equations account for tilt error
+	magXcomp := magXtemp*math.Cos(attitudeY) + magZtemp*math.Sin(attitudeY)
+	magYcomp := magXtemp*math.Sin(attitudeX)*math.Sin(attitudeY) + magYtemp*math.Cos(attitudeX) - magZtemp*math.Sin(attitudeX)*math.Cos(attitudeY)
+	tempHeading := 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
 
 	if tempHeading < 0 {
 		tempHeading += 360
