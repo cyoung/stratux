@@ -519,5 +519,4 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
-	go ffMonitor()
 }
