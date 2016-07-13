@@ -128,9 +128,9 @@ func CalculateCurrentAttitudeXYZ() {
 	attitudeY = 0.60*hY + 0.25*mY + 0.15*lY
 	attitudeZ = 0.60*hZ + 0.25*mZ + 0.15*lZ
 
-	attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
-	attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
-	attitudeZ = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
+	// attitudeX = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	// attitudeY = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
+	// attitudeZ = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
 }
 
 // Gets the current attitude and heading.
