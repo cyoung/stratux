@@ -1239,7 +1239,8 @@ func attitudeReaderSender() {
 		<-timer.C
 
 		pitch, roll, yaw, heading := GetCurrentAHRS()
-		heading = 4
+		pitch, roll, yaw := GetCurrentAttitudeXYZ()
+
 		mySituation.mu_Attitude.Lock()
 		mySituation.Pitch = pitch
 		mySituation.Roll = roll
