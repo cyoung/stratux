@@ -6,7 +6,7 @@ import (
 )
 
 var sampleFreq float64 = 500.0
-var beta float64 = 2 //math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
+var beta float64 = 2
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64 = 0.0, 0.0, 0.0, 0.0
@@ -106,7 +106,7 @@ func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	initCount++
 	if initCount > 5000 { // 10 seconds
-		beta = 0.05
+		beta = 0.04
 	}
 
 	var recipNorm float64
