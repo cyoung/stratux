@@ -14,6 +14,7 @@ var headingHistory [30]float64
 var attitudeXhistory [50]float64
 var attitudeYhistory [50]float64
 var attitudeZhistory [50]float64
+var initCount = 0
 
 // Calculates the current heading, optionally compensating for the current attitude
 func CalculateHeading() {
@@ -103,6 +104,11 @@ func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
 // ax, ay, az: accelerometer values
 // mx, my, mz: magnetometer values
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
+	initCount++
+	if initCount > 5000 { // 10 seconds
+		beta = 0.5
+	}
+
 	var recipNorm float64
 	var s0, s1, s2, s3 float64
 	var qDot1, qDot2, qDot3, qDot4 float64
