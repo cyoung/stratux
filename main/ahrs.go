@@ -32,7 +32,7 @@ func CalculateHeading() {
 
 	headingHistory[0] = tempHeading
 
-	var total float64 = 1
+	var total float64 = 0
 	for _, value := range headingHistory {
 		total += value
 	}
