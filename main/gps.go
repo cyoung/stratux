@@ -4,7 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	ry835ai.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
+	gps.go: GPS functions, GPS init
 */
 
 package main
@@ -19,15 +19,10 @@ import (
 
 	"bufio"
 
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/all"
-	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
 	"os"
 	"os/exec"
-
-	"../mpu6050"
 )
 
 const (
@@ -50,47 +45,6 @@ type SatelliteInfo struct {
 	TimeLastSeen     time.Time // Time (system ticker) a signal was last received from this satellite
 	TimeLastTracked  time.Time // Time (system ticker) this satellite was tracked (almanac data)
 	InSolution       bool      // True if satellite is used in the position solution (reported by GSA message or PUBX,03)
-}
-
-type SituationData struct {
-	mu_GPS *sync.Mutex
-
-	// From GPS.
-	LastFixSinceMidnightUTC  float32
-	Lat                      float32
-	Lng                      float32
-	Quality                  uint8
-	HeightAboveEllipsoid     float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
-	GeoidSep                 float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	Satellites               uint16  // satellites used in solution
-	SatellitesTracked        uint16  // satellites tracked (almanac data received)
-	SatellitesSeen           uint16  // satellites seen (signal received)
-	Accuracy                 float32 // 95% confidence for horizontal position, meters.
-	NACp                     uint8   // NACp categories are defined in AC 20-165A
-	Alt                      float32 // Feet MSL
-	AccuracyVert             float32 // 95% confidence for vertical position, meters
-	GPSVertVel               float32 // GPS vertical velocity, feet per second
-	LastFixLocalTime         time.Time
-	TrueCourse               float32
-	GroundSpeed              uint16
-	LastGroundTrackTime      time.Time
-	GPSTime                  time.Time
-	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
-	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
-	LastValidNMEAMessage     string    // last NMEA message processed.
-
-	mu_Attitude *sync.Mutex
-
-	// From BMP180 pressure sensor.
-	Temp              float64
-	Pressure_alt      float64
-	LastTempPressTime time.Time
-
-	// From MPU6050 accel/gyro.
-	Pitch            float64
-	Roll             float64
-	Gyro_heading     float64
-	LastAttitudeTime time.Time
 }
 
 var serialConfig *serial.Config
@@ -429,11 +383,11 @@ func validateNMEAChecksum(s string) (string, bool) {
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed uint16, trueCourse float64) {
-	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	/*if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
 			myMPU6050.ResetHeading(trueCourse, 0.10)
 		}
-	}
+	}*/
 }
 
 func calculateNACp(accuracy float32) uint8 {
@@ -1336,147 +1290,8 @@ func gpsSerialReader() {
 	return
 }
 
-var i2cbus embd.I2CBus
-var myBMP180 *bmp180.BMP180
-var myMPU6050 *mpu6050.MPU6050
-
-func readBMP180() (float64, float64, error) { // ºCelsius, Meters
-	temp, err := myBMP180.Temperature()
-	if err != nil {
-		return temp, 0.0, err
-	}
-	altitude, err := myBMP180.Altitude()
-	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
-	if err != nil {
-		return temp, altitude, err
-	}
-	return temp, altitude, nil
-}
-
-func readMPU6050() (float64, float64, error) { //TODO: error checking.
-	pitch, roll := myMPU6050.PitchAndRoll()
-	return pitch, roll, nil
-}
-
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initMPU6050() error {
-	myMPU6050 = mpu6050.New() //TODO: error checking.
-	return nil
-}
-
-func initI2C() error {
-	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
-	return nil
-}
-
-// Unused at the moment. 5 second update, since read functions in bmp180 are slow.
-func tempAndPressureReader() {
-	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
-		// Read temperature and pressure altitude.
-		temp, alt, err_bmp180 := readBMP180()
-		// Process.
-		if err_bmp180 != nil {
-			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			globalStatus.RY835AI_connected = false
-		} else {
-			mySituation.Temp = temp
-			mySituation.Pressure_alt = alt
-			mySituation.LastTempPressTime = stratuxClock.Time
-		}
-	}
-	globalStatus.RY835AI_connected = false
-}
-
-func makeFFAHRSSimReport() {
-	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.Gyro_heading, mySituation.Pitch, mySituation.Roll)
-
-	sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
-}
-
-func makeAHRSGDL90Report() {
-	msg := make([]byte, 16)
-	msg[0] = 0x4c
-	msg[1] = 0x45
-	msg[2] = 0x01
-	msg[3] = 0x00
-
-	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
-	roll := int16(float64(mySituation.Roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
-	slip_skid := int16(float64(0) * float64(10.0))
-	yaw_rate := int16(float64(0) * float64(10.0))
-	g := int16(float64(1.0) * float64(10.0))
-
-	// Roll.
-	msg[4] = byte((roll >> 8) & 0xFF)
-	msg[5] = byte(roll & 0xFF)
-
-	// Pitch.
-	msg[6] = byte((pitch >> 8) & 0xFF)
-	msg[7] = byte(pitch & 0xFF)
-
-	// Heading.
-	msg[8] = byte((hdg >> 8) & 0xFF)
-	msg[9] = byte(hdg & 0xFF)
-
-	// Slip/skid.
-	msg[10] = byte((slip_skid >> 8) & 0xFF)
-	msg[11] = byte(slip_skid & 0xFF)
-
-	// Yaw rate.
-	msg[12] = byte((yaw_rate >> 8) & 0xFF)
-	msg[13] = byte(yaw_rate & 0xFF)
-
-	// "G".
-	msg[14] = byte((g >> 8) & 0xFF)
-	msg[15] = byte(g & 0xFF)
-
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
-}
-
-func attitudeReaderSender() {
-	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
-		// Read pitch and roll.
-		pitch, roll, err_mpu6050 := readMPU6050()
-
-		if err_mpu6050 != nil {
-			log.Printf("readMPU6050(): %s\n", err_mpu6050.Error())
-			globalStatus.RY835AI_connected = false
-			break
-		}
-
-		mySituation.mu_Attitude.Lock()
-
-		mySituation.Pitch = pitch
-		mySituation.Roll = roll
-		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-		mySituation.LastAttitudeTime = stratuxClock.Time
-
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
-
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		makeAHRSGDL90Report()
-
-		mySituation.mu_Attitude.Unlock()
-	}
-	globalStatus.RY835AI_connected = false
-}
-
-/*
-	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
-		data structure. Calling functions must protect this in a satelliteMutex.
-
-*/
-
+// updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
+// data structure. Calling functions must protect this in a satelliteMutex.
 func updateConstellation() {
 	var sats, tracked, seen uint8
 	for svStr, thisSatellite := range Satellites {
@@ -1508,13 +1323,9 @@ func isGPSConnected() bool {
 	return stratuxClock.Since(mySituation.LastValidNMEAMessageTime) < 5*time.Second
 }
 
-/*
-isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
-and if the GPS subsystem has recently detected a GPS device.
-
-If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
-*/
-
+// isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
+// and if the GPS subsystem has recently detected a GPS device.
+// If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
 func isGPSValid() bool {
 	isValid := false
 	if (stratuxClock.Since(mySituation.LastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected && mySituation.Quality > 0 {
@@ -1534,35 +1345,7 @@ func isGPSClockValid() bool {
 	return stratuxClock.Since(mySituation.LastGPSTimeTime) < 15*time.Second
 }
 
-func isAHRSValid() bool {
-	return stratuxClock.Since(mySituation.LastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
-}
-
-func isTempPressValid() bool {
-	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
-}
-
-func initAHRS() error {
-	if err := initI2C(); err != nil { // I2C bus.
-		return err
-	}
-	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
-		i2cbus.Close()
-		return err
-	}
-	if err := initMPU6050(); err != nil { // I2C accel/gyro.
-		i2cbus.Close()
-		myBMP180.Close()
-		return err
-	}
-	globalStatus.RY835AI_connected = true
-	go attitudeReaderSender()
-	go tempAndPressureReader()
-
-	return nil
-}
-
-func pollRY835AI() {
+func pollGPS() {
 	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	for {
@@ -1574,22 +1357,13 @@ func pollRY835AI() {
 				go gpsSerialReader()
 			}
 		}
-		// RY835AI I2C enabled, was not connected previously?
-		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
-			err := initAHRS()
-			if err != nil {
-				log.Printf("initAHRS(): %s\ndisabling AHRS sensors.\n", err.Error())
-				globalStatus.RY835AI_connected = false
-			}
-		}
 	}
 }
 
-func initRY835AI() {
+func initGPS() {
 	mySituation.mu_GPS = &sync.Mutex{}
-	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	go pollRY835AI()
+	go pollGPS()
 }
