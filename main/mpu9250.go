@@ -173,7 +173,7 @@ func calculateAttitude() {
 	for {
 		<-timer.C
 		CalculateCurrentAttitudeXYZ()
-		CalculateHeading()
+		//CalculateHeading()
 	}
 }
 
