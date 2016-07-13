@@ -54,6 +54,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.RY835AI_connected = status.RY835AI_connected;
+			$scope.AHRS_Enabled = status.AHRS_Enabled;
 			var tempClock = new Date(Date.parse(status.Clock));
 			var clockString = tempClock.toUTCString();
 			$scope.Clock = clockString;
