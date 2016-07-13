@@ -51,6 +51,12 @@ func CalculateCurrentAttitudeXYZ() {
 	q2a = q2
 	q3a = q3
 
+	for i := len(attitudeXhistory) - 1; i > 0; i-- {
+		attitudeXhistory[i] = attitudeXhistory[i-1]
+		attitudeYhistory[i] = attitudeYhistory[i-1]
+		attitudeZhistory[i] = attitudeZhistory[i-1]
+	}
+
 	var total float64 = 0
 	for i := len(attitudeXhistory) - 71; i >= 0; i-- {
 		total += attitudeXhistory[i]
