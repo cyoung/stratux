@@ -9,7 +9,7 @@ var sampleFreq float64 = 500.0
 var beta float64 = math.Sqrt(3.0/4.0) * (math.Pi * (60.0 / 180.0))
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
-var attitudeX, attitudeY, attitudeZ, heading float64 = 0.0
+var attitudeX, attitudeY, attitudeZ, heading float64 = 0.0, 0.0, 0.0, 0.0
 var headingHistory [30]float64
 
 // Calculates the current heading, optionally compensating for the current attitude
