@@ -57,12 +57,14 @@ func CalculateCurrentAttitudeXYZ() {
 		attitudeZhistory[i] = attitudeZhistory[i-1]
 	}
 
+	attitudeXhistory[0] = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
+	attitudeYhistory[0] = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
+	attitudeZhistory[0] = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
+
 	var total float64 = 0
 	for i := len(attitudeXhistory) - 71; i >= 0; i-- {
 		total += attitudeXhistory[i]
 	}
-
-	attitudeXhistory[0] = math.Atan2(q0a*q1a+q2a*q3a, 0.5-q1a*q1a-q2a*q2a) * 180 / math.Pi
 
 	hX := total / float64(len(attitudeXhistory))
 
@@ -71,16 +73,12 @@ func CalculateCurrentAttitudeXYZ() {
 		total += attitudeYhistory[i]
 	}
 
-	attitudeYhistory[0] = math.Asin(-2.0*(q1a*q3a-q0a*q2a)) * 180 / math.Pi
-
 	hY := total / float64(len(attitudeYhistory))
 
 	total = 0
 	for i := len(attitudeZhistory) - 71; i >= 0; i-- {
 		total += attitudeZhistory[i]
 	}
-
-	attitudeZhistory[0] = math.Atan2(q1a*q2a+q0a*q3a, 0.5-q2a*q2a-q3a*q3a) * 180 / math.Pi
 
 	hZ := total / float64(len(attitudeZhistory))
 
