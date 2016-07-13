@@ -106,7 +106,7 @@ func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	initCount++
 	if initCount > 5000 { // 10 seconds
-		beta = 0.04
+		beta = 0.05
 	}
 
 	var recipNorm float64
