@@ -1353,11 +1353,6 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	return temp, altitude, nil
 }
 
-func readMPU6050() (float64, float64, error) { //TODO: error checking.
-	pitch, roll := myMPU6050.PitchAndRoll()
-	return pitch, roll, nil
-}
-
 func initBMP180() error {
 	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
 	return nil
@@ -1445,10 +1440,24 @@ func attitudeReaderSender() {
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read pitch and roll.
-		pitch, roll, err_mpu6050 := readMPU6050()
+		pitch, err_pitch := myMPU6050.Pitch()
+		if err_pitch != nil {
+			log.Printf("readMPU6050(): %s\n", err_pitch.Error())
+			globalStatus.RY835AI_connected = false
+			break
+		}
 
-		if err_mpu6050 != nil {
-			log.Printf("readMPU6050(): %s\n", err_mpu6050.Error())
+		roll, err_roll := myMPU6050.Roll()
+
+		if err_roll != nil {
+			log.Printf("readMPU6050(): %s\n", err_roll.Error())
+			globalStatus.RY835AI_connected = false
+			break
+		}
+
+		heading, err_heading := myMPU6050.Heading() //FIXME. Experimental.
+		if err_heading != nil {
+			log.Printf("readMPU6050(): %s\n", err_heading.Error())
 			globalStatus.RY835AI_connected = false
 			break
 		}
@@ -1457,7 +1466,7 @@ func attitudeReaderSender() {
 
 		mySituation.Pitch = pitch
 		mySituation.Roll = roll
-		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
+		mySituation.Gyro_heading = heading
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		// Send, if valid.

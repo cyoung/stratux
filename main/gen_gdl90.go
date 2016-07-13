@@ -250,7 +250,7 @@ func makeOwnshipReport() bool {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
-	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
+	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry83xai.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {

@@ -10,7 +10,8 @@ import (
 var attSensor *mpu6050.MPU6050
 
 func readMPU6050() (float64, float64) {
-	pitch, roll := attSensor.PitchAndRoll()
+	pitch, _ := attSensor.Pitch()
+	roll, _ := attSensor.Roll()
 
 	return pitch, roll
 }
@@ -28,7 +29,8 @@ func main() {
 	outConn, err := net.DialUDP("udp", nil, addr)
 	for {
 		pitch, roll := readMPU6050()
-		s := fmt.Sprintf("XATTMy Sim,%f,%f,%f", attSensor.Heading(), pitch, roll)
+		heading, _ := attSensor.Heading()
+		s := fmt.Sprintf("XATTMy Sim,%f,%f,%f", heading, pitch, roll)
 		fmt.Printf("%f, %f\n", pitch, roll)
 		outConn.Write([]byte(s))
 		time.Sleep(50 * time.Millisecond)

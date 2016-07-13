@@ -16,7 +16,7 @@ const (
 
 // MPU6050 represents a InvenSense MPU6050 sensor.
 type MPU6050 struct {
-	Poll time.Duration
+	poll time.Duration
 
 	started bool
 
@@ -41,12 +41,12 @@ type MPU6050 struct {
 
 // New returns a handle to a MPU6050 sensor.
 func New() *MPU6050 {
-	n := &MPU6050{Poll: pollDelay}
-	n.StartUp()
+	n := &MPU6050{poll: pollDelay}
+	n.startUp()
 	return n
 }
 
-func (d *MPU6050) StartUp() error {
+func (d *MPU6050) startUp() error {
 	mpu_sample_rate := 10 // 10 Hz read rate of hardware IMU
 	yaw_mix_factor := 0   // must be zero if no magnetometer
 	mpu.InitMPU(mpu_sample_rate, yaw_mix_factor)
@@ -55,7 +55,7 @@ func (d *MPU6050) StartUp() error {
 	d.roll_history = make([]float64, 0)
 
 	d.started = true
-	d.Run()
+	d.run()
 
 	return nil
 }
@@ -119,19 +119,23 @@ func (d *MPU6050) getMPUData() {
 }
 
 // Temperature returns the current temperature reading.
-func (d *MPU6050) PitchAndRoll() (float64, float64) {
-	return (d.pitch - d.pitch_resting), (d.roll - d.roll_resting)
+func (d *MPU6050) Pitch() (float64, error) {
+	return (d.pitch - d.pitch_resting), nil
 }
 
-func (d *MPU6050) Heading() float64 {
-	return d.heading
+func (d *MPU6050) Roll() (float64, error) {
+	return (d.roll - d.roll_resting), nil
 }
 
-func (d *MPU6050) Run() {
-	time.Sleep(d.Poll)
+func (d *MPU6050) Heading() (float64, error) {
+	return d.heading, nil
+}
+
+func (d *MPU6050) run() {
+	time.Sleep(d.poll)
 	go func() {
 		d.quit = make(chan struct{})
-		timer := time.NewTicker(d.Poll)
+		timer := time.NewTicker(d.poll)
 		//		calibrateTimer := time.NewTicker(1 * time.Minute)
 		for {
 			select {
