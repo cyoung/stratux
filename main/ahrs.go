@@ -10,7 +10,7 @@ var beta float64 = 2
 var q0, q1, q2, q3 float64 = 1.0, 0.0, 0.0, 0.0
 var magX, magY, magZ float64
 var attitudeX, attitudeY, attitudeZ, heading float64 = 0.0, 0.0, 0.0, 0.0
-var headingHistory [30]float64
+var headingHistory [500]float64
 var attitudeXhistory [30]float64
 var attitudeYhistory [30]float64
 var attitudeZhistory [30]float64
@@ -106,7 +106,7 @@ func GetCurrentAttitudeQ() (float64, float64, float64, float64) {
 func AHRSupdate(gx, gy, gz, ax, ay, az, mx, my, mz float64) {
 	initCount++
 	if initCount > 5000 { // 10 seconds
-		beta = 0.05
+		beta = 0.1
 	}
 
 	var recipNorm float64
