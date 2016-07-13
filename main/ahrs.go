@@ -17,7 +17,7 @@ func CalculateHeading() {
 	magXtemp := magX
 	magYtemp := magY
 	magZtemp := magZ
-	these equations account for tilt error
+	//these equations account for tilt error
 	magXcomp := magXtemp*math.Cos(attitudeY) + magZtemp*math.Sin(attitudeY)
 	magYcomp := magXtemp*math.Sin(attitudeX)*math.Sin(attitudeY) + magYtemp*math.Cos(attitudeX) - magZtemp*math.Sin(attitudeX)*math.Cos(attitudeY)
 	tempHeading := 180 * math.Atan2(magYcomp, magXcomp) / math.Pi
