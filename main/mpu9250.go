@@ -178,7 +178,7 @@ func calculateAttitude() {
 	}
 }
 
-func calculateAttitude() {
+func calculateHeading() {
 	timer := time.NewTicker(2 * time.Millisecond)
 
 	for {
