@@ -435,12 +435,12 @@ func dataLog() {
 	// Check if we need to create a new database.
 	createDatabase := false
 
-	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
+	if _, err := os.Stat(dataLogFilef); os.IsNotExist(err) {
 		createDatabase = true
-		log.Printf("creating new database '%s'.\n", dataLogFile)
+		log.Printf("creating new database '%s'.\n", dataLogFilef)
 	}
 
-	db, err := sql.Open("sqlite3", dataLogFile)
+	db, err := sql.Open("sqlite3", dataLogFilef)
 	if err != nil {
 		log.Printf("sql.Open(): %s\n", err.Error())
 	}
@@ -449,7 +449,7 @@ func dataLog() {
 		db.Close()
 		dataLogStarted = false
 		//close(dataLogChan)
-		log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFile)
+		log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFilef)
 	}()
 
 	_, err = db.Exec("PRAGMA journal_mode=WAL")
@@ -593,9 +593,6 @@ func initDataLog() {
 
 func dataLogWatchdog() {
 	for {
-		if globalSettings.DEBUG {
-			log.Printf("datalog.go: Watchdog loop iterating. dataLogStarted = %t\n", dataLogStarted)
-		}
 		if !dataLogStarted && globalSettings.ReplayLog { // case 1: sqlite logging isn't running, and we want to start it
 			log.Printf("datalog.go: Watchdog wants to START logging.\n")
 			go dataLog()

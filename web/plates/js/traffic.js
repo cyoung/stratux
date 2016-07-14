@@ -59,6 +59,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
+		new_traffic.reg = obj.Reg;
 		if (obj.Squawk == 0) {
 			new_traffic.squawk = "----";
 		} else {

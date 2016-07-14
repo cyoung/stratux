@@ -38,12 +38,20 @@ www:
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
-	cp init.d-stratux /etc/init.d/stratux
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
+<<<<<<< HEAD
 	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
 	chmod 755 /etc/init.d/stratux
 	ln -sf /etc/init.d/stratux /etc/rc2.d/S01stratux
 	ln -sf /etc/init.d/stratux /etc/rc6.d/K01stratux
+=======
+	rm -f /etc/init.d/stratux
+	cp __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
+	cp __root__stratux-pre-start.sh /root/stratux-pre-start.sh
+	chmod 644 /lib/systemd/system/stratux.service
+	chmod 744 /root/stratux-pre-start.sh
+	ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
+>>>>>>> origin/master
 	make www
 	cp -f dump1090/dump1090 /usr/bin/
 

@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -36,15 +37,19 @@ import (
 
 // http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
 
+var debugLogf string    // Set according to OS config.
+var dataLogFilef string // Set according to OS config.
+
 const (
-	configLocation      = "/etc/stratux.conf"
-	indexFilename       = "/var/log/stratux/LOGINDEX"
-	managementAddr      = ":80"
-	debugLog            = "/var/log/stratux.log"
+	configLocation = "/etc/stratux.conf"
+	managementAddr = ":80"
+	debugLog       = "/var/log/stratux.log"
+	dataLogFile    = "/var/log/stratux.sqlite"
+	//FlightBox: log to /root.
+	debugLog_FB         = "/root/stratux.log"
+	dataLogFile_FB      = "/var/log/stratux.sqlite"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
-	logDirectory        = "/var/log/stratux"
-	dataLogFile         = "/var/log/stratux.sqlite"
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -100,11 +105,12 @@ var developerMode bool
 type msg struct {
 	MessageClass     uint
 	TimeReceived     time.Time
-	Data             []byte
+	Data             string
 	Products         []uint32
 	Signal_amplitude int
 	Signal_strength  float64
 	ADSBTowerID      string // Index in the 'ADSBTowers' map, if this is a parseable uplink message.
+	uatMsg           *uatparse.UATMsg
 }
 
 // Raw inputs.
@@ -121,40 +127,10 @@ type ADSBTower struct {
 	Energy_last_minute          uint64  // Summation of power observed for this tower across all messages last minute
 	Signal_strength_last_minute float64 // Average RSSI (dB) observed for this tower last minute
 	Messages_last_minute        uint64
-	Messages_total              uint64
 }
 
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
-
-func constructFilenames() {
-	var fileIndexNumber uint
-
-	// First, create the log file directory if it does not exist
-	os.Mkdir(logDirectory, 0755)
-
-	f, err := os.Open(indexFilename)
-	if err != nil {
-		log.Printf("Unable to open index file %s using index of 0\n", indexFilename)
-		fileIndexNumber = 0
-	} else {
-		_, err := fmt.Fscanf(f, "%d\n", &fileIndexNumber)
-		if err != nil {
-			log.Printf("Unable to read index file %s using index of 0\n", indexFilename)
-		}
-		f.Close()
-		fileIndexNumber++
-	}
-	fo, err := os.Create(indexFilename)
-	if err != nil {
-		log.Printf("Error creating index file %s\n", indexFilename)
-	}
-	_, err2 := fmt.Fprintf(fo, "%d\n", fileIndexNumber)
-	if err2 != nil {
-		log.Printf("Error writing to index file %s\n", indexFilename)
-	}
-	fo.Sync()
-	fo.Close()
-}
+var ADSBTowerMutex *sync.Mutex
 
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
@@ -498,7 +474,8 @@ func makeStratuxStatus() []byte {
 	msg[26] = byte((v & 0xFF00) >> 8)
 	msg[27] = byte(v & 0xFF)
 
-	// Number of ADS-B towers.
+	// Number of ADS-B towers. Map structure is protected by ADSBTowerMutex.
+	ADSBTowerMutex.Lock()
 	num_towers := uint8(len(ADSBTowers))
 
 	msg[28] = byte(num_towers)
@@ -515,7 +492,7 @@ func makeStratuxStatus() []byte {
 		msg = append(msg, tmp[1]) // Longitude.
 		msg = append(msg, tmp[2]) // Longitude.
 	}
-
+	ADSBTowerMutex.Unlock()
 	return prepareMessage(msg)
 }
 
@@ -631,7 +608,9 @@ func updateMessageStats() {
 	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
-	products_last_minute := make(map[string]uint32)
+
+	ADSBTowerMutex.Lock()
+	defer ADSBTowerMutex.Unlock()
 
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
@@ -645,12 +624,20 @@ func updateMessageStats() {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				for _, p := range MsgLog[i].Products {
-					products_last_minute[getProductNameFromId(int(p))]++
-				}
 				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
 					tid := MsgLog[i].ADSBTowerID
+
+					if _, ok := ADSBTowers[tid]; !ok { // First time we've seen the tower? Start tracking.
+						var newTower ADSBTower
+						newTower.Lat = MsgLog[i].uatMsg.Lat
+						newTower.Lng = MsgLog[i].uatMsg.Lon
+						newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
+						ADSBTowers[tid] = newTower
+					}
+
 					twr := ADSBTowers[tid]
+					twr.Signal_strength_now = MsgLog[i].Signal_strength
+
 					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
 					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
@@ -666,7 +653,6 @@ func updateMessageStats() {
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.UAT_products_last_minute = products_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -678,8 +664,8 @@ func updateMessageStats() {
 
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
-		if tinf.Messages_last_minute == 0 {
-			tinf.Signal_strength_last_minute = -99
+		if tinf.Messages_last_minute == 0 || tinf.Energy_last_minute == 0 {
+			tinf.Signal_strength_last_minute = -999
 		} else {
 			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
 		}
@@ -861,9 +847,13 @@ func parseInput(buf string) ([]byte, uint16) {
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_UAT
 	thisMsg.TimeReceived = stratuxClock.Time
-	thisMsg.Data = frame
+	thisMsg.Data = buf
 	thisMsg.Signal_amplitude = thisSignalStrength
-	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	if thisSignalStrength > 0 {
+		thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	} else {
+		thisMsg.Signal_strength = -999
+	}
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
@@ -872,18 +862,6 @@ func parseInput(buf string) ([]byte, uint16) {
 			uatMsg.DecodeUplink()
 			towerid := fmt.Sprintf("(%f,%f)", uatMsg.Lat, uatMsg.Lon)
 			thisMsg.ADSBTowerID = towerid
-			if _, ok := ADSBTowers[towerid]; !ok { // First time we've seen the tower. Start tracking.
-				var newTower ADSBTower
-				newTower.Lat = uatMsg.Lat
-				newTower.Lng = uatMsg.Lon
-				newTower.Signal_strength_now = thisMsg.Signal_strength
-				newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
-				ADSBTowers[towerid] = newTower
-			}
-			twr := ADSBTowers[towerid]
-			twr.Messages_total++
-			twr.Signal_strength_now = thisMsg.Signal_strength
-			ADSBTowers[towerid] = twr
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
@@ -893,6 +871,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			for _, r := range textReports {
 				registerADSBTextMessageReceived(r)
 			}
+			thisMsg.uatMsg = uatMsg
 		}
 	}
 
@@ -997,7 +976,6 @@ type status struct {
 	Connected_Users                            uint
 	DiskBytesFree                              uint64
 	UAT_messages_last_minute                   uint
-	UAT_products_last_minute                   map[string]uint32
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
@@ -1236,8 +1214,38 @@ func main() {
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]string, 0)
+	//FlightBox: detect via presence of /etc/FlightBox file.
 	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"
+		debugLogf = debugLog_FB
+		dataLogFilef = dataLogFile_FB
+	} else { // if not using the FlightBox config, use "normal" log file locations
+		debugLogf = debugLog
+		dataLogFilef = dataLogFile
+	}
+	//FIXME: All of this should be removed by 08/01/2016.
+	// Check if Raspbian version is <8.0. Throw a warning if so.
+	vt, err := ioutil.ReadFile("/etc/debian_version")
+	if err == nil {
+		vtS := strings.Trim(string(vt), "\n")
+		vtF, err := strconv.ParseFloat(vtS, 32)
+		if err == nil {
+			if vtF < 8.0 {
+				var err_os error
+				if globalStatus.HardwareBuild == "FlightBox" {
+					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
+				} else {
+					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
+				}
+				addSystemError(err_os)
+			} else {
+				// Running Jessie or better. Remove some old init.d files.
+				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
+				os.Remove("/etc/init.d/stratux")
+				os.Remove("/etc/rc2.d/S01stratux")
+				os.Remove("/etc/rc6.d/K01stratux")
+			}
+		}
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
@@ -1258,9 +1266,9 @@ func main() {
 	}
 
 	// Duplicate log.* output to debugLog.
-	fp, err := os.OpenFile(debugLog, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		err_log := fmt.Errorf("Failed to open '%s': %s", debugLog, err.Error())
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
 		addSystemError(err_log)
 		log.Printf("%s\n", err_log.Error())
 	} else {
@@ -1270,9 +1278,9 @@ func main() {
 	}
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
-	constructFilenames()
 
 	ADSBTowers = make(map[string]ADSBTower)
+	ADSBTowerMutex = &sync.Mutex{}
 	MsgLog = make([]msg, 0)
 
 	crcInit() // Initialize CRC16 table.
