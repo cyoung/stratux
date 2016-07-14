@@ -40,10 +40,10 @@ type MPU6050 struct {
 }
 
 // New returns a handle to a MPU6050 sensor.
-func NewMPU6050() *MPU6050 {
+func NewMPU6050() (*MPU6050, error) {
 	n := &MPU6050{poll: pollDelay}
 	n.startUp()
-	return n
+	return n, nil
 }
 
 func (d *MPU6050) startUp() error {

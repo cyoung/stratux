@@ -27,7 +27,7 @@ import (
 	"os"
 	"os/exec"
 
-	"../mpu6050"
+	"../mpu"
 )
 
 const (
@@ -1365,7 +1365,7 @@ func initBMP180() error {
 
 //TODO westphae: set up myMPU as MPU6050 or MPU9250, depending on which exists
 func initMPU() error {
-	myMPU = mpu.NewMPU6050() //TODO: error checking.
+	myMPU, _ = mpu.NewMPU6050() //TODO: error checking.
 	return nil
 }
 

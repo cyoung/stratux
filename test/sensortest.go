@@ -1,7 +1,7 @@
 package main
 
 import (
-	"../mpu6050"
+	"../mpu"
 	"fmt"
 	"net"
 	"time"
