@@ -53,14 +53,13 @@ cp -f interfaces mnt/etc/network/interfaces
 #custom hostapd start script
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
-<<<<<<< HEAD
+
 #ping udev
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
-=======
+
 #fan/temp control script
 cp fancontrol.py mnt/usr/bin/
 chmod 755 mnt/usr/bin/fancontrol.py
->>>>>>> origin/master
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server

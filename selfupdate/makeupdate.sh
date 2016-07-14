@@ -30,12 +30,9 @@ cp image/modules.txt work/bin/
 cp image/stxAliases.txt work/bin/
 cp image/hostapd_manager.sh work/bin/
 cp image/10-stratux.rules work/bin/
-<<<<<<< HEAD
 cp image/99-uavionix.rules work/bin/
-=======
 cp image/motd work/bin/
 cp image/fancontrol.py work/bin/
->>>>>>> origin/master
 
 #TODO: librtlsdr.
 cd work/
