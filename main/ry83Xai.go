@@ -1565,8 +1565,11 @@ func attitudeReaderSender() {
 		m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
 		m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
 		m.W3 = float64(mySituation.GPSVertVel * KTSPERFPM)
-		m.T = mySituation.LastGPSTimeTime.UnixNano() //TODO westphae: use ms?
+		m.T = mySituation.LastGPSTimeTime.UnixNano()
 		m.WValid = stratuxClock.Time.Sub(mySituation.LastGPSTimeTime).Seconds() < 0.5
+		if !m.WValid {
+			log.Println("AHRS Warning: GPS not valid")
+		}
 
 		// Try to initialize
 		if !s.Initialized {
@@ -1587,6 +1590,8 @@ func attitudeReaderSender() {
 			droll, dpitch, dheading = ahrs.VarFromQuaternion(s.E0, s.E1, s.E2, s.E3,
 				math.Sqrt(s.M.Get(3, 3)), math.Sqrt(s.M.Get(4, 4)),
 				math.Sqrt(s.M.Get(5, 5)), math.Sqrt(s.M.Get(6, 6)))
+		} else {
+			log.Printf("AHRS Kalman Skipped: State Initialized: %t Calibrated %t\n", s.Initialized, s.Calibrated)
 		}
 
 		// Apply some heuristics?
@@ -1610,21 +1615,18 @@ func attitudeReaderSender() {
 		slipSkid, err_slipSkid := myMPU.SlipSkid()
 		if err_slipSkid != nil {
 			log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
-			globalStatus.RY83XAI_connected = false
 			break
 		}
 
 		turnRate, err_turnRate := myMPU.RateOfTurn()
 		if err_turnRate != nil {
 			log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
-			globalStatus.RY83XAI_connected = false
 			break
 		}
 
 		gLoad, err_gLoad := myMPU.GLoad()
 		if err_gLoad != nil {
 			log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
-			globalStatus.RY83XAI_connected = false
 			break
 		}
 
@@ -1736,6 +1738,7 @@ func initAHRS() error {
 		return err
 	}
 	globalStatus.RY83XAI_connected = true
+	time.Sleep(100 * time.Millisecond)
 	go attitudeReaderSender()
 	go tempAndPressureReader()
 
