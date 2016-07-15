@@ -69,13 +69,13 @@ func (m *MPU9250) run() {
 		for {
 			select {
 			case <-clock.C:
-				Ts, Gx, Gy, Gz, Ax, Ay, Az, Mx, My, _, gaError, magError := m.mpu.Read()
+				Ts, Gx, Gy, Gz, _, Ay, Az, Mx, My, _, gaError, magError := m.mpu.Read()
 
 				if gaError == nil {
 					m.T = Ts
 					smooth(&m.turnRate, Gz)
-					smooth(&m.gLoad, math.Sqrt(Ax * Ax + Ay * Ay + Az * Az))
-					smooth(&m.slipSkid, Ay / Az)
+					smooth(&m.gLoad, Az)
+					smooth(&m.slipSkid, math.Asin(Ay / Az)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
 
 					// Quick and dirty calcs just to test - these are no good for pitch >> 0
 					m.pitch += 0.1 * Gx

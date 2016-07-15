@@ -39,6 +39,7 @@ const (
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 	MPURETRYNUM	 = 5  // Number of times to retry connecting to MPU
+	ROCDECAY	 = 0.95 // Decay constant for measuring rate of climb
 )
 
 type SatelliteInfo struct {
@@ -83,10 +84,12 @@ type SituationData struct {
 
 	mu_Attitude *sync.Mutex
 
-	// From BMP180 pressure sensor.
+	// From BMPX80 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
+	RateOfClimb	  float64
 	LastTempPressTime time.Time
+	BMPExists	  bool
 
 	// From MPU6050 or MPU9250 accel/gyro.
 	Pitch            float64
@@ -1344,25 +1347,50 @@ func gpsSerialReader() {
 }
 
 var i2cbus embd.I2CBus
-var myBMP180 *bmp180.BMP180
+var myBMPX80 mpu.BMP
 var myMPU mpu.MPU
 
-func readBMP180() (float64, float64, error) { // ºCelsius, Meters
-	temp, err := myBMP180.Temperature()
+func readBMP() (float64, float64, error) { // ºCelsius, Meters
+	temp, err := myBMPX80.Temperature()
 	if err != nil {
-		return temp, 0.0, err
+		return 0.0, 0.0, err
 	}
-	altitude, err := myBMP180.Altitude()
+	altitude, err := myBMPX80.Altitude()
 	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
 	if err != nil {
-		return temp, altitude, err
+		return temp, 0.0, err
 	}
 	return temp, altitude, nil
 }
 
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
+func initBMP() error {
+	//TODO: support the BMP280 with something like this
+	//for i:=0; i < MPURETRYNUM; i++ {
+	//	myBMPX80, err = newBMP280(i2cbus)
+	//	if err != nil {
+	//		time.Sleep(250 * time.Millisecond)
+	//	} else {
+	//		mySituation.BMPExists = true
+	//		log.Println("AHRS: Successfully initialized BMP280")
+	//		return nil
+	//	}
+	//}
+
+	for i := 0; i < MPURETRYNUM; i++ {
+		myBMPX80 = bmp180.New(i2cbus)
+		_, err := myBMPX80.Temperature() // Test to see if it works, since bmp180.New doesn't return err
+		if err != nil {
+			time.Sleep(250 * time.Millisecond)
+		} else {
+			mySituation.BMPExists = true
+			log.Println("AHRS: Successfully initialized BMP180")
+			return nil
+		}
+	}
+
+	mySituation.BMPExists = false
+	log.Println("AHRS Error: couldn't initialize BMP280 or BMP180")
+	return errors.New("AHRS Error: couldn't initialize BMP280 or BMP180")
 }
 
 func initMPU() error {
@@ -1399,22 +1427,34 @@ func initI2C() error {
 
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
+	// Initialize altitude for rate of climb calc
+	mySituation.RateOfClimb = 0
+	_, pAltLast, err := readBMP()
+	if err != nil {
+		log.Printf("readBMP(): %s\n", err.Error())
+		mySituation.BMPExists = false
+	}
+
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
+	for mySituation.BMPExists && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read temperature and pressure altitude.
-		temp, alt, err_bmp180 := readBMP180()
+		temp, alt, err := readBMP()
 		// Process.
-		if err_bmp180 != nil {
-			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			globalStatus.RY83XAI_connected = false
+		if err != nil {
+			log.Printf("readBMP(): %s\n", err.Error())
+			mySituation.BMPExists = false
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
+			//TODO westphae: This RateOfClimb calc is untested, may need tuning or modification
+			// Slightly problematic: ROCDECAY should depend on the time interval of measurement in case it's not steady
+			mySituation.RateOfClimb = ROCDECAY*mySituation.RateOfClimb +
+				(1-ROCDECAY)*(alt-pAltLast)/(stratuxClock.Time.Sub(mySituation.LastTempPressTime).Seconds())*60.0
+			pAltLast = alt
 			mySituation.LastTempPressTime = stratuxClock.Time
 		}
 	}
-	globalStatus.RY83XAI_connected = false
 }
 
 func makeFFAHRSSimReport() {
@@ -1437,10 +1477,16 @@ func makeAHRSGDL90Report() {
 	turn_rate := int16(mySituation.RateOfTurn*10)
 	g := int16(mySituation.GLoad*10)
 	airspeed := 0x7FFF	// Can add this once we can read airspeed
-	palt := uint16(mySituation.Pressure_alt+5000)
-	vs := int16(mySituation.GPSVertVel)	//TODO: record BMP rate of climb
+	var palt uint16
+	var vs int16
+	if mySituation.BMPExists {
+		palt = uint16(mySituation.Pressure_alt + 5000)
+		vs = int16(mySituation.RateOfClimb)
+	} else {
+		palt = 0x7FFF
+		vs = 0x7FFF
+	}
 
-	//TODO westphae: invalidate each with 0x7FFF when data is invalid
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
 	msg[5] = byte(roll & 0xFF)
@@ -1470,7 +1516,6 @@ func makeAHRSGDL90Report() {
 	msg[17] = byte(airspeed & 0xFF)
 
 	// Pressure Altitude
-	//TODO westphae: this is just for testing; 0x7FFF it until BMP280 is working
 	msg[18] = byte((palt >> 8) & 0xFF)
 	msg[19] = byte(palt & 0xFF)
 
@@ -1638,20 +1683,18 @@ func initAHRS() error {
 		log.Println("AHRS Error: Couldn't initialize i2c bus")
 		return err
 	}
-	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
-		log.Println("AHRS Error: No BMP180, Closing i2c bus")
-		i2cbus.Close()
-		return err
+	if err := initBMP(); err != nil { // I2C temperature and pressure altitude.
+		log.Println("AHRS Warning: No BMPX80")
 	}
 	if err := initMPU(); err != nil { // I2C accel/gyro.
 		log.Println("AHRS Error: Couldn't init MPU, closing i2c bus")
 		i2cbus.Close()
-		myBMP180.Close()
+		myBMPX80.Close()
 		return err
 	}
 	globalStatus.RY83XAI_connected = true
 	go attitudeReaderSender()
-	//go tempAndPressureReader()
+	go tempAndPressureReader()
 
 	return nil
 }
