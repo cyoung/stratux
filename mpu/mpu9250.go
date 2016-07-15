@@ -43,11 +43,11 @@ func NewMPU9250() (*MPU9250, error) {
 		return nil, err
 	}
 
-	err = mpu.CalibrateGyro(1)
+	err = mpu.Calibrate(1)
 	if err != nil {
-		log.Printf("AHRS: Gyro calibration failed: %s\n", err.Error())
+		log.Printf("AHRS: MPU9250 calibration failed: %s\n", err.Error())
 	} else {
-		log.Println("AHRS: Gyro calibration successful")
+		log.Println("AHRS: MPU9250 calibration successful")
 		m.nextCalibrateT = time.Now().UnixNano() + CALIBTIME
 	}
 
