@@ -739,7 +739,6 @@ func updateStatus() {
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
-	globalStatus.Clock = time.Now()
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
@@ -977,7 +976,6 @@ type status struct {
 	GPS_solution                               string
 	RY835AI_connected                          bool
 	Uptime                                     int64
-	Clock                                      time.Time
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
 	NetworkDataMessagesSent                    uint64
