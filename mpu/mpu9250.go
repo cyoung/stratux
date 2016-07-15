@@ -185,6 +185,10 @@ func (m *MPU9250) GLoad() (float64, error) {
 	}
 }
 
+func (m *MPU9250) ReadRaw() (int64, float64, float64, float64, float64, float64, float64, float64, float64, float64, error, error) {
+	return m.mpu.Read()
+}
+
 func (m *MPU9250) Close() {
 	if m.quit != nil {
 		m.quit <- struct{}{}
