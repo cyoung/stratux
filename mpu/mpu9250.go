@@ -4,17 +4,17 @@ package mpu
 import (
 	"errors"
 	"github.com/westphae/goflying/mpu9250"
+	"log"
 	"math"
 	"time"
-	"log"
 )
 
 const (
-	DECAY = 0.98
-	GYRORANGE = 250
-	ACCELRANGE = 4
-	UPDATEFREQ = 100
-	CALIBTIME int64 = 5*60*1000000000
+	DECAY            = 0.98
+	GYRORANGE        = 250
+	ACCELRANGE       = 4
+	UPDATEFREQ       = 100
+	CALIBTIME  int64 = 5 * 60 * 1000000000
 )
 
 type MPU9250 struct {
@@ -24,17 +24,17 @@ type MPU9250 struct {
 	slipSkid             float64
 	turnRate             float64
 	gLoad                float64
-	T 		     int64
+	T                    int64
 	valid                bool
-	nextCalibrateT 	     int64
-	quit 		     chan struct{}
+	nextCalibrateT       int64
+	quit                 chan struct{}
 }
 
 func NewMPU9250() (*MPU9250, error) {
 	var (
-		m	MPU9250
-		mpu	*mpu9250.MPU9250
-		err 	error
+		m   MPU9250
+		mpu *mpu9250.MPU9250
+		err error
 	)
 
 	mpu, err = mpu9250.NewMPU9250(GYRORANGE, ACCELRANGE, UPDATEFREQ, false)
@@ -75,7 +75,7 @@ func (m *MPU9250) run() {
 					m.T = Ts
 					smooth(&m.turnRate, Gz)
 					smooth(&m.gLoad, Az)
-					smooth(&m.slipSkid, math.Asin(Ay / Az)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
+					smooth(&m.slipSkid, math.Asin(Ay/Az)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
 
 					// Quick and dirty calcs just to test - these are no good for pitch >> 0
 					m.pitch += 0.1 * Gx
@@ -83,7 +83,7 @@ func (m *MPU9250) run() {
 					m.heading -= 0.1 * Gz
 
 					if m.pitch > 90 {
-						m.pitch = 180-m.pitch
+						m.pitch = 180 - m.pitch
 					}
 					if m.pitch < -90 {
 						m.pitch = -180 - m.pitch
@@ -122,7 +122,7 @@ func (m *MPU9250) run() {
 }
 
 func smooth(val *float64, new float64) {
-	*val = DECAY * *val + (1-DECAY)*new
+	*val = DECAY**val + (1-DECAY)*new
 }
 
 func (m *MPU9250) ResetHeading(newHeading float64, gain float64) {
