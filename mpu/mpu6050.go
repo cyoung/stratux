@@ -192,10 +192,10 @@ func (d *MPU6050) Close() {
 	}
 }
 
-func (d *MPU6050) MagHeading() (float64, error) {return 0, nil}
-func (d *MPU6050) SlipSkid() (float64, error) {return 0, nil}
-func (d *MPU6050) RateOfTurn() (float64, error) {return 0, nil}
-func (d *MPU6050) GLoad() (float64, error) {return 0, nil}
+func (d *MPU6050) MagHeading() (float64, error) { return 0, nil }
+func (d *MPU6050) SlipSkid() (float64, error) { return 0, nil }
+func (d *MPU6050) RateOfTurn() (float64, error) { return 0, nil }
+func (d *MPU6050) GLoad() (float64, error) { return 0, nil }
 
 func (d *MPU6050) ReadRaw() (int64, float64, float64, float64, float64, float64, float64, float64, float64, float64, error, error) {
 	return 0, // Ts, time of last sensor reading
@@ -204,4 +204,7 @@ func (d *MPU6050) ReadRaw() (int64, float64, float64, float64, float64, float64,
 		0.0, 0.0, 0.0, // Mag x, y, z
 		errors.New("Error: ReadRaw() not implemented yet for MPU6050"),
 		errors.New("Error: MPU6050 magnetometer isn't working on RY835AI chip")
+}
+func (d *MPU6050) Calibrate() error {
+    return nil //TODO westphae: for now, maybe we'll get lucky; but eventually we should calibrate
 }

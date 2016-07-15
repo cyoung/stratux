@@ -11,4 +11,5 @@ type MPU interface {
 	RateOfTurn() (float64, error)
 	GLoad() (float64, error)
 	ReadRaw() (int64, float64, float64, float64, float64, float64, float64, float64, float64, float64, error, error)
+	Calibrate() error
 }
