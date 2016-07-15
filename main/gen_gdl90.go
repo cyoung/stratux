@@ -163,8 +163,8 @@ func prepareMessage(data []byte) []byte {
 	// Compute CRC before modifying the message.
 	crc := crcCompute(data)
 	// Add the two CRC16 bytes before replacing control characters.
-	data = append(data, byte(crc&0xFF))
-	data = append(data, byte(crc>>8))
+	data = append(data, byte(crc & 0xFF))
+	data = append(data, byte((crc >> 8) & 0xFF))
 
 	tmp := []byte{0x7E} // Flag start.
 
@@ -426,8 +426,8 @@ func makeStratuxStatus() []byte {
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware: RY835AI.
-	if globalStatus.RY835AI_connected {
+	// Connected hardware: RY83XAI.
+	if globalStatus.RY83XAI_connected {
 		msg[15] = msg[15] | (1 << 2)
 	}
 
@@ -975,7 +975,7 @@ type status struct {
 	GPS_satellites_tracked                     uint16
 	GPS_connected                              bool
 	GPS_solution                               string
-	RY835AI_connected                          bool
+	RY83XAI_connected                          bool
 	Uptime                                     int64
 	Clock                                      time.Time
 	UptimeClock                                time.Time
@@ -1290,7 +1290,7 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY835AI()
+	initRY83XAI()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

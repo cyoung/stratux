@@ -4,7 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	ry835ai.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
+	ry83Xai.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
 */
 
 package main
@@ -28,6 +28,7 @@ import (
 	"os/exec"
 
 	"../mpu"
+	"errors"
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs unknown
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
+	MPURETRYNUM	 = 5  // Number of times to retry connecting to MPU
 )
 
 type SatelliteInfo struct {
@@ -432,9 +434,9 @@ func validateNMEAChecksum(s string) (string, bool) {
 //  changes while on the ground and "movement" is really only changes in GPS fix as it settles down.
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
-//westphae: Do I need to do anything here?
+//TODO westphae: Do I need to do anything here?
 func setTrueCourse(groundSpeed uint16, trueCourse float64) {
-	if myMPU != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	if myMPU != nil && globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
 			myMPU.ResetHeading(trueCourse, 0.10)
 		}
@@ -942,7 +944,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
 
 		//$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
-		/*						check RY835 man for NMEA version, if >2.2, add mode field
+		/*						check RY83XAI man for NMEA version, if >2.2, add mode field
 				Where:
 		     RMC          Recommended Minimum sentence C
 		     123519       Fix taken at 12:35:19 UTC
@@ -1363,10 +1365,31 @@ func initBMP180() error {
 	return nil
 }
 
-//TODO westphae: set up myMPU as MPU6050 or MPU9250, depending on which exists
 func initMPU() error {
-	myMPU, _ = mpu.NewMPU6050() //TODO: error checking.
-	return nil
+	var err error
+
+	for i:=0; i < MPURETRYNUM; i++ {
+		myMPU, err = mpu.NewMPU9250()
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			log.Println("AHRS: Successfully initialized MPU9250")
+			return nil
+		}
+	}
+
+	for i := 0; i < MPURETRYNUM; i++ {
+		myMPU, err = mpu.NewMPU6050()
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			log.Println("AHRS: Successfully initialized MPU6050")
+			return nil
+		}
+	}
+
+	log.Println("AHRS Error: couldn't initialize MPU9250 or MPU6050")
+	return errors.New("AHRS Error: couldn't initialize MPU9250 or MPU6050")
 }
 
 func initI2C() error {
@@ -1377,21 +1400,21 @@ func initI2C() error {
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
 		// Process.
 		if err_bmp180 != nil {
 			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			globalStatus.RY835AI_connected = false
+			globalStatus.RY83XAI_connected = false
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
 			mySituation.LastTempPressTime = stratuxClock.Time
 		}
 	}
-	globalStatus.RY835AI_connected = false
+	globalStatus.RY83XAI_connected = false
 }
 
 func makeFFAHRSSimReport() {
@@ -1401,19 +1424,23 @@ func makeFFAHRSSimReport() {
 }
 
 func makeAHRSGDL90Report() {
-	msg := make([]byte, 16)
+	msg := make([]byte, 24)
 	msg[0] = 0x4c
 	msg[1] = 0x45
 	msg[2] = 0x01
-	msg[3] = 0x00
+	msg[3] = 0x01
 
-	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
-	roll := int16(float64(mySituation.Roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
-	slip_skid := int16(float64(mySituation.SlipSkid) * float64(10.0))
-	turn_rate := int16(float64(mySituation.RateOfTurn) * float64(10.0))
-	g := int16(float64(mySituation.GLoad) * float64(10.0))
+	roll := int16(mySituation.Roll*10)
+	pitch := int16(mySituation.Pitch*10)
+	yaw := uint16(mySituation.Gyro_heading*10)
+	slip_skid := int16(mySituation.SlipSkid*10)
+	turn_rate := int16(mySituation.RateOfTurn*10)
+	g := int16(mySituation.GLoad*10)
+	airspeed := 0x7FFF	// Can add this once we can read airspeed
+	palt := uint16(mySituation.Pressure_alt+5000)
+	vs := int16(mySituation.GPSVertVel)	//TODO: record BMP rate of climb
 
+	//TODO westphae: invalidate each with 0x7FFF when data is invalid
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
 	msg[5] = byte(roll & 0xFF)
@@ -1423,14 +1450,14 @@ func makeAHRSGDL90Report() {
 	msg[7] = byte(pitch & 0xFF)
 
 	// Heading.
-	msg[8] = byte((hdg >> 8) & 0xFF)
-	msg[9] = byte(hdg & 0xFF)
+	msg[8] = byte((yaw >> 8) & 0xFF)
+	msg[9] = byte(yaw & 0xFF)
 
 	// Slip/skid.
 	msg[10] = byte((slip_skid >> 8) & 0xFF)
 	msg[11] = byte(slip_skid & 0xFF)
 
-	// Yaw rate.
+	// Turn rate.
 	msg[12] = byte((turn_rate >> 8) & 0xFF)
 	msg[13] = byte(turn_rate & 0xFF)
 
@@ -1438,33 +1465,78 @@ func makeAHRSGDL90Report() {
 	msg[14] = byte((g >> 8) & 0xFF)
 	msg[15] = byte(g & 0xFF)
 
+	// Indicated Airspeed
+	msg[16] = byte((airspeed >> 8) & 0xFF)
+	msg[17] = byte(airspeed & 0xFF)
+
+	// Pressure Altitude
+	//TODO westphae: this is just for testing; 0x7FFF it until BMP280 is working
+	msg[18] = byte((palt >> 8) & 0xFF)
+	msg[19] = byte(palt & 0xFF)
+
+	// Vertical Speed
+	msg[20] = byte((vs >> 8) & 0xFF)
+	msg[21] = byte(vs & 0xFF)
+
+	// Reserved
+	msg[22] = 0x7F
+	msg[23] = 0xFF
+
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
 
 func attitudeReaderSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read pitch and roll.
 		pitch, err_pitch := myMPU.Pitch()
 		if err_pitch != nil {
-			log.Printf("readMPU6050(): %s\n", err_pitch.Error())
-			globalStatus.RY835AI_connected = false
+			log.Printf("AHRS MPU Error: %s\n", err_pitch.Error())
+			globalStatus.RY83XAI_connected = false
 			break
 		}
 
 		roll, err_roll := myMPU.Roll()
 
 		if err_roll != nil {
-			log.Printf("readMPU6050(): %s\n", err_roll.Error())
-			globalStatus.RY835AI_connected = false
+			log.Printf("AHRS MPU Error: %s\n", err_roll.Error())
+			globalStatus.RY83XAI_connected = false
 			break
 		}
 
 		heading, err_heading := myMPU.Heading() //FIXME. Experimental.
 		if err_heading != nil {
-			log.Printf("readMPU6050(): %s\n", err_heading.Error())
-			globalStatus.RY835AI_connected = false
+			log.Printf("AHRS MPU Error: %s\n", err_heading.Error())
+			globalStatus.RY83XAI_connected = false
+			break
+		}
+
+		headingMag, err_headingMag := myMPU.MagHeading()
+		if err_headingMag != nil {
+			log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
+			globalStatus.RY83XAI_connected = false
+			break
+		}
+
+		slipSkid, err_slipSkid := myMPU.SlipSkid()
+		if err_slipSkid != nil {
+			log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
+			globalStatus.RY83XAI_connected = false
+			break
+		}
+
+		turnRate, err_turnRate := myMPU.RateOfTurn()
+		if err_turnRate != nil {
+			log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
+			globalStatus.RY83XAI_connected = false
+			break
+		}
+
+		gLoad, err_gLoad := myMPU.GLoad()
+		if err_gLoad != nil {
+			log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
+			globalStatus.RY83XAI_connected = false
 			break
 		}
 
@@ -1473,6 +1545,10 @@ func attitudeReaderSender() {
 		mySituation.Pitch = pitch
 		mySituation.Roll = roll
 		mySituation.Gyro_heading = heading
+		mySituation.Mag_heading = headingMag
+		mySituation.SlipSkid = slipSkid
+		mySituation.RateOfTurn = turnRate
+		mySituation.GLoad = gLoad
 		mySituation.LastAttitudeTime = stratuxClock.Time
 
 		// Send, if valid.
@@ -1483,7 +1559,7 @@ func attitudeReaderSender() {
 
 		mySituation.mu_Attitude.Unlock()
 	}
-	globalStatus.RY835AI_connected = false
+	globalStatus.RY83XAI_connected = false
 }
 
 /*
@@ -1559,27 +1635,29 @@ func isTempPressValid() bool {
 
 func initAHRS() error {
 	if err := initI2C(); err != nil { // I2C bus.
+		log.Println("AHRS Error: Couldn't initialize i2c bus")
 		return err
 	}
 	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
+		log.Println("AHRS Error: No BMP180, Closing i2c bus")
 		i2cbus.Close()
 		return err
 	}
-	// TODO westphae: Initialize MPU9250 here
 	if err := initMPU(); err != nil { // I2C accel/gyro.
+		log.Println("AHRS Error: Couldn't init MPU, closing i2c bus")
 		i2cbus.Close()
 		myBMP180.Close()
 		return err
 	}
-	globalStatus.RY835AI_connected = true
+	globalStatus.RY83XAI_connected = true
 	go attitudeReaderSender()
-	go tempAndPressureReader()
+	//go tempAndPressureReader()
 
 	return nil
 }
 
-func pollRY835AI() {
-	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+func pollRY83XAI() {
+	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	for {
 		<-timer.C
@@ -1590,22 +1668,22 @@ func pollRY835AI() {
 				go gpsSerialReader()
 			}
 		}
-		// RY835AI I2C enabled, was not connected previously?
-		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
+		// RY83XAI I2C enabled, was not connected previously?
+		if globalSettings.AHRS_Enabled && !globalStatus.RY83XAI_connected {
 			err := initAHRS()
 			if err != nil {
 				log.Printf("initAHRS(): %s\ndisabling AHRS sensors.\n", err.Error())
-				globalStatus.RY835AI_connected = false
+				globalStatus.RY83XAI_connected = false
 			}
 		}
 	}
 }
 
-func initRY835AI() {
+func initRY83XAI() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	go pollRY835AI()
+	go pollRY83XAI()
 }

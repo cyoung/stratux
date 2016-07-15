@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"time"
+	"errors"
 )
 
 //https://www.olimex.com/Products/Modules/Sensors/MOD-MPU6050/resources/RM-MPU-60xxA_rev_4.pdf
@@ -42,14 +43,19 @@ type MPU6050 struct {
 // New returns a handle to a MPU6050 sensor.
 func NewMPU6050() (*MPU6050, error) {
 	n := &MPU6050{poll: pollDelay}
-	n.startUp()
+	if err := n.startUp(); err != nil {
+		return nil, err
+	}
 	return n, nil
 }
 
 func (d *MPU6050) startUp() error {
 	mpu_sample_rate := 10 // 10 Hz read rate of hardware IMU
 	yaw_mix_factor := 0   // must be zero if no magnetometer
-	mpu.InitMPU(mpu_sample_rate, yaw_mix_factor)
+	err := mpu.InitMPU(mpu_sample_rate, yaw_mix_factor)
+	if err != 0 {
+		return errors.New("MPU6050 Error: couldn't start MPU")
+	}
 
 	d.pitch_history = make([]float64, 0)
 	d.roll_history = make([]float64, 0)
