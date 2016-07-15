@@ -10,8 +10,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/westphae/goflying/ahrs"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,7 +31,6 @@ import (
 	"os/exec"
 
 	"../mpu"
-	"errors"
 )
 
 const (
@@ -40,6 +42,8 @@ const (
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 	MPURETRYNUM	 = 5  // Number of times to retry connecting to MPU
 	ROCDECAY	 = 0.95 // Decay constant for measuring rate of climb
+	DEG              = math.Pi/180.0 // Conversion from degrees to radians
+	KTSPERFPM        = 0.00987473
 )
 
 type SatelliteInfo struct {
@@ -1531,37 +1535,76 @@ func makeAHRSGDL90Report() {
 }
 
 func attitudeReaderSender() {
+	// Initialize the Kalman Filter starting state
+	var (
+		roll, pitch, heading float64
+		droll, dpitch, dheading float64  // Kalman uncertainties in the AHRS outputs
+		s = ahrs.State{}
+		c = ahrs.Control{}
+		m = ahrs.Measurement{UValid: false}
+		mpuError, magError error
+	)
+
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
-		// Read pitch and roll.
-		pitch, err_pitch := myMPU.Pitch()
-		if err_pitch != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_pitch.Error())
+
+		// Take Kalman Filter "control" and "measurement" sensor readings
+		c.T, c.A1, c.A2, c.A3, c.H1, c.H2, c.H3, m.M1, m.M2, m.M3, mpuError, magError = myMPU.ReadRaw()
+		if mpuError != nil {
+			log.Printf("AHRS MPU Error, aborting AHRS: %s\n", mpuError.Error())
 			globalStatus.RY83XAI_connected = false
 			break
 		}
+		if magError != nil {
+			log.Printf("AHRS Mag Error, not using magnetometer in runs: %s\n", magError.Error())
+			m.MValid = false
+		} else {
+			m.MValid = true
+		}
+		m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
+		m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
+		m.W3 = float64(mySituation.GPSVertVel * KTSPERFPM)
+		m.T = mySituation.LastGPSTimeTime.UnixNano() //TODO westphae: use ms?
+		m.WValid = stratuxClock.Time.Sub(mySituation.LastGPSTimeTime).Seconds() < 0.5
 
-		roll, err_roll := myMPU.Roll()
-
-		if err_roll != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_roll.Error())
-			globalStatus.RY83XAI_connected = false
-			break
+		// Try to initialize
+		if !s.Initialized {
+			s.Initialize(m, c)
+		}
+		// If aircraft frame is inertial, then check calibration
+		if s.Initialized {
+			s.Calibrate(c, m)
 		}
 
-		heading, err_heading := myMPU.Heading() //FIXME. Experimental.
-		if err_heading != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_heading.Error())
-			globalStatus.RY83XAI_connected = false
-			break
+		// If we have calibration and the Kalman filter is initialized, then run the filter
+		if s.Initialized && s.Calibrated {
+			s.Predict(c) // Predict stage of Kalman filter
+			s.Update(m) // Update stage of Kalman filter
+
+			roll, pitch, heading = ahrs.FromQuaternion(s.E0, s.E1, s.E2, s.E3)
+			//TODO westphae: this next may be unnecessary cpu cycles
+			droll, dpitch, dheading = ahrs.VarFromQuaternion(s.E0, s.E1, s.E2, s.E3,
+				math.Sqrt(s.M.Get(3, 3)), math.Sqrt(s.M.Get(4, 4)),
+				math.Sqrt(s.M.Get(5, 5)), math.Sqrt(s.M.Get(6, 6)))
 		}
+
+		// Apply some heuristics?
+		if s.U1 < 0 {
+			s.U1 = -s.U1
+			s.V1 = -s.V1
+		}
+
+		if droll > 2.5*DEG || dpitch > 2.5*DEG {
+			//TODO westphae: invalidate AHRS somehow?1G
+			log.Printf("AHRS too uncertain: roll %5.1f +/- %3.1f, pitch %4.1f +/- %3.1f\n, heading %5.1f +/- %3.1f\n",
+				roll, droll, pitch, dpitch, heading, dheading)
+		}
+		// Heuristics done
 
 		headingMag, err_headingMag := myMPU.MagHeading()
 		if err_headingMag != nil {
 			log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
-			globalStatus.RY83XAI_connected = false
-			break
 		}
 
 		slipSkid, err_slipSkid := myMPU.SlipSkid()
