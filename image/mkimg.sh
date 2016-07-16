@@ -113,7 +113,6 @@ make
 make install
 
 #disable serial console
-sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #Set the keyboard layout to US.

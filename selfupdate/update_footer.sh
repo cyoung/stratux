@@ -30,7 +30,6 @@ cp -f hostapd_manager.sh /usr/sbin/
 cp -f config.txt /boot/config.txt
 
 #disable serial console
-sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
 sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #modprobe.d blacklist
