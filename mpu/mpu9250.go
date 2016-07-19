@@ -14,7 +14,6 @@ const (
 	GYRORANGE        = 250
 	ACCELRANGE       = 4
 	UPDATEFREQ       = 100
-	CALIBTIME  int64 = 5 * 60 * 1000000000
 )
 
 type MPU9250 struct {
@@ -37,18 +36,10 @@ func NewMPU9250() (*MPU9250, error) {
 		err error
 	)
 
-	mpu, err = mpu9250.NewMPU9250(GYRORANGE, ACCELRANGE, UPDATEFREQ, false)
+	mpu, err = mpu9250.NewMPU9250(GYRORANGE, ACCELRANGE, UPDATEFREQ, false, false)
 	if err != nil {
 		log.Println("AHRS Error: couldn't initialize MPU9250")
 		return nil, err
-	}
-
-	err = mpu.Calibrate(1)
-	if err != nil {
-		log.Printf("AHRS: MPU9250 calibration failed: %s\n", err.Error())
-	} else {
-		log.Println("AHRS: MPU9250 calibration successful")
-		m.nextCalibrateT = time.Now().UnixNano() + CALIBTIME
 	}
 
 	m.mpu = mpu
@@ -69,18 +60,18 @@ func (m *MPU9250) run() {
 		for {
 			select {
 			case <-clock.C:
-				Ts, Gx, Gy, Gz, _, Ay, Az, Mx, My, _, gaError, magError := m.mpu.Read()
+				data := <-m.mpu.CAvg
 
-				if gaError == nil {
-					m.T = Ts
-					smooth(&m.turnRate, Gz)
-					smooth(&m.gLoad, Az)
-					smooth(&m.slipSkid, math.Asin(Ay/Az)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
+				if data.GAError == nil && data.N > 0 {
+					m.T = data.T.UnixNano()
+					smooth(&m.turnRate, data.G3)
+					smooth(&m.gLoad, data.A3)
+					smooth(&m.slipSkid, math.Asin(data.A2/data.A3)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
 
 					// Quick and dirty calcs just to test - these are no good for pitch >> 0
-					m.pitch += 0.1 * Gx
-					m.roll += 0.1 * Gy
-					m.heading -= 0.1 * Gz
+					m.pitch += data.DT.Seconds() * data.G1
+					m.roll += data.DT.Seconds() * data.G2
+					m.heading -= data.DT.Seconds() * data.G3
 
 					if m.pitch > 90 {
 						m.pitch = 180 - m.pitch
@@ -99,19 +90,8 @@ func (m *MPU9250) run() {
 					}
 				}
 
-				if magError == nil {
-					smooth(&m.headingMag, math.Atan2(My, Mx))
-				}
-
-				// Calibrate if past-due
-				if time.Now().UnixNano() > m.nextCalibrateT {
-					err := m.mpu.CalibrateGyro(1)
-					if err != nil {
-						log.Printf("AHRS: Error calibrating gyro, %s\n", err)
-					} else {
-						log.Println("AHRS: Gyro calibration successful")
-						m.nextCalibrateT = time.Now().UnixNano() + CALIBTIME
-					}
+				if data.MagError == nil && data.NM > 0 {
+					smooth(&m.headingMag, math.Atan2(data.M2, data.M1))
 				}
 			case <-m.quit:
 				m.mpu.CloseMPU()
@@ -185,8 +165,27 @@ func (m *MPU9250) GLoad() (float64, error) {
 	}
 }
 
-func (m *MPU9250) ReadRaw() (int64, float64, float64, float64, float64, float64, float64, float64, float64, float64, error, error) {
-	return m.mpu.Read()
+func (m *MPU9250) ReadRaw() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MAGError error) {
+	data := <-m.mpu.C
+	T = data.T.UnixNano()
+	G1 = data.G1
+	G2 = data.G2
+	G3 = data.G3
+	A1 = data.A1
+	A2 = data.A2
+	A3 = data.A3
+	M1 = data.M1
+	M2 = data.M2
+	M3 = data.M3
+	GAError = data.GAError
+	MAGError = data.MagError
+	return
+}
+
+func (m *MPU9250) Calibrate(dur int) (err error) {
+	m.mpu.CCal<- dur
+	err = <-m.mpu.CCalResult
+	return
 }
 
 func (m *MPU9250) Close() {
