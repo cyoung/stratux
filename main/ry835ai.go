@@ -12,7 +12,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,7 +37,7 @@ const (
 	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs unknown
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
-	ROCDECAYTIME     = 0.1 // Decay time for measuring rate of climb: 6s is slightly faster than typical mechanical VSI
+	VSIDECAYTIME     = 5.0 // Decay time for measuring rate of climb in sec; slightly faster than typical VSI
 )
 
 type SatelliteInfo struct {
@@ -1383,12 +1382,10 @@ func initI2C() error {
 // A bit slow for a useful rate of climb indication; BMP280 may be faster
 func tempAndPressureReader() {
 	// Initialize some variables for rate of climb calc
-	_, alt1, _ := readBMP180() // Set up some variables for rate of climb calc
-	alt2 := alt1
-	dt1 := 1.0
-	mySituation.LastTempPressTime = stratuxClock.Time.Sub(5 * time.Second) // Start off gently
-
-	timer := time.NewTicker(5 * time.Second)
+	_, altLast, _ := readBMP180() // Set up some variables for rate of climb calc
+	dt := 5
+	u := VSIDECAYTIME /(VSIDECAYTIME +float64(dt))
+	timer := time.NewTicker(time.Duration(dt) * time.Second)
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read temperature and pressure altitude.
@@ -1400,15 +1397,10 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			// Formulae for ewma rate of climb, data received irregularly
-			t := stratuxClock.Time
-			dt := float64(t.Nanosecond() - mySituation.LastTempPressTime.Nanosecond()) / (60 * 1e9)
-			a := dt/ROCDECAYTIME
-			u := math.Exp(-a)
-			v := (1 - u) / a
-			mySituation.RateOfClimb = u*mySituation.RateOfClimb + (v-u)*(alt1-alt2)/dt1 + (1-v)*(alt-alt1)/dt
-			mySituation.LastTempPressTime = t
-			alt2, alt1, dt1 = alt1, alt, dt
+			// Assuming timer is reasonably accurate, use a regular ewma
+			mySituation.RateOfClimb = u*mySituation.RateOfClimb + (1-u)*(alt-altLast)/(float64(dt)/60)
+			mySituation.LastTempPressTime = stratuxClock.Time
+			altLast = alt
 		}
 	}
 	globalStatus.RY835AI_connected = false
@@ -1433,9 +1425,13 @@ func makeAHRSGDL90Report() {
 	slip_skid := int16(mySituation.SlipSkid*10)
 	yaw_rate := int16(mySituation.RateOfTurn*10)
 	g := int16(mySituation.GLoad*10)
-	airspeed := int16(0x7FFF)	// Can add this once we can read airspeed
-	palt := uint16(mySituation.Pressure_alt + 5000)
-	vs := int16(mySituation.RateOfClimb)
+	airspeed := int16(0x7FFF)	             // Can add this once we can read airspeed
+	palt := uint16(0xFFFF)                       // Value if invalid
+	vs := int16(0x7FFF)                          // Value if invalid
+	if isTempPressValid() {
+		palt = uint16(mySituation.Pressure_alt + 5000)
+		vs = int16(mySituation.RateOfClimb)
+	}
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
