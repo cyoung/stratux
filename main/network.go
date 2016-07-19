@@ -135,7 +135,11 @@ func sendToAllConnectedClients(msg networkMessage) {
 			if sleepFlag {
 				continue
 			}
-			netconn.Conn.Write(msg.msg) // Write immediately.
+			_, err := netconn.Conn.Write(msg.msg) // Write immediately.
+			if err != nil {
+				//TODO: Maybe we should drop the client?  Retry first?
+				log.Printf("GDL Message error: %s\n", err.Error())
+			}
 			totalNetworkMessagesSent++
 			globalStatus.NetworkDataMessagesSent++
 			globalStatus.NetworkDataMessagesSentNonqueueable++
