@@ -1419,15 +1419,24 @@ func makeAHRSGDL90Report() {
 	msg[2] = 0x01
 	msg[3] = 0x01
 
-	pitch := int16(mySituation.Pitch*10)
-	roll := int16(mySituation.Roll*10)
-	hdg := int16(mySituation.Gyro_heading*10)
-	slip_skid := int16(mySituation.SlipSkid*10)
-	yaw_rate := int16(mySituation.RateOfTurn*10)
-	g := int16(mySituation.GLoad*10)
+	// Values if invalid
+	pitch := int16(0x7FFF)
+	roll := int16(0x7FFF)
+	hdg := int16(0x7FFF)
+	slip_skid := int16(0x7FFF)
+	yaw_rate := int16(0x7FFF)
+	g := int16(0x7FFF)
 	airspeed := int16(0x7FFF)	             // Can add this once we can read airspeed
-	palt := uint16(0xFFFF)                       // Value if invalid
-	vs := int16(0x7FFF)                          // Value if invalid
+	palt := uint16(0xFFFF)
+	vs := int16(0x7FFF)
+	if isAHRSValid() {
+		pitch = int16(mySituation.Pitch * 10)
+		roll = int16(mySituation.Roll * 10)
+		hdg = int16(mySituation.Gyro_heading * 10)
+		slip_skid = int16(mySituation.SlipSkid * 10)
+		yaw_rate = int16(mySituation.RateOfTurn * 10)
+		g = int16(mySituation.GLoad * 10)
+	}
 	if isTempPressValid() {
 		palt = uint16(mySituation.Pressure_alt + 5000)
 		vs = int16(mySituation.RateOfClimb)
