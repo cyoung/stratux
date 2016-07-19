@@ -93,6 +93,9 @@ type SituationData struct {
 	Pitch            float64
 	Roll             float64
 	Gyro_heading     float64
+	SlipSkid	 float64
+	RateOfTurn	 float64
+	GLoad		 float64
 	LastAttitudeTime time.Time
 }
 
@@ -1418,18 +1421,21 @@ func makeFFAHRSSimReport() {
 }
 
 func makeAHRSGDL90Report() {
-	msg := make([]byte, 16)
+	msg := make([]byte, 24)
 	msg[0] = 0x4c
 	msg[1] = 0x45
 	msg[2] = 0x01
-	msg[3] = 0x00
+	msg[3] = 0x01
 
-	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
-	roll := int16(float64(mySituation.Roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
-	slip_skid := int16(float64(0) * float64(10.0))
-	yaw_rate := int16(float64(0) * float64(10.0))
-	g := int16(float64(1.0) * float64(10.0))
+	pitch := int16(mySituation.Pitch*10)
+	roll := int16(mySituation.Roll*10)
+	hdg := int16(mySituation.Gyro_heading*10)
+	slip_skid := int16(mySituation.SlipSkid*10)
+	yaw_rate := int16(mySituation.RateOfTurn*10)
+	g := int16(mySituation.GLoad*10)
+	airspeed := int16(0x7FFF)	// Can add this once we can read airspeed
+	palt := uint16(mySituation.Pressure_alt + 5000)
+	vs := int16(mySituation.RateOfClimb)
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
@@ -1454,6 +1460,22 @@ func makeAHRSGDL90Report() {
 	// "G".
 	msg[14] = byte((g >> 8) & 0xFF)
 	msg[15] = byte(g & 0xFF)
+
+	// Indicated Airspeed
+	msg[16] = byte((airspeed >> 8) & 0xFF)
+	msg[17] = byte(airspeed & 0xFF)
+
+	// Pressure Altitude
+	msg[18] = byte((palt >> 8) & 0xFF)
+	msg[19] = byte(palt & 0xFF)
+
+	// Vertical Speed
+	msg[20] = byte((vs >> 8) & 0xFF)
+	msg[21] = byte(vs & 0xFF)
+
+	// Reserved
+	msg[22] = 0x7F
+	msg[23] = 0xFF
 
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
