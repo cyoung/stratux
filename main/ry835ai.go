@@ -12,6 +12,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,7 @@ const (
 	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs unknown
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
+	ROCDECAYTIME     = 0.1 // Decay time for measuring rate of climb: 6s is slightly faster than typical mechanical VSI
 )
 
 type SatelliteInfo struct {
@@ -84,6 +86,7 @@ type SituationData struct {
 	// From BMP180 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
+	RateOfClimb       float64
 	LastTempPressTime time.Time
 
 	// From MPU6050 accel/gyro.
@@ -1374,7 +1377,14 @@ func initI2C() error {
 }
 
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
+// A bit slow for a useful rate of climb indication; BMP280 may be faster
 func tempAndPressureReader() {
+	// Initialize some variables for rate of climb calc
+	_, alt1, _ := readBMP180() // Set up some variables for rate of climb calc
+	alt2 := alt1
+	dt1 := 1.0
+	mySituation.LastTempPressTime = stratuxClock.Time.Sub(5 * time.Second) // Start off gently
+
 	timer := time.NewTicker(5 * time.Second)
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
@@ -1387,7 +1397,15 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			mySituation.LastTempPressTime = stratuxClock.Time
+			// Formulae for ewma rate of climb, data received irregularly
+			t := stratuxClock.Time
+			dt := float64(t.Nanosecond() - mySituation.LastTempPressTime.Nanosecond()) / (60 * 1e9)
+			a := dt/ROCDECAYTIME
+			u := math.Exp(-a)
+			v := (1 - u) / a
+			mySituation.RateOfClimb = u*mySituation.RateOfClimb + (v-u)*(alt1-alt2)/dt1 + (1-v)*(alt-alt1)/dt
+			mySituation.LastTempPressTime = t
+			alt2, alt1, dt1 = alt1, alt, dt
 		}
 	}
 	globalStatus.RY835AI_connected = false
