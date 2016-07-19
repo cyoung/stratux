@@ -137,8 +137,8 @@ func sendToAllConnectedClients(msg networkMessage) {
 			}
 			_, err := netconn.Conn.Write(msg.msg) // Write immediately.
 			if err != nil {
+				//TODO: Maybe we should drop the client?  Retry first?
 				log.Printf("GDL Message error: %s\n", err.Error())
-                //TODO: Maybe we should drop the client?  Retry first?
 			}
 			totalNetworkMessagesSent++
 			globalStatus.NetworkDataMessagesSent++
@@ -523,5 +523,4 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
-	go ffMonitor()
 }

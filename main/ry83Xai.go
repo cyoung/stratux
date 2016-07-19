@@ -41,9 +41,9 @@ const (
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 	MPURETRYNUM	 = 5  // Number of times to retry connecting to MPU
-	ROCDECAY	 = 0.95 // Decay constant for measuring rate of climb
 	DEG              = math.Pi/180.0 // Conversion from degrees to radians
 	KTSPERFPM        = 0.00987473
+	VSIDECAYTIME     = 5.0 // Decay time for measuring rate of climb in sec; slightly faster than typical VSI
 )
 
 type SatelliteInfo struct {
@@ -91,7 +91,7 @@ type SituationData struct {
 	// From BMPX80 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
-	RateOfClimb	  float64
+	RateOfClimb       float64
 	LastTempPressTime time.Time
 	BMPExists	  bool
 
@@ -1430,17 +1430,14 @@ func initI2C() error {
 }
 
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
+// A bit slow for a useful rate of climb indication; BMP280 may be faster
 func tempAndPressureReader() {
-	// Initialize altitude for rate of climb calc
-	mySituation.RateOfClimb = 0
-	_, pAltLast, err := readBMP()
-	if err != nil {
-		log.Printf("readBMP(): %s\n", err.Error())
-		mySituation.BMPExists = false
-	}
-
-	timer := time.NewTicker(5 * time.Second)
-	for mySituation.BMPExists && globalSettings.AHRS_Enabled {
+	// Initialize some variables for rate of climb calc
+	_, altLast, _ := readBMP() // Set up some variables for rate of climb calc
+	dt := 5
+	u := VSIDECAYTIME /(VSIDECAYTIME +float64(dt))
+	timer := time.NewTicker(time.Duration(dt) * time.Second)
+	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err := readBMP()
@@ -1451,12 +1448,10 @@ func tempAndPressureReader() {
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
-			//TODO westphae: This RateOfClimb calc is untested, may need tuning or modification
-			// Slightly problematic: ROCDECAY should depend on the time interval of measurement in case it's not steady
-			mySituation.RateOfClimb = ROCDECAY*mySituation.RateOfClimb +
-				(1-ROCDECAY)*(alt-pAltLast)/(stratuxClock.Time.Sub(mySituation.LastTempPressTime).Seconds())*60.0
-			pAltLast = alt
+			// Assuming timer is reasonably accurate, use a regular ewma
+			mySituation.RateOfClimb = u*mySituation.RateOfClimb + (1-u)*(alt-altLast)/(float64(dt)/60)
 			mySituation.LastTempPressTime = stratuxClock.Time
+			altLast = alt
 		}
 	}
 }
@@ -1474,21 +1469,27 @@ func makeAHRSGDL90Report() {
 	msg[2] = 0x01
 	msg[3] = 0x01
 
-	roll := int16(mySituation.Roll*10)
-	pitch := int16(mySituation.Pitch*10)
-	yaw := uint16(mySituation.Gyro_heading*10)
-	slip_skid := int16(mySituation.SlipSkid*10)
-	turn_rate := int16(mySituation.RateOfTurn*10)
-	g := int16(mySituation.GLoad*10)
-	airspeed := 0x7FFF	// Can add this once we can read airspeed
-	var palt uint16
-	var vs int16
-	if mySituation.BMPExists {
+	// Values if invalid
+	pitch := int16(0x7FFF)
+	roll := int16(0x7FFF)
+	hdg := int16(0x7FFF)
+	slip_skid := int16(0x7FFF)
+	yaw_rate := int16(0x7FFF)
+	g := int16(0x7FFF)
+	airspeed := int16(0x7FFF)	             // Can add this once we can read airspeed
+	palt := uint16(0xFFFF)
+	vs := int16(0x7FFF)
+	if isAHRSValid() {
+		pitch = int16(mySituation.Pitch * 10)
+		roll = int16(mySituation.Roll * 10)
+		hdg = int16(mySituation.Gyro_heading * 10)
+		slip_skid = int16(mySituation.SlipSkid * 10)
+		yaw_rate = int16(mySituation.RateOfTurn * 10)
+		g = int16(mySituation.GLoad * 10)
+	}
+	if isTempPressValid() {
 		palt = uint16(mySituation.Pressure_alt + 5000)
 		vs = int16(mySituation.RateOfClimb)
-	} else {
-		palt = 0x7FFF
-		vs = 0x7FFF
 	}
 
 	// Roll.
@@ -1500,16 +1501,16 @@ func makeAHRSGDL90Report() {
 	msg[7] = byte(pitch & 0xFF)
 
 	// Heading.
-	msg[8] = byte((yaw >> 8) & 0xFF)
-	msg[9] = byte(yaw & 0xFF)
+	msg[8] = byte((hdg >> 8) & 0xFF)
+	msg[9] = byte(hdg & 0xFF)
 
 	// Slip/skid.
 	msg[10] = byte((slip_skid >> 8) & 0xFF)
 	msg[11] = byte(slip_skid & 0xFF)
 
 	// Turn rate.
-	msg[12] = byte((turn_rate >> 8) & 0xFF)
-	msg[13] = byte(turn_rate & 0xFF)
+	msg[12] = byte((yaw_rate >> 8) & 0xFF)
+	msg[13] = byte(yaw_rate & 0xFF)
 
 	// "G".
 	msg[14] = byte((g >> 8) & 0xFF)
