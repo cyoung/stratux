@@ -79,7 +79,7 @@ type SituationData struct {
 	GPSVertVel               float32 // GPS vertical velocity, feet per second
 	LastFixLocalTime         time.Time
 	TrueCourse               float32
-	GroundSpeed              uint16
+	GroundSpeed              float32
 	LastGroundTrackTime      time.Time
 	GPSTime                  time.Time
 	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
@@ -605,7 +605,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				return false
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
-			tmpSituation.GroundSpeed = uint16(groundspeed)
+			tmpSituation.GroundSpeed = float32(groundspeed)
 
 			// field 12 = track, deg
 			trueCourse := float32(0.0)
@@ -844,7 +844,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		tmpSituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = float32(groundspeed)
 
 		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[1], 32)
@@ -1039,7 +1039,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		tmpSituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = float32(groundspeed)
 
 		// ground track "True" (field 8)
 		trueCourse := float32(0)
