@@ -1406,6 +1406,8 @@ func initMPU() error {
 			time.Sleep(100 * time.Millisecond)
 		} else {
 			log.Println("AHRS: Successfully initialized MPU9250")
+			time.Sleep(time.Second)
+			myMPU.Calibrate(1, 5)
 			return nil
 		}
 	}

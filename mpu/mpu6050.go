@@ -205,6 +205,6 @@ func (d *MPU6050) ReadRaw() (int64, float64, float64, float64, float64, float64,
 		errors.New("Error: ReadRaw() not implemented yet for MPU6050"),
 		errors.New("Error: MPU6050 magnetometer isn't working on RY835AI chip")
 }
-func (d *MPU6050) Calibrate(dur int) error {
+func (d *MPU6050) Calibrate(dur int, retries int) error {
     return nil //TODO westphae: for now, maybe we'll get lucky; but eventually we should calibrate
 }

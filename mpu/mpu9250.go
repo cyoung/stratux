@@ -182,9 +182,15 @@ func (m *MPU9250) ReadRaw() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64
 	return
 }
 
-func (m *MPU9250) Calibrate(dur int) (err error) {
-	m.mpu.CCal<- dur
-	err = <-m.mpu.CCalResult
+func (m *MPU9250) Calibrate(dur, retries int) (err error) {
+	for i:=0; i<retries; i++ {
+		m.mpu.CCal<- dur
+		err = <-m.mpu.CCalResult
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Duration(50) * time.Millisecond)
+	}
 	return
 }
 
