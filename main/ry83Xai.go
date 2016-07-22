@@ -1576,17 +1576,17 @@ func attitudeReaderSender() {
 
 		// Try to initialize
 		if !s.Initialized {
-			s.Initialize(m, c)
+			s.Initialize(&m, &c)
 		}
 		// If aircraft frame is inertial, then check calibration
 		if s.Initialized {
-			s.Calibrate(c, m)
+			s.Calibrate(&c, &m)
 		}
 
 		// If we have calibration and the Kalman filter is initialized, then run the filter
 		if s.Initialized && s.Calibrated {
-			s.Predict(c) // Predict stage of Kalman filter
-			s.Update(m) // Update stage of Kalman filter
+			s.Predict(&c) // Predict stage of Kalman filter
+			s.Update(&m) // Update stage of Kalman filter
 
 			roll, pitch, heading = ahrs.FromQuaternion(s.E0, s.E1, s.E2, s.E3)
 			//TODO westphae: this next may be unnecessary cpu cycles
