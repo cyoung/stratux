@@ -18,3 +18,4 @@ Everything here comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
 
 Type 'stratux-help' for a few debugging commands.
+Type 'hostapd_manager.sh' for Stratux HOSTAPD Settings script
