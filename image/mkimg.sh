@@ -122,7 +122,6 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 cp -f config.txt mnt/boot/
 
 #external OLED screen
-#apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev
+#apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil screen
 #git clone https://github.com/rm-hull/ssd1306
 #cd ssd1306 && python setup.py install
-#pip install pillow
