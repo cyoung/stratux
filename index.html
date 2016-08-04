@@ -31,7 +31,7 @@
 	  }
 
 	</script>
-  </head>	
+  </head>
   <body>
     <section class="page-header">
       <h1 class="project-name">Stratux</h1>
@@ -115,27 +115,28 @@
 <a id="loading-the-software" class="anchor" href="#loading-the-software" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading the Software (to upgrade firmware)</h2>
 
 <ol>
-<li>Download the .zip file, latest linked above.</li>
-<li>Unzip the file. Look for the ".img" file.</li>
-<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md">Win32DiskImager</a>.</li>
-<li>If using Mac, download and follow prompts for <a href="http://ivanx.com/raspberrypi/">Pi Filler</a>.</li>
+	<li>Download the .zip file, latest linked above.</li>
+	<li>Unzip the file. Look for the ".img" file.</li>
+	<li>If using Windows, follow instructions for <a href="https://www.raspberrypi.org/documentation/installation/installing-images/windows.md">Win32DiskImager</a>.</li>
+	<li>If using Mac, download and follow prompts for <a href="http://ivanx.com/raspberrypi/">Pi Filler</a>.</li>
 </ol>
 
 <h2>
 <a id="assembly" class="anchor" href="#assembly" aria-hidden="true"><span class="octicon octicon-link"></span></a>Assembly</h2>
 
 <ol>
-<li>Stick heat sinks onto Raspberry Pi components and snap together case as specified in the Vilros information booklet.</li>
-<li>Insert radio (RTL-SDR) dongle into a USB port.</li>
-<li>Insert (and secure) the Micro SD card.</li>
-<li>Power up and connect to the "stratux" WiFi network.</li>
-<li>Open your EFB and verify ADS-B receiver connection.</li>
+	<li>Stick heat sinks onto Raspberry Pi components and snap together case as specified in the Vilros information booklet.</li>
+	<li>Insert radio (RTL-SDR) dongle into a USB port.</li>
+	<li>Insert (and secure) the Micro SD card.</li>
+	<li>Power up and connect to the "stratux" WiFi network.</li>
+	<li>From a device on the "stratux" network, visit <code>http://192.168.10.1</code> in a web browser. This will let you configure settings and verify that the software is running properly on the Raspberry Pi.</li>
+	<li>Open your EFB and verify ADS-B receiver connection.</li>
 </ol>
 
 <h1>
 <a id="current-project-status" class="anchor" href="#current-project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Current Project Status</h1>
 
-<table>
+<table style="width: 100%">
 	<thead>
 		<tr>
 			<th>Feature</th>
@@ -173,20 +174,24 @@
 		</tr>
 		<tr>
 			<td>Serial output (for EFIS connections)</td>
-			<td><g-emoji alias="construction" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f6a7.png">🚧</g-emoji></td>
+			<td><g-emoji alias="construction" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f6a7.png">🚧</g-emoji> in development</td>
 		</tr>
 		<tr>
 			<td>AHRS / Synthetic Vision</td>
-			<td><g-emoji alias="construction" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f6a7.png">🚧</g-emoji></td>
+			<td><g-emoji alias="construction" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f6a7.png">🚧</g-emoji> in development</td>
 		</tr>
 		<tr>
 			<td>Anything else</td>
-			<td><g-emoji alias="x" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/274c.png">❌</g-emoji></td>
+			<td><g-emoji alias="x" fallback-src="https://assets-cdn.github.com/images/icons/emoji/unicode/274c.png">❌ unsupported</g-emoji></td>
 		</tr>
 	</tbody>
 </table>
 
-<table>
+<p>
+	Stratux is currently compatible with many EFB applications. Some of them offer official support, while others simply display data from generic devices, including Stratux. If you don't see your EFB of choice on the list, contact them (and consider <a href="https://github.com/cyoung/stratux/issues/new" target="_blank">filing an issue on GitHub</a>).
+</p>
+
+<table style="width: 100%">
 <thead>
 <tr>
 <th>EFB platform support</th>
