@@ -54,6 +54,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
+			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) : "");
 			$scope.RY835AI_connected = status.RY835AI_connected;
 			var tempClock = new Date(Date.parse(status.Clock));
 			var clockString = tempClock.toUTCString();
@@ -67,7 +68,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				$scope.visible_errors = true;
 				$scope.Errors = status.Errors;
 			}
-			
+
 			var uptime = status.Uptime;
 			if (uptime != undefined) {
 				var up_d = parseInt((uptime/1000) / 86400),

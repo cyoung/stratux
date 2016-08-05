@@ -712,7 +712,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.Quality == 2 {
-		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS)"
 	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.Quality == 6 {
@@ -740,6 +740,7 @@ func updateStatus() {
 	globalStatus.GPS_satellites_locked = mySituation.Satellites
 	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
 	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
+	globalStatus.GPS_position_accuracy = mySituation.Accuracy
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
@@ -983,6 +984,7 @@ type status struct {
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
+	GPS_position_accuracy                      float32
 	GPS_connected                              bool
 	GPS_solution                               string
 	RY835AI_connected                          bool
