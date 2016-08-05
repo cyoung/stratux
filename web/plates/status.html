@@ -25,9 +25,16 @@
 						<strong class="col-xs-5">Recent Clients:</strong>
 						<span class="col-xs-7">{{Connected_Users}}</span>
 					</div>
+				</div>
+				<div class="row">
 					<div class="col-sm-6 label_adj">
 						<strong class="col-xs-5">SDR devices:</strong>
 						<span class="col-xs-7">{{Devices}}</span>
+					</div>
+					<div class="col-sm-6 label_adj" ng-class="{'section_invisible': !visible_ping}">
+						<strong class="col-xs-5">Ping device:</strong>
+						<span ng-show="Ping_connected == true" class="label label-success">Connected</span>
+						<span ng-hide="Ping_connected == true" class="label label-danger">Disconnected</span>
 					</div>
 				</div>
 				<div class="separator"></div>
