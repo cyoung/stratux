@@ -40,14 +40,13 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			console.log('Received status update.')
 
 			var status = JSON.parse(msg.data)
-				// Update Status
+			// Update Status
 			$scope.Version = status.Version;
 			$scope.Build = status.Build.substr(0, 10);
 			$scope.Devices = status.Devices;
 			$scope.Ping_connected = status.Ping_connected;
 			$scope.Connected_Users = status.Connected_Users;
 			$scope.UAT_messages_last_minute = status.UAT_messages_last_minute;
-			// $scope.UAT_products_last_minute = JSON.stringify(status.UAT_products_last_minute);
 			$scope.UAT_messages_max = status.UAT_messages_max;
 			$scope.ES_messages_last_minute = status.ES_messages_last_minute;
 			$scope.ES_messages_max = status.ES_messages_max;
@@ -55,20 +54,15 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
+			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) : "");
 			$scope.RY835AI_connected = status.RY835AI_connected;
-			var tempClock = new Date(Date.parse(status.Clock));
-			var clockString = tempClock.toUTCString();
-			$scope.Clock = clockString;
-			var tempLocalClock = new Date;
-			$scope.LocalClock = tempLocalClock.toUTCString();
-			$scope.SecondsFast = (Math.round(tempClock-tempLocalClock)/1000).toFixed(2);
 
 			// Errors array.
 			if (status.Errors.length > 0) {
 				$scope.visible_errors = true;
 				$scope.Errors = status.Errors;
 			}
-			
+
 			var uptime = status.Uptime;
 			if (uptime != undefined) {
 				var up_d = parseInt((uptime/1000) / 86400),

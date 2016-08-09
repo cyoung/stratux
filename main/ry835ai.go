@@ -773,7 +773,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				return false
 			}
 			if utcWeek < 1877 || utcWeek >= 32767 { // unless we're in a flying Delorean, UTC dates before 2016-JAN-01 are not valid. Check underflow condition as well.
-				log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
+				if globalSettings.DEBUG {
+					log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
+				}
 				return false
 			} /* else {
 				log.Printf("GPS week # %v valid; evaluate time and date\n", utcWeek) //debug option

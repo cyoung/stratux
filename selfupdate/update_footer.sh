@@ -4,10 +4,20 @@ cp -f libimu.so /usr/lib/libimu.so
 
 
 # Startup script.
-cp -f init.d-stratux /etc/init.d/stratux
-chmod 755 /etc/init.d/stratux
-ln -fs /etc/init.d/stratux /etc/rc2.d/S01stratux
-ln -fs /etc/init.d/stratux /etc/rc6.d/K01stratux
+RASPBIAN_VERSION=`cat /etc/debian_version`
+if test "$RASPBIAN_VERSION" = "8.0" ; then
+	# Install the systemd startup scripts in any case, even if they won't be used. If this is being run, then the old init.d script
+	#  is still intact and we just leave it. If running Wheezy, then remove the old init.d script.
+	rm -f /etc/init.d/stratux
+	rm -f /etc/rc2.d/S01stratux
+	rm -f /etc/rc6.d/K01stratux
+fi
+
+cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
+cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
+chmod 644 /lib/systemd/system/stratux.service
+chmod 744 /root/stratux-pre-start.sh
+ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
@@ -18,6 +28,9 @@ cp -f hostapd_manager.sh /usr/sbin/
 
 #boot config
 cp -f config.txt /boot/config.txt
+
+#disable serial console
+sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #modprobe.d blacklist
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
@@ -32,6 +45,13 @@ cp -f stxAliases /root/.stxAliases
 
 # /etc/modules
 cp -f modules.txt /etc/modules
+
+#motd
+cp -f motd /etc/motd
+
+#fan control utility
+cp -f fancontrol.py /usr/bin/
+chmod 755 /usr/bin/fancontrol.py
 
 cp -f dump1090 /usr/bin/
 

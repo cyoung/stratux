@@ -31,6 +31,9 @@ cp -f root mnt/etc/ssh/authorized_keys/root
 chown root.root mnt/etc/ssh/authorized_keys/root
 chmod 644 mnt/etc/ssh/authorized_keys/root
 
+#motd
+cp -f motd mnt/etc/motd
+
 #dhcpd config
 cp -f dhcpd.conf mnt/etc/dhcp/dhcpd.conf
 
@@ -50,8 +53,13 @@ cp -f interfaces mnt/etc/network/interfaces
 #custom hostapd start script
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
+
 #ping udev
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
+
+#fan/temp control script
+cp fancontrol.py mnt/usr/bin/
+chmod 755 mnt/usr/bin/fancontrol.py
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
@@ -93,7 +101,6 @@ git clone https://github.com/cyoung/stratux --recursive
 cd stratux
 make
 make install
-systemctl enable stratux
 
 #system tweaks
 cp -f modules.txt mnt/etc/modules
@@ -110,10 +117,15 @@ make
 make install
 
 #disable serial console
-sed -i /etc/inittab -e "s|^.*:.*:respawn:.*ttyAMA0|#&|"
+sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
 #boot settings
 cp -f config.txt mnt/boot/
+
+#external OLED screen
+#apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil screen
+#git clone https://github.com/rm-hull/ssd1306
+#cd ssd1306 && python setup.py install

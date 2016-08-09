@@ -7,16 +7,11 @@
 RTL-SDR UAT tools
 
 
-Use Pi 2 and ForeFlight 7.3.1 (1792) (Sep 18, 2015).
+Use with Raspberry Pi 3.
 
+Raspberry Pi 2 with the Edimax EW-7811Un Wi-Fi dongle is supported but not recommended for new builds.
 
-Supported WiFi adapters:
-* Edimax EW-7811Un
-
-Tested RTL-SDR:
-* NooElec NESDR Nano 2 (best)
-* NooElec NESDR Mini 2
-* Generic R820T (degraded performance)
+Tested and works well with most common R820T and R820T2 RTL-SDR devices.
 
 Apps with stratux recognition/support:
 * Seattle Avionics FlyQ EFB 2.1.1+.
@@ -30,7 +25,7 @@ Apps with stratux recognition/support:
 * DroidEFB 2.1.1+.
 
 Tested weather/traffic displays:
-* ForeFlight 7+ - weather, traffic, AHRS.
+* ForeFlight 7+ - weather, traffic. AHRS not functional.
 * Avare
 
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
