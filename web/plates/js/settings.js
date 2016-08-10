@@ -6,7 +6,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'GPS_Track_Enabled'];
+	$scope.format_options = ['KML', 'GPX'];
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -27,6 +28,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
+		$scope.GPS_Track_Format = settings.GPS_Track_Format;
+		$scope.GPS_Track_Enabled = settings.GPS_Track_Enabled;
 	}
 
 	function getSettings() {
@@ -108,6 +111,16 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			settings["OwnshipModeS"] = $scope.OwnshipModeS.toUpperCase();
 			newsettings = {
 				"OwnshipModeS": $scope.OwnshipModeS.toUpperCase()
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+	$scope.updategpsformat = function () {
+		if ($scope.GPS_Track_Format !== settings["GPS_Track_Format"]) {
+			settings["GPS_Track_Format"] = $scope.GPS_Track_Format.toUpperCase();
+			newsettings = {
+				"GPS_Track_Format": $scope.GPS_Track_Format.toUpperCase()
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));

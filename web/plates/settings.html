@@ -57,8 +57,7 @@
 			</div>
 		</div>
 	</div>
-</div>
-	
+
 <div class="col-sm-12">
 	<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
@@ -108,12 +107,35 @@
 				</div>
 				<div class="form-group reset-flow">
 					<div class="col-xs-12">
-	  				  <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button> 				
-	  				 </div>
+					  <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button>
+					 </div>
 				</div>
 				<div class="form-group reset-flow">
 					<div class="col-xs-12">
 						<button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">GPS Track File</div>
+			<div class="panel-body">
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-7">Output format</label>
+					<form name="formatForm" ng-submit="updategpsformat()" novalidate>
+						<select class="col-xs-5"
+								ng-model="GPS_Track_Format"
+								ng-options="option for option in format_options"
+								ng-blur="updategpsformat()">
+						</select>
+					</form>
+				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-7">Write GPS to file</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='GPS_Track_Enabled' settings-change></ui-switch>
 					</div>
 				</div>
 			</div>
@@ -136,57 +158,57 @@
 -->
  
 <div class="col-sm-12">
- 	<h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
-   	<h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
+	<h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
+	<h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
 </div>
 
 <div ui-content-for="modals">
   <div class="modal" ui-if="modalReboot" ui-state="modalReboot">
-    <div class="modal-overlay "></div>
-       	<div class="vertical-alignment-helper center-block">
-        	<div class="modal-dialog vertical-align-center">
-     
-      <div class="modal-content">
-        <div class="modal-header">
-          <button class="close" 
-                  ui-turn-off="modalReboot"></button>
-          <h4 class="modal-title">Are you really sure?</h4>
-        </div>
-        <div class="modal-body">
-          <p>Do you wish to reboot the Stratux?</p>
-          <p>Note that the system will reboot immediately and it will stop responding during the reboot</p>
-        </div>
-        <div class="modal-footer">
-          <a ui-turn-off="modalReboot" class="btn btn-default">Cancel</a>
-          <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting" class="btn btn-primary">Reboot</a>
-        </div>
-      </div>
-    	  </div>
-    </div>
+	<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+
+	  <div class="modal-content">
+		<div class="modal-header">
+		  <button class="close"
+				  ui-turn-off="modalReboot"></button>
+		  <h4 class="modal-title">Are you really sure?</h4>
+		</div>
+		<div class="modal-body">
+		  <p>Do you wish to reboot the Stratux?</p>
+		  <p>Note that the system will reboot immediately and it will stop responding during the reboot</p>
+		</div>
+		<div class="modal-footer">
+		  <a ui-turn-off="modalReboot" class="btn btn-default">Cancel</a>
+		  <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting" class="btn btn-primary">Reboot</a>
+		</div>
+	  </div>
+		  </div>
+	</div>
   </div>
   
   <div class="modal" ui-if="modalShutdown" ui-state="modalShutdown">
-    <div class="modal-overlay "></div>
-       	<div class="vertical-alignment-helper center-block">
-        	<div class="modal-dialog vertical-align-center">
-     
-      <div class="modal-content">
-        <div class="modal-header">
-          <button class="close" 
-                  ui-turn-off="modalShutdown"></button>
-          <h4 class="modal-title">Are you really sure?</h4>
-        </div>
-        <div class="modal-body">
-          <p>Do you wish to shutdown the Stratux?</p>
-          <p>Note that the system will shutdown immediately. Please disconnect the power after the shutdown.</p>
-        </div>
-        <div class="modal-footer">
-          <a ui-turn-off="modalShutdown" class="btn btn-default">Cancel</a>
-          <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown" class="btn btn-primary">Shutdown</a>
-        </div>
-      </div>
-    	  </div>
-    </div>
+	<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+
+	  <div class="modal-content">
+		<div class="modal-header">
+		  <button class="close"
+				  ui-turn-off="modalShutdown"></button>
+		  <h4 class="modal-title">Are you really sure?</h4>
+		</div>
+		<div class="modal-body">
+		  <p>Do you wish to shutdown the Stratux?</p>
+		  <p>Note that the system will shutdown immediately. Please disconnect the power after the shutdown.</p>
+		</div>
+		<div class="modal-footer">
+		  <a ui-turn-off="modalShutdown" class="btn btn-default">Cancel</a>
+		  <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown" class="btn btn-primary">Shutdown</a>
+		</div>
+	  </div>
+		  </div>
+	</div>
   </div> 
 
 </div>

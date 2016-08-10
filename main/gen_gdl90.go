@@ -957,6 +957,8 @@ type settings struct {
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
+	GPS_Track_Format     string
+	GPS_Track_Enabled    bool
 }
 
 type status struct {
@@ -1007,7 +1009,9 @@ func defaultSettings() {
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
-	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.OwnshipModeS = "F00007"
+	globalSettings.GPS_Track_Format = "KML"
+	globalSettings.GPS_Track_Enabled = false
 }
 
 func readSettings() {

@@ -248,6 +248,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+					case "GPS_Track_Format":
+						globalSettings.GPS_Track_Format = val.(string)
+					case "GPS_Track_Enabled":
+						globalSettings.GPS_Track_Enabled = val.(bool)
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
