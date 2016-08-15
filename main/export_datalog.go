@@ -142,15 +142,23 @@ func build_traffic_coords(db *sql.DB, traffic_list []string) (data []traffic_pos
 		rows := dataLogReader(db, build_query("traffic", traffic))
 		defer rows.Close()
 		coordinates := []kml.Coordinate{}
-		var tail, reg string
+		var tail, reg, fancy_name string
 		var targettype int
+		var fancy_name_found bool
 		for rows.Next() {
 			var lat, lng, alt float64
-
 			rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt)
+			if !fancy_name_found && tail != reg{
+				fancy_name = tail
+				fancy_name_found = true
+			}
 			coordinates = append(coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
 		}
-		data = append(data, traffic_position{reg: reg, tail: tail, targettype: targettype, coordinates: coordinates})
+		if fancy_name_found{
+			data = append(data, traffic_position{reg: reg, tail: fancy_name, targettype: targettype, coordinates: coordinates})
+		} else {
+			data = append(data, traffic_position{reg: reg, tail: tail, targettype: targettype, coordinates: coordinates})
+		}
 	}
 	return data
 }
