@@ -15,9 +15,13 @@ import (
 	"flag"
 )
 
-type traffic struct {
+
+type traffic_position struct{
+
 	reg string
 	tail string
+	targettype int
+	coordinates []kml.Coordinate
 }
 
 var dataLogFilef string
@@ -47,16 +51,47 @@ func writeKML(coordinates []kml.Coordinate) {
 	}
 }
 
-func writeKML_multi(coordinates_slice [][]kml.Coordinate) {
+func writeKML_multi(traffic_data []traffic_position) {
 	k := kml.KML()
 	d := kml.Document()
-	for _, coordinates := range coordinates_slice {
+	ownnship_style := kml.Style("ownship",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(100)})))
+	d.Add(ownnship_style)
+	es_style := kml.Style("1090es",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(100)})))
+	d.Add(ownnship_style)
+	d.Add(es_style)
+	UAT_style := kml.Style("UAT",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)})))
+	d.Add(UAT_style)
+	for _, traffic_pos := range traffic_data {
+		if traffic_pos.tail == "" {
+			continue
+		}
+		var style *kml.SharedElement
+		switch traffic_pos.targettype {
+		case 99:
+			style = ownnship_style
+		case 1:
+			style = es_style
+		default:
+			style = UAT_style
+		}
 		d.Add(kml.Placemark(
+				kml.Name(fmt.Sprintf("%s - %s", traffic_pos.tail, traffic_pos.reg)),
+				kml.StyleURL(style),
 				kml.LineString(
 					kml.AltitudeMode("absolute"),
 					kml.Extrude(true),
 					kml.Tessellate(true),
-					kml.Coordinates(coordinates ...),
+					kml.Coordinates(traffic_pos.coordinates ...),
+
 
 				),
 			))
@@ -89,32 +124,35 @@ func readCoordinates(db *sql.DB, query string) (coordinates []kml.Coordinate){
 
 }
 
-func get_traffic_list(db *sql.DB, query string) (traffic_list []traffic){
+func get_traffic_list(db *sql.DB, query string) (traffic_list []string){
 	rows := dataLogReader(db, query)
 	defer rows.Close()
 	//Coords structure https://play.golang.org/p/RLergI3WyN
 	for rows.Next() {
-		var Reg, Tail string
-		rows.Scan( &Reg, &Tail)
-		traffic_list = append(traffic_list, traffic{Reg, Tail})
+		var Reg string
+		rows.Scan( &Reg)
+		traffic_list = append(traffic_list, Reg)
 	}
 	return traffic_list
 
 }
 
-func build_traffic_coords(db *sql.DB, traffic_list []traffic) (coordinate_list [][]kml.Coordinate) {
+func build_traffic_coords(db *sql.DB, traffic_list []string) (data []traffic_position) {
 	for _, traffic := range traffic_list {
-		rows := dataLogReader(db, build_query("traffic", traffic.reg))
+		rows := dataLogReader(db, build_query("traffic", traffic))
 		defer rows.Close()
 		coordinates := []kml.Coordinate{}
+		var tail, reg string
+		var targettype int
 		for rows.Next() {
 			var lat, lng, alt float64
-			rows.Scan(&lng, &lat, &alt)
+
+			rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt)
 			coordinates = append(coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
 		}
-		coordinate_list = append(coordinate_list,coordinates)
+		data = append(data, traffic_position{reg: reg, tail: tail, targettype: targettype, coordinates: coordinates})
 	}
-	return coordinate_list
+	return data
 }
 
 func build_query(target_type, target_id string)(string){
@@ -122,9 +160,9 @@ func build_query(target_type, target_id string)(string){
 	    case "ownship" == target_type:
 		return "select Lng, Lat, Alt from mySituation"
 	    case "traffic" == target_type:
-		return fmt.Sprintf("select Lng, Lat, Alt FROM traffic WHERE Reg = '%s' OR Tail = '%s'", target_id, target_id)
+		return fmt.Sprintf("select Reg, Tail, TargetType, Lng, Lat, Alt FROM traffic WHERE Reg = '%s'", target_id)
 	    case "traffic_list" == target_type:
-		return "select DISTINCT  Reg, Tail FROM traffic"
+		return "select DISTINCT  Reg FROM traffic"
 	    case "towers" == target_type:
 		return "select Lng, Lat, Alt FROM traffic WHERE Reg = 'N746FD'"
 	    }
@@ -163,7 +201,7 @@ func main() {
 	if *targetPTR == "" && *targetPTR =="" {
 		ownship_coords := readCoordinates(db, build_query("ownship", ""))
 		traffic_coords := build_traffic_coords(db, get_traffic_list(db, build_query("traffic_list", "")))
-		traffic_coords = append(traffic_coords, ownship_coords)
+		traffic_coords = append(traffic_coords, traffic_position{reg: "ownship", tail: "ownship", targettype: 99, coordinates: ownship_coords})
 		writeKML_multi(traffic_coords)
 	}
 }
