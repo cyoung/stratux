@@ -13,6 +13,8 @@ import (
 	"image/color"
 	"fmt"
 	"flag"
+	"io/ioutil"
+	"bytes"
 )
 
 
@@ -28,7 +30,21 @@ var dataLogFilef string
 
 const (
 	dataLogFile    = "/var/log/stratux.sqlite"
+	gpsLogPath     = "/var/log/"
 )
+
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
+}
+
+func writeFile(name string, content *kml.CompoundElement){
+	buf := new(bytes.Buffer)
+	content.WriteIndent(buf, "", "  ")
+	err := ioutil.WriteFile(fmt.Sprintf("%s%s.kml", gpsLogPath, name), buf.Bytes(), 0644)
+    	check(err)
+}
 
 func writeKML(coordinates []kml.Coordinate) {
 	k := kml.KML(
@@ -97,9 +113,7 @@ func writeKML_multi(traffic_data []traffic_position) {
 			))
 	}
 	k.Add(d)
-	if err := k.WriteIndent(os.Stdout, "", "  "); err != nil {
-		log.Fatal(err)
-	}
+	writeFile("multi", k)
 }
 
 func dataLogReader(db *sql.DB, query string)(rows *sql.Rows){
