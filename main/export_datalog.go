@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"time"
 	"math/rand"
+	"runtime/pprof"
 )
 
 
@@ -189,7 +190,7 @@ func writeAltKML(traffic_data []traffic_position_alt) {
 	writeFile("alt", k)
 }
 
-func writeTimeKML(traffic_data []traffic_position_time) {
+func writeTimeKML(traffic_data traffic_position_times) {
 	k := kml.GxKML()
 	d := kml.Document()
 	ownnship_style := kml.Style("ownship",
@@ -208,8 +209,8 @@ func writeTimeKML(traffic_data []traffic_position_time) {
 			kml.Width(10)),
 			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)})))
 	d.Add(UAT_style)
-	for _, traffic_pos := range traffic_data {
-		if traffic_pos.tail == ""|| traffic_pos.reg == "" {
+	for traffic_pos, _ := range traffic_data {
+		if traffic_data[traffic_pos].tail == ""|| traffic_data[traffic_pos].reg == "" {
 			continue
 		}
 		GxTrack := kml.GxTrack(kml.AltitudeMode("absolute"),
@@ -217,13 +218,13 @@ func writeTimeKML(traffic_data []traffic_position_time) {
 					kml.Tessellate(false),)
 		//kml.When(time.Date(2010, 5, 28, 2, 2, 56, 0, time.UTC)),
 		//kml.GxCoord(kml.Coordinate{-122.207881, 37.371915, 156.000000}),
-		for index,coordinate := range traffic_pos.coordinates {
-			GxTrack.Add(kml.When(traffic_pos.times[index]))
+		for index,coordinate := range traffic_data[traffic_pos].coordinates {
+			GxTrack.Add(kml.When(traffic_data[traffic_pos].times[index]))
 			GxTrack.Add(kml.GxCoord(coordinate))
 		}
 
 		placemark := kml.Placemark(
-				kml.Name(fmt.Sprintf("%s - %s", traffic_pos.tail, traffic_pos.reg)),
+				kml.Name(fmt.Sprintf("%s - %s", traffic_data[traffic_pos].tail, traffic_data[traffic_pos].reg)),
 				kml.Style("randrom",
 					kml.LineStyle(kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
 										uint8(rand.Intn(255)), uint8(255)}),
@@ -332,51 +333,39 @@ func build_traffic_coords_alt(db *sql.DB, traffic_list []string) (data []traffic
 	}
 	return data
 }
-
-func build_traffic_coords_time(db *sql.DB, traffic_list []string) (data []traffic_position_time) {
-	for _, traffic := range traffic_list {
-		rows := dataLogReader(db, build_query("traffic_time", traffic))
-		defer rows.Close()
-		coordinates := []kml.Coordinate{}
-		times := []time.Time{}
-		var tail, reg, fancy_name string
-		var targettype int
-		var fancy_name_found bool
-		var minimum_alt, maximum_alt float64
-		var good_previous_time = time.Time{}
-		for rows.Next() {
-			var lat, lng, alt float64
-			var GPSClock_value string
-			rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt, &GPSClock_value)
-			if minimum_alt == 0 || alt < minimum_alt {
-				minimum_alt = alt / 3.28084
-			}
-			if maximum_alt == 0 || alt > maximum_alt {
-				maximum_alt = alt / 3.28084
-			}
-			if !fancy_name_found && tail != reg{
-				fancy_name = tail
-				fancy_name_found = true
-			}
-			coordinates = append(coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
-			time_obj,err := time.Parse("2006-01-02 15:04:05 -0700 MST", GPSClock_value)
+type traffic_position_times map[string]*traffic_position_time
+func build_traffic_coords_time(db *sql.DB, traffic_list []string) (d traffic_position_times) {
+	rows := dataLogReader(db, build_query("traffic_time", "foo"))
+	defer rows.Close()
+	//coordinates := []kml.Coordinate{}
+	//times := []time.Time{}
+	var tail, reg string
+	var targettype int
+	var good_previous_time = time.Time{}
+	d = make(traffic_position_times)
+	for rows.Next() {
+		var lat, lng, alt float64
+		var GPSClock_value string
+		rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt, &GPSClock_value)
+		if _ , missing:=d[reg]; !missing {
+			d[reg] = &traffic_position_time{reg: reg, tail: tail, targettype: targettype}
+		}
+		if tail != reg {
+			d[reg].tail = tail
+		}
+		//fmt.Println(d[reg].coordinates)
+		d[reg].coordinates = append(d[reg].coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
+		//fmt.Println(d[reg].coordinates)
+		time_obj, err := time.Parse("2006-01-02 15:04:05 -0700 MST", GPSClock_value)
+		if err != nil {
 			if err != nil {
-				if err != nil {
-					fmt.Printf("%s - %s: %s \n%s\n", reg, tail, GPSClock_value, err)
-					time_obj = good_previous_time.Add(time.Duration(1) * time.Second / 10)
-				}
+				fmt.Printf("%s - %s: %s \n%s\n", reg, tail, GPSClock_value, err)
+				time_obj = good_previous_time.Add(time.Duration(1) * time.Second / 10)
 			}
-			times = append(times, time_obj)
 		}
-		if fancy_name_found{
-			data = append(data, traffic_position_time{reg: reg, tail: fancy_name, targettype: targettype,
-				coordinates: coordinates, times: times})
-		} else {
-			data = append(data, traffic_position_time{reg: reg, tail: tail, targettype: targettype,
-				coordinates: coordinates, times: times})
-		}
+		d[reg].times = append(d[reg].times, time_obj)
 	}
-	return data
+	return d
 }
 
 func build_query(target_type, target_id string)(string){
@@ -386,9 +375,9 @@ func build_query(target_type, target_id string)(string){
 	    case "traffic" == target_type:
 		return fmt.Sprintf("select Reg, Tail, TargetType, Lng, Lat, Alt FROM traffic WHERE Reg = '%s'", target_id)
 	    case "traffic_time" == target_type:
-		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.TargetType, traffic.Lng, traffic.Lat, " +
+		return "select traffic.Reg, traffic.Tail, traffic.TargetType, traffic.Lng, traffic.Lat, " +
 			"traffic.Alt, timestamp.GPSClock_value FROM traffic " +
-			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id WHERE Reg = '%s'", target_id)
+			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id"
 	    case "traffic_list" == target_type:
 		return "select DISTINCT  Reg FROM traffic"
 	    case "towers" == target_type:
@@ -397,10 +386,20 @@ func build_query(target_type, target_id string)(string){
 	return "select Lng, Lat, Alt from mySituation"
 }
 
+
 func main() {
 	targetPTR := flag.String("target", "", "ownship, traffic, traffic_list, towers")
 	target_idPTR := flag.String("id", "", "a string containing Reg number")
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+		    log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 	dataLogFilef = dataLogFile
 
 	if _, err := os.Stat(dataLogFilef); os.IsNotExist(err) {
@@ -427,14 +426,14 @@ func main() {
 		fmt.Printf("%s", get_traffic_list(db, query))
 	}
 	if *targetPTR == "" && *targetPTR =="" {
-		//ownship + traffic in flat KML file
+		/*//ownship + traffic in flat KML file
 		ownship_coords := readCoordinates(db, build_query("ownship", ""))
 		traffic_coords := build_traffic_coords(db, get_traffic_list(db, build_query("traffic_list", "")))
 		traffic_coords = append(traffic_coords, traffic_position{reg: "ownship", tail: "ownship", targettype: 99, coordinates: ownship_coords})
 		writeKML_multi(traffic_coords)
 		//Filter based on Minimum Altitude
 		traffic_coords_alt := build_traffic_coords_alt(db, get_traffic_list(db, build_query("traffic_list", "")))
-		writeAltKML(traffic_coords_alt)
+		writeAltKML(traffic_coords_alt)*/
 		//Filter based on GPS Time of target
 		traffic_coords_time := build_traffic_coords_time(db, get_traffic_list(db, build_query("traffic_list", "")))
 		writeTimeKML(traffic_coords_time)
