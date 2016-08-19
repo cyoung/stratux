@@ -41,7 +41,7 @@ cp -f 99-uavionix.rules /etc/udev/rules.d
 
 #go setup
 cp -f bashrc.txt /root/.bashrc
-cp -f stxAliases /root/.stxAliases
+cp -f stxAliases.txt /root/.stxAliases
 
 # /etc/modules
 cp -f modules.txt /etc/modules
