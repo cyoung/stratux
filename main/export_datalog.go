@@ -15,6 +15,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"bytes"
+	"time"
+	"math/rand"
 )
 
 
@@ -24,6 +26,25 @@ type traffic_position struct{
 	tail string
 	targettype int
 	coordinates []kml.Coordinate
+}
+
+type traffic_position_alt struct{
+
+	reg string
+	tail string
+	targettype int
+	coordinates []kml.Coordinate
+	min_alt float64
+	max_alt float64
+}
+
+type traffic_position_time struct{
+
+	reg string
+	tail string
+	targettype int
+	coordinates []kml.Coordinate
+	times []time.Time
 }
 
 var dataLogFilef string
@@ -116,6 +137,106 @@ func writeKML_multi(traffic_data []traffic_position) {
 	writeFile("multi", k)
 }
 
+func writeAltKML(traffic_data []traffic_position_alt) {
+	k := kml.GxKML()
+	d := kml.Document()
+	ownnship_style := kml.Style("ownship",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(100)})))
+	d.Add(ownnship_style)
+	es_style := kml.Style("1090es",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)}),
+			kml.Width(1)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(100)})))
+	d.Add(ownnship_style)
+	d.Add(es_style)
+	UAT_style := kml.Style("UAT",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)})))
+	d.Add(UAT_style)
+	for _, traffic_pos := range traffic_data {
+		if traffic_pos.tail == ""|| traffic_pos.reg == "" {
+			continue
+		}
+		GxTrack := kml.GxTrack(kml.AltitudeMode("absolute"),
+					kml.Extrude(false),
+					kml.Tessellate(false),)
+		//kml.When(time.Date(2010, 5, 28, 2, 2, 56, 0, time.UTC)),
+		//kml.GxCoord(kml.Coordinate{-122.207881, 37.371915, 156.000000}),
+		start_alt := time.Date(2016, 5, 28, 0, 0, 0, 0, time.UTC)
+		start_alt = start_alt.Add(time.Duration(traffic_pos.min_alt)*time.Hour)
+		var length_of_data int = len(traffic_pos.coordinates)*100
+		for _,coordinate := range traffic_pos.coordinates {
+			GxTrack.Add(kml.When(start_alt))
+			start_alt = start_alt.Add(time.Duration(length_of_data)*time.Second)
+			GxTrack.Add(kml.GxCoord(coordinate))
+		}
+
+		placemark := kml.Placemark(
+				kml.Name(fmt.Sprintf("%s - %s", traffic_pos.tail, traffic_pos.reg)),
+				kml.Style("randrom",
+					kml.LineStyle(kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
+										uint8(rand.Intn(255)), uint8(255)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)}))),
+		)
+		placemark.Add(GxTrack)
+		d.Add(placemark)
+	}
+	k.Add(d)
+	writeFile("alt", k)
+}
+
+func writeTimeKML(traffic_data []traffic_position_time) {
+	k := kml.GxKML()
+	d := kml.Document()
+	ownnship_style := kml.Style("ownship",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(100)})))
+	d.Add(ownnship_style)
+	es_style := kml.Style("1090es",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)}),
+			kml.Width(1)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(100)})))
+	d.Add(ownnship_style)
+	d.Add(es_style)
+	UAT_style := kml.Style("UAT",
+		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)})))
+	d.Add(UAT_style)
+	for _, traffic_pos := range traffic_data {
+		if traffic_pos.tail == ""|| traffic_pos.reg == "" {
+			continue
+		}
+		GxTrack := kml.GxTrack(kml.AltitudeMode("absolute"),
+					kml.Extrude(false),
+					kml.Tessellate(false),)
+		//kml.When(time.Date(2010, 5, 28, 2, 2, 56, 0, time.UTC)),
+		//kml.GxCoord(kml.Coordinate{-122.207881, 37.371915, 156.000000}),
+		for index,coordinate := range traffic_pos.coordinates {
+			GxTrack.Add(kml.When(traffic_pos.times[index]))
+			GxTrack.Add(kml.GxCoord(coordinate))
+		}
+
+		placemark := kml.Placemark(
+				kml.Name(fmt.Sprintf("%s - %s", traffic_pos.tail, traffic_pos.reg)),
+				kml.Style("randrom",
+					kml.LineStyle(kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
+										uint8(rand.Intn(255)), uint8(255)}),
+			kml.Width(10)),
+			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)}))),
+		)
+		placemark.Add(GxTrack)
+		d.Add(placemark)
+	}
+	k.Add(d)
+	writeFile("time", k)
+}
+
 func dataLogReader(db *sql.DB, query string)(rows *sql.Rows){
 	rows, err := db.Query(query)
 	if err != nil {
@@ -177,12 +298,97 @@ func build_traffic_coords(db *sql.DB, traffic_list []string) (data []traffic_pos
 	return data
 }
 
+func build_traffic_coords_alt(db *sql.DB, traffic_list []string) (data []traffic_position_alt) {
+	for _, traffic := range traffic_list {
+		rows := dataLogReader(db, build_query("traffic", traffic))
+		defer rows.Close()
+		coordinates := []kml.Coordinate{}
+		var tail, reg, fancy_name string
+		var targettype int
+		var fancy_name_found bool
+		var minimum_alt, maximum_alt float64
+		for rows.Next() {
+			var lat, lng, alt float64
+			rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt)
+			if minimum_alt == 0 || alt < minimum_alt {
+				minimum_alt = alt / 3.28084
+			}
+			if maximum_alt == 0 || alt > maximum_alt {
+				maximum_alt = alt / 3.28084
+			}
+			if !fancy_name_found && tail != reg{
+				fancy_name = tail
+				fancy_name_found = true
+			}
+			coordinates = append(coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
+		}
+		if fancy_name_found{
+			data = append(data, traffic_position_alt{reg: reg, tail: fancy_name, targettype: targettype,
+				coordinates: coordinates, min_alt: minimum_alt, max_alt: maximum_alt})
+		} else {
+			data = append(data, traffic_position_alt{reg: reg, tail: tail, targettype: targettype,
+				coordinates: coordinates, min_alt: minimum_alt, max_alt: maximum_alt})
+		}
+	}
+	return data
+}
+
+func build_traffic_coords_time(db *sql.DB, traffic_list []string) (data []traffic_position_time) {
+	for _, traffic := range traffic_list {
+		rows := dataLogReader(db, build_query("traffic_time", traffic))
+		defer rows.Close()
+		coordinates := []kml.Coordinate{}
+		times := []time.Time{}
+		var tail, reg, fancy_name string
+		var targettype int
+		var fancy_name_found bool
+		var minimum_alt, maximum_alt float64
+		var good_previous_time = time.Time{}
+		for rows.Next() {
+			var lat, lng, alt float64
+			var GPSClock_value string
+			rows.Scan(&reg, &tail, &targettype, &lng, &lat, &alt, &GPSClock_value)
+			if minimum_alt == 0 || alt < minimum_alt {
+				minimum_alt = alt / 3.28084
+			}
+			if maximum_alt == 0 || alt > maximum_alt {
+				maximum_alt = alt / 3.28084
+			}
+			if !fancy_name_found && tail != reg{
+				fancy_name = tail
+				fancy_name_found = true
+			}
+			coordinates = append(coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
+			time_obj,err := time.Parse("2006-01-02 15:04:05 -0700 MST", GPSClock_value)
+			if err != nil {
+				if err != nil {
+					fmt.Printf("%s - %s: %s \n%s\n", reg, tail, GPSClock_value, err)
+					time_obj = good_previous_time.Add(time.Duration(1) * time.Second / 10)
+				}
+			}
+			times = append(times, time_obj)
+		}
+		if fancy_name_found{
+			data = append(data, traffic_position_time{reg: reg, tail: fancy_name, targettype: targettype,
+				coordinates: coordinates, times: times})
+		} else {
+			data = append(data, traffic_position_time{reg: reg, tail: tail, targettype: targettype,
+				coordinates: coordinates, times: times})
+		}
+	}
+	return data
+}
+
 func build_query(target_type, target_id string)(string){
 	switch {
 	    case "ownship" == target_type:
 		return "select Lng, Lat, Alt from mySituation"
 	    case "traffic" == target_type:
 		return fmt.Sprintf("select Reg, Tail, TargetType, Lng, Lat, Alt FROM traffic WHERE Reg = '%s'", target_id)
+	    case "traffic_time" == target_type:
+		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.TargetType, traffic.Lng, traffic.Lat, " +
+			"traffic.Alt, timestamp.GPSClock_value FROM traffic " +
+			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id WHERE Reg = '%s'", target_id)
 	    case "traffic_list" == target_type:
 		return "select DISTINCT  Reg FROM traffic"
 	    case "towers" == target_type:
@@ -221,9 +427,16 @@ func main() {
 		fmt.Printf("%s", get_traffic_list(db, query))
 	}
 	if *targetPTR == "" && *targetPTR =="" {
+		//ownship + traffic in flat KML file
 		ownship_coords := readCoordinates(db, build_query("ownship", ""))
 		traffic_coords := build_traffic_coords(db, get_traffic_list(db, build_query("traffic_list", "")))
 		traffic_coords = append(traffic_coords, traffic_position{reg: "ownship", tail: "ownship", targettype: 99, coordinates: ownship_coords})
 		writeKML_multi(traffic_coords)
+		//Filter based on Minimum Altitude
+		traffic_coords_alt := build_traffic_coords_alt(db, get_traffic_list(db, build_query("traffic_list", "")))
+		writeAltKML(traffic_coords_alt)
+		//Filter based on GPS Time of target
+		traffic_coords_time := build_traffic_coords_time(db, get_traffic_list(db, build_query("traffic_list", "")))
+		writeTimeKML(traffic_coords_time)
 	}
 }
