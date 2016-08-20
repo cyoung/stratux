@@ -17,19 +17,17 @@ import (
 )
 
 type traffic_map struct {
-	reg string
-	tail string
-	target_type int
-	icao_addr uint32
-	coordinates []kml.Coordinate
-	times []time.Time
+	reg              string
+	tail             string
+	target_type      int
+	icao_address     uint32
+	coordinates      []kml.Coordinate
+	times            []time.Time
 	minimum_altitude float64
 	maximum_altitude float64
 }
 
 type traffic_maps map[string]*traffic_map
-
-var dataLogFilef string
 
 const (
 	dataLogFile    = "/var/log/stratux.sqlite"
@@ -51,8 +49,8 @@ func defaultKMLDocument()(document *kml.CompoundElement){
 	var ownship_color = kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)})
 	var es_color = kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)})
 	var UAT_color = kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)})
-	ownnship_style := kml.Style("ownship", kml.LineStyle(ownship_color, kml.Width(10)), kml.PolyStyle(ownship_color))
-	document.Add(ownnship_style)
+	ownship_style := kml.Style("ownship", kml.LineStyle(ownship_color, kml.Width(10)), kml.PolyStyle(ownship_color))
+	document.Add(ownship_style)
 	es_style := kml.Style("1090es", kml.LineStyle(es_color), kml.Width(1), kml.PolyStyle(es_color))
 	document.Add(es_style)
 	UAT_style := kml.Style("UAT", kml.LineStyle(UAT_color, kml.Width(10)), kml.PolyStyle(UAT_color))
@@ -164,7 +162,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			traffic_row.reg = query
 			traffic_row.tail = query
 			traffic_row.target_type = 99
-			traffic_row.icao_addr = 0
+			traffic_row.icao_address = 0
 		default:
 			query ="traffic"
 	}
@@ -174,13 +172,13 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 	for rows.Next() {
 		var lat, lng, alt float64
 		var GPSClock_value string
-		scan_err := rows.Scan(&traffic_row.reg, &traffic_row.tail, &traffic_row.icao_addr, &traffic_row.target_type, &lng, &lat, &alt, &GPSClock_value)
+		scan_err := rows.Scan(&traffic_row.reg, &traffic_row.tail, &traffic_row.icao_address, &traffic_row.target_type, &lng, &lat, &alt, &GPSClock_value)
 		if scan_err != nil && traffic_type == "ownship" {
 			rows.Scan(&lng, &lat, &alt, &GPSClock_value)
 		}
 		if traffic_row.tail == "" || traffic_row.reg == "" {
 			//Give UAT or malformed 1090es traffic clean names using ICAO string
-			string_icao := fmt.Sprint(traffic_row.icao_addr)
+			string_icao := fmt.Sprint(traffic_row.icao_address)
 			switch {
 				case traffic_row.reg == "" && traffic_row.tail =="":
 					traffic_row.tail = string_icao
@@ -190,8 +188,8 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 				case traffic_row.reg != "" && traffic_row.tail == "":
 					traffic_row.tail = string_icao
 			}
-			if traffic_row.tail == "" {traffic_row.tail = fmt.Sprint(traffic_row.icao_addr)}
-			if traffic_row.reg == "" {traffic_row.reg = fmt.Sprint(traffic_row.icao_addr)}
+			if traffic_row.tail == "" {traffic_row.tail = fmt.Sprint(traffic_row.icao_address)}
+			if traffic_row.reg == "" {traffic_row.reg = fmt.Sprint(traffic_row.icao_address)}
 		}
 		if _ , missing:=maps[traffic_row.reg]; !missing {
 			//Create maps["N123AB"] with reg, tail and target_type
@@ -211,7 +209,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			log.Fatal(fmt.Sprintf("%s - %s: %s \n%s\n", traffic_row.reg, traffic_row.tail, GPSClock_value, err))
 		}
 		if time_obj.Year() < 1987{
-			//If time is not valid skip writing coords and time
+			//If time is not valid skip writing coordinates and time
 			continue
 		}
 		maps[traffic_row.reg].coordinates = append(maps[traffic_row.reg].coordinates, kml.Coordinate{Lon: lng, Lat:lat, Alt:alt})
@@ -248,19 +246,18 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	dataLogFilef = dataLogFile
 
-	if _, err := os.Stat(dataLogFilef); os.IsNotExist(err) {
-		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFilef))
+	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
+		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
 	}
-	db, err := sql.Open("sqlite3", dataLogFilef)
+	db, err := sql.Open("sqlite3", dataLogFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	ownship_coords := build_traffic_maps(db, "ownship") //ownship traffic map
-	traffic_coords_time := build_traffic_maps(db, "all_traffic") //all other traffic map
-	traffic_coords_time["ownship"] = ownship_coords["ownship"] //combine both ownship and other traffic
-	writeTimeKML(traffic_coords_time) //Filter based on GPS Time of target
-	writeAltKML(traffic_coords_time) //Filter based on Minimum Altitude
+	ownship_maps := build_traffic_maps(db, "ownship") //ownship traffic map
+	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
+	traffic_maps["ownship"] = ownship_maps["ownship"] //combine both ownship and other traffic
+	writeTimeKML(traffic_maps) //Filter based on GPS Time of target
+	writeAltKML(traffic_maps) //Filter based on Minimum Altitude
 }
