@@ -16,25 +16,6 @@ import (
 	"runtime/pprof"
 )
 
-
-type traffic_position struct{
-
-	reg string
-	tail string
-	targettype int
-	coordinates []kml.Coordinate
-}
-
-type traffic_position_alt struct{
-
-	reg string
-	tail string
-	targettype int
-	coordinates []kml.Coordinate
-	min_alt float64
-	max_alt float64
-}
-
 type traffic_map struct {
 	reg string
 	tail string
@@ -56,87 +37,13 @@ const (
 	StratuxTimeFormat = "2006-01-02 15:04:05 -0700 MST"
 )
 
-func check(e error) {
-    if e != nil {
-        panic(e)
-    }
-}
-
 func writeFile(name string, content *kml.CompoundElement){
 	buf := new(bytes.Buffer)
 	content.WriteIndent(buf, "", "  ")
 	err := ioutil.WriteFile(fmt.Sprintf("%s%s.kml", gpsLogPath, name), buf.Bytes(), 0644)
-    	check(err)
-}
-
-func writeKML(coordinates []kml.Coordinate) {
-	k := kml.KML(
-		kml.Placemark(
-			kml.Name("OwnShip"),
-			kml.Description("GPS data from Stratux Replaylog database mySituation Table"),
-			kml.Style("ownShip",
-				kml.LineStyle(kml.Color(color.White)),
-			),
-			kml.LineString(
-				kml.AltitudeMode("absolute"),
-				kml.Extrude(true),
-				kml.Tessellate(true),
-				kml.Coordinates(coordinates ...),
-			),
-		),
-	)
-	if err := k.WriteIndent(os.Stdout, "", "  "); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func writeKML_multi(traffic_data []traffic_position) {
-	k := kml.KML()
-	d := kml.Document()
-	ownnship_style := kml.Style("ownship",
-		kml.LineStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)}),
-			kml.Width(10)),
-			kml.PolyStyle(kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(100)})))
-	d.Add(ownnship_style)
-	es_style := kml.Style("1090es",
-		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)}),
-			kml.Width(10)),
-			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(100)})))
-	d.Add(ownnship_style)
-	d.Add(es_style)
-	UAT_style := kml.Style("UAT",
-		kml.LineStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)}),
-			kml.Width(10)),
-			kml.PolyStyle(kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(100)})))
-	d.Add(UAT_style)
-	for _, traffic_pos := range traffic_data {
-		if traffic_pos.tail == "" {
-			continue
-		}
-		var style *kml.SharedElement
-		switch traffic_pos.targettype {
-		case 99:
-			style = ownnship_style
-		case 1:
-			style = es_style
-		default:
-			style = UAT_style
-		}
-		d.Add(kml.Placemark(
-				kml.Name(fmt.Sprintf("%s - %s", traffic_pos.tail, traffic_pos.reg)),
-				kml.StyleURL(style),
-				kml.LineString(
-					kml.AltitudeMode("absolute"),
-					kml.Extrude(true),
-					kml.Tessellate(true),
-					kml.Coordinates(traffic_pos.coordinates ...),
-
-
-				),
-			))
-	}
-	k.Add(d)
-	writeFile("multi", k)
+    	if err != nil {
+        	panic(err)
+    	}
 }
 
 func defaultKMLDocument()(document *kml.CompoundElement){
@@ -196,7 +103,7 @@ func writeAltKML(traffic_data traffic_maps) {
 	k := kml.GxKML()
 	d := defaultKMLDocument()
 	f := defaultKMLFolders()
-	for traffic_pos,_ := range traffic_data {
+	for traffic_pos := range traffic_data {
 		GxTrack := defaultKMLGxTrack()
 		start_alt := time.Date(2016, 5, 28, 0, 0, 0, 0, time.UTC)
 		start_alt = start_alt.Add(time.Duration(traffic_data[traffic_pos].minimum_altitude)*time.Hour)
@@ -211,7 +118,7 @@ func writeAltKML(traffic_data traffic_maps) {
 		placemark.Add(GxTrack)
 		f = addToFolder(f,*traffic_data[traffic_pos], placemark)
 	}
-	for folder,_:= range f {
+	for folder := range f {
 		d.Add(f[folder])
 	}
 	k.Add(d)
@@ -222,7 +129,7 @@ func writeTimeKML(traffic_data traffic_maps) {
 	k := kml.GxKML()
 	d := defaultKMLDocument()
 	f := defaultKMLFolders()
-	for traffic_pos, _ := range traffic_data {
+	for traffic_pos := range traffic_data {
 		GxTrack := defaultKMLGxTrack()
 		for index,coordinate := range traffic_data[traffic_pos].coordinates {
 			GxTrack.Add(kml.When(traffic_data[traffic_pos].times[index]))
@@ -232,7 +139,7 @@ func writeTimeKML(traffic_data traffic_maps) {
 		placemark.Add(GxTrack)
 		f = addToFolder(f,*traffic_data[traffic_pos], placemark)
 	}
-	for folder,_:= range f {
+	for folder := range f {
 		d.Add(f[folder])
 	}
 	k.Add(d)
@@ -245,19 +152,6 @@ func dataLogReader(db *sql.DB, query string)(rows *sql.Rows){
 		log.Fatal(fmt.Sprintf("func dataLogReader Query Error: %v", err))
 	}
 	return rows
-
-}
-
-func readCoordinates(db *sql.DB, query string) (coordinates []kml.Coordinate){
-	rows := dataLogReader(db, query)
-	defer rows.Close()
-	//Coords structure https://play.golang.org/p/RLergI3WyN
-	for rows.Next() {
-		var lat, lng, alt float64
-		rows.Scan( &lng, &lat, &alt)
-		coordinates = append(coordinates, kml.Coordinate{lng,lat,alt/3.28084})
-	}
-	return coordinates
 
 }
 
@@ -307,10 +201,10 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			maps[traffic_row.reg].tail = traffic_row.tail
 		}
 		if traffic_row.minimum_altitude == 0 || alt < maps[traffic_row.reg].minimum_altitude {
-			maps[traffic_row.reg].minimum_altitude = alt / 3.28084
+			maps[traffic_row.reg].minimum_altitude = alt
 		}
 		if traffic_row.maximum_altitude == 0 || alt > maps[traffic_row.reg].maximum_altitude {
-			maps[traffic_row.reg].maximum_altitude = alt / 3.28084
+			maps[traffic_row.reg].maximum_altitude = alt
 		}
 		time_obj, err := time.Parse(StratuxTimeFormat, GPSClock_value)
 		if err != nil {
@@ -320,7 +214,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			//If time is not valid skip writing coords and time
 			continue
 		}
-		maps[traffic_row.reg].coordinates = append(maps[traffic_row.reg].coordinates, kml.Coordinate{lng, lat, alt / 3.28084})
+		maps[traffic_row.reg].coordinates = append(maps[traffic_row.reg].coordinates, kml.Coordinate{Lon: lng, Lat:lat, Alt:alt})
 		maps[traffic_row.reg].times = append(maps[traffic_row.reg].times, time_obj)
 	}
 	return maps
@@ -330,11 +224,11 @@ func build_query(query_type string)(string){
 
 	switch query_type{
 	    case "ownship":
-		return "select mySituation.Lng, mySituation.Lat, mySituation.Alt, timestamp.GPSClock_value " +
+		return "select mySituation.Lng, mySituation.Lat, mySituation.Alt/3.28084, timestamp.GPSClock_value " +
 			"from mySituation INNER JOIN timestamp ON mySituation.timestamp_id=timestamp.id"
 	    case "traffic":
 		return "select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, " +
-			"traffic.Alt, timestamp.GPSClock_value FROM traffic " +
+			"traffic.Alt/3.28084, timestamp.GPSClock_value FROM traffic " +
 			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id"
 	    case "towers":
 		return "select Lng, Lat, Alt FROM traffic WHERE Reg = 'N746FD'"
