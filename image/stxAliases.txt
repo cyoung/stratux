@@ -22,7 +22,7 @@ alias kalChan0='function _kalChan0 () { kal -d 0 -g 47 -c $1; unset -f _kalChan0
 alias kalChan1='function _kalChan1 () { kal -d 1 -g 47 -c $1; unset -f _kalChan1; }; _kalChan1'
 
 alias setSerial0='function _setSerial0 () { rtl_eeprom -d 0 -s stx:0:$1; unset -f _setSerial0; }; _setSerial0'
-alias setSerial1='function _setSerial0 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
+alias setSerial1='function _setSerial1 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
 
 
 alias stratux-help='_stxhelp'
