@@ -17,26 +17,26 @@ import (
 )
 
 type traffic_map struct {
-	reg              string
-	tail             string
-	target_type      int
-	target_type_string      string
-	icao_address     uint32
-	coordinates      []kml.Coordinate
-	times            []time.Time
-	minimum_altitude float64
-	maximum_altitude float64
+	reg                string
+	tail               string
+	target_type        int
+	target_type_string string
+	icao_address       uint32
+	coordinates        []kml.Coordinate
+	times              []time.Time
+	minimum_altitude   float64
+	maximum_altitude   float64
 }
 
 type traffic_maps map[string]*traffic_map
 
 const (
-	dataLogFile       = "/var/log/stratux.sqlite"
-	gpsLogPath        = "/var/log/"
-	StratuxTimeFormat = "2006-01-02 15:04:05 -0700 MST"
-	FeetToMeter = 3.28084
-	TARGET_TYPE_ADSB      = 1
-	TARGET_TYPE_OWNSHIP   = 5
+	dataLogFile         = "/var/log/stratux.sqlite"
+	gpsLogPath          = "/var/log/"
+	StratuxTimeFormat   = "2006-01-02 15:04:05 -0700 MST"
+	FeetToMeter         = 3.28084
+	TARGET_TYPE_ADSB    = 1
+	TARGET_TYPE_OWNSHIP = 5
 )
 
 var target_type_reverse_slice = []string{"Mode S", "ADS-B 1090 MHz", "ADS-R 978 MHz", "TIS-B S 978 MHz", "TIS-B 978 MHz", "Ownship"}
@@ -67,12 +67,12 @@ func defaultKMLDocument() (document *kml.CompoundElement) {
 func defaultKMLPlacemark(details *traffic_map) (placemark *kml.CompoundElement) {
 	var random_color = kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
 		uint8(rand.Intn(255)), uint8(255)})
-	description_html := fmt.Sprintf("Tail: <a href='https://flightaware.com/live/flight/%[1]s'>%[1]s</a> <br>" +
-		"Registration: <a href='https://flightaware.com/live/flight/%[2]s'>%[2]s</a><br>" +
-		"Type: %[3]s <br>" +
-		"Minumun Altitude: %[4]v ft<br>" +
+	description_html := fmt.Sprintf("Tail: <a href='https://flightaware.com/live/flight/%[1]s'>%[1]s</a> <br>"+
+		"Registration: <a href='https://flightaware.com/live/flight/%[2]s'>%[2]s</a><br>"+
+		"Type: %[3]s <br>"+
+		"Minumun Altitude: %[4]v ft<br>"+
 		"Maximum Altitude: %[5]v ft<br>",
-		details.tail, details.reg, details.target_type_string,details.minimum_altitude*FeetToMeter,details.maximum_altitude*FeetToMeter)
+		details.tail, details.reg, details.target_type_string, details.minimum_altitude*FeetToMeter, details.maximum_altitude*FeetToMeter)
 	placemark = kml.Placemark(
 		kml.Name(fmt.Sprintf("%s - %s", details.tail, details.reg)),
 		kml.Description(description_html),
@@ -104,9 +104,9 @@ func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos 
 	case TARGET_TYPE_OWNSHIP:
 		folders["ownship"].Add(placemark)
 	case TARGET_TYPE_ADSB:
-		if traffic_pos.minimum_altitude > 5500{
+		if traffic_pos.minimum_altitude > 5500 {
 			folders["ADSBhigh"].Add(placemark)
-		}else {
+		} else {
 			folders["ADSBlow"].Add(placemark)
 		}
 	default:
@@ -253,11 +253,11 @@ func build_query(query_type string) string {
 
 	switch query_type {
 	case "ownship":
-		return fmt.Sprintf("select mySituation.Lng, mySituation.Lat, mySituation.Alt/%v, timestamp.GPSClock_value " +
+		return fmt.Sprintf("select mySituation.Lng, mySituation.Lat, mySituation.Alt/%v, timestamp.GPSClock_value "+
 			"from mySituation INNER JOIN timestamp ON mySituation.timestamp_id=timestamp.id", FeetToMeter)
 	case "traffic":
-		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, " +
-			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic " +
+		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, "+
+			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic "+
 			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id", FeetToMeter)
 	case "towers":
 		return "select Lng, Lat, Alt FROM traffic WHERE Reg = 'N746FD'"
