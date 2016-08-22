@@ -127,6 +127,15 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
+	$scope.downloadTimeKML = function () {
+		var content = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>Simple placemark</name><description>Attached to the ground. Intelligently places itself at the height of the underlying terrain.</description><Point><coordinates>-122.0822035425683,37.42228990140251</coordinates></Point></Placemark></kml>'
+		var blob = new Blob([ content ], { type : 'text/plain' });
+		var downloadLink = angular.element('<a></a>');
+		downloadLink.attr('href',window.URL.createObjectURL(blob));
+		downloadLink.attr('download', 'time.kml');
+		downloadLink[0].click();
+	}
+
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
 		$location.path('/home');

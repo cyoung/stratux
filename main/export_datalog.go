@@ -115,8 +115,8 @@ func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos 
 	return folders
 }
 
-func writeAltKML(traffic_data traffic_maps) {
-	k := kml.GxKML()
+func AltKML(traffic_data traffic_maps) (k *kml.CompoundElement){
+	k = kml.GxKML()
 	d := defaultKMLDocument()
 	d.Add(kml.Description("Use the Time Animation Slider in the top left of Google Earth to filter traffic based on minimum altitude.<br><br>" +
 		"Viewing earlier times shows traffic lower minimum altitude, later times a higher minimum altitude.<br><br>" +
@@ -141,11 +141,11 @@ func writeAltKML(traffic_data traffic_maps) {
 		d.Add(f[folder])
 	}
 	k.Add(d)
-	writeFile("alt", k)
+	return k
 }
 
-func writeTimeKML(traffic_data traffic_maps) {
-	k := kml.GxKML()
+func TimeKML(traffic_data traffic_maps) (k *kml.CompoundElement){
+	k = kml.GxKML()
 	d := defaultKMLDocument()
 	d.Add(kml.Description("Traffic animation based on GPS time.<br><br> I recommend setting the left most slider to the earliest time, " +
 		"then clicking the 'Wrench Icon' to set the 'End date/time' as around 5 minuets later.<br><br>" +
@@ -165,7 +165,7 @@ func writeTimeKML(traffic_data traffic_maps) {
 		d.Add(f[folder])
 	}
 	k.Add(d)
-	writeFile("time", k)
+	return k
 }
 
 func dataLogReader(db *sql.DB, query string) (rows *sql.Rows) {
@@ -265,6 +265,24 @@ func build_query(query_type string) string {
 	return "select Lng, Lat, Alt from mySituation"
 }
 
+func build_web_download() (kml_string string){
+	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
+		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
+	}
+	db, err := sql.Open("sqlite3", dataLogFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
+	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
+	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
+	Time_content := TimeKML(traffic_maps)                 //Filter based on GPS Time of target
+	buf := new(bytes.Buffer)
+	kml_string = Time_content.WriteIndent(buf, "", "  ")
+	return kml_string
+}
+
 func main() {
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	flag.Parse()
@@ -288,6 +306,8 @@ func main() {
 	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
 	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
 	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
-	writeTimeKML(traffic_maps)                            //Filter based on GPS Time of target
-	writeAltKML(traffic_maps)                             //Filter based on Minimum Altitude
+	Time_content := TimeKML(traffic_maps)                 //Filter based on GPS Time of target
+	writeFile("time", Time_content)
+	Alt_content := AltKML(traffic_maps)                   //Filter based on Minimum Altitude
+	writeFile("alt", Alt_content)
 }
