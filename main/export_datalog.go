@@ -20,6 +20,7 @@ type traffic_map struct {
 	reg              string
 	tail             string
 	target_type      int
+	target_type_string      string
 	icao_address     uint32
 	coordinates      []kml.Coordinate
 	times            []time.Time
@@ -33,7 +34,12 @@ const (
 	dataLogFile       = "/var/log/stratux.sqlite"
 	gpsLogPath        = "/var/log/"
 	StratuxTimeFormat = "2006-01-02 15:04:05 -0700 MST"
+	FeetToMeter = 3.28084
+	TARGET_TYPE_ADSB      = 1
+	TARGET_TYPE_OWNSHIP   = 5
 )
+
+var target_type_reverse_slice = []string{"Mode S", "ADS-B 1090 MHz", "ADS-R 978 MHz", "TIS-B S 978 MHz", "TIS-B 978 MHz", "Ownship"}
 
 func writeFile(name string, content *kml.CompoundElement) {
 	buf := new(bytes.Buffer)
@@ -45,13 +51,13 @@ func writeFile(name string, content *kml.CompoundElement) {
 }
 
 func defaultKMLDocument() (document *kml.CompoundElement) {
-	document = kml.Document()
+	document = kml.Document(kml.Open(true))
 	var ownship_color = kml.Color(color.RGBA{uint8(255), uint8(0), uint8(0), uint8(140)})
 	var es_color = kml.Color(color.RGBA{uint8(0), uint8(0), uint8(255), uint8(140)})
 	var UAT_color = kml.Color(color.RGBA{uint8(0), uint8(255), uint8(0), uint8(140)})
 	ownship_style := kml.Style("ownship", kml.LineStyle(ownship_color, kml.Width(10)), kml.PolyStyle(ownship_color))
 	document.Add(ownship_style)
-	es_style := kml.Style("1090es", kml.LineStyle(es_color), kml.Width(1), kml.PolyStyle(es_color))
+	es_style := kml.Style("ADSB", kml.LineStyle(es_color), kml.Width(1), kml.PolyStyle(es_color))
 	document.Add(es_style)
 	UAT_style := kml.Style("UAT", kml.LineStyle(UAT_color, kml.Width(10)), kml.PolyStyle(UAT_color))
 	document.Add(UAT_style)
@@ -61,8 +67,15 @@ func defaultKMLDocument() (document *kml.CompoundElement) {
 func defaultKMLPlacemark(details *traffic_map) (placemark *kml.CompoundElement) {
 	var random_color = kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
 		uint8(rand.Intn(255)), uint8(255)})
+	description_html := fmt.Sprintf("Tail: <a href='https://flightaware.com/live/flight/%[1]s'>%[1]s</a> <br>" +
+		"Registration: <a href='https://flightaware.com/live/flight/%[2]s'>%[2]s</a><br>" +
+		"Type: %[3]s <br>" +
+		"Minumun Altitude: %[4]v ft<br>" +
+		"Maximum Altitude: %[5]v ft<br>",
+		details.tail, details.reg, details.target_type_string,details.minimum_altitude*FeetToMeter,details.maximum_altitude*FeetToMeter)
 	placemark = kml.Placemark(
 		kml.Name(fmt.Sprintf("%s - %s", details.tail, details.reg)),
+		kml.Description(description_html),
 		kml.Style("randrom",
 			kml.LineStyle(random_color, kml.Width(10)), kml.PolyStyle(random_color)),
 	)
@@ -78,9 +91,9 @@ func defaultKMLGxTrack() (GxTrack *kml.CompoundElement) {
 
 func defaultKMLFolders() (folders map[string]*kml.CompoundElement) {
 	folders = make(map[string]*kml.CompoundElement)
-	folders["ownship"] = kml.Folder(kml.Name("ownship"))
-	folders["1090ESlow"] = kml.Folder(kml.Name("1090ES Low Traffic"))
-	folders["1090EShigh"] = kml.Folder(kml.Name("1090ES High Traffic"))
+	folders["ownship"] = kml.Folder(kml.Name("Ownship"))
+	folders["ADSBlow"] = kml.Folder(kml.Name("ADSB Traffic < FL180"))
+	folders["ADSBhigh"] = kml.Folder(kml.Name("ADSB Traffic > FL180"))
 	folders["UAT"] = kml.Folder(kml.Name("UAT Traffic"))
 	return folders
 }
@@ -88,13 +101,13 @@ func defaultKMLFolders() (folders map[string]*kml.CompoundElement) {
 func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos traffic_map, placemark *kml.CompoundElement) (folders map[string]*kml.CompoundElement) {
 	folders = input_folders
 	switch traffic_pos.target_type {
-	case 99:
+	case TARGET_TYPE_OWNSHIP:
 		folders["ownship"].Add(placemark)
-	case 1:
+	case TARGET_TYPE_ADSB:
 		if traffic_pos.minimum_altitude > 5500{
-			folders["1090EShigh"].Add(placemark)
+			folders["ADSBhigh"].Add(placemark)
 		}else {
-			folders["1090ESlow"].Add(placemark)
+			folders["ADSBlow"].Add(placemark)
 		}
 	default:
 		folders["UAT"].Add(placemark)
@@ -105,6 +118,9 @@ func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos 
 func writeAltKML(traffic_data traffic_maps) {
 	k := kml.GxKML()
 	d := defaultKMLDocument()
+	d.Add(kml.Description("Use the Time Animation Slider in the top left of Google Earth to filter traffic based on minimum altitude.<br><br>" +
+		"Viewing earlier times shows traffic lower minimum altitude, later times a higher minimum altitude.<br><br>" +
+		"This is useful to filter out cruise traffic in busy airspace by dragging the right most slider towards the left."))
 	f := defaultKMLFolders()
 	for traffic_pos := range traffic_data {
 		GxTrack := defaultKMLGxTrack()
@@ -131,6 +147,9 @@ func writeAltKML(traffic_data traffic_maps) {
 func writeTimeKML(traffic_data traffic_maps) {
 	k := kml.GxKML()
 	d := defaultKMLDocument()
+	d.Add(kml.Description("Traffic animation based on GPS time.<br><br> I recommend setting the left most slider to the earliest time, " +
+		"then clicking the 'Wrench Icon' to set the 'End date/time' as around 5 minuets later.<br><br>" +
+		"This will give the traffic animations tails that fade over time and a rough estimation of speed based on the length of tail."))
 	f := defaultKMLFolders()
 	for traffic_pos := range traffic_data {
 		GxTrack := defaultKMLGxTrack()
@@ -166,7 +185,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 		query = "ownship"
 		traffic_row.reg = query
 		traffic_row.tail = query
-		traffic_row.target_type = 99
+		traffic_row.target_type = 5
 		traffic_row.icao_address = 0
 	default:
 		query = "traffic"
@@ -182,7 +201,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			rows.Scan(&lng, &lat, &alt, &GPSClock_value)
 		}
 		if traffic_row.tail == "" || traffic_row.reg == "" {
-			//Give UAT or malformed 1090es traffic clean names using ICAO string
+			//Give UAT or malformed ADSB traffic clean names using ICAO string
 			string_icao := fmt.Sprint(traffic_row.icao_address)
 			switch {
 			case traffic_row.reg == "" && traffic_row.tail == "":
@@ -204,7 +223,8 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			//Create maps["N123AB"] with reg, tail, target_type and minimum_altitude. minimum_altitude is set
 			// since the default initialization value is 0 and make clean logic difficult
 			maps[traffic_row.reg] = &traffic_map{reg: traffic_row.reg, tail: traffic_row.tail,
-				target_type: traffic_row.target_type, minimum_altitude: alt}
+				target_type: traffic_row.target_type, target_type_string: target_type_reverse_slice[traffic_row.target_type],
+				minimum_altitude: alt}
 		}
 		if traffic_row.tail != traffic_row.reg {
 			maps[traffic_row.reg].tail = traffic_row.tail
@@ -233,12 +253,12 @@ func build_query(query_type string) string {
 
 	switch query_type {
 	case "ownship":
-		return "select mySituation.Lng, mySituation.Lat, mySituation.Alt/3.28084, timestamp.GPSClock_value " +
-			"from mySituation INNER JOIN timestamp ON mySituation.timestamp_id=timestamp.id"
+		return fmt.Sprintf("select mySituation.Lng, mySituation.Lat, mySituation.Alt/%v, timestamp.GPSClock_value " +
+			"from mySituation INNER JOIN timestamp ON mySituation.timestamp_id=timestamp.id", FeetToMeter)
 	case "traffic":
-		return "select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, " +
-			"traffic.Alt/3.28084, timestamp.GPSClock_value FROM traffic " +
-			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id"
+		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, " +
+			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic " +
+			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id", FeetToMeter)
 	case "towers":
 		return "select Lng, Lat, Alt FROM traffic WHERE Reg = 'N746FD'"
 	}
