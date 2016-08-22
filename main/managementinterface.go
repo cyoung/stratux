@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"github.com/twpayne/go-kml"
 )
 
 type SettingMessage struct {
@@ -358,8 +359,8 @@ func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
 
 func handleTimeKML(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	clientsJSON := build_web_download()
-	fmt.Fprintf(w, "%s\n", clientsJSON)
+	kml_conent := build_web_download()
+	kml_conent.WriteIndent(w,  "", "  ")
 }
 
 // https://gist.github.com/alexisrobert/982674.

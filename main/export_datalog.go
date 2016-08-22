@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"database/sql"
-	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/twpayne/go-kml"
@@ -12,7 +11,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"runtime/pprof"
 	"time"
 )
 
@@ -265,7 +263,7 @@ func build_query(query_type string) string {
 	return "select Lng, Lat, Alt from mySituation"
 }
 
-func build_web_download() (kml_string string){
+func build_web_download() (Time_content *kml.CompoundElement){
 	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
 		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
 	}
@@ -277,24 +275,11 @@ func build_web_download() (kml_string string){
 	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
 	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
 	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
-	Time_content := TimeKML(traffic_maps)                 //Filter based on GPS Time of target
-	buf := new(bytes.Buffer)
-	kml_string = Time_content.WriteIndent(buf, "", "  ")
-	return kml_string
+	Time_content = TimeKML(traffic_maps)                 //Filter based on GPS Time of target
+	return Time_content
 }
 
-func main() {
-	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
+/*func main() {
 	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
 		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
 	}
@@ -310,4 +295,5 @@ func main() {
 	writeFile("time", Time_content)
 	Alt_content := AltKML(traffic_maps)                   //Filter based on Minimum Altitude
 	writeFile("alt", Alt_content)
-}
+	fmt.Print(build_web_download())
+}*/
