@@ -29,11 +29,9 @@ type traffic_map struct {
 type traffic_maps map[string]*traffic_map
 
 const (
-	dataLogFile         = "/var/log/stratux.sqlite"
 	gpsLogPath          = "/var/log/"
 	StratuxTimeFormat   = "2006-01-02 15:04:05 -0700 MST"
 	FeetToMeter         = 3.28084
-	TARGET_TYPE_ADSB    = 1
 	TARGET_TYPE_OWNSHIP = 5
 )
 
