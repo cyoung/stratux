@@ -79,18 +79,23 @@ func defaultKMLGxTrack() (GxTrack *kml.CompoundElement) {
 func defaultKMLFolders() (folders map[string]*kml.CompoundElement) {
 	folders = make(map[string]*kml.CompoundElement)
 	folders["ownship"] = kml.Folder(kml.Name("ownship"))
-	folders["1090ES"] = kml.Folder(kml.Name("1090ES Traffic"))
+	folders["1090ESlow"] = kml.Folder(kml.Name("1090ES Low Traffic"))
+	folders["1090EShigh"] = kml.Folder(kml.Name("1090ES High Traffic"))
 	folders["UAT"] = kml.Folder(kml.Name("UAT Traffic"))
 	return folders
 }
 
-func addToFolder(input_folders map[string]*kml.CompoundElement, traffic_pos traffic_map, placemark *kml.CompoundElement) (folders map[string]*kml.CompoundElement) {
+func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos traffic_map, placemark *kml.CompoundElement) (folders map[string]*kml.CompoundElement) {
 	folders = input_folders
 	switch traffic_pos.target_type {
 	case 99:
 		folders["ownship"].Add(placemark)
 	case 1:
-		folders["1090ES"].Add(placemark)
+		if traffic_pos.minimum_altitude > 5500{
+			folders["1090EShigh"].Add(placemark)
+		}else {
+			folders["1090ESlow"].Add(placemark)
+		}
 	default:
 		folders["UAT"].Add(placemark)
 	}
@@ -114,7 +119,7 @@ func writeAltKML(traffic_data traffic_maps) {
 
 		placemark := defaultKMLPlacemark(traffic_data[traffic_pos])
 		placemark.Add(GxTrack)
-		f = addToFolder(f, *traffic_data[traffic_pos], placemark)
+		f = addToTypeFolder(f, *traffic_data[traffic_pos], placemark)
 	}
 	for folder := range f {
 		d.Add(f[folder])
@@ -135,7 +140,7 @@ func writeTimeKML(traffic_data traffic_maps) {
 		}
 		placemark := defaultKMLPlacemark(traffic_data[traffic_pos])
 		placemark.Add(GxTrack)
-		f = addToFolder(f, *traffic_data[traffic_pos], placemark)
+		f = addToTypeFolder(f, *traffic_data[traffic_pos], placemark)
 	}
 	for folder := range f {
 		d.Add(f[folder])
@@ -196,13 +201,15 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 			}
 		}
 		if _, missing := maps[traffic_row.reg]; !missing {
-			//Create maps["N123AB"] with reg, tail and target_type
-			maps[traffic_row.reg] = &traffic_map{reg: traffic_row.reg, tail: traffic_row.tail, target_type: traffic_row.target_type}
+			//Create maps["N123AB"] with reg, tail, target_type and minimum_altitude. minimum_altitude is set
+			// since the default initialization value is 0 and make clean logic difficult
+			maps[traffic_row.reg] = &traffic_map{reg: traffic_row.reg, tail: traffic_row.tail,
+				target_type: traffic_row.target_type, minimum_altitude: alt}
 		}
 		if traffic_row.tail != traffic_row.reg {
 			maps[traffic_row.reg].tail = traffic_row.tail
 		}
-		if traffic_row.minimum_altitude == 0 || alt < maps[traffic_row.reg].minimum_altitude {
+		if alt < maps[traffic_row.reg].minimum_altitude {
 			maps[traffic_row.reg].minimum_altitude = alt
 		}
 		if traffic_row.maximum_altitude == 0 || alt > maps[traffic_row.reg].maximum_altitude {
