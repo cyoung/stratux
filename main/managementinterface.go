@@ -356,6 +356,12 @@ func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
 	addSystemError(ret_err)
 }
 
+func handleTimeKML(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	clientsJSON := build_web_download()
+	fmt.Fprintf(w, "%s\n", clientsJSON)
+}
+
 // https://gist.github.com/alexisrobert/982674.
 // Copyright (c) 2010-2014 Alexis ROBERT <alexis.robert@gmail.com>.
 const dirlisting_tpl = `<?xml version="1.0" encoding="iso-8859-1"?>
@@ -487,6 +493,7 @@ func managementInterface() {
 	http.HandleFunc("/getClients", handleClientsGetRequest)
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
+	http.HandleFunc("/getTimeKML", handleTimeKML)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
