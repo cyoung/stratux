@@ -145,8 +145,13 @@
 				</div>
 				<div class="form-group reset-flow">
 					<label class="control-label col-xs-7">Write GPS to file</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='GPS_Track_Enabled' settings-change></ui-switch>
+					<div class="row">
+						<div class="col-xs-2">
+							<ui-switch ng-model='GPS_Track_Enabled' settings-change></ui-switch>
+						</div>
+						<div class="col-xs-3">
+							<button class="btn btn-primary btn-block" ng-click="downloadOwnshipKML()">Get KML</button>
+						</div>
 					</div>
 				</div>
 			</div>

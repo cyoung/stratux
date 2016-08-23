@@ -14,6 +14,7 @@ var URL_REBOOT			= "http://" + URL_HOST_BASE + "/reboot";
 var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
 var URL_KML_TIME        = "http://"	+ URL_HOST_BASE + "/getTimeKML"
 var URL_KML_Altitude    = "http://"	+ URL_HOST_BASE + "/getAltitudeKML"
+var URL_KML_Altitude    = "http://"	+ URL_HOST_BASE + "/getOwnshipKML"
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);

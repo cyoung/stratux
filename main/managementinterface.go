@@ -377,6 +377,13 @@ func handleAltitudeKML(w http.ResponseWriter, r *http.Request) {
 	kml_content.WriteIndent(w,  "", "  ")
 }
 
+func handleOwnshipKML(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	setXMLHeaders(w)
+	kml_content := build_web_download("ownship")
+	kml_content.WriteIndent(w,  "", "  ")
+}
+
 // https://gist.github.com/alexisrobert/982674.
 // Copyright (c) 2010-2014 Alexis ROBERT <alexis.robert@gmail.com>.
 const dirlisting_tpl = `<?xml version="1.0" encoding="iso-8859-1"?>
@@ -510,6 +517,7 @@ func managementInterface() {
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/getTimeKML", handleTimeKML)
 	http.HandleFunc("/getAltitudeKML", handleAltitudeKML)
+	http.HandleFunc("/getOwnshipKML", handleOwnshipKML)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

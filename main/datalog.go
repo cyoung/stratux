@@ -532,7 +532,7 @@ func isDataLogReady() bool {
 }
 
 func logSituation() {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if (globalSettings.ReplayLog || globalSettings.GPS_Track_Enabled) && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
 	}
 }
@@ -593,10 +593,10 @@ func initDataLog() {
 
 func dataLogWatchdog() {
 	for {
-		if !dataLogStarted && globalSettings.ReplayLog { // case 1: sqlite logging isn't running, and we want to start it
+		if !dataLogStarted && (globalSettings.ReplayLog || globalSettings.GPS_Track_Enabled) { // case 1: sqlite logging isn't running, and we want to start it
 			log.Printf("datalog.go: Watchdog wants to START logging.\n")
 			go dataLog()
-		} else if dataLogStarted && !globalSettings.ReplayLog { // case 2:  sqlite logging is running, and we want to shut it down
+		} else if dataLogStarted && (!globalSettings.ReplayLog && !globalSettings.GPS_Track_Enabled) { // case 2:  sqlite logging is running, and we want to shut it down
 			log.Printf("datalog.go: Watchdog wants to STOP logging.\n")
 			closeDataLog()
 		}

@@ -274,9 +274,14 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 	}
 	defer db.Close()
 	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
-	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
-	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
+	var traffic_maps traffic_maps
+	if filter != "ownship"{
+		traffic_maps = build_traffic_maps(db, "all_traffic") //all other traffic map
+		traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
+		}
 	switch filter {
+		case "ownship":
+			kml_content = TimeKML(ownship_maps)
 		case "time":
 			kml_content = TimeKML(traffic_maps)   //Filter based on GPS Time of target
 		case "altitude":

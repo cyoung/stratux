@@ -153,6 +153,17 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			$scope.Ui.turnOff('modalKML');
         })
 	};
+	$scope.downloadOwnshipKML = function () {
+		$scope.download = true;
+		$http.get(URL_KML_Altitude).then(function(response){
+            var blob = new Blob([ response.data ], { type : 'application/xml' });
+			var downloadLink = angular.element('<a></a>');
+			downloadLink.attr('href',window.URL.createObjectURL(blob));
+			downloadLink.attr('download', 'Ownship.kml');
+			downloadLink[0].click();
+			$scope.download = false;
+        })
+	};
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
