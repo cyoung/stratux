@@ -7,17 +7,11 @@
 RTL-SDR UAT tools
 
 
-Use Pi 3 or Pi 2 with Edimax Wi-Fi adapter below.
+Use with Raspberry Pi 3.
 
+Raspberry Pi 2 with the Edimax EW-7811Un Wi-Fi dongle is supported but not recommended for new builds.
 
-Supported Wi-Fi adapters:
-* Edimax EW-7811Un
-* Built-in Wi-Fi for Pi 3
-
-Tested RTL-SDR:
-* NooElec NESDR Nano 2 (best)
-* NooElec NESDR Mini 2
-* Generic R820T (degraded performance)
+Tested and works well with most common R820T and R820T2 RTL-SDR devices.
 
 Apps with stratux recognition/support:
 * Seattle Avionics FlyQ EFB 2.1.1+.
