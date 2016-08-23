@@ -139,7 +139,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			downloadLink[0].click();
 			$scope.download = false;
 			$scope.Ui.turnOff('modalKML');
-        })
+        },function(response){
+        	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
+				"check /var/log/stratux.log for more details")
+		})
 	};
 	$scope.downloadAltitudeKML = function () {
 		$scope.download = true;
@@ -151,7 +154,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			downloadLink[0].click();
 			$scope.download = false;
 			$scope.Ui.turnOff('modalKML');
-        })
+        },function(response){
+        	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
+				"check /var/log/stratux.log for more details")
+		})
 	};
 	$scope.downloadOwnshipKML = function () {
 		$scope.download = true;
@@ -162,7 +168,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			downloadLink.attr('download', 'Ownship.kml');
 			downloadLink[0].click();
 			$scope.download = false;
-        })
+        },function(response){
+        	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
+				"check /var/log/stratux.log for more details")
+		})
 	};
 
 	$scope.postShutdown = function () {
