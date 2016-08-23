@@ -166,7 +166,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 	$scope.downloadOwnshipKML = function () {
 		$scope.ownshipdownload = true;
-		$http.get(URL_KML_Altitude).then(function(response){
+		$http.get(URL_KML_Ownship).then(function(response){
             var blob = new Blob([ response.data ], { type : 'application/xml' });
 			var downloadLink = angular.element('<a></a>');
 			downloadLink.attr('href',window.URL.createObjectURL(blob));

@@ -1019,7 +1019,7 @@ func defaultSettings() {
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
-	globalSettings.OwnshipModeS = "F00007"
+	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.GPS_Track_Format = "KML"
 	globalSettings.GPS_Track_Enabled = false
 }

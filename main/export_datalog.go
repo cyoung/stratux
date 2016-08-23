@@ -220,7 +220,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 		}
 		if _, missing := maps[traffic_row.reg]; !missing {
 			//Create maps["N123AB"] with reg, tail, target_type and minimum_altitude. minimum_altitude is set
-			// since the default initialization value is 0 and make clean logic difficult
+			// since the default initialization value is 0 and makes clean logic difficult
 			maps[traffic_row.reg] = &traffic_map{reg: traffic_row.reg, tail: traffic_row.tail,
 				target_type: traffic_row.target_type, target_type_string: target_type_reverse_slice[traffic_row.target_type],
 				minimum_altitude: alt}
@@ -238,7 +238,7 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 		if err != nil {
 			log.Fatal(fmt.Sprintf("%s - %s: %s \n%s\n", traffic_row.reg, traffic_row.tail, GPSClock_value, err))
 		}
-		if time_obj.Year() < 1987 {
+		if time_obj.Year() == 0001 {
 			//If time is not valid skip writing coordinates and time
 			continue
 		}
@@ -258,8 +258,6 @@ func build_query(query_type string) string {
 		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, "+
 			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic "+
 			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id", FeetToMeter)
-	case "towers":
-		return "select Lng, Lat, Alt FROM traffic WHERE Reg = 'N746FD'"
 	}
 	return "select Lng, Lat, Alt from mySituation"
 }
@@ -289,22 +287,3 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 	}
 	return kml_content
 }
-
-/*func main() {
-	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
-		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
-	}
-	db, err := sql.Open("sqlite3", dataLogFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
-	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
-	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
-	Time_content := TimeKML(traffic_maps)                 //Filter based on GPS Time of target
-	writeFile("time", Time_content)
-	Alt_content := AltKML(traffic_maps)                   //Filter based on Minimum Altitude
-	writeFile("alt", Alt_content)
-	fmt.Print(build_web_download())
-}*/
