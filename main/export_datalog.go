@@ -73,9 +73,10 @@ func defaultKMLPlacemark(details *traffic_map) (placemark *kml.CompoundElement) 
 		kml.Name(fmt.Sprintf("%s - %s", details.tail, details.reg)),
 		kml.Description(description_html),
 		kml.Style("randrom",
-			kml.LineStyle(random_color, kml.Width(10)), kml.PolyStyle(random_color)),
+			kml.LineStyle(random_color, kml.Width(10)), kml.PolyStyle(random_color),
 			kml.IconStyle(kml.Icon(kml.Href("http://maps.google.com/mapfiles/kml/shapes/airports.png"),
-			kml.Scale(0.5),)),
+				kml.Scale(0.5))),
+		),
 	)
 	return placemark
 }
