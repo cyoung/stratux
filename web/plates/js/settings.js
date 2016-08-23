@@ -129,6 +129,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.download = false;
+	$scope.ownshipdownload = false;
 	$scope.downloadTimeKML = function () {
 		$scope.download = true;
 		$http.get( URL_KML_TIME).then(function(response){
@@ -143,6 +144,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
 			$scope.download = false;
+			$scope.Ui.turnOff('modalKML');
 		})
 	};
 	$scope.downloadAltitudeKML = function () {
@@ -159,21 +161,22 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
 			$scope.download = false;
+			$scope.Ui.turnOff('modalKML');
 		})
 	};
 	$scope.downloadOwnshipKML = function () {
-		$scope.download = true;
+		$scope.ownshipdownload = true;
 		$http.get(URL_KML_Altitude).then(function(response){
             var blob = new Blob([ response.data ], { type : 'application/xml' });
 			var downloadLink = angular.element('<a></a>');
 			downloadLink.attr('href',window.URL.createObjectURL(blob));
 			downloadLink.attr('download', 'Ownship.kml');
 			downloadLink[0].click();
-			$scope.download = false;
+			$scope.ownshipdownload = false;
         },function(response){
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
-			$scope.download = false;
+			$scope.ownshipdownload = false;
 		})
 	};
 
