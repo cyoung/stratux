@@ -230,13 +230,20 @@
 		<div class="modal-body">
 		  <p>Do you want to download a KML version of the replay log?</p>
 		  <p>Your two options are you download KML file based on time, or one that allows you filter traffic based on the altitude of the traffic.</p>
-			<div class="separator">
-				<a ng-click="downloadTimeKML()" ng-href="{{ url }}" ui-turn-off="modalKML" class="btn btn-primary">Time KML</a>
-				<a ng-click="downloadAltitudeKML()" ng-href="{{ url }}" ui-turn-off="modalKML" class="btn btn-primary">Altitude KML</a>
+			<div class="panel-body">
+				<div class="separator"></div>
+				<div class="row">
+					<p ui-state="prepare" ui-class="{'text-primary': prepare}"></p>
+					<div class="btn-group">
+						<a ui-turn-on="prepare" ui-class="{'active': !prepare}" class="btn btn-default" ng-click="downloadTimeKML()" style="margin-right: 5px">Prepare Time KML</a>
+						<a ui-toggle="prepare" ui-class="{'active': !prepare}"  class="btn btn-default" ng-click="downloadAltitudeKML(); " style="margin-right: 5px">Prepare Altitude KML</a>
+						<a ui-class="{'active': prepare}" ng-show="download" class="btn btn-default ng-cloak">Procssing Replay Log...</a>
+					</div>
+				</div>
 			</div>
 		</div>
 		  <div class="modal-footer">
-			<a ui-turn-off="modalKML" class="btn btn-default">Cancel</a>
+			<a ui-turn-off="modalKML" class="btn btn-default">Close</a>
 		</div>
 	  </div>
 		  </div>

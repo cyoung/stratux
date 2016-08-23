@@ -25,7 +25,6 @@ import (
 	"syscall"
 	"text/template"
 	"time"
-	"github.com/twpayne/go-kml"
 )
 
 type SettingMessage struct {
@@ -338,6 +337,11 @@ func setJSONHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+func setXMLHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/xml")
+}
+
 func defaultServer(w http.ResponseWriter, r *http.Request) {
 	//	setNoCache(w)
 
@@ -359,8 +363,16 @@ func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
 
 func handleTimeKML(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
-	kml_conent := build_web_download()
-	kml_conent.WriteIndent(w,  "", "  ")
+	setXMLHeaders(w)
+	kml_content := build_web_download("time")
+	kml_content.WriteIndent(w,  "", "  ")
+}
+
+func handleAltitudeKML(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	setXMLHeaders(w)
+	kml_content := build_web_download("altitude")
+	kml_content.WriteIndent(w,  "", "  ")
 }
 
 // https://gist.github.com/alexisrobert/982674.
@@ -495,6 +507,7 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/getTimeKML", handleTimeKML)
+	http.HandleFunc("/getAltitudeKML", handleAltitudeKML)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

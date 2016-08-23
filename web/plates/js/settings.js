@@ -127,14 +127,31 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
+	$scope.download = false;
 	$scope.downloadTimeKML = function () {
-		var content = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>Simple placemark</name><description>Attached to the ground. Intelligently places itself at the height of the underlying terrain.</description><Point><coordinates>-122.0822035425683,37.42228990140251</coordinates></Point></Placemark></kml>'
-		var blob = new Blob([ content ], { type : 'text/plain' });
-		var downloadLink = angular.element('<a></a>');
-		downloadLink.attr('href',window.URL.createObjectURL(blob));
-		downloadLink.attr('download', 'time.kml');
-		downloadLink[0].click();
-	}
+		$scope.download = true;
+		$http.get( URL_KML_TIME).then(function(response){
+			var blob = new Blob([ response.data ], { type : 'application/xml' });
+			var downloadLink = angular.element('<a></a>');
+			downloadLink.attr('href',window.URL.createObjectURL(blob));
+			downloadLink.attr('download', 'ReplayLog_time.kml');
+			downloadLink[0].click();
+			$scope.download = false;
+			$scope.Ui.turnOff('modalKML');
+        })
+	};
+	$scope.downloadAltitudeKML = function () {
+		$scope.download = true;
+		$http.get(URL_KML_Altitude).then(function(response){
+            var blob = new Blob([ response.data ], { type : 'application/xml' });
+			var downloadLink = angular.element('<a></a>');
+			downloadLink.attr('href',window.URL.createObjectURL(blob));
+			downloadLink.attr('download', 'ReplayLog_altitude.kml');
+			downloadLink[0].click();
+			$scope.download = false;
+			$scope.Ui.turnOff('modalKML');
+        })
+	};
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";

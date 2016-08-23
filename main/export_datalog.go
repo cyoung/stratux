@@ -261,7 +261,7 @@ func build_query(query_type string) string {
 	return "select Lng, Lat, Alt from mySituation"
 }
 
-func build_web_download() (Time_content *kml.CompoundElement){
+func build_web_download(filter string) (kml_content *kml.CompoundElement){
 	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
 		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
 	}
@@ -273,8 +273,13 @@ func build_web_download() (Time_content *kml.CompoundElement){
 	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
 	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
 	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
-	Time_content = TimeKML(traffic_maps)                 //Filter based on GPS Time of target
-	return Time_content
+	switch filter {
+		case "time":
+			kml_content = TimeKML(traffic_maps)   //Filter based on GPS Time of target
+		case "altitude":
+			kml_content = AltKML(traffic_maps)
+	}
+	return kml_content
 }
 
 /*func main() {
