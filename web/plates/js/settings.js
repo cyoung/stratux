@@ -142,6 +142,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         },function(response){
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
+			$scope.download = false;
 		})
 	};
 	$scope.downloadAltitudeKML = function () {
@@ -157,6 +158,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         },function(response){
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
+			$scope.download = false;
 		})
 	};
 	$scope.downloadOwnshipKML = function () {
@@ -171,6 +173,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         },function(response){
         	alert("Error: Ensure a /var/log/stratux.sqlite file exists by recording a replay log or enabling GPS logging.\n" +
 				"check /var/log/stratux.log for more details")
+			$scope.download = false;
 		})
 	};
 
