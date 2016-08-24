@@ -32,6 +32,7 @@ const (
 	gpsLogPath          = "/var/log/"
 	StratuxTimeFormat   = "2006-01-02 15:04:05 -0700 MST"
 	FeetToMeter         = 3.28084
+	MetersInNM 	    = 1852
 	TARGET_TYPE_OWNSHIP = 5
 )
 
@@ -262,7 +263,7 @@ func build_query(query_type string) string {
 	case "traffic":
 		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, "+
 			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic "+
-			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id", FeetToMeter)
+			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id WHERE traffic.Distance/%v < 1000", FeetToMeter, MetersInNM)
 	}
 	return "select Lng, Lat, Alt from mySituation"
 }
