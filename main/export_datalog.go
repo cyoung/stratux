@@ -199,6 +199,11 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 		if scan_err != nil && traffic_type == "ownship" {
 			rows.Scan(&lng, &lat, &alt, &GPSClock_value)
 		}
+		if lat == 0 || lng == 0 {
+			//Skip traffic with no valid GPS coordinates. These values occur in mySituation where there is no valid GPS fix
+			//FIXME: cleaner way to access state of GPS fix?
+			continue
+		}
 		if traffic_row.tail == "" || traffic_row.reg == "" {
 			//Give UAT or malformed ADSB traffic clean names using ICAO string
 			string_icao := fmt.Sprint(traffic_row.icao_address)
