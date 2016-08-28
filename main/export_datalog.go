@@ -279,7 +279,7 @@ func build_tower_folder(db *sql.DB) (tower_folder *kml.CompoundElement){
 		if scan_err != nil {
 			log.Fatal(fmt.Sprintf("func build_tower_folder row Error: %v", scan_err))
 		}
-		var LatLongRegex = regexp.MustCompile(`(\-?\d+\.?\d+),\s*(\-?\d+\.?\d+)`)
+		var LatLongRegex = regexp.MustCompile(`(-?\d+\.?\d+),\s*(-?\d+\.?\d+)`)
 		LatLongArray := LatLongRegex.FindAllStringSubmatch(tower.TowerID,-1)
 		if s, err := strconv.ParseFloat(LatLongArray[0][1], 64); err == nil {
 			tower.Lat = s
@@ -331,6 +331,7 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 			kml_content.Add(build_tower_folder(db))
 		case "altitude":
 			kml_content = AltitudeDocument(traffic_maps)
+			kml_content.Add(build_tower_folder(db))
 	}
 	return kml.GxKML().Add(kml_content)
 }
