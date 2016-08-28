@@ -1,17 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/twpayne/go-kml"
 	"image/color"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
 	"time"
+	"regexp"
+	"strconv"
 )
 
 type traffic_map struct {
@@ -28,8 +28,15 @@ type traffic_map struct {
 
 type traffic_maps map[string]*traffic_map
 
+type Tower struct{
+	TowerID string
+	Lat float64
+	Lng float64
+	Messages int
+
+}
+
 const (
-	gpsLogPath          = "/var/log/"
 	StratuxTimeFormat   = "2006-01-02 15:04:05 -0700 MST"
 	FeetToMeter         = 3.28084
 	MetersInNM 	    = 1852
@@ -37,15 +44,6 @@ const (
 )
 
 var target_type_reverse_slice = []string{"Mode S", "ADS-B 1090 MHz", "ADS-R 978 MHz", "TIS-B S 978 MHz", "TIS-B 978 MHz", "Ownship"}
-
-func writeFile(name string, content *kml.CompoundElement) {
-	buf := new(bytes.Buffer)
-	content.WriteIndent(buf, "", "  ")
-	err := ioutil.WriteFile(fmt.Sprintf("%s%s.kml", gpsLogPath, name), buf.Bytes(), 0644)
-	if err != nil {
-		panic(err)
-	}
-}
 
 func defaultKMLDocument() (document *kml.CompoundElement) {
 	document = kml.Document(kml.Open(true))
@@ -77,6 +75,27 @@ func defaultKMLPlacemark(details *traffic_map) (placemark *kml.CompoundElement) 
 			kml.LineStyle(random_color, kml.Width(10)), kml.PolyStyle(random_color),
 			kml.IconStyle(kml.Icon(kml.Href("http://maps.google.com/mapfiles/kml/shapes/airports.png"),
 				kml.Scale(0.5))),
+		),
+	)
+	return placemark
+}
+
+func towerKMLPlacemark(details Tower) (placemark *kml.CompoundElement) {
+	var random_color = kml.Color(color.RGBA{uint8(rand.Intn(255)), uint8(rand.Intn(255)),
+		uint8(rand.Intn(255)), uint8(255)})
+	description_html := fmt.Sprintf("TowerID: %v<br>"+
+		"Message count: %v",
+		details.TowerID, details.Messages)
+	placemark = kml.Placemark(
+		kml.Name(fmt.Sprintf("%v- %v", details.TowerID, details.Messages)),
+		kml.Description(description_html),
+		kml.Style("randrom",
+			kml.LineStyle(random_color, kml.Width(10)), kml.PolyStyle(random_color),
+			kml.IconStyle(kml.Icon(kml.Href("http://maps.google.com/mapfiles/kml/shapes/volcano.png"),
+				kml.Scale(0.5))),
+			),
+		kml.Point(
+			kml.Coordinates(kml.Coordinate{Lat: details.Lat, Lon:details.Lng}),
 		),
 	)
 	return placemark
@@ -115,9 +134,8 @@ func addToTypeFolder(input_folders map[string]*kml.CompoundElement, traffic_pos 
 	return folders
 }
 
-func AltKML(traffic_data traffic_maps) (k *kml.CompoundElement){
-	k = kml.GxKML()
-	d := defaultKMLDocument()
+func AltitudeDocument(traffic_data traffic_maps) (d *kml.CompoundElement){
+	d = defaultKMLDocument()
 	d.Add(kml.Description("Use the Time Animation Slider in the top left of Google Earth to filter traffic based on minimum altitude.<br><br>" +
 		"Viewing earlier times shows traffic lower minimum altitude, later times a higher minimum altitude.<br><br>" +
 		"This is useful to filter out cruise traffic in busy airspace by dragging the right most slider towards the left."))
@@ -140,13 +158,11 @@ func AltKML(traffic_data traffic_maps) (k *kml.CompoundElement){
 	for folder := range f {
 		d.Add(f[folder])
 	}
-	k.Add(d)
-	return k
+	return d
 }
 
-func TimeKML(traffic_data traffic_maps) (k *kml.CompoundElement){
-	k = kml.GxKML()
-	d := defaultKMLDocument()
+func TimeDocument(traffic_data traffic_maps) (d *kml.CompoundElement){
+	d = defaultKMLDocument()
 	d.Add(kml.Description("Traffic animation based on GPS time.<br><br> I recommend setting the left most slider to the earliest time, " +
 		"then clicking the 'Wrench Icon' to set the 'End date/time' as around 5 minuets later.<br><br>" +
 		"This will give the traffic animations tails that fade over time and a rough estimation of speed based on the length of tail."))
@@ -164,8 +180,7 @@ func TimeKML(traffic_data traffic_maps) (k *kml.CompoundElement){
 	for folder := range f {
 		d.Add(f[folder])
 	}
-	k.Add(d)
-	return k
+	return d
 }
 
 func dataLogReader(db *sql.DB, query string) (rows *sql.Rows) {
@@ -254,6 +269,29 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 	return maps
 }
 
+func build_tower_folder(db *sql.DB) (tower_folder *kml.CompoundElement){
+	tower_folder = kml.Folder(kml.Name("Towers"))
+	rows := dataLogReader(db, build_query("towers"))
+	defer rows.Close()
+	for rows.Next() {
+		tower := Tower{}
+		scan_err := rows.Scan(&tower.TowerID, &tower.Messages)
+		if scan_err != nil {
+			log.Fatal(fmt.Sprintf("func build_tower_folder row Error: %v", scan_err))
+		}
+		var LatLongRegex = regexp.MustCompile(`(\-?\d+\.?\d+),\s*(\-?\d+\.?\d+)`)
+		LatLongArray := LatLongRegex.FindAllStringSubmatch(tower.TowerID,-1)
+		if s, err := strconv.ParseFloat(LatLongArray[0][1], 64); err == nil {
+			tower.Lat = s
+		}
+		if s, err := strconv.ParseFloat(LatLongArray[0][2], 64); err == nil {
+			tower.Lng = s
+		}
+		tower_folder.Add(towerKMLPlacemark(tower))
+	}
+	return tower_folder
+}
+
 func build_query(query_type string) string {
 
 	switch query_type {
@@ -264,6 +302,8 @@ func build_query(query_type string) string {
 		return fmt.Sprintf("select traffic.Reg, traffic.Tail, traffic.Icao_addr, traffic.TargetType, traffic.Lng, traffic.Lat, "+
 			"traffic.Alt/%v, timestamp.GPSClock_value FROM traffic "+
 			"INNER JOIN timestamp ON traffic.timestamp_id=timestamp.id WHERE traffic.Distance/%v < 1000", FeetToMeter, MetersInNM)
+	case "towers":
+		return "select ADSBTowerID, count(ADSBTowerID) from messages where ADSBTowerID IS NOT '' group by ADSBTowerID;"
 	}
 	return "select Lng, Lat, Alt from mySituation"
 }
@@ -285,11 +325,12 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 		}
 	switch filter {
 		case "ownship":
-			kml_content = TimeKML(ownship_maps)
+			kml_content = TimeDocument(ownship_maps)
 		case "time":
-			kml_content = TimeKML(traffic_maps)   //Filter based on GPS Time of target
+			kml_content = TimeDocument(traffic_maps)   //Filter based on GPS Time of target
+			kml_content.Add(build_tower_folder(db))
 		case "altitude":
-			kml_content = AltKML(traffic_maps)
+			kml_content = AltitudeDocument(traffic_maps)
 	}
-	return kml_content
+	return kml.GxKML().Add(kml_content)
 }
