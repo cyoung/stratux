@@ -12,8 +12,6 @@ import (
 	"time"
 	"regexp"
 	"strconv"
-	"bytes"
-	"io/ioutil"
 )
 
 type traffic_map struct {
@@ -361,39 +359,4 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 		kml_content.Add(event_folder)
 	}
 	return kml.GxKML().Add(kml_content)
-}
-
-const (
-	dataLogFile = "/var/log/stratux.sqlite"
-	TARGET_TYPE_ADSB = 1
-	gpsLogPath          = "/var/log/"
-)
-
-func writeFile(name string, content *kml.CompoundElement) {
-	buf := new(bytes.Buffer)
-	content.WriteIndent(buf, "", "  ")
-	err := ioutil.WriteFile(fmt.Sprintf("%s%s.kml", gpsLogPath, name), buf.Bytes(), 0644)
-	if err != nil {
-		panic(err)
-	}
-}
-func main() {
-	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
-		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
-	}
-	db, err := sql.Open("sqlite3", dataLogFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
-	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
-	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
-	Time_content := TimeDocument(traffic_maps)                 //Filter based on GPS Time of target
-	tower_folder := build_tower_folder(db)
-	Time_content.Add(tower_folder)
-	Time_content.Add(event_folder)
-	writeFile("time", kml.GxKML().Add(Time_content))
-	/*Alt_content := AltitudeDocument(traffic_maps)                   //Filter based on Minimum Altitude
-	writeFile("alt", kml.GxKML().Add(Alt_content))*/
 }
