@@ -12,6 +12,8 @@ import (
 	"time"
 	"regexp"
 	"strconv"
+	"bytes"
+	"io/ioutil"
 )
 
 type traffic_map struct {
@@ -44,6 +46,8 @@ const (
 )
 
 var target_type_reverse_slice = []string{"Mode S", "ADS-B 1090 MHz", "ADS-R 978 MHz", "TIS-B S 978 MHz", "TIS-B 978 MHz", "Ownship"}
+
+var event_folder = kml.Folder(kml.Name("Events"))
 
 func defaultKMLDocument() (document *kml.CompoundElement) {
 	document = kml.Document(kml.Open(true))
@@ -99,6 +103,22 @@ func towerKMLPlacemark(details Tower) (placemark *kml.CompoundElement) {
 		),
 	)
 	return placemark
+}
+
+func create_event(old *traffic_map, new traffic_map, coordinate kml.Coordinate){
+	description := fmt.Sprintf("<table>" +
+		"<tr><th>Detail</th><th>Old</th><th>New</th></tr>" +
+		"<tr><td>Reg</td><td>%v</td><td>%v</td></tr>" +
+		"<tr><td>Tail</td><td>%v</td><td>%v</td></tr>" +
+		"<tr><td>Type</td><td>%v</td><td>%v</td></tr>" +
+		"</table>", old.reg, new.reg,old.tail,new.tail,target_type_reverse_slice[old.target_type],target_type_reverse_slice[new.target_type])
+	placemark := kml.Placemark(
+		kml.Name(old.reg),
+		kml.Description(description),
+		kml.Style("diamond",kml.IconStyle(kml.Icon(kml.Href("http://maps.google.com/mapfiles/kml/shapes/open-diamond.png"),
+				kml.Scale(0.5)))),
+		kml.Point(kml.AltitudeMode("absolute"),kml.Coordinates(coordinate)))
+	event_folder.Add(placemark)
 }
 
 func defaultKMLGxTrack() (GxTrack *kml.CompoundElement) {
@@ -246,8 +266,13 @@ func build_traffic_maps(db *sql.DB, traffic_type string) (maps traffic_maps) {
 				target_type: traffic_row.target_type, target_type_string: target_type_reverse_slice[traffic_row.target_type],
 				minimum_altitude: alt}
 		}
-		if traffic_row.tail != traffic_row.reg {
+		if (traffic_row.tail != traffic_row.reg) && (maps[traffic_row.reg].tail != traffic_row.tail) {
+			create_event(maps[traffic_row.reg], traffic_row, kml.Coordinate{Lat: lat, Lon:lng, Alt:alt})
 			maps[traffic_row.reg].tail = traffic_row.tail
+		}
+		if maps[traffic_row.reg].target_type != traffic_row.target_type{
+			create_event(maps[traffic_row.reg], traffic_row, kml.Coordinate{Lat: lat, Lon:lng, Alt:alt})
+			maps[traffic_row.reg].target_type = traffic_row.target_type
 		}
 		if alt < maps[traffic_row.reg].minimum_altitude {
 			maps[traffic_row.reg].minimum_altitude = alt
@@ -327,11 +352,48 @@ func build_web_download(filter string) (kml_content *kml.CompoundElement){
 		case "ownship":
 			kml_content = TimeDocument(ownship_maps)
 		case "time":
-			kml_content = TimeDocument(traffic_maps)   //Filter based on GPS Time of target
-			kml_content.Add(build_tower_folder(db))
+			kml_content = TimeDocument(traffic_maps)   //Filter based on GPS Time of target )
 		case "altitude":
 			kml_content = AltitudeDocument(traffic_maps)
-			kml_content.Add(build_tower_folder(db))
+	}
+	if filter != "ownship"{
+		kml_content.Add(build_tower_folder(db))
+		kml_content.Add(event_folder)
 	}
 	return kml.GxKML().Add(kml_content)
+}
+
+const (
+	dataLogFile = "/var/log/stratux.sqlite"
+	TARGET_TYPE_ADSB = 1
+	gpsLogPath          = "/var/log/"
+)
+
+func writeFile(name string, content *kml.CompoundElement) {
+	buf := new(bytes.Buffer)
+	content.WriteIndent(buf, "", "  ")
+	err := ioutil.WriteFile(fmt.Sprintf("%s%s.kml", gpsLogPath, name), buf.Bytes(), 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+func main() {
+	if _, err := os.Stat(dataLogFile); os.IsNotExist(err) {
+		log.Fatal(fmt.Sprintf("No database exists at '%s', record a replay log first.\n", dataLogFile))
+	}
+	db, err := sql.Open("sqlite3", dataLogFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	ownship_maps := build_traffic_maps(db, "ownship")     //ownship traffic map
+	traffic_maps := build_traffic_maps(db, "all_traffic") //all other traffic map
+	traffic_maps["ownship"] = ownship_maps["ownship"]     //combine both ownship and other traffic
+	Time_content := TimeDocument(traffic_maps)                 //Filter based on GPS Time of target
+	tower_folder := build_tower_folder(db)
+	Time_content.Add(tower_folder)
+	Time_content.Add(event_folder)
+	writeFile("time", kml.GxKML().Add(Time_content))
+	/*Alt_content := AltitudeDocument(traffic_maps)                   //Filter based on Minimum Altitude
+	writeFile("alt", kml.GxKML().Add(Alt_content))*/
 }
