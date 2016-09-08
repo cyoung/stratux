@@ -42,7 +42,7 @@ const (
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 	MPURETRYNUM	 = 5  // Number of times to retry connecting to MPU
 	DEG              = math.Pi/180.0 // Conversion from degrees to radians
-	KTSPERFPM        = 0.00987473
+	KTSPERFPS        = 3600 / 6076.12
 	VSIDECAYTIME     = 5.0 // Decay time for measuring rate of climb in sec; slightly faster than typical VSI
 )
 
@@ -1567,7 +1567,7 @@ func attitudeReaderSender() {
 		}
 		m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
 		m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
-		m.W3 = float64(mySituation.GPSVertVel * KTSPERFPM)
+		m.W3 = float64(mySituation.GPSVertVel * KTSPERFPS)
 		m.T = mySituation.LastGPSTimeTime.UnixNano()
 		m.WValid = stratuxClock.Time.Sub(mySituation.LastGPSTimeTime).Seconds() < 0.5
 		if !m.WValid {
