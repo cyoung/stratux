@@ -126,6 +126,11 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 cp -f config.txt mnt/boot/
 
 #external OLED screen
-#apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil screen
-#git clone https://github.com/rm-hull/ssd1306
-#cd ssd1306 && python setup.py install
+apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil screen
+git clone https://github.com/rm-hull/ssd1306
+cd ssd1306 && python setup.py install
+cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
+mkdir -p /etc/stratux-screen/
+cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
+cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
+
