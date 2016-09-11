@@ -134,3 +134,7 @@ mkdir -p /etc/stratux-screen/
 cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
 cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
 
+#startup scripts
+cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
+cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
+cp -f __root__stratux-post-start.sh /root/stratux-post-start.sh
