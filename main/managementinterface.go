@@ -215,6 +215,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.UAT_Enabled = val.(bool)
 					case "ES_Enabled":
 						globalSettings.ES_Enabled = val.(bool)
+					case "Ping_Enabled":
+						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":
@@ -309,7 +311,7 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		return
 	}
-	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
+	updateFile := fmt.Sprintf("/root/update-stratux-v.sh")
 	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())

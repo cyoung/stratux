@@ -7,9 +7,6 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
 	$scope.data_list_invalid = [];
-
-
-
 	
 	function utcTimeString(epoc) {
 		var time = "";
@@ -130,12 +127,12 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 
 				// we need to use an array so AngularJS can perform sorting; it also means we need to loop to find an aircraft in the traffic set
-				var found = false;
-				var foundInvalid = false;
+				var validIdx = -1;
+				var invalidIdx = -1;
 				for (var i = 0, len = $scope.data_list.length; i < len; i++) {
 					if ($scope.data_list[i].icao_int === message.Icao_addr) {
 						setAircraft(message, $scope.data_list[i]);
-						found = true;
+						validIdx = i;
 						break;
 					}
 				}
@@ -143,34 +140,35 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 				for (var i = 0, len = $scope.data_list_invalid.length; i < len; i++) {
 					if ($scope.data_list_invalid[i].icao_int === message.Icao_addr) {
 						setAircraft(message, $scope.data_list_invalid[i]);
-						foundInvalid = true;
+						invalidIdx = i;
 						break;
 					}
 				}
 				
-				if ((!found) && (message.Position_valid)) {
+				if ((validIdx < 0) && (message.Position_valid)) {
 					var new_traffic = {};
 					setAircraft(message, new_traffic);
-					$scope.data_list.unshift(new_traffic); // add to start of main array if position is valid and removed from the invalid array
-					for (var i = 0, len = $scope.data_list_invalid.length; i < len; i++) {
-						if ($scope.data_list_invalid[i].icao_int === message.Icao_addr) {
-								$scope.data_list_invalid.splice(i, 1);
-						}
-					}
-					
-				} else if ((!foundInvalid) && (!message.Position_valid)) {
-
-					var new_traffic = {};
-					setAircraft(message, new_traffic);
-					$scope.data_list_invalid.unshift(new_traffic); // otherwise add to start of invalid array
+					$scope.data_list.unshift(new_traffic); // add to start of valid array.
 				}
-						
+
+				if ((invalidIdx < 0) && (!message.Position_valid)) {
+					var new_traffic = {};
+					setAircraft(message, new_traffic);
+					$scope.data_list_invalid.unshift(new_traffic); // add to start of invalid array.
+				}
+
+				// Handle the negative cases of those above - where an aircraft moves from "valid" to "invalid" or vice-versa.
+				if ((validIdx >= 0) && !message.Position_valid) {
+					// Position is not valid any more. Remove from "valid" table.
+					$scope.data_list.splice(validIdx, 1);
+				}
+
+				if ((invalidIdx >= 0) && message.Position_valid) {
+					// Position is now valid. Remove from "invalid" table.
+					$scope.data_list_invalid.splice(invalidIdx, 1);
+				}
+
 				$scope.$apply();
-				
-			 
-			
-			
-			
 
 		};
 	}
@@ -206,30 +204,20 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
 		// remove stale aircraft = anything more than 59 seconds without a position update
-		var dirty = false;
-		var dirtyInvalid = false;
-		var cutoff =59;
+		var cutoff = 59;
 
-		for (var i = len = $scope.data_list.length; i > 0; i--) {
+		// Clean up "valid position" table.
+		for (var i = $scope.data_list.length; i > 0; i--) {
 			if ($scope.data_list[i - 1].age >= cutoff) {
 				$scope.data_list.splice(i - 1, 1);
-				dirty = true;
 			}
 		}
-		if (dirty) {
-			$scope.raw_data = "";
-			$scope.$apply();
-		}
-	
-		for (var i = len = $scope.data_list_invalid.length; i > 0; i--) {
+
+		// Clean up "invalid position" table.
+		for (var i = $scope.data_list_invalid.length; i > 0; i--) {
 			if (($scope.data_list_invalid[i - 1].age >= cutoff) || ($scope.data_list_invalid[i - 1].ageLastAlt >= cutoff)) {
 				$scope.data_list_invalid.splice(i - 1, 1);
-				dirtyInvalid = true;
 			}
-		}
-		if (dirtyInvalid) {
-			$scope.raw_data = "";
-			$scope.$apply();
 		}
 	}, (1000 * 10), 0, false);
 

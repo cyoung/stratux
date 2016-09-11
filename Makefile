@@ -14,7 +14,7 @@ all:
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./linux-mpu9150/mpu ./godump978 ./mpu ./uatparse
-	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry83Xai.go main/network.go main/managementinterface.go main/sdr.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go
+	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry83Xai.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go
 
 xdump1090:
 	git submodule update --init
@@ -39,6 +39,7 @@ install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
+	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
 	rm -f /etc/init.d/stratux
 	cp __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
 	cp __root__stratux-pre-start.sh /root/stratux-pre-start.sh

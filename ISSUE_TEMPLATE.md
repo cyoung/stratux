@@ -2,17 +2,17 @@
 2. Stratux config:
 
     SDR
-      [ ] single
-      [ ] dual
+      - [ ] single
+      - [ ] dual
 
     GPS
-      [ ] yes
-      [ ] no
+      - [ ] yes
+      - [ ] no
       type:
 
     AHRS
-      [ ] yes
-      [ ] no
+      - [ ] yes
+      - [ ] no
 
     power source:
 
