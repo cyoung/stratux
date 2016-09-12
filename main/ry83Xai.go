@@ -1538,119 +1538,127 @@ func makeAHRSGDL90Report() {
 }
 
 func attitudeReaderSender() {
-	// Initialize the Kalman Filter starting state
 	var (
-		roll, pitch, heading float64
-		droll, dpitch, dheading float64  // Kalman uncertainties in the AHRS outputs
-		s = ahrs.State{}
-		c = ahrs.Control{}
-		m = ahrs.Measurement{UValid: false}
-		mpuError, magError error
+		roll, pitch, heading			float64
+		droll, dpitch, dheading			float64  // Kalman uncertainties in the AHRS outputs
+		t					time.Time
+		s					*ahrs.State
+		m					*ahrs.Measurement
+		mpuError, magError			error
+		headingMag, slipSkid, turn_Rate, gLoad	float64
 	)
+	m = ahrs.NewMeasurement()
+
+	//TODO westphae: remove this logging when finished testing, or make it optional in settings
+	logger := ahrs.NewSensorLogger(fmt.Sprintf("sensors_%s.csv", time.Now().Format("20060102_150405")),
+		"T", "TS", "A1", "A2", "A3", "H1", "H2", "H3", "M1", "M2", "M3", "TW", "W1", "W2", "W3", "TA", "Alt",
+		"pitch", "roll", "heading", "mag_heading", "slip_skid", "turn_rate", "g_load", "T_Attitude")
+	defer logger.Close()
 
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
+		t = stratuxClock.Time
+		m.T = float64(t.UnixNano()/1000)/1e6
 
-		// Take Kalman Filter "control" and "measurement" sensor readings
-		c.T, c.A1, c.A2, c.A3, c.H1, c.H2, c.H3, m.M1, m.M2, m.M3, mpuError, magError = myMPU.ReadRaw()
+		// Take Kalman Filter "measurement" sensor readings
+		m.UValid = false //TODO westphae: set m.U1, m.U2, m.U3 here once we have an airspeed sensor
+
+		_, m.B1, m.B2, m.B3, m.A1, m.A2, m.A3, m.M1, m.M2, m.M3, mpuError, magError = myMPU.ReadRaw()
+		m.SValid = mpuError == nil
+		m.MValid = magError == nil
 		if mpuError != nil {
-			log.Printf("AHRS MPU Error, aborting AHRS: %s\n", mpuError.Error())
-			globalStatus.RY83XAI_connected = false
-			break
+			log.Printf("AHRS Gyro/Accel Error, not using for this run: %s\n", mpuError.Error())
 		}
 		if magError != nil {
-			log.Printf("AHRS Mag Error, not using magnetometer in runs: %s\n", magError.Error())
-			m.MValid = false
-		} else {
-			m.MValid = true
+			log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError.Error())
 		}
-		m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
-		m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
-		m.W3 = float64(mySituation.GPSVertVel * KTSPERFPS)
-		m.T = mySituation.LastGPSTimeTime.UnixNano()
-		m.WValid = stratuxClock.Time.Sub(mySituation.LastGPSTimeTime).Seconds() < 0.5
+		m.MValid = false //TODO westphae: for now
+
+		m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 250 * time.Millisecond
 		if !m.WValid {
 			log.Println("AHRS Warning: GPS not valid")
-		}
-
-		// Try to initialize
-		if !s.Initialized {
-			s.Initialize(&m, &c)
-		}
-		// If aircraft frame is inertial, then check calibration
-		if s.Initialized {
-			s.Calibrate(&c, &m)
-		}
-
-		// If we have calibration and the Kalman filter is initialized, then run the filter
-		if s.Initialized && s.Calibrated {
-			s.Predict(&c) // Predict stage of Kalman filter
-			s.Update(&m) // Update stage of Kalman filter
-
-			roll, pitch, heading = ahrs.FromQuaternion(s.E0, s.E1, s.E2, s.E3)
-			//TODO westphae: this next may be unnecessary cpu cycles
-			droll, dpitch, dheading = ahrs.VarFromQuaternion(s.E0, s.E1, s.E2, s.E3,
-				math.Sqrt(s.M.Get(3, 3)), math.Sqrt(s.M.Get(4, 4)),
-				math.Sqrt(s.M.Get(5, 5)), math.Sqrt(s.M.Get(6, 6)))
 		} else {
-			log.Printf("AHRS Kalman Skipped: State Initialized: %t Calibrated %t\n", s.Initialized, s.Calibrated)
+			m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
+			m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
+			m.W3 = float64(mySituation.GPSVertVel * KTSPERFPS) //TODO westphae: Use BMP here instead of GPS
 		}
 
-		// Apply some heuristics?
+		// Run the Kalman filter
+		if s == nil { // s is nil if we should (re-)initialize the Kalman state
+			s = ahrs.Initialize(m)
+		}
+		s.Predict(m.T) // Predict stage of Kalman filter
+		s.Update(m) // Update stage of Kalman filter
+
+		roll, pitch, heading = ahrs.FromQuaternion(s.E0, s.E1, s.E2, s.E3)
+		droll, dpitch, dheading = ahrs.VarFromQuaternion(s.E0, s.E1, s.E2, s.E3,
+			math.Sqrt(s.M.Get(6, 6)), math.Sqrt(s.M.Get(7, 7)),
+			math.Sqrt(s.M.Get(8, 8)), math.Sqrt(s.M.Get(9, 9)))
+
+		// Apply some heuristics:
 		if s.U1 < 0 {
-			s.U1 = -s.U1
-			s.V1 = -s.V1
+			s = nil //TODO westphae: can we do something smarter here?
 		}
 
 		if droll > 2.5*DEG || dpitch > 2.5*DEG {
-			//TODO westphae: invalidate AHRS somehow?1G
-			log.Printf("AHRS too uncertain: roll %5.1f +/- %3.1f, pitch %4.1f +/- %3.1f\n, heading %5.1f +/- %3.1f\n",
-				roll, droll, pitch, dpitch, heading, dheading)
+			s = nil
+			log.Printf("AHRS too uncertain: roll %5.1f +/- %3.1f, pitch %4.1f +/- %3.1f, heading %5.1f +/- %3.1f\n",
+				roll/DEG, droll/DEG, pitch/DEG, dpitch/DEG, heading/DEG, dheading/DEG)
 		}
 		// Heuristics done
 
-		headingMag, err_headingMag := myMPU.MagHeading()
-		if err_headingMag != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
+		// If we have valid AHRS info, then send
+		if s != nil {
+			headingMag, err_headingMag := myMPU.MagHeading()
+			if err_headingMag != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
+			}
+
+			slipSkid, err_slipSkid := myMPU.SlipSkid()
+			if err_slipSkid != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
+				break
+			}
+
+			turnRate, err_turnRate := myMPU.RateOfTurn()
+			if err_turnRate != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
+				break
+			}
+
+			gLoad, err_gLoad := myMPU.GLoad()
+			if err_gLoad != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
+				break
+			}
+
+			mySituation.mu_Attitude.Lock()
+
+			mySituation.Pitch = pitch / DEG
+			mySituation.Roll = roll / DEG
+			mySituation.Gyro_heading = heading / DEG
+			mySituation.Mag_heading = headingMag / DEG
+			mySituation.SlipSkid = slipSkid
+			mySituation.RateOfTurn = turnRate / DEG
+			mySituation.GLoad = gLoad
+			mySituation.LastAttitudeTime = t
+
+			// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
+			mySituation.mu_Attitude.Unlock()
+		} else {
+			mySituation.LastAttitudeTime = time.Time{}
+
 		}
+		makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
-		slipSkid, err_slipSkid := myMPU.SlipSkid()
-		if err_slipSkid != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
-			break
-		}
-
-		turnRate, err_turnRate := myMPU.RateOfTurn()
-		if err_turnRate != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
-			break
-		}
-
-		gLoad, err_gLoad := myMPU.GLoad()
-		if err_gLoad != nil {
-			log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
-			break
-		}
-
-		mySituation.mu_Attitude.Lock()
-
-		mySituation.Pitch = pitch
-		mySituation.Roll = roll
-		mySituation.Gyro_heading = heading
-		mySituation.Mag_heading = headingMag
-		mySituation.SlipSkid = slipSkid
-		mySituation.RateOfTurn = turnRate
-		mySituation.GLoad = gLoad
-		mySituation.LastAttitudeTime = stratuxClock.Time
-
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
-
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		makeAHRSGDL90Report()
-
-		mySituation.mu_Attitude.Unlock()
+		logger.Log(
+			float64(time.Now().UnixNano() / 1000) / 1e6,
+			m.T, m.A1, m.A2, m.A3, m.B1, m.B2, m.B3, m.M1, m.M2, m.M3,
+			float64(mySituation.LastGroundTrackTime.UnixNano() / 1000) / 1e6, m.W1, m.W2, m.W3,
+			float64(mySituation.LastTempPressTime.UnixNano() / 1000) / 1e6, mySituation.Pressure_alt,
+			pitch/DEG, roll/DEG, heading/DEG, headingMag/DEG, slipSkid, turn_Rate/DEG, gLoad,
+			float64(mySituation.LastAttitudeTime.UnixNano() / 1000) / 1e6)
 	}
 	globalStatus.RY83XAI_connected = false
 }
