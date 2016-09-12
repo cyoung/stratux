@@ -5,7 +5,7 @@
 #
 # It expects a fan that's externally powered, and uses GPIO pin 11 for control.
 
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO``
 import time
 import os
 
@@ -25,9 +25,9 @@ class FanControl():
         self.pidfile_timeout = 5
     def run(self):
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(11,GPIO.OUT)
+        GPIO.setup(12, GPIO.OUT)
         GPIO.setwarnings(False)
-        p=GPIO.PWM(11,1000)
+        p=GPIO.PWM(12, 1000)
         PWM = 50
         while True:
             CPU_temp = self.getCPUtemp()
