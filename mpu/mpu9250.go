@@ -36,7 +36,7 @@ func NewMPU9250() (*MPU9250, error) {
 		err error
 	)
 
-	mpu, err = mpu9250.NewMPU9250(GYRORANGE, ACCELRANGE, UPDATEFREQ, false, false)
+	mpu, err = mpu9250.NewMPU9250(GYRORANGE, ACCELRANGE, UPDATEFREQ, true, false)
 	if err != nil {
 		log.Println("AHRS Error: couldn't initialize MPU9250")
 		return nil, err
