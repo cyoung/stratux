@@ -19,8 +19,8 @@ class FanControl():
 
     def __init__(self):
         self.stdin_path = '/dev/null'
-        self.stdout_path = '/dev/tty'
-        self.stderr_path = '/dev/tty'
+        self.stdout_path = '/var/log/fancontrol.log'
+        self.stderr_path = '/var/log/fancontrol.log'
         self.pidfile_path = '/var/run/fancontrol.pid'
         self.pidfile_timeout = 5
     def run(self):

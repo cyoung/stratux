@@ -127,6 +127,8 @@ cp -f config.txt mnt/boot/
 
 #external OLED screen
 apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil python-daemon screen
+#for fancontrol.py:
+pip install wiringpi
 cd /root
 git clone https://github.com/rm-hull/ssd1306
 cd ssd1306 && python setup.py install
@@ -138,4 +140,4 @@ cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Al
 #startup scripts
 cp -f ../__lib__systemd__system__stratux.service mnt/lib/systemd/system/stratux.service
 cp -f ../__root__stratux-pre-start.sh mnt/root/stratux-pre-start.sh
-cp -f ../__root__stratux-post-start.sh mnt/root/stratux-post-start.sh
+cp -f rc.local mnt/etc/rc.local
