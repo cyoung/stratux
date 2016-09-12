@@ -254,7 +254,7 @@ func makeOwnshipReport() bool {
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
-		gdSpeed = uint16(mySituation.GroundSpeed)
+		gdSpeed = uint16(mySituation.GroundSpeed + 0.5)
 	}
 
 	// gdSpeed should fit in 12 bits.
