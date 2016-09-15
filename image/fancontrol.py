@@ -5,7 +5,7 @@
 #
 # It expects a fan that's externally powered, and uses GPIO pin 11 for control.
 
-import RPi.GPIO as GPIO``
+import RPi.GPIO as GPIO
 import time
 import os
 
