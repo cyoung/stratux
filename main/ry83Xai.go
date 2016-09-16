@@ -31,6 +31,7 @@ import (
 	"os/exec"
 
 	"../mpu"
+	"github.com/westphae/goflying/ahrsweb"
 )
 
 const (
@@ -1556,6 +1557,13 @@ func attitudeReaderSender() {
 		"pitch", "roll", "heading", "mag_heading", "slip_skid", "turn_rate", "g_load", "T_Attitude")
 	defer logger.Close()
 
+	kalmanListener, err := ahrsweb.NewKalmanListener()
+	if err != nil {
+		log.Printf("AHRS error starting KalmanListener: %s\n", err.Error())
+	} else {
+		log.Println("AHRS KalmanListener started successfully")
+	}
+
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
@@ -1663,8 +1671,15 @@ func attitudeReaderSender() {
 			float64(mySituation.LastTempPressTime.UnixNano() / 1000) / 1e6, mySituation.Pressure_alt,
 			pitch/DEG, roll/DEG, heading/DEG, headingMag/DEG, slipSkid, turn_Rate/DEG, gLoad,
 			float64(mySituation.LastAttitudeTime.UnixNano() / 1000) / 1e6)
+
+		if kalmanListener != nil {
+			log.Println("AHRS: Sending to KalmanListener")
+			kalmanListener.Send(s, m)
+		}
+		log.Println("AHRS: Finished sending to KalmanListener")
 	}
 	globalStatus.RY83XAI_connected = false
+	kalmanListener.Close()
 }
 
 /*
