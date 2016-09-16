@@ -1544,6 +1544,7 @@ func attitudeReaderSender() {
 		t					time.Time
 		s					*ahrs.State
 		m					*ahrs.Measurement
+		bx, by, bz, ax, ay, az, mx, my, mz	float64
 		mpuError, magError			error
 		headingMag, slipSkid, turn_Rate, gLoad	float64
 	)
@@ -1564,7 +1565,10 @@ func attitudeReaderSender() {
 		// Take Kalman Filter "measurement" sensor readings
 		m.UValid = false //TODO westphae: set m.U1, m.U2, m.U3 here once we have an airspeed sensor
 
-		_, m.B1, m.B2, m.B3, m.A1, m.A2, m.A3, m.M1, m.M2, m.M3, mpuError, magError = myMPU.ReadRaw()
+		_, bx, by, bz, ax, ay, az, mx, my, mz, mpuError, magError = myMPU.ReadRaw()
+		m.B1, m.B2, m.B3 = +by, -bx, +bz // This is how the RY83XAI are wired up
+		m.A1, m.A2, m.A3 = -ay, +ax, -az
+		m.M1, m.M2, m.M3 = +mx, +my, +mz
 		m.SValid = mpuError == nil
 		m.MValid = magError == nil
 		if mpuError != nil {
