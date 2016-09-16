@@ -1602,11 +1602,13 @@ func attitudeReaderSender() {
 
 		// Apply some heuristics:
 		if s.U1 < 0 {
-			s = nil //TODO westphae: can we do something smarter here?
+			//s = nil //TODO westphae: can we do something smarter here?
+			s.U1 = -s.U1
+			s.E0 = -s.E0
 		}
 
 		if droll > 2.5*DEG || dpitch > 2.5*DEG {
-			s = nil
+			//s = nil
 			log.Printf("AHRS too uncertain: roll %5.1f +/- %3.1f, pitch %4.1f +/- %3.1f, heading %5.1f +/- %3.1f\n",
 				roll/DEG, droll/DEG, pitch/DEG, dpitch/DEG, heading/DEG, dheading/DEG)
 		}
@@ -1614,38 +1616,36 @@ func attitudeReaderSender() {
 
 		// If we have valid AHRS info, then send
 		if s != nil {
-			headingMag, err_headingMag := myMPU.MagHeading()
-			if err_headingMag != nil {
-				log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
-			}
-
-			slipSkid, err_slipSkid := myMPU.SlipSkid()
-			if err_slipSkid != nil {
-				log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
-				break
-			}
-
-			turnRate, err_turnRate := myMPU.RateOfTurn()
-			if err_turnRate != nil {
-				log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
-				break
-			}
-
-			gLoad, err_gLoad := myMPU.GLoad()
-			if err_gLoad != nil {
-				log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
-				break
-			}
-
 			mySituation.mu_Attitude.Lock()
+
+			if headingMag, err_headingMag := myMPU.MagHeading(); err_headingMag != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
+			} else {
+				mySituation.Mag_heading = headingMag / DEG
+			}
+
+			if slipSkid, err_slipSkid := myMPU.SlipSkid(); err_slipSkid != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
+			} else {
+				mySituation.SlipSkid = slipSkid
+			}
+
+			if turnRate, err_turnRate := myMPU.RateOfTurn(); err_turnRate != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
+			} else {
+				mySituation.RateOfTurn = turnRate / DEG
+			}
+
+			if gLoad, err_gLoad := myMPU.GLoad(); err_gLoad != nil {
+				log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
+			} else {
+				mySituation.GLoad = gLoad
+			}
 
 			mySituation.Pitch = pitch / DEG
 			mySituation.Roll = roll / DEG
 			mySituation.Gyro_heading = heading / DEG
-			mySituation.Mag_heading = headingMag / DEG
-			mySituation.SlipSkid = slipSkid
-			mySituation.RateOfTurn = turnRate / DEG
-			mySituation.GLoad = gLoad
+
 			mySituation.LastAttitudeTime = t
 
 			// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
