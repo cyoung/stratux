@@ -579,9 +579,19 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err1 != nil {
 				return false
 			}
-			alt := float32(hae*3.28084) - tmpSituation.GeoidSep        // convert to feet and offset by geoid separation
-			tmpSituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
-			tmpSituation.Alt = alt
+
+			// the next 'if' statement is a workaround for a ubx7 firmware bug:
+			// PUBX,00 reports HAE with a floor of zero (i.e. negative altitudes are set to zero). This causes GPS altitude to never read lower than -GeoidSep,
+			// placing minimum GPS altitude at about +80' MSL over most of North America.
+			//
+			// This does not affect GGA messages, so we can just rely on GGA to set altitude in these cases. It's a slower (1 Hz vs 5 Hz / 10 Hz), less precise
+			// (0.1 vs 0.001 mm resolution) report, but in practice the accuracy never gets anywhere near this resolution, so this should be an acceptable tradeoff
+
+			if hae != 0 {
+				alt := float32(hae*3.28084) - tmpSituation.GeoidSep        // convert to feet and offset by geoid separation
+				tmpSituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
+				tmpSituation.Alt = alt
+			}
 
 			tmpSituation.LastFixLocalTime = stratuxClock.Time
 
