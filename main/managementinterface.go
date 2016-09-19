@@ -323,7 +323,7 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
-	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(handler.Filename, globalStatus.HardwareBuild) {
+	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(strings.ToLower(handler.Filename), strings.ToLower(globalStatus.HardwareBuild)) {
 		w.WriteHeader(404)
 		return
 	}
