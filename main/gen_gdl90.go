@@ -959,6 +959,7 @@ type settings struct {
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
+	SerialOutputs        map[string]serialConnection
 	AHRS_Enabled         bool
 	DisplayTrafficSource bool
 	DEBUG                bool

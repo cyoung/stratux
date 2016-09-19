@@ -232,6 +232,22 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "Baud":
+						if serialOut, ok := globalSettings.SerialOutputs["/dev/serialout0"]; ok { //FIXME: Only one device for now.
+							newBaud := int(val.(float64))
+							if newBaud == serialOut.Baud { // Same baud rate. No change.
+								continue
+							}
+							log.Printf("changing /dev/serialout0 baud rate from %d to %d.\n", serialOut.Baud, newBaud)
+							serialOut.Baud = newBaud
+							// Close the port if it is open.
+							if serialOut.serialPort != nil {
+								log.Printf("closing /dev/serialout0 for baud rate change.\n")
+								serialOut.serialPort.Close()
+								serialOut.serialPort = nil
+							}
+							globalSettings.SerialOutputs["/dev/serialout0"] = serialOut
+						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
 					case "OwnshipModeS":

@@ -11,6 +11,7 @@ package main
 
 import (
 	"errors"
+	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
@@ -48,6 +49,12 @@ type networkConnection struct {
 	numOverflows    uint32    // Number of times the queue has overflowed - for calculating the amount to chop off from the queue.
 	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging (relies on messages being sent to update this flag in sendToAllConnectedClients()).
 	FFCrippled      bool
+}
+
+type serialConnection struct {
+	DeviceString string
+	Baud         int
+	serialPort   *serial.Port
 }
 
 var messageQueue chan networkMessage
@@ -113,6 +120,11 @@ func isThrottled(k string) bool {
 }
 
 func sendToAllConnectedClients(msg networkMessage) {
+	if (msg.msgType & NETWORK_GDL90_STANDARD) != 0 {
+		// It's a GDL90 message. Send to serial output channel (which may or may not cause something to happen).
+		serialOutputChan <- msg.msg
+	}
+
 	netMutex.Lock()
 	defer netMutex.Unlock()
 	for k, netconn := range outSockets {
@@ -155,6 +167,65 @@ func sendToAllConnectedClients(msg networkMessage) {
 			}
 			netconn.messageQueue = append(netconn.messageQueue, msg.msg) // each netconn.messageQueue is therefore an array (well, a slice) of formatted GDL90 messages
 			outSockets[k] = netconn
+		}
+	}
+}
+
+var serialOutputChan chan []byte
+
+// Monitor serial output channel, send to serial port.
+func serialOutWatcher() {
+	// Check every 30 seconds for a serial output device.
+	serialTicker := time.NewTicker(30 * time.Second)
+
+	serialDev := "/dev/serialout0" //FIXME: This is temporary. Only one serial output device for now.
+
+	for {
+		select {
+		case <-serialTicker.C:
+			if _, err := os.Stat(serialDev); !os.IsNotExist(err) { // Check if the device file exists.
+				var thisSerialConn serialConnection
+				// Check if we need to start handling a new device.
+				if val, ok := globalSettings.SerialOutputs[serialDev]; !ok {
+					newSerialOut := serialConnection{DeviceString: serialDev, Baud: 38400}
+					log.Printf("detected new serial output, setting up now: %s. Default baudrate 38400.\n", serialDev)
+					if globalSettings.SerialOutputs == nil {
+						globalSettings.SerialOutputs = make(map[string]serialConnection)
+					}
+					globalSettings.SerialOutputs[serialDev] = newSerialOut
+					saveSettings()
+					thisSerialConn = newSerialOut
+				} else {
+					thisSerialConn = val
+				}
+				// Check if we need to open the connection now.
+				if thisSerialConn.serialPort == nil {
+					cfg := &serial.Config{Name: thisSerialConn.DeviceString, Baud: thisSerialConn.Baud}
+					p, err := serial.OpenPort(cfg)
+					if err != nil {
+						log.Printf("serialout port (%s) err: %s\n", thisSerialConn.DeviceString, err.Error())
+						break // We'll attempt again in 30 seconds.
+					} else {
+						log.Printf("opened serialout: Name: %s, Baud: %d\n", thisSerialConn.DeviceString, thisSerialConn.Baud)
+					}
+					// Save the serial port connection.
+					thisSerialConn.serialPort = p
+					globalSettings.SerialOutputs[serialDev] = thisSerialConn
+				}
+			}
+
+		case b := <-serialOutputChan:
+			if val, ok := globalSettings.SerialOutputs[serialDev]; ok {
+				if val.serialPort != nil {
+					_, err := val.serialPort.Write(b)
+					if err != nil { // Encountered an error in writing to the serial port. Close it and set Serial_out_enabled.
+						log.Printf("serialout (%s) port err: %s. Closing port.\n", val.DeviceString, err.Error())
+						val.serialPort.Close()
+						val.serialPort = nil
+						globalSettings.SerialOutputs[serialDev] = val
+					}
+				}
+			}
 		}
 	}
 }
@@ -511,6 +582,7 @@ func ffMonitor() {
 
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
+	serialOutputChan = make(chan []byte, 1024)     // Buffered channel, 1024 GDL90 messages.
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -519,4 +591,5 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
+	go serialOutWatcher()
 }

@@ -17,6 +17,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		settings = angular.fromJson(data);
 		// consider using angular.extend()
 		$scope.rawSettings = angular.toJson(data, true);
+		if ((settings.SerialOutputs !== undefined) && (settings.SerialOutputs !== null) && (settings.SerialOutputs['/dev/serialout0'] !== undefined)) {
+			$scope.Baud = settings.SerialOutputs['/dev/serialout0'].Baud;
+		}
 		$scope.UAT_Enabled = settings.UAT_Enabled;
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
@@ -85,6 +88,18 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			settings["PPM"] = parseInt($scope.PPM);
 			newsettings = {
 				"PPM": settings["PPM"]
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+
+	$scope.updateBaud = function () {
+		settings["Baud"] = 0
+		if (($scope.Baud !== undefined) && ($scope.Baud !== null) && ($scope.Baud !== settings["Baud"])) {
+			settings["Baud"] = parseInt($scope.Baud);
+			newsettings = {
+				"Baud": settings["Baud"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
