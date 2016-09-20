@@ -166,6 +166,7 @@ func sendTrafficUpdates() {
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
 	var msg []byte
+	var msgFLARM []byte
 	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
@@ -205,6 +206,17 @@ func sendTrafficUpdates() {
 				OwnshipTrafficInfo = ti
 			} else {
 				msg = append(msg, makeTrafficReportMsg(ti)...)
+
+				if globalSettings.NetworkFLARM {
+					thisMsgFLARM, validFLARM := makeFlarmPFLAAString(ti)
+					log.Printf(thisMsgFLARM)
+					if validFLARM {
+						msgFLARM = append(msgFLARM, []byte(thisMsgFLARM)...)
+						log.Printf(thisMsgFLARM)
+					} else {
+						log.Printf("Traffic %H couldn't be translated\n", ti.Icao_addr)
+					}
+				}
 			}
 		}
 	}
@@ -212,6 +224,11 @@ func sendTrafficUpdates() {
 	if len(msg) > 0 {
 		sendGDL90(msg, false)
 	}
+
+	if len(msgFLARM) > 0 {
+		sendNetFLARM(msgFLARM)
+	}
+
 }
 
 // Send update to attached JSON client.
