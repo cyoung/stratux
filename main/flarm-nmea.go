@@ -24,7 +24,8 @@ import (
 */
 
 func sendNetFLARM(msg []byte) {
-	sendMsg(msg, NETWORK_FLARM_NMEA, false) // traffic messages are always non-queuable. Define NETWORK_FLARM_NMEA = 8 in network.go
+	sendMsg(msg, NETWORK_FLARM_NMEA, false) // UDP output. Traffic messages are always non-queuable.
+	// TO-DO: add call to TCP server for SkyDemon and RunwayHD
 }
 
 /*
@@ -113,7 +114,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 	}
 
 	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
-	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, climbRate)
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate)
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}

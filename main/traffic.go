@@ -209,12 +209,12 @@ func sendTrafficUpdates() {
 
 				if globalSettings.NetworkFLARM {
 					thisMsgFLARM, validFLARM := makeFlarmPFLAAString(ti)
-					log.Printf(thisMsgFLARM)
+					//log.Printf(thisMsgFLARM)
 					if validFLARM {
 						msgFLARM = append(msgFLARM, []byte(thisMsgFLARM)...)
-						log.Printf(thisMsgFLARM)
+						//log.Printf(thisMsgFLARM)
 					} else {
-						log.Printf("Traffic %H couldn't be translated\n", ti.Icao_addr)
+						log.Printf("FLARM output: Traffic %X couldn't be translated\n", ti.Icao_addr)
 					}
 				}
 			}
