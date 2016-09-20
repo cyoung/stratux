@@ -12,9 +12,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"net"
 	"time"
 )
 
@@ -25,6 +28,7 @@ import (
 
 func sendNetFLARM(msg []byte) {
 	sendMsg(msg, NETWORK_FLARM_NMEA, false) // UDP output. Traffic messages are always non-queuable.
+	msgchan <- string(msg[:])
 	// TO-DO: add call to TCP server for SkyDemon and RunwayHD
 }
 
@@ -220,4 +224,120 @@ func makeGPRMCString() string {
 	}
 	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
 	return msg
+}
+
+/*
+
+Basic TCP server for sending NMEA messages to SkyDemon and RunwayHD.
+
+Based on Andreas Krennmair's "Let's build a network application!" chat server demo
+http://synflood.at/tmp/golang-slides/mrmcd2012.html#2
+
+*/
+
+type tcpClient struct {
+	conn net.Conn
+	ch   chan string
+}
+
+var msgchan chan string
+
+func tcpNMEAListener() {
+	ln, err := net.Listen("tcp", ":2000")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	msgchan = make(chan string)
+	addchan := make(chan tcpClient)
+	rmchan := make(chan tcpClient)
+
+	go handleMessages(msgchan, addchan, rmchan)
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		go handleConnection(conn, msgchan, addchan, rmchan)
+	}
+}
+
+/*
+func (c tcpClient) ReadLinesInto(ch chan<- string) {
+	bufc := bufio.NewReader(c.conn)
+	for {
+		line, err := bufc.ReadString('\n')
+		if err != nil {
+			break
+		}
+		ch <- fmt.Sprintf("%s: %s", c.nickname, line)
+	}
+}
+*/
+
+func (c tcpClient) WriteLinesFrom(ch <-chan string) {
+	for msg := range ch {
+		_, err := io.WriteString(c.conn, msg)
+		if err != nil {
+			return
+		}
+	}
+}
+
+func handleConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClient, rmchan chan<- tcpClient) {
+	bufc := bufio.NewReader(c)
+	defer c.Close()
+	client := tcpClient{
+		conn: c,
+		ch:   make(chan string),
+	}
+
+	passcode := ""
+	for passcode != "6000" {
+		io.WriteString(c, "PASS?")
+		log.Printf("Scanning the passcode\n")
+		code, _, err := bufc.ReadLine()
+
+		if err != nil {
+			continue
+		}
+		passcode = string(code)
+		log.Printf("Received passcode %s from client %s\n", passcode, c.RemoteAddr())
+	}
+	io.WriteString(c, "AOK\n\n") // correct passcode received; continue to writes
+
+	// Register user
+	addchan <- client
+	defer func() {
+		log.Printf("Connection from %v closed.\n", c.RemoteAddr())
+		rmchan <- client
+	}()
+
+	// I/O
+	//go client.ReadLinesInto(msgchan)
+	client.WriteLinesFrom(client.ch)
+}
+
+func handleMessages(msgchan <-chan string, addchan <-chan tcpClient, rmchan <-chan tcpClient) {
+	clients := make(map[net.Conn]chan<- string)
+
+	for {
+		select {
+		case msg := <-msgchan:
+			log.Printf("New message: %s", msg)
+			for _, ch := range clients {
+				go func(mch chan<- string) { mch <- msg }(ch)
+			}
+		case client := <-addchan:
+			log.Printf("New client: %v\n", client.conn)
+			clients[client.conn] = client.ch
+		case client := <-rmchan:
+			log.Printf("Client disconnects: %v\n", client.conn)
+			delete(clients, client.conn)
+		}
+	}
 }
