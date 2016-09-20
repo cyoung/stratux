@@ -594,6 +594,11 @@ func heartBeatSender() {
 			*/
 
 			// ---end traffic demo code ---
+			
+			if globalSettings.NetworkFLARM {
+				sendNetFLARM([]byte(makeGPRMCString()))
+			}
+			
 			sendTrafficUpdates()
 			updateStatus()
 		case <-timerMessageStats.C:
@@ -964,6 +969,7 @@ type settings struct {
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
+	NetworkFLARM         bool
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
@@ -1012,11 +1018,13 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
+		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
+	globalSettings.NetworkFLARM = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 }

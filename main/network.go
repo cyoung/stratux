@@ -70,6 +70,7 @@ const (
 	NETWORK_GDL90_STANDARD = 1
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
+	NETWORK_FLARM_NMEA     = 8
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
 )
 

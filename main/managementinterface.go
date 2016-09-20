@@ -223,6 +223,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.AHRS_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
+					case "NetworkFLARM":
+						globalSettings.NetworkFLARM = val.(bool)
 					case "DisplayTrafficSource":
 						globalSettings.DisplayTrafficSource = val.(bool)
 					case "ReplayLog":

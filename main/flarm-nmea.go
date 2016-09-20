@@ -13,7 +13,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
+	"time"
 )
 
 /*
@@ -139,10 +141,10 @@ func makeGPRMCString() string {
 			     003.1,W      Magnetic Variation
 			     D				mode field (nmea 2.3 and higher)
 			     *6A          The checksum data, always begins with *
-		lastFixSinceMidnightUTC uint32
+		LastFixSinceMidnightUTC uint32
 		Lat                     float32
 		Lng                     float32
-		quality                 uint8
+		Quality                 uint8
 		GeoidSep                float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
 		Satellites              uint16  // satellites used in solution
 		SatellitesTracked       uint16  // satellites tracked (almanac data received)
@@ -158,14 +160,14 @@ func makeGPRMCString() string {
 		LastGroundTrackTime     time.Time
 	*/
 
-	lastFix := float64(mySituation.lastFixSinceMidnightUTC)
+	lastFix := float64(mySituation.LastFixSinceMidnightUTC)
 	hr := math.Floor(lastFix / 3600)
 	lastFix -= 3600 * hr
 	mins := math.Floor(lastFix / 60)
 	sec := lastFix - mins*60
 
 	status := "V"
-	if isGPSValid() && mySituation.quality > 0 {
+	if isGPSValid() && mySituation.Quality > 0 {
 		status = "A"
 	}
 
@@ -197,9 +199,9 @@ func makeGPRMCString() string {
 	yy = yy % 100
 	var magVar, mvEW string
 	mode := "N"
-	if mySituation.quality == 1 {
+	if mySituation.Quality == 1 {
 		mode = "A"
-	} else if mySituation.quality == 2 {
+	} else if mySituation.Quality == 2 {
 		mode = "D"
 	}
 
