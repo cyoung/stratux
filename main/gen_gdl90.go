@@ -594,10 +594,6 @@ func heartBeatSender() {
 
 			// ---end traffic demo code ---
 
-			if globalSettings.NetworkFLARM {
-				sendNetFLARM([]byte(makeGPRMCString()))
-			}
-
 			sendTrafficUpdates()
 			updateStatus()
 		case <-timerMessageStats.C:

@@ -862,6 +862,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 
 	} else if (x[0] == "GNGGA") || (x[0] == "GPGGA") { // Position fix.
+		// send GGA message to FLARM output
+		//sendNetFLARM(l+"\r\n")
+
 		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
 
 		if len(x) < 15 {

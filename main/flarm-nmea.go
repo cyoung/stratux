@@ -12,7 +12,7 @@
 package main
 
 import (
-	"bufio"
+	//"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -22,14 +22,17 @@ import (
 )
 
 /*
-	sendNetFLARM() is a shortcut to network.go 'sendMsg()', and will send the referenced byte slice to the network port
-		defined by NETWORK_FLARM_NMEA in gen_gdl90.go as a non-queueable message.
+	sendNetFLARM() is a shortcut to network.go 'sendMsg()', and will send the referenced byte slice to the UDP network port
+		defined by NETWORK_FLARM_NMEA in gen_gdl90.go as a non-queueable message to be used in XCSoar. It will also queue
+		the message into a channel so it can be	sent out to a TCP server. 
 */
 
-func sendNetFLARM(msg []byte) {
-	sendMsg(msg, NETWORK_FLARM_NMEA, false) // UDP output. Traffic messages are always non-queuable.
-	msgchan <- string(msg[:])
-	// TO-DO: add call to TCP server for SkyDemon and RunwayHD
+func sendNetFLARM(msg string) {
+	if globalSettings.NetworkFLARM {
+		sendMsg([]byte(msg), NETWORK_FLARM_NMEA, false) // UDP (and possibly future serial) output. Traffic messages are always non-queuable.
+	}
+	msgchan <- msg // TCP output.
+	
 }
 
 /*
@@ -107,22 +110,39 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 	relativeVertical = int16(float64(ti.Alt)*0.3048 - altf*0.3048) // convert to meters
 
 	// demo of alarm levels... may remove for final release.
+	
 	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
 		alarmLevel = 2
 	} else if (dist < 1852) && (relativeVertical < 304) && (relativeVertical > -304) { // 1852 m = 1.0 NM ; 304 m = 1000'
 		alarmLevel = 1
 	}
-
+		
 	if ti.Speed_valid {
 		groundSpeed = int16(float32(ti.Speed) * 0.5144) // convert to m/s
 	}
 
+	acType := 0
+	switch ti.Emitter_category {
+		case 9:
+			acType = 1 // glider
+		case 7:
+			acType = 3 // rotorcraft
+		case 1:
+			acType = 8 // assume all light aircraft are piston
+		case 2, 3, 4, 5, 6:
+			acType = 9 // assume all heavier aircraft are jets
+		default:
+			acType = 0
+	}
+			
+	
+	
 	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
-	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,0,%d,%0.1f,0", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate)
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,0,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}
-	msg = (fmt.Sprintf("$%s*%X\r\n", msg, checksum))
+	msg = (fmt.Sprintf("$%s*%02X\r\n", msg, checksum))
 	valid = true
 	return
 }
@@ -228,7 +248,8 @@ func makeGPRMCString() string {
 
 /*
 
-Basic TCP server for sending NMEA messages to SkyDemon and RunwayHD.
+Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible) 
+software: SkyDemon, RunwayHD, etc.
 
 Based on Andreas Krennmair's "Let's build a network application!" chat server demo
 http://synflood.at/tmp/golang-slides/mrmcd2012.html#2
@@ -289,36 +310,44 @@ func (c tcpClient) WriteLinesFrom(ch <-chan string) {
 }
 
 func handleConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClient, rmchan chan<- tcpClient) {
-	bufc := bufio.NewReader(c)
+	//bufc := bufio.NewReader(c)
 	defer c.Close()
 	client := tcpClient{
 		conn: c,
 		ch:   make(chan string),
 	}
-
-	passcode := ""
-	for passcode != "6000" {
+	io.WriteString(c, "PASS?")
+	
+	// disabling passcode checks. RunwayHD and SkyDemon don't send CR / LF, and PIN check is something else that can go wrong.
+	//time.Sleep(100 * time.Millisecond)
+	
+	//code, _, _ := bufc.ReadLine()
+	//log.Printf("Passcode entry was %v\n",code)
+	
+	//passcode := ""
+	/*for passcode != "6000" {
 		io.WriteString(c, "PASS?")
-		log.Printf("Scanning the passcode\n")
 		code, _, err := bufc.ReadLine()
 
 		if err != nil {
+			log.Printf("Error scanning passcode from client %s: %s\n",c.RemoteAddr(), err)
 			continue
 		}
 		passcode = string(code)
 		log.Printf("Received passcode %s from client %s\n", passcode, c.RemoteAddr())
 	}
-	io.WriteString(c, "AOK\n\n") // correct passcode received; continue to writes
-
+	*/
+	io.WriteString(c, "AOK") // correct passcode received; continue to writes
+	log.Printf("Correct passcode on client %s. Unlocking.\n", c.RemoteAddr())
 	// Register user
 	addchan <- client
 	defer func() {
-		log.Printf("Connection from %v closed.\n", c.RemoteAddr())
+		log.Printf("Connection from %s closed.\n", c.RemoteAddr())
 		rmchan <- client
 	}()
 
 	// I/O
-	//go client.ReadLinesInto(msgchan)
+	//go client.ReadLinesInto(msgchan)  //treating the port as read-only once it's opened
 	client.WriteLinesFrom(client.ch)
 }
 
@@ -328,7 +357,9 @@ func handleMessages(msgchan <-chan string, addchan <-chan tcpClient, rmchan <-ch
 	for {
 		select {
 		case msg := <-msgchan:
-			log.Printf("New message: %s", msg)
+			if globalSettings.DEBUG {
+				log.Printf("New message: %s", msg)
+			}
 			for _, ch := range clients {
 				go func(mch chan<- string) { mch <- msg }(ch)
 			}
