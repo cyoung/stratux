@@ -218,7 +218,7 @@ func sendTrafficUpdates() {
 				} else {
 					//log.Printf("FLARM output: Traffic %X couldn't be translated\n", ti.Icao_addr)
 				}
-				
+
 			}
 		}
 	}
@@ -228,21 +228,23 @@ func sendTrafficUpdates() {
 	}
 
 	// netFLARM messages:
-	
+
 	sendNetFLARM(makeGPRMCString())
 	if len(msgFLARM) > 0 {
 		sendNetFLARM(msgFLARM)
 	}
-	
-	msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,1,,0,,",numFLARMTargets)
-	
+
+	// syntax: PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
+	msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,0,,0,,", numFLARMTargets)
+	// to-do: update <gps> field with flight / ground status
+
 	checksumPFLAU := byte(0x00)
 	for i := range msgPFLAU {
 		checksumPFLAU = checksumPFLAU ^ byte(msgPFLAU[i])
 	}
 	msgPFLAU = (fmt.Sprintf("$%s*%02X\r\n", msgPFLAU, checksumPFLAU))
 	sendNetFLARM(msgPFLAU)
-	
+
 }
 
 // Send update to attached JSON client.
