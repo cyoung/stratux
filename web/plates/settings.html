@@ -61,9 +61,21 @@
 					</div>
 				</div>
 				<div class="form-group">
+					<label class="control-label col-xs-7">GDL90 over UDP Port 4000</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='NetworkGDL90' settings-change></ui-switch>
+					</div>
+				</div>
+								<div class="form-group">
 					<label class="control-label col-xs-7">FLARM NMEA over UDP Port 10110</label>
 					<div class="col-xs-5">
 						<ui-switch ng-model='NetworkFLARM' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Demo Traffic Targets</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='DemoTraffic' settings-change></ui-switch>
 					</div>
 				</div>
 			</div>

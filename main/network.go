@@ -394,11 +394,18 @@ func messageQueueSender() {
 }
 
 func sendMsg(msg []byte, msgType uint8, queueable bool) {
-	messageQueue <- networkMessage{msg: msg, msgType: msgType, queueable: queueable, ts: stratuxClock.Time}
+	if globalSettings.NetworkGDL90 || (msgType&(NETWORK_GDL90_STANDARD|NETWORK_AHRS_GDL90)) == 0 {
+		messageQueue <- networkMessage{msg: msg, msgType: msgType, queueable: queueable, ts: stratuxClock.Time}
+		//log.Printf("Network output active. Sending message of type %d.\n",msgType)
+	} else {
+		//log.Printf("GDL90 network output disabled. Not sending message of type %d.\n",msgType)
+	}
 }
 
 func sendGDL90(msg []byte, queueable bool) {
+	//if globalSettings.NetworkGDL90 {
 	sendMsg(msg, NETWORK_GDL90_STANDARD, queueable)
+	//}
 }
 
 func monitorDHCPLeases() {

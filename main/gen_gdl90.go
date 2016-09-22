@@ -576,23 +576,22 @@ func heartBeatSender() {
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
 
-			// --- debug code: traffic demo ---
-			// Uncomment and compile to display large number of artificial traffic targets
+			if globalSettings.DemoTraffic {
+				// --- debug code: traffic demo ---
+				numTargets := uint32(12)
+				hexCode := uint32(0xFF0000) // base code is outside the range of any nationally assigned code to prevent conflicts with real traffic
 
-			numTargets := uint32(4)
-			hexCode := uint32(0xAF0000)
+				for i := uint32(0); i < numTargets; i++ {
+					tail := fmt.Sprintf("DMO%d", i)
+					alt := float32((i*117%2000)*25 + 2000)
+					hdg := int32((i * 149) % 360) // initial heading
+					spd := float64(50 + ((i*23)%13)*37)
 
-			for i := uint32(0); i < numTargets; i++ {
-				tail := fmt.Sprintf("DMO%d", i)
-				alt := float32((i*117%2000)*25 + 2000)
-				hdg := int32((i * 149) % 360)
-				spd := float64(50 + ((i*23)%13)*37)
+					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
-				updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
-
+				}
+				// ---end traffic demo code ---
 			}
-
-			// ---end traffic demo code ---
 
 			sendTrafficUpdates()
 			updateStatus()
@@ -963,8 +962,10 @@ type settings struct {
 	AHRS_Enabled         bool
 	DisplayTrafficSource bool
 	DEBUG                bool
+	DemoTraffic          bool // will set "false" and remove control from UI when finished with FLARM eval / debug
 	ReplayLog            bool
 	NetworkFLARM         bool
+	NetworkGDL90         bool // temporary -- will remove when finished with FLARM eval / debug
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
@@ -1013,13 +1014,15 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
-		{Conn: nil, Ip: "", Port: 10110, Capability: NETWORK_FLARM_NMEA}, // UDP output. Compatible with XCSoar
+		{Conn: nil, Ip: "", Port: 10110, Capability: NETWORK_FLARM_NMEA}, // UDP output on IANA-assigned NMEA port. Compatible with XCSoar
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
+	globalSettings.DemoTraffic = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.NetworkFLARM = false
+	globalSettings.NetworkGDL90 = true
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 }

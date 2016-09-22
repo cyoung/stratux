@@ -6,7 +6,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'NetworkFLARM']; 
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'NetworkFLARM', 'NetworkGDL90', 'DemoTraffic', ]; 
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -29,7 +29,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.AHRS_Enabled = settings.AHRS_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
+		$scope.DemoTraffic = settings.DemoTraffic;
 		$scope.NetworkFLARM = settings.NetworkFLARM;
+		$scope.NetworkGDL90 = settings.NetworkGDL90;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;

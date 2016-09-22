@@ -225,6 +225,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.DEBUG = val.(bool)
 					case "NetworkFLARM":
 						globalSettings.NetworkFLARM = val.(bool)
+					case "NetworkGDL90":
+						globalSettings.NetworkGDL90 = val.(bool)
+					case "DemoTraffic":
+						globalSettings.DemoTraffic = val.(bool)
 					case "DisplayTrafficSource":
 						globalSettings.DisplayTrafficSource = val.(bool)
 					case "ReplayLog":
