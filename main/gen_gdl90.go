@@ -770,7 +770,7 @@ func registerADSBTextMessageReceived(msg string) {
     if (x[0] == "METAR") || (x[0] == "SPECI") {
         globalStatus.UAT_METAR_total++
     }
-    if x[0] == "TAF" {
+    if (x[0] == "TAF") || (x[0] == "TAF.AMD") {
         globalStatus.UAT_TAF_total++
     }
     if x[0] == "WINDS" {
@@ -790,6 +790,29 @@ func registerADSBTextMessageReceived(msg string) {
 
 	// Send to weatherUpdate channel for any connected clients.
 	weatherUpdate.Send(wmJSON)
+}
+
+func UpdateUATStats(ProductID uint32) {
+    switch ProductID {
+        case 0,20:
+            globalStatus.UAT_METAR_total++
+        case 1,21:
+            globalStatus.UAT_TAF_total++
+        case 51,52,53,54,55,56,57,58,59,60,61,62,63,64,81,82,83:
+            globalStatus.UAT_NEXRAD_total++
+        // AIRMET and SIGMETS
+        case 2,3,4,6,11,12,22,23,24,26,254:
+            globalStatus.UAT_SIGMET_total++
+        case 5,25:
+            globalStatus.UAT_PIREP_total++
+        case 8:
+            globalStatus.UAT_NOTAM_total++
+        case 413:
+            // Do nothing in the case since text is recorded elsewhere
+            return
+        default:
+            globalStatus.UAT_OTHER_total++
+    }
 }
 
 func parseInput(buf string) ([]byte, uint16) {
