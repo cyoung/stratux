@@ -766,7 +766,20 @@ func registerADSBTextMessageReceived(msg string) {
 	}
 
 	var wm WeatherMessage
-
+    
+    if (x[0] == "METAR") || (x[0] == "SPECI") {
+        globalStatus.UAT_METAR_total++
+    }
+    if x[0] == "TAF" {
+        globalStatus.UAT_TAF_total++
+    }
+    if x[0] == "WINDS" {
+        globalStatus.UAT_TAF_total++
+    }
+    if x[0] == "PIREP" {
+        globalStatus.UAT_PIREP_total++
+    }
+    
 	wm.Type = x[0]
 	wm.Location = x[1]
 	wm.Time = x[2]
@@ -865,6 +878,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
+                	UpdateUATStats(f.Product_id)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
@@ -999,6 +1013,14 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	UAT_METAR_total                            uint32
+	UAT_TAF_total                              uint32
+	UAT_NEXRAD_total                           uint32
+	UAT_SIGMET_total                           uint32
+	UAT_PIREP_total                            uint32
+	UAT_NOTAM_total                            uint32
+	UAT_OTHER_total                            uint32
+    
 	Errors                                     []string
 }
 

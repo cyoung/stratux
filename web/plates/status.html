@@ -89,7 +89,38 @@
 				</div>
 				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
 				<div class="separator"></div>
-
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-6">
+                        <span><strong>UAT Statistics</strong></span>
+                    </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <span align="center" class="col-xs-2">METARS</span>
+                        <span align="center" class="col-xs-1">TAFS</span>
+                        <span align="center" class="col-xs-2">NEXRAD</span>
+                        <span align="center" class="col-xs-1">PIREP</span>
+                        <span align="center" class="col-xs-2">SIGMET</span>
+                        <span align="center" class="col-xs-2">NOTAMS</span>
+                        <span align="center" class="col-xs-2">Other</span>
+                     </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <span align="center" class="col-xs-2">{{UAT_METAR_total}}</span>
+                        <span align="center" class="col-xs-1">{{UAT_TAF_total}}</span>
+                        <span align="center" class="col-xs-2">{{UAT_NEXRAD_total}}</span>
+                        <span align="center" class="col-xs-1">{{UAT_PIREP_total}}</span>
+                        <span align="center" class="col-xs-2">{{UAT_SIGMET_total}}</span>
+                        <span align="center" class="col-xs-2">{{UAT_NOTAM_total}}</span>
+                        <span align="center" class="col-xs-2">{{UAT_OTHER_total}}</span>
+                    </div>
+                    
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+				<div class="separator"></div>
+				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
+				<div class="separator"></div>
 				<div class="row">
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-5"><strong>Uptime:</strong></span>
