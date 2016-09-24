@@ -24,7 +24,7 @@ import (
 /*
 	sendNetFLARM() is a shortcut to network.go 'sendMsg()', and will send the referenced byte slice to the UDP network port
 		defined by NETWORK_FLARM_NMEA in gen_gdl90.go as a non-queueable message to be used in XCSoar. It will also queue
-		the message into a channel so it can be	sent out to a TCP server. 
+		the message into a channel so it can be	sent out to a TCP server.
 */
 
 func sendNetFLARM(msg string) {
@@ -32,7 +32,7 @@ func sendNetFLARM(msg string) {
 		sendMsg([]byte(msg), NETWORK_FLARM_NMEA, false) // UDP (and possibly future serial) output. Traffic messages are always non-queuable.
 	}
 	msgchan <- msg // TCP output.
-	
+
 }
 
 /*
@@ -51,6 +51,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 							2 = alarm, 9-12 seconds to impact
 							3 = alarm, 0-8 seconds to impact
 			<RelativeNorth>,<RelativeEast>,<RelativeVertical> are distances in meters. Decimal integer value. Range: from -32768 to 32767.
+				For traffic without known bearing, assign estimated distance to <RelativeNorth> and leave <RelativeEast> empty
 			<IDType>: 1 = official ICAO 24-bit aircraft address; 2 = stable FLARM ID (chosen by FLARM) 3 = anonymous ID, used if stealth mode is activated.
 			For ADS-B traffic, we'll always pick 1.
 			<ID>: 6-digit hexadecimal value (e.g. “5A77B1”) as configured in the target’s PFLAC,,ID sentence. For ADS-B targets always use reported 24-bit ICAO address.
@@ -82,7 +83,8 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 
 	var alarmLevel, idType, checksum uint8
 	var relativeNorth, relativeEast, relativeVertical, groundSpeed int16
-	var climbRate float32
+	//var climbRate float32
+	var msg2 string
 
 	idType = 1
 
@@ -110,39 +112,47 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 	relativeVertical = int16(float64(ti.Alt)*0.3048 - altf*0.3048) // convert to meters
 
 	// demo of alarm levels... may remove for final release.
-	
+
 	if (dist < 926) && (relativeVertical < 152) && (relativeVertical > -152) { // 926 m = 0.5 NM; 152m = 500'
 		alarmLevel = 2
 	} else if (dist < 1852) && (relativeVertical < 304) && (relativeVertical > -304) { // 1852 m = 1.0 NM ; 304 m = 1000'
 		alarmLevel = 1
 	}
-		
+
 	if ti.Speed_valid {
 		groundSpeed = int16(float32(ti.Speed) * 0.5144) // convert to m/s
 	}
 
 	acType := 0
 	switch ti.Emitter_category {
-		case 9:
-			acType = 1 // glider
-		case 7:
-			acType = 3 // rotorcraft
-		case 1:
-			acType = 8 // assume all light aircraft are piston
-		case 2, 3, 4, 5, 6:
-			acType = 9 // assume all heavier aircraft are jets
-		default:
-			acType = 0
+	case 9:
+		acType = 1 // glider
+	case 7:
+		acType = 3 // rotorcraft
+	case 1:
+		acType = 8 // assume all light aircraft are piston
+	case 2, 3, 4, 5, 6:
+		acType = 9 // assume all heavier aircraft are jets
+	default:
+		acType = 0
 	}
-			
-	
-	
-	climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
-	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,0,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
+
+	//climbRate = float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
+	msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,,%d,,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Track, groundSpeed, acType)
+	//msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
+	msg2 = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X!%s,,,,,%d", alarmLevel, int16(dist), relativeVertical, idType, ti.Icao_addr+1024, ti.Tail, acType) // prototype for bearingless traffic
 	for i := range msg {
 		checksum = checksum ^ byte(msg[i])
 	}
 	msg = (fmt.Sprintf("$%s*%02X\r\n", msg, checksum))
+
+	checksum = 0 // reset for next message
+	for i := range msg2 {
+		checksum = checksum ^ byte(msg2[i])
+	}
+
+	msg2 = (fmt.Sprintf("$%s*%02X\r\n", msg2, checksum))
+	msg = msg + msg2
 	valid = true
 	return
 }
@@ -246,9 +256,88 @@ func makeGPRMCString() string {
 	return msg
 }
 
+func makeGPGGAString() string {
+	/*
+	 xxGGA
+	 time
+	 lat (degmin.mmm)
+	 NS
+	 long (degmin.mmm)
+	 EW
+	 quality
+	 numSV
+	 HDOP
+	 alt
+	 ualt
+	 sep
+	 uSep
+	 diffAge
+	 diffStation
+	*/
+
+	thisSituation := mySituation
+	lastFix := float64(thisSituation.LastFixSinceMidnightUTC)
+	hr := math.Floor(lastFix / 3600)
+	lastFix -= 3600 * hr
+	mins := math.Floor(lastFix / 60)
+	sec := lastFix - mins*60
+
+	lat := float64(mySituation.Lat)
+	ns := "N"
+	if lat < 0 {
+		lat = -lat
+		ns = "S"
+	}
+
+	deg := math.Floor(lat)
+	min := (lat - deg) * 60
+	lat = deg*100 + min
+
+	ew := "E"
+	lng := float64(mySituation.Lng)
+	if lng < 0 {
+		lng = -lng
+		ew = "W"
+	}
+
+	deg = math.Floor(lng)
+	min = (lng - deg) * 60
+	lng = deg*100 + min
+
+	numSV := thisSituation.Satellites
+	if numSV > 12 {
+		numSV = 12
+	}
+
+	//hdop := float32(thisSituation.Accuracy / 4.0)
+	//if hdop < 0.7 {hdop = 0.7}
+	hdop := 1.0
+
+	alt := thisSituation.Alt / 3.28084
+	geoidSep := thisSituation.GeoidSep / 3.28084
+
+	var msg string
+
+	if isGPSValid() {
+		msg = fmt.Sprintf("GPGGA,%02.f%02.f%05.2f,%010.5f,%s,%011.5f,%s,%d,%d,%.2f,%.1f,M,%.1f,M,,", hr, mins, sec, lat, ns, lng, ew, thisSituation.Quality, numSV, hdop, alt, geoidSep)
+	} else {
+		msg = fmt.Sprintf("GPTXT,Nope")
+
+		//msg = fmt.Sprintf("GPRMC,,%s,,,,,,,%02d%02d%02d,%s,%s,%s", status, dd, mm, yy, magVar, mvEW, mode) // return null lat-lng and velocity if invalid GPS
+	}
+
+	var checksum byte
+	for i := range msg {
+		checksum = checksum ^ byte(msg[i])
+	}
+	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
+	return msg
+
+}
+
 /*
 
-Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible) 
+Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible)
 software: SkyDemon, RunwayHD, etc.
 
 Based on Andreas Krennmair's "Let's build a network application!" chat server demo
@@ -270,7 +359,7 @@ func tcpNMEAListener() {
 		return
 	}
 
-	msgchan = make(chan string)
+	msgchan = make(chan string, 1024) // buffered channel n = 1024
 	addchan := make(chan tcpClient)
 	rmchan := make(chan tcpClient)
 
@@ -317,13 +406,13 @@ func handleConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClien
 		ch:   make(chan string),
 	}
 	io.WriteString(c, "PASS?")
-	
+
 	// disabling passcode checks. RunwayHD and SkyDemon don't send CR / LF, and PIN check is something else that can go wrong.
 	//time.Sleep(100 * time.Millisecond)
-	
+
 	//code, _, _ := bufc.ReadLine()
 	//log.Printf("Passcode entry was %v\n",code)
-	
+
 	//passcode := ""
 	/*for passcode != "6000" {
 		io.WriteString(c, "PASS?")

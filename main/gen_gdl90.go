@@ -578,11 +578,11 @@ func heartBeatSender() {
 
 			if globalSettings.DemoTraffic {
 				// --- debug code: traffic demo ---
-				numTargets := uint32(12)
+				numTargets := uint32(4)
 				hexCode := uint32(0xFF0000) // base code is outside the range of any nationally assigned code to prevent conflicts with real traffic
 
 				for i := uint32(0); i < numTargets; i++ {
-					tail := fmt.Sprintf("DMO%d", i)
+					tail := fmt.Sprintf("SXDMO%d", i)
 					alt := float32((i*117%2000)*25 + 2000)
 					hdg := int32((i * 149) % 360) // initial heading
 					spd := float64(50 + ((i*23)%13)*37)

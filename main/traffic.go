@@ -230,12 +230,15 @@ func sendTrafficUpdates() {
 	// netFLARM messages:
 
 	sendNetFLARM(makeGPRMCString())
+	sendNetFLARM(makeGPGGAString())
+	sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n")
+
 	if len(msgFLARM) > 0 {
 		sendNetFLARM(msgFLARM)
 	}
 
 	// syntax: PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
-	msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,0,,0,,", numFLARMTargets)
+	msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,0,,0,,", numFLARMTargets*2)
 	// to-do: update <gps> field with flight / ground status
 
 	checksumPFLAU := byte(0x00)
@@ -243,6 +246,10 @@ func sendTrafficUpdates() {
 		checksumPFLAU = checksumPFLAU ^ byte(msgPFLAU[i])
 	}
 	msgPFLAU = (fmt.Sprintf("$%s*%02X\r\n", msgPFLAU, checksumPFLAU))
+
+	//msgFLARM = makeGPRMCString() + makeGPGGAString() + msgFLARM + msgPFLAU
+	//sendNetFLARM(msgFLARM)
+
 	sendNetFLARM(msgPFLAU)
 
 }
