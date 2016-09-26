@@ -9,6 +9,8 @@
 # Detect RPi version.
 #  Per http://elinux.org/RPi_HardwareHistory
 
+DAEMON_CUSTOM_SSID=/etc/hostapd/ssid.conf
+DAEMON_TMP=/tmp/hostapd.conf
 DAEMON_CONF=/etc/hostapd/hostapd.conf
 DAEMON_SBIN=/usr/sbin/hostapd
 EW7811Un=$(lsusb | grep EW-7811Un)
@@ -21,8 +23,16 @@ else
  DAEMON_CONF=/etc/hostapd/hostapd.conf
 fi
 
+cp -f ${DAEMON_CONF} ${DAEMON_TMP}
 
-${DAEMON_SBIN} -B ${DAEMON_CONF}
+SSID="stratux"
+
+if [ -e "${DAEMON_CUSTOM_SSID}" ]; then
+	SSID="$(cat ${DAEMON_CUSTOM_SSID})"
+fi
+#Append the SSID to the configuration file
+echo "ssid=$SSID" >> ${DAEMON_TMP}
+${DAEMON_SBIN} -B ${DAEMON_TMP}
 
 sleep 5
 
