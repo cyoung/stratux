@@ -56,7 +56,13 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) : "");
 			$scope.RY835AI_connected = status.RY835AI_connected;
-
+			$scope.UAT_METAR_total = status.UAT_METAR_total;
+			$scope.UAT_TAF_total = status.UAT_TAF_total;
+			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
+			$scope.UAT_SIGMET_total = status.UAT_SIGMET_total;
+			$scope.UAT_PIREP_total = status.UAT_PIREP_total;
+			$scope.UAT_NOTAM_total = status.UAT_NOTAM_total;
+			$scope.UAT_OTHER_total = status.UAT_OTHER_total;
 			// Errors array.
 			if (status.Errors.length > 0) {
 				$scope.visible_errors = true;
