@@ -570,6 +570,9 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
+			// Turn on green ACT LED on the Pi.
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
@@ -1240,6 +1243,8 @@ func gracefulShutdown() {
 
 	//TODO: Any other graceful shutdown functions.
 
+	// Turn off green ACT LED on the Pi.
+	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
 	os.Exit(1)
 }
 
