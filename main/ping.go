@@ -11,7 +11,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	//"fmt"
 	"log"
 	"os"
 	"strings"
@@ -148,8 +148,8 @@ func pingSerialReader() {
 		s := scanner.Text()
 		// Trimspace removes newlines as well as whitespace
 		s = strings.TrimSpace(s)
-		logString := fmt.Sprintf("Ping received: %s", s)
-		log.Println(logString)
+		//logString := fmt.Sprintf("Ping received: %s", s)
+		//log.Println(logString)
 		if s[0] == '*' {
 			// 1090ES report
 			// Ping appends a signal strength at the end of the message
