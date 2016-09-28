@@ -71,6 +71,7 @@ const (
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
+        extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
@@ -97,6 +98,26 @@ func getDHCPLeases() (map[string]string, error) {
 			ret[block_ip] = ""
 		}
 	}
+    
+    // Added the ability to have static IP hosts stored in /etc/stratux-static-hosts.conf
+    
+    dat2, err := ioutil.ReadFile(extra_hosts_file)
+    if err != nil {
+        return ret, nil
+    }
+    
+    iplines := strings.Split(string(dat2), "\n")
+	block_ip2 := ""
+	for _, ipline := range iplines {
+		spacedip := strings.Split(ipline, " ")
+        if len(spacedip) == 2 {
+            // The ip is in block_ip2
+            block_ip2 = spacedip[0]
+            // the hostname is here
+            ret[block_ip2] = spacedip[1]
+        }
+	}
+    
 	return ret, nil
 }
 
