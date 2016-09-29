@@ -812,6 +812,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					// We only update ANY of the times if all of the time parsing is complete.
 					mySituation.LastGPSTimeTime = stratuxClock.Time
 					mySituation.GPSTime = gpsTime
+					stratuxClock.SetRealTimeReference(gpsTime)
 					mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
@@ -986,9 +987,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
-			if err == nil {
+			if err == nil && gpsTime.After(time.Date(2016, time.January, 0, 0, 0, 0, 0, time.UTC)) { // Ignore dates before 2016-JAN-01.
 				tmpSituation.LastGPSTimeTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
+				stratuxClock.SetRealTimeReference(gpsTime)
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)
