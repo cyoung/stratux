@@ -769,20 +769,20 @@ func registerADSBTextMessageReceived(msg string) {
 	}
 
 	var wm WeatherMessage
-    
-    if (x[0] == "METAR") || (x[0] == "SPECI") {
-        globalStatus.UAT_METAR_total++
-    }
-    if (x[0] == "TAF") || (x[0] == "TAF.AMD") {
-        globalStatus.UAT_TAF_total++
-    }
-    if x[0] == "WINDS" {
-        globalStatus.UAT_TAF_total++
-    }
-    if x[0] == "PIREP" {
-        globalStatus.UAT_PIREP_total++
-    }
-    
+
+	if (x[0] == "METAR") || (x[0] == "SPECI") {
+		globalStatus.UAT_METAR_total++
+	}
+	if (x[0] == "TAF") || (x[0] == "TAF.AMD") {
+		globalStatus.UAT_TAF_total++
+	}
+	if x[0] == "WINDS" {
+		globalStatus.UAT_TAF_total++
+	}
+	if x[0] == "PIREP" {
+		globalStatus.UAT_PIREP_total++
+	}
+
 	wm.Type = x[0]
 	wm.Location = x[1]
 	wm.Time = x[2]
@@ -796,26 +796,26 @@ func registerADSBTextMessageReceived(msg string) {
 }
 
 func UpdateUATStats(ProductID uint32) {
-    switch ProductID {
-        case 0,20:
-            globalStatus.UAT_METAR_total++
-        case 1,21:
-            globalStatus.UAT_TAF_total++
-        case 51,52,53,54,55,56,57,58,59,60,61,62,63,64,81,82,83:
-            globalStatus.UAT_NEXRAD_total++
-        // AIRMET and SIGMETS
-        case 2,3,4,6,11,12,22,23,24,26,254:
-            globalStatus.UAT_SIGMET_total++
-        case 5,25:
-            globalStatus.UAT_PIREP_total++
-        case 8:
-            globalStatus.UAT_NOTAM_total++
-        case 413:
-            // Do nothing in the case since text is recorded elsewhere
-            return
-        default:
-            globalStatus.UAT_OTHER_total++
-    }
+	switch ProductID {
+	case 0, 20:
+		globalStatus.UAT_METAR_total++
+	case 1, 21:
+		globalStatus.UAT_TAF_total++
+	case 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 81, 82, 83:
+		globalStatus.UAT_NEXRAD_total++
+	// AIRMET and SIGMETS
+	case 2, 3, 4, 6, 11, 12, 22, 23, 24, 26, 254:
+		globalStatus.UAT_SIGMET_total++
+	case 5, 25:
+		globalStatus.UAT_PIREP_total++
+	case 8:
+		globalStatus.UAT_NOTAM_total++
+	case 413:
+		// Do nothing in the case since text is recorded elsewhere
+		return
+	default:
+		globalStatus.UAT_OTHER_total++
+	}
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -904,7 +904,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
-                	UpdateUATStats(f.Product_id)
+				UpdateUATStats(f.Product_id)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
@@ -1046,8 +1046,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-    
-	Errors                                     []string
+
+	Errors []string
 }
 
 var globalSettings settings
