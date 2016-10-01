@@ -26,6 +26,9 @@ cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
 
+#SDR Serial Script
+cp -f sdr-tool.sh /usr/sbin/
+
 #boot config
 cp -f config.txt /boot/config.txt
 
