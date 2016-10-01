@@ -54,6 +54,10 @@ cp -f interfaces mnt/etc/network/interfaces
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
 
+#SDR Serial Script
+cp -f sdr-tool.sh mnt/usr/sbin/sdr-tool.sh
+chmod 755 mnt/usr/sbin/sdr-tool.sh
+
 #ping udev
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 
