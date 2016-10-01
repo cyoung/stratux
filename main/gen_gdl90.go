@@ -412,6 +412,11 @@ func makeStratuxStatus() []byte {
 		msg[13] = msg[13] | (1 << 6)
 	}
 
+	// Ping provides ES and UAT
+	if globalSettings.Ping_Enabled {
+		msg[13] = msg[13] | (1 << 5) | (1 << 6)
+	}
+
 	// Valid/Enabled: GPS Enabled portion.
 	if globalSettings.GPS_Enabled {
 		msg[13] = msg[13] | (1 << 7)
@@ -565,6 +570,9 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
+			// Turn on green ACT LED on the Pi.
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
@@ -659,8 +667,8 @@ func updateMessageStats() {
 
 	// Update average signal strength over last minute for all ADSB towers.
 	for t, tinf := range ADSBTowers {
-		if tinf.Messages_last_minute == 0 {
-			tinf.Signal_strength_last_minute = -99
+		if tinf.Messages_last_minute == 0 || tinf.Energy_last_minute == 0 {
+			tinf.Signal_strength_last_minute = -999
 		} else {
 			tinf.Signal_strength_last_minute = 10 * (math.Log10(float64((tinf.Energy_last_minute / tinf.Messages_last_minute))) - 6)
 		}
@@ -707,7 +715,7 @@ func cpuTempMonitor() {
 
 func updateStatus() {
 	if mySituation.Quality == 2 {
-		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
+		globalStatus.GPS_solution = "GPS + SBAS (WAAS)"
 	} else if mySituation.Quality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.Quality == 6 {
@@ -735,11 +743,11 @@ func updateStatus() {
 	globalStatus.GPS_satellites_locked = mySituation.Satellites
 	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
 	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
+	globalStatus.GPS_position_accuracy = mySituation.Accuracy
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
-	globalStatus.Clock = time.Now()
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
@@ -761,7 +769,20 @@ func registerADSBTextMessageReceived(msg string) {
 	}
 
 	var wm WeatherMessage
-
+    
+    if (x[0] == "METAR") || (x[0] == "SPECI") {
+        globalStatus.UAT_METAR_total++
+    }
+    if (x[0] == "TAF") || (x[0] == "TAF.AMD") {
+        globalStatus.UAT_TAF_total++
+    }
+    if x[0] == "WINDS" {
+        globalStatus.UAT_TAF_total++
+    }
+    if x[0] == "PIREP" {
+        globalStatus.UAT_PIREP_total++
+    }
+    
 	wm.Type = x[0]
 	wm.Location = x[1]
 	wm.Time = x[2]
@@ -772,6 +793,29 @@ func registerADSBTextMessageReceived(msg string) {
 
 	// Send to weatherUpdate channel for any connected clients.
 	weatherUpdate.Send(wmJSON)
+}
+
+func UpdateUATStats(ProductID uint32) {
+    switch ProductID {
+        case 0,20:
+            globalStatus.UAT_METAR_total++
+        case 1,21:
+            globalStatus.UAT_TAF_total++
+        case 51,52,53,54,55,56,57,58,59,60,61,62,63,64,81,82,83:
+            globalStatus.UAT_NEXRAD_total++
+        // AIRMET and SIGMETS
+        case 2,3,4,6,11,12,22,23,24,26,254:
+            globalStatus.UAT_SIGMET_total++
+        case 5,25:
+            globalStatus.UAT_PIREP_total++
+        case 8:
+            globalStatus.UAT_NOTAM_total++
+        case 413:
+            // Do nothing in the case since text is recorded elsewhere
+            return
+        default:
+            globalStatus.UAT_OTHER_total++
+    }
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -820,6 +864,9 @@ func parseInput(buf string) ([]byte, uint16) {
 
 	if isUplink && msglen == UPLINK_FRAME_DATA_BYTES {
 		msgtype = MSGTYPE_UPLINK
+	} else if msglen == 48 {
+		// With Reed Solomon appended
+		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 34 {
 		msgtype = MSGTYPE_LONG_REPORT
 	} else if msglen == 18 {
@@ -841,7 +888,11 @@ func parseInput(buf string) ([]byte, uint16) {
 	thisMsg.TimeReceived = stratuxClock.Time
 	thisMsg.Data = buf
 	thisMsg.Signal_amplitude = thisSignalStrength
-	thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	if thisSignalStrength > 0 {
+		thisMsg.Signal_strength = 20 * math.Log10((float64(thisSignalStrength))/1000)
+	} else {
+		thisMsg.Signal_strength = -999
+	}
 	thisMsg.Products = make([]uint32, 0)
 	if msgtype == MSGTYPE_UPLINK {
 		// Parse the UAT message.
@@ -853,6 +904,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
+                	UpdateUATStats(f.Product_id)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
@@ -944,8 +996,10 @@ func getProductNameFromId(product_id int) string {
 type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
+	Ping_Enabled         bool
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
+	SerialOutputs        map[string]serialConnection
 	AHRS_Enabled         bool
 	DisplayTrafficSource bool
 	DEBUG                bool
@@ -966,14 +1020,15 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	Ping_connected                             bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
+	GPS_position_accuracy                      float32
 	GPS_connected                              bool
 	GPS_solution                               string
 	RY835AI_connected                          bool
 	Uptime                                     int64
-	Clock                                      time.Time
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
 	NetworkDataMessagesSent                    uint64
@@ -984,6 +1039,14 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
+	UAT_METAR_total                            uint32
+	UAT_TAF_total                              uint32
+	UAT_NEXRAD_total                           uint32
+	UAT_SIGMET_total                           uint32
+	UAT_PIREP_total                            uint32
+	UAT_NOTAM_total                            uint32
+	UAT_OTHER_total                            uint32
+    
 	Errors                                     []string
 }
 
@@ -1171,6 +1234,7 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
+	pingKill()
 
 	// Shut down data logging.
 	if dataLogStarted {
@@ -1179,6 +1243,8 @@ func gracefulShutdown() {
 
 	//TODO: Any other graceful shutdown functions.
 
+	// Turn off green ACT LED on the Pi.
+	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
 	os.Exit(1)
 }
 
@@ -1207,6 +1273,30 @@ func main() {
 	} else { // if not using the FlightBox config, use "normal" log file locations
 		debugLogf = debugLog
 		dataLogFilef = dataLogFile
+	}
+	//FIXME: All of this should be removed by 08/01/2016.
+	// Check if Raspbian version is <8.0. Throw a warning if so.
+	vt, err := ioutil.ReadFile("/etc/debian_version")
+	if err == nil {
+		vtS := strings.Trim(string(vt), "\n")
+		vtF, err := strconv.ParseFloat(vtS, 32)
+		if err == nil {
+			if vtF < 8.0 {
+				var err_os error
+				if globalStatus.HardwareBuild == "FlightBox" {
+					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
+				} else {
+					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
+				}
+				addSystemError(err_os)
+			} else {
+				// Running Jessie or better. Remove some old init.d files.
+				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
+				os.Remove("/etc/init.d/stratux")
+				os.Remove("/etc/rc2.d/S01stratux")
+				os.Remove("/etc/rc6.d/K01stratux")
+			}
+		}
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
@@ -1247,6 +1337,7 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
+	pingInit()
 	initTraffic()
 
 	// Read settings.

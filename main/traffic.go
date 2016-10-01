@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 	"net"
@@ -75,7 +76,8 @@ const (
 
 type TrafficInfo struct {
 	Icao_addr           uint32
-	Tail                string
+	Reg                 string    // Registration. Calculated from Icao_addr for civil aircraft of US registry.
+	Tail                string    // Callsign. Transmitted by aircraft.
 	Emitter_category    uint8     // Formatted using GDL90 standard, e.g. in a Mode ES report, A7 becomes 0x07, B0 becomes 0x08, etc.
 	OnGround            bool      // Air-ground status. On-ground is "true".
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
@@ -349,6 +351,12 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Last_seen = stratuxClock.Time // need to initialize to current stratuxClock so it doesn't get cut before we have a chance to populate a position message
 		ti.Icao_addr = icao_addr
 		ti.ExtrapolatedPosition = false
+
+		thisReg, validReg := icao2reg(icao_addr)
+		if validReg {
+			ti.Reg = thisReg
+			ti.Tail = thisReg
+		}
 	}
 
 	ti.Addr_type = addr_type
@@ -389,8 +397,12 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.NACp = int((frame[25] >> 4) & 0x0F)
 	}
 
-	power := 20 * (math.Log10(float64(signalLevel) / 1000)) // reported amplitude is 0-1000. Normalize to max = 1 and do amplitude dB calculation (20 dB per decade)
-
+	var power float64
+	if signalLevel > 0 {
+		power = 20 * (math.Log10(float64(signalLevel) / 1000)) // reported amplitude is 0-1000. Normalize to max = 1 and do amplitude dB calculation (20 dB per decade)
+	} else {
+		power = -999
+	}
 	//log.Printf("%s (%X) seen with amplitude of %d, corresponding to normalized power of %f.2 dB\n",ti.Tail,ti.Icao_addr,signalLevel,power)
 
 	ti.SignalLevel = power
@@ -582,7 +594,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 func esListen() {
 	for {
-		if !globalSettings.ES_Enabled {
+		if !globalSettings.ES_Enabled && !globalSettings.Ping_Enabled {
 			time.Sleep(1 * time.Second) // Don't do much unless ES is actually enabled.
 			continue
 		}
@@ -593,7 +605,7 @@ func esListen() {
 			continue
 		}
 		rdr := bufio.NewReader(inConn)
-		for globalSettings.ES_Enabled {
+		for globalSettings.ES_Enabled || globalSettings.Ping_Enabled {
 			//log.Printf("ES enabled. Ready to read next message from dump1090\n")
 			buf, err := rdr.ReadString('\n')
 			//log.Printf("String read from dump1090\n")
@@ -650,9 +662,19 @@ func esListen() {
 				ti.Icao_addr = icao
 				ti.ExtrapolatedPosition = false
 				ti.Last_source = TRAFFIC_SOURCE_1090ES
+
+				thisReg, validReg := icao2reg(icao)
+				if validReg {
+					ti.Reg = thisReg
+					ti.Tail = thisReg
+				}
 			}
 
-			ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
+			if newTi.SignalLevel > 0 {
+				ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
+			} else {
+				ti.SignalLevel = -999
+			}
 
 			// generate human readable summary of message types for debug
 			// TO-DO: Use for ES message statistics?
@@ -998,6 +1020,147 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 		registerTrafficUpdate(ti)
 		seenTraffic[ti.Icao_addr] = true
 	}
+}
+
+/*
+	icao2reg() : Converts 24-bit Mode S addresses to N-numbers and C-numbers.
+
+			Input: uint32 representing the Mode S address. Valid range for
+				translation is 0xA00001 - 0xADF7C7, inclusive.
+
+				Values outside the range A000001-AFFFFFF or C00001-C3FFFF
+				are flagged as foreign.
+
+				Values between ADF7C8 - AFFFFF are allocated to the United States,
+				but are not used for aicraft on the civil registry. These could be
+				military, other public aircraft, or future use.
+
+
+				Values between C0CDF9 - C3FFFF are allocated to Canada,
+				but are not used for aicraft on the civil registry. These could be
+				military, other public aircraft, or future use.
+
+			Output:
+				string: String containing the decoded tail number (if decoding succeeded),
+					"NON-NA" (for non-US / non Canada allocation), and "US-MIL" or "CA-MIL" for non-civil US / Canada allocation.
+
+				bool: True if the Mode S address successfully translated to an
+					N number. False for all other conditions.
+*/
+
+func icao2reg(icao_addr uint32) (string, bool) {
+	// Initialize local variables
+	base34alphabet := string("ABCDEFGHJKLMNPQRSTUVWXYZ0123456789")
+	nationalOffset := uint32(0xA00001) // default is US
+	tail := ""
+	nation := ""
+
+	// Determine nationality
+	if (icao_addr >= 0xA00001) && (icao_addr <= 0xAFFFFF) {
+		nation = "US"
+	} else if (icao_addr >= 0xC00001) && (icao_addr <= 0xC3FFFF) {
+		nation = "CA"
+	} else {
+		// future national decoding is TO-DO
+		return "NON-NA", false
+	}
+
+	if nation == "CA" { // Canada decoding
+		// First, discard addresses that are not assigned to aircraft on the civil registry
+		if icao_addr > 0xC0CDF8 {
+			//fmt.Printf("%X is a Canada aircraft, but not a CF-, CG-, or CI- registration.\n", icao_addr)
+			return "CA-MIL", false
+		}
+
+		nationalOffset := uint32(0xC00001)
+		serial := int32(icao_addr - nationalOffset)
+
+		// Fifth letter
+		e := serial % 26
+
+		// Fourth letter
+		d := (serial / 26) % 26
+
+		// Third letter
+		c := (serial / 676) % 26 // 676 == 26*26
+
+		// Second letter
+		b := (serial / 17576) % 26 // 17576 == 26*26*26
+
+		b_str := "FGI"
+
+		//fmt.Printf("B = %d, C = %d, D = %d, E = %d\n",b,c,d,e)
+		tail = fmt.Sprintf("C-%c%c%c%c", b_str[b], c+65, d+65, e+65)
+	}
+
+	if nation == "US" { // FAA decoding
+		// First, discard addresses that are not assigned to aircraft on the civil registry
+		if icao_addr > 0xADF7C7 {
+			//fmt.Printf("%X is a US aircraft, but not on the civil registry.\n", icao_addr)
+			return "US-MIL", false
+		}
+
+		serial := int32(icao_addr - nationalOffset)
+		// First digit
+		a := (serial / 101711) + 1
+
+		// Second digit
+		a_remainder := serial % 101711
+		b := ((a_remainder + 9510) / 10111) - 1
+
+		// Third digit
+		b_remainder := (a_remainder + 9510) % 10111
+		c := ((b_remainder + 350) / 951) - 1
+
+		// This next bit is more convoluted. First, figure out if we're using the "short" method of
+		// decoding the last two digits (two letters, one letter and one blank, or two blanks).
+		// This will be the case if digit "B" or "C" are calculated as negative, or if c_remainder
+		// is less than 601.
+
+		c_remainder := (b_remainder + 350) % 951
+		var d, e int32
+
+		if (b >= 0) && (c >= 0) && (c_remainder > 600) { // alphanumeric decoding method
+			d = 24 + (c_remainder-601)/35
+			e = (c_remainder - 601) % 35
+
+		} else { // two-letter decoding method
+			if (b < 0) || (c < 0) {
+				c_remainder -= 350 // otherwise "  " == 350, "A " == 351, "AA" == 352, etc.
+			}
+
+			d = (c_remainder - 1) / 25
+			e = (c_remainder - 1) % 25
+
+			if e < 0 {
+				d -= 1
+				e += 25
+			}
+		}
+
+		a_char := fmt.Sprintf("%d", a)
+		var b_char, c_char, d_char, e_char string
+
+		if b >= 0 {
+			b_char = fmt.Sprintf("%d", b)
+		}
+
+		if b >= 0 && c >= 0 {
+			c_char = fmt.Sprintf("%d", c)
+		}
+
+		if d > -1 {
+			d_char = string(base34alphabet[d])
+			if e > 0 {
+				e_char = string(base34alphabet[e-1])
+			}
+		}
+
+		tail = "N" + a_char + b_char + c_char + d_char + e_char
+
+	}
+
+	return tail, true
 }
 
 func initTraffic() {

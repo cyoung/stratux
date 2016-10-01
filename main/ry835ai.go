@@ -579,9 +579,19 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err1 != nil {
 				return false
 			}
-			alt := float32(hae*3.28084) - tmpSituation.GeoidSep        // convert to feet and offset by geoid separation
-			tmpSituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
-			tmpSituation.Alt = alt
+
+			// the next 'if' statement is a workaround for a ubx7 firmware bug:
+			// PUBX,00 reports HAE with a floor of zero (i.e. negative altitudes are set to zero). This causes GPS altitude to never read lower than -GeoidSep,
+			// placing minimum GPS altitude at about +80' MSL over most of North America.
+			//
+			// This does not affect GGA messages, so we can just rely on GGA to set altitude in these cases. It's a slower (1 Hz vs 5 Hz / 10 Hz), less precise
+			// (0.1 vs 0.001 mm resolution) report, but in practice the accuracy never gets anywhere near this resolution, so this should be an acceptable tradeoff
+
+			if hae != 0 {
+				alt := float32(hae*3.28084) - tmpSituation.GeoidSep        // convert to feet and offset by geoid separation
+				tmpSituation.HeightAboveEllipsoid = float32(hae * 3.28084) // feet
+				tmpSituation.Alt = alt
+			}
 
 			tmpSituation.LastFixLocalTime = stratuxClock.Time
 
@@ -773,7 +783,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				return false
 			}
 			if utcWeek < 1877 || utcWeek >= 32767 { // unless we're in a flying Delorean, UTC dates before 2016-JAN-01 are not valid. Check underflow condition as well.
-				log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
+				if globalSettings.DEBUG {
+					log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
+				}
 				return false
 			} /* else {
 				log.Printf("GPS week # %v valid; evaluate time and date\n", utcWeek) //debug option
@@ -800,6 +812,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					// We only update ANY of the times if all of the time parsing is complete.
 					mySituation.LastGPSTimeTime = stratuxClock.Time
 					mySituation.GPSTime = gpsTime
+					stratuxClock.SetRealTimeReference(gpsTime)
 					mySituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
 					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
@@ -974,9 +987,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
-			if err == nil {
+			if err == nil && gpsTime.After(time.Date(2016, time.January, 0, 0, 0, 0, 0, time.UTC)) { // Ignore dates before 2016-JAN-01.
 				tmpSituation.LastGPSTimeTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
+				stratuxClock.SetRealTimeReference(gpsTime)
 				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)

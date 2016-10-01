@@ -21,3 +21,11 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="
 
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="bu353s4"
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="tu-s9"
+
+# CP2102-based serial adapters. Assume that all devices plugged in with this idVendor and idProduct are for serialout.
+#cp210x-program --write-cp210x -m 10C4:EA60 \
+#                 --set-product-string="Stratux Serialout" \
+#                 --set-max-power=100 \
+#                 --set-bus-powered=no
+
+SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout%n"
