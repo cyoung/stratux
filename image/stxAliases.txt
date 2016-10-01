@@ -53,6 +53,7 @@ echo "kalChan1                  Use the Chan from above to get ppm pf SDR1. Exam
 echo "setSerial0                Set the PPM error to SDR0. Value from kalChan0. Example: setSerial0 -45"
 echo "setSerial1                Set the PPM error to SDR1. Value from kalChan1. Example: setSerial1 23"
 echo "hostapd_manager.sh        Sets the Change SSID, Channel, or Encryption for your Stratux"
+echo "sdr-tool.sh              Tool to walk you though setting your SDRs Serials"
 echo "raspi-config              Open Raspberry Pi settings to expand filesystem"
 
 }
