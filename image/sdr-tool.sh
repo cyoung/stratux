@@ -82,12 +82,12 @@ function SETSDRSERIAL {
 
   		case $choice in
     		'Yes')
-            	echo "Shutting down..."
-    	    	#SDRs=`shutdown -h now`
-    	    ;;
+            		echo "Shutting down..."
+    	    		SDRs=`shutdown -h now`
+    	    	;;
     		'No')
     	  		echo "Rebooting..."
-                #SDRs=`reboot`
+                	SDRs=`reboot`
     	  	;;
     		exit)
     	  		echo "Exiting. "
