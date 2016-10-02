@@ -1006,6 +1006,7 @@ type settings struct {
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
+	DeveloperMode        bool
 }
 
 type status struct {
