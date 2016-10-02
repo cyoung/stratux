@@ -42,7 +42,7 @@ function HEAD {
 }
 
 function STOPSTRATUX {
-
+	HEAD
 	echo "Give me a few seconds to check if STRATUX is running..."
 	# The service we want to check (according to systemctl)
 	if [ "`systemctl is-active $SERVICE`" = "active" ] 
@@ -51,6 +51,7 @@ function STOPSTRATUX {
 	    echo "Stopping..."
 	    SDRs=`systemctl stop stratux.service`
 	fi
+	sleep 3
 }
 
 #Function to set the serial function
@@ -202,6 +203,9 @@ function PICKFREQ {
 }
 
 function MAINMENU {
+	HEAD
+	echo "Loading SDR info..."
+    	sleep 2
 	HEAD
 	echo "-----------------------------------------------------------"
 	SDRs=`rtl_eeprom`
