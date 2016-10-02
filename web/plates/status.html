@@ -17,6 +17,7 @@
 			<span class="panel_label">Status</span>
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
 			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+            <span ng-show="developerMode == true" class="label label-warning">Developer Mode</span>
 		</div>
 		<div class="panel-body">
 			<div class="form-horizontal">
@@ -132,6 +133,16 @@
 					</div>
 				</div>
 			</div>
+            <div class="row" ng-class="{'section_invisible': !developerMode}">
+				<div class="separator"></div>
+				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
+				<div class="separator"></div>
+				<div class="row">
+					<div class="col-sm-4 label_adj">
+						<span class="col-xs-5"><strong>Developer</strong></span>
+						<span class="col-xs-7">Info Here</span>
+					</div>
+				</div>
 		</div>
 	</div>
 </div>

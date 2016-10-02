@@ -101,6 +101,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_SETTINGS_GET).
 		then(function (response) {
 			settings = angular.fromJson(response.data);
+			$scope.developerMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
