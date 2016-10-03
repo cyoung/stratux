@@ -4,6 +4,15 @@ DeveloperCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']
 // create our controller function with all necessary logic
 function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/developer-help.html';
-	$scope.data_list = [];
+
+	$scope.postRestart = function () {
+		$http.post(URL_RESTARTAPP).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
+	};    
 };
     

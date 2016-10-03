@@ -1067,6 +1067,7 @@ func defaultSettings() {
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.DeveloperMode = false
 }
 
 func readSettings() {

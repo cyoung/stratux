@@ -140,7 +140,16 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		getTowers();
 	}, (5 * 1000), 0, false);
 
-
+    var clicks = 0;
+    var clickSeconds = 0;
+    var developerModeClick = 0;
+    
+    var clickInterval = $interval(function () {
+        if ((clickSeconds >= 3))
+            clicks=0;
+        clickSeconds++;
+    }, 1000);
+    
 	$state.get('home').onEnter = function () {
 		// everything gets handled correctly by the controller
 	};
@@ -151,7 +160,26 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		$interval.cancel(updateTowers);
 	};
-
+    
+    $scope.VersionClick = function() {
+        if (clicks==0)
+        {
+            clickSeconds = 0;
+        }
+        ++clicks;
+        if ((clicks > 7) && (clickSeconds < 3))
+        {
+            clicks=0;
+            clickSeconds=0;
+            developerModeClick = 1;
+            $http.get(URL_DEV_TOGGLE_GET);
+            location.reload();
+        }
+    }
+    
+    $scope.GetDeveloperModeClick = function() {
+        return developerModeClick;
+    }
 	// Status Controller tasks
 	setHardwareVisibility();
 	connect($scope); // connect - opens a socket and listens for messages
