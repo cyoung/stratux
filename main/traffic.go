@@ -165,6 +165,19 @@ func sendTrafficUpdates() {
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	cleanupOldEntries()
+
+	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
+	globalStatus.UAT_traffic_targets_tracking = 0
+	globalStatus.ES_traffic_targets_tracking = 0
+	for _, traf := range traffic {
+		switch traf.Last_source {
+		case TRAFFIC_SOURCE_1090ES:
+			globalStatus.ES_traffic_targets_tracking++
+		case TRAFFIC_SOURCE_UAT:
+			globalStatus.UAT_traffic_targets_tracking++
+		}
+	}
+
 	var msg []byte
 	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
