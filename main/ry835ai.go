@@ -394,12 +394,14 @@ func initGPSSerial() bool {
 
 func validateNMEAChecksum(s string) (string, bool) {
 	//validate format. NMEA sentences start with "$" and end in "*xx" where xx is the XOR value of all bytes between
-	if !(strings.HasPrefix(s, "$") && strings.Contains(s, "*")) {
+	if !(strings.Contains(s, "$") && strings.Contains(s, "*")) {
 		return "Invalid NMEA message", false
 	}
-
+	// Trim the leading garbage from the string
+	ds_index := strings.Index(s, "$")
+	s_new := s[ds_index:len(s)]
 	// strip leading "$" and split at "*"
-	s_split := strings.Split(strings.TrimPrefix(s, "$"), "*")
+	s_split := strings.Split(strings.TrimPrefix(s_new, "$"), "*")
 	s_out := s_split[0]
 	s_cs := s_split[1]
 
