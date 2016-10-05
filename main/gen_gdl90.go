@@ -442,24 +442,12 @@ func makeStratuxStatus() []byte {
 	// Number of satellites tracked
 	msg[17] = byte(globalStatus.GPS_satellites_tracked)
 
-	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
-	var uat_traffic_targets uint16
-	var es_traffic_targets uint16
-	for _, traf := range traffic {
-		switch traf.Last_source {
-		case TRAFFIC_SOURCE_1090ES:
-			es_traffic_targets++
-		case TRAFFIC_SOURCE_UAT:
-			uat_traffic_targets++
-		}
-	}
-
 	// Number of UAT traffic targets.
-	msg[18] = byte((uat_traffic_targets & 0xFF00) >> 8)
-	msg[19] = byte(uat_traffic_targets & 0xFF)
+	msg[18] = byte((globalStatus.UAT_traffic_targets_tracking & 0xFF00) >> 8)
+	msg[19] = byte(globalStatus.UAT_traffic_targets_tracking & 0xFF)
 	// Number of 1090ES traffic targets.
-	msg[20] = byte((es_traffic_targets & 0xFF00) >> 8)
-	msg[21] = byte(es_traffic_targets & 0xFF)
+	msg[20] = byte((globalStatus.ES_traffic_targets_tracking & 0xFF00) >> 8)
+	msg[21] = byte(globalStatus.ES_traffic_targets_tracking & 0xFF)
 
 	// Number of UAT messages per minute.
 	msg[22] = byte((globalStatus.UAT_messages_last_minute & 0xFF00) >> 8)
@@ -1020,6 +1008,8 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	UAT_traffic_targets_tracking               uint16
+	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
