@@ -232,6 +232,22 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "Baud":
+						if serialOut, ok := globalSettings.SerialOutputs["/dev/serialout0"]; ok { //FIXME: Only one device for now.
+							newBaud := int(val.(float64))
+							if newBaud == serialOut.Baud { // Same baud rate. No change.
+								continue
+							}
+							log.Printf("changing /dev/serialout0 baud rate from %d to %d.\n", serialOut.Baud, newBaud)
+							serialOut.Baud = newBaud
+							// Close the port if it is open.
+							if serialOut.serialPort != nil {
+								log.Printf("closing /dev/serialout0 for baud rate change.\n")
+								serialOut.serialPort.Close()
+								serialOut.serialPort = nil
+							}
+							globalSettings.SerialOutputs["/dev/serialout0"] = serialOut
+						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
 					case "OwnshipModeS":
@@ -307,11 +323,11 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
-	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(handler.Filename, globalStatus.HardwareBuild) {
+	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(strings.ToLower(handler.Filename), strings.ToLower(globalStatus.HardwareBuild)) {
 		w.WriteHeader(404)
 		return
 	}
-	updateFile := fmt.Sprintf("/root/%s", handler.Filename)
+	updateFile := fmt.Sprintf("/root/update-stratux-v.sh")
 	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())

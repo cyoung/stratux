@@ -22,7 +22,7 @@ alias kalChan0='function _kalChan0 () { kal -d 0 -g 47 -c $1; unset -f _kalChan0
 alias kalChan1='function _kalChan1 () { kal -d 1 -g 47 -c $1; unset -f _kalChan1; }; _kalChan1'
 
 alias setSerial0='function _setSerial0 () { rtl_eeprom -d 0 -s stx:0:$1; unset -f _setSerial0; }; _setSerial0'
-alias setSerial1='function _setSerial0 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
+alias setSerial1='function _setSerial1 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
 
 
 alias stratux-help='_stxhelp'
@@ -53,6 +53,7 @@ echo "kalChan1                  Use the Chan from above to get ppm pf SDR1. Exam
 echo "setSerial0                Set the PPM error to SDR0. Value from kalChan0. Example: setSerial0 -45"
 echo "setSerial1                Set the PPM error to SDR1. Value from kalChan1. Example: setSerial1 23"
 echo "hostapd_manager.sh        Sets the Change SSID, Channel, or Encryption for your Stratux"
+echo "sdr-tool.sh              Tool to walk you though setting your SDRs Serials"
 echo "raspi-config              Open Raspberry Pi settings to expand filesystem"
 
 }

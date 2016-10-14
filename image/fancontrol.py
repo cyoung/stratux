@@ -9,26 +9,37 @@ import RPi.GPIO as GPIO
 import time
 import os
 
-# Return CPU temperature as float
-def getCPUtemp():
-	cTemp = os.popen('vcgencmd measure_temp').readline()
-	return float(cTemp.replace("temp=","").replace("'C\n",""))
+from daemon import runner
 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11,GPIO.OUT)
-GPIO.setwarnings(False)
-p=GPIO.PWM(11,1000)
-PWM = 50
+class FanControl():
+    # Return CPU temperature as float
+    def getCPUtemp(self):
+        cTemp = os.popen('vcgencmd measure_temp').readline()
+        return float(cTemp.replace("temp=","").replace("'C\n",""))
 
-while True:
+    def __init__(self):
+        self.stdin_path = '/dev/null'
+        self.stdout_path = '/var/log/fancontrol.log'
+        self.stderr_path = '/var/log/fancontrol.log'
+        self.pidfile_path = '/var/run/fancontrol.pid'
+        self.pidfile_timeout = 5
+    def run(self):
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(12, GPIO.OUT)
+        GPIO.setwarnings(False)
+        p=GPIO.PWM(12, 1000)
+        PWM = 50
+        while True:
+            CPU_temp = self.getCPUtemp()
+            if CPU_temp > 40.5:
+                PWM = min(max(PWM + 1, 0), 100)
+                p.start(PWM)
+            elif CPU_temp < 39.5:
+                PWM = min(max(PWM - 1, 0), 100)
+                p.start(PWM)
+            time.sleep(5)
+        GPIO.cleanup()
 
-	CPU_temp = getCPUtemp()
-	if CPU_temp > 40.5:
-		PWM = min(max(PWM + 1, 0), 100)
-		p.start(PWM)
-	elif CPU_temp < 39.5:
-		PWM = min(max(PWM - 1, 0), 100)
-		p.start(PWM)
-	time.sleep(5)
-
-GPIO.cleanup()
+fancontrol = FanControl()
+daemon_runner = runner.DaemonRunner(fancontrol)
+daemon_runner.do_action()

@@ -92,6 +92,13 @@
 						<input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
 					</form>
 				</div>
+				<div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
+					<label class="control-label col-xs-5">Serial Output Baudrate</label>
+					<form name="ppmForm" ng-submit="updateBaud()" novalidate>
+						<!-- type="number" not supported except on mobile -->
+						<input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
+					</form>
+				</div>
 			</div>
 		</div>
 	</div>
