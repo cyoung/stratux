@@ -123,9 +123,8 @@ func getDHCPLeases() (map[string]string, error) {
 
 func isSleeping(k string) bool {
 	ipAndPort := strings.Split(k, ":")
-	lastPing, ok := pingResponse[ipAndPort[0]]
 	// No ping response. Assume disconnected/sleeping device.
-	if !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
+	if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
 		return true
 	}
 	if stratuxClock.Since(outSockets[k].LastUnreachable) < (5 * time.Second) {
