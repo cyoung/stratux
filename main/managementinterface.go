@@ -568,6 +568,8 @@ func managementInterface() {
 		r = nil
 	}
 	rockBLOCKSerialConn = r
+	// Set the message handler for incoming messages.
+	rockBLOCKSerialConn.SetMessageHandler(iridiumMessageCallback)
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
