@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/cyoung/weatherserver/RockBLOCK"
 	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/net/websocket"
 	"io"
@@ -34,7 +35,91 @@ type SettingMessage struct {
 
 // Weather updates channel.
 var weatherUpdate *uibroadcaster
+
+// Traffic updates channel.
 var trafficUpdate *uibroadcaster
+
+// Iridium messaging/weather updates channel.
+var iridiumUpdate *uibroadcaster
+
+// Iridium modem serial controller.
+var rockBLOCKSerialConn *RockBLOCK.RockBLOCKSerialConnection
+
+/*
+	The /iridium websocket sends all updates received on iridiumUpdate and receives "send" commands.
+*/
+
+type IridiumCommand struct {
+	Command string
+	Data    string
+}
+
+type IridiumCommandResponse struct {
+	Command string
+	Data    string
+	Result  string
+	Time    time.Time
+}
+
+func sendIridiumCommandResponse(cmd IridiumCommand, result string) {
+	var t time.Time
+
+	// Use real time or stratux time, depending on what is available.
+	if stratuxClock.HasRealTimeReference() {
+		t = stratuxClock.RealTime
+	} else {
+		t = stratuxClock.Time
+	}
+
+	// Construct response.
+	resp := IridiumCommandResponse{
+		Command: cmd.Command,
+		Data:    cmd.Data,
+		Result:  result,
+		Time:    t,
+	}
+
+	// JSON encode.
+	b, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("sendIridiumCommandResponse(): Couldn't marshal JSON: %s\n", err.Error())
+		return
+	}
+
+	// Send the update.
+	iridiumUpdate.Send(b)
+}
+
+func handleIridiumWS(conn *websocket.Conn) {
+	// Subscribe the socket to receive updates.
+	iridiumUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		var incomingCommand IridiumCommand
+		err = json.Unmarshal(buf[:n], &incomingCommand)
+		if err != nil {
+			log.Printf("handleIridiumWS(): JSON Unmarshal error.\n")
+			continue // Likely not valid JSON.
+		}
+		if rockBLOCKSerialConn == nil {
+			// Can't do anything if no Iridium device is connected.
+			sendIridiumCommandResponse(incomingCommand, "No Iridium modem connected.")
+			continue
+		}
+		// "send" command.
+		if incomingCommand.Command == "send" {
+			rockBLOCKSerialConn.SendBinaryPersistent([]byte(incomingCommand.Data))
+			sendIridiumCommandResponse(incomingCommand, "Queued.")
+		}
+	}
+
+}
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
@@ -457,9 +542,32 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
+/*
+	iridiumMessageCallback().
+	 Handles a callback from the RockBLOCKSerial message handler.
+	 Sends the message via iridiumUpdate uiupdate.
+*/
+func iridiumMessageCallback(msg []byte) error {
+	cmd := IridiumCommand{
+		Command: "recv",
+		Data:    string(msg),
+	}
+	sendIridiumCommandResponse(cmd, "Success.")
+	return nil
+}
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	iridiumUpdate = NewUIBroadcaster()
+
+	// Initiate the RockBLOCK serial connection.
+	r, err := RockBLOCK.NewRockBLOCKSerial()
+	if err != nil {
+		log.Printf("NewRockBLOCKSerial(): init error: %s\n", err.Error())
+		r = nil
+	}
+	rockBLOCKSerialConn = r
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -489,6 +597,12 @@ func managementInterface() {
 				Handler: websocket.Handler(handleTrafficWS)}
 			s.ServeHTTP(w, req)
 		})
+	http.HandleFunc("/iridium",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleIridiumWS)}
+			s.ServeHTTP(w, req)
+		})
 
 	http.HandleFunc("/getStatus", handleStatusRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
@@ -502,7 +616,7 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 
-	err := http.ListenAndServe(managementAddr, nil)
+	err = http.ListenAndServe(managementAddr, nil)
 
 	if err != nil {
 		log.Printf("managementInterface ListenAndServe: %s\n", err.Error())
