@@ -115,7 +115,7 @@ func handleIridiumWS(conn *websocket.Conn) {
 		// "send" command.
 		if incomingCommand.Command == "send" {
 			rockBLOCKSerialConn.SendBinaryPersistent([]byte(incomingCommand.Data))
-			sendIridiumCommandResponse(incomingCommand, "Queued.")
+			sendIridiumCommandResponse(incomingCommand, "Queued")
 		}
 	}
 
@@ -547,12 +547,20 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 	 Handles a callback from the RockBLOCKSerial message handler.
 	 Sends the message via iridiumUpdate uiupdate.
 */
-func iridiumMessageCallback(msg []byte) error {
-	cmd := IridiumCommand{
-		Command: "recv",
-		Data:    string(msg),
+func iridiumMessageCallback(info RockBLOCK.RockBLOCKCallbackInfo) error {
+	if info.State == RockBLOCK.CALLBACK_CONFIRM_SENT {
+		cmd := IridiumCommand{
+			Command: "confirm-sent",
+			Data:    string(info.Data),
+		}
+		sendIridiumCommandResponse(cmd, "Success")
+	} else if info.State == RockBLOCK.CALLBACK_RECV {
+		cmd := IridiumCommand{
+			Command: "recv",
+			Data:    string(info.Data),
+		}
+		sendIridiumCommandResponse(cmd, "Success")
 	}
-	sendIridiumCommandResponse(cmd, "Success.")
 	return nil
 }
 
