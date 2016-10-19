@@ -100,7 +100,6 @@ type ReadCloser interface {
 	io.Closer
 }
 
-var developerMode bool
 
 type msg struct {
 	MessageClass     uint
@@ -995,6 +994,7 @@ type settings struct {
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
+	DeveloperMode        bool
 }
 
 type status struct {
@@ -1057,6 +1057,7 @@ func defaultSettings() {
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.DeveloperMode = false
 }
 
 func readSettings() {
@@ -1291,7 +1292,8 @@ func main() {
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
-	develFlag := flag.Bool("developer", false, "Developer mode")
+    // Removed here, but may replace later
+//	develFlag := flag.Bool("developer", false, "Developer mode")
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
@@ -1300,11 +1302,6 @@ func main() {
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
-
-	if *develFlag == true {
-		log.Printf("Developer mode flag true!\n")
-		developerMode = true
-	}
 
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -1340,6 +1337,10 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
+	if globalSettings.DeveloperMode == true {
+		log.Printf("Developer mode set\n")
+	} 
+    
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 

@@ -1,7 +1,7 @@
 <div class="col-sm-12">
 	<div class="text-center">
-		<p><strong>Version: <span>{{Version}} ({{Build}})</span></strong></p>
-	</div>
+            <a ng-click="VersionClick()" class="btn btn-hidden"<strong>Version: <span>{{Version}} ({{Build}})</span></strong></a>
+    </div>
 	<div class="panel panel-default">
 		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
 			<span class="panel_label">Errors</span>
@@ -17,6 +17,7 @@
 			<span class="panel_label">Status</span>
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
 			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+            <span ng-show="DeveloperMode == true" class="label label-warning">Developer Mode</span>
 		</div>
 		<div class="panel-body">
 			<div class="form-horizontal">
@@ -132,6 +133,16 @@
 					</div>
 				</div>
 			</div>
+            <div class="row" ng-class="{'section_invisible': !DeveloperMode}">
+				<div class="separator"></div>
+				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
+				<div class="separator"></div>
+				<div class="row">
+					<div class="col-sm-4 label_adj">
+						<span class="col-xs-5"><strong>Developer</strong></span>
+						<span class="col-xs-7">Info Here</span>
+					</div>
+				</div>
 		</div>
 	</div>
 </div>
