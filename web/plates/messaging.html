@@ -1,0 +1,59 @@
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">Send</div>
+		<div class="panel-body">
+			<div class="form-group reset-flow">
+				<label class="control-label col-xs-1">Data</label>
+				<input class="col-xs-9" type="string" required ng-model="DataInput" placeholder="Text to send" />
+				<div class="col-xs-1">
+					<button class="btn btn-primary btn-block" ui-turn-on="modalSend">Send</button>
+				</div>
+			</div>
+		</div>
+		<div class="panel-heading">
+			<span class="panel_label">Messaging</span>
+			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+		</div>
+		<div class="panel-body">
+			<div class="row">
+				<span class="col-xs-2">Time</span>
+				<span class="col-xs-2">Command</span>
+				<span class="col-xs-2">Result</span>
+				<span class="col-xs-4">Data</span>
+			</div>
+
+			<div class="row" ng-repeat="message in message_list | orderBy: received">
+				<div class="separator"></div>
+				<span class="col-xs-2">{{message.Time}}</span>
+				<span class="col-xs-2">{{message.Command}}</span>
+				<span class="col-xs-2">{{message.Result}}</span>
+				<span class="col-xs-4">{{message.Data}}</span>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div ui-content-for="modals">
+	<div class="modal" ui-if="modalSend" ui-state="modalSend">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" 
+						ui-turn-off="modalSend"></button>
+						<h4 class="modal-title">Are you really sure?</h4>
+					</div>
+					<div class="modal-body">
+						<p>Do you wish to send this message?</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalSend" class="btn btn-default">Cancel</a>
+						<a ng-click="sendData()" ui-turn-off="modalSend" class="btn btn-primary">Send</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
