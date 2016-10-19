@@ -290,12 +290,33 @@ func doReboot() {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
+func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleDevelModeToggle called!!!\n")
+	globalSettings.DeveloperMode = true
+}
+
+func handleRestartRequest(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleRestartRequest called\n")
+	go doRestartApp()
+}
+
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	go delayReboot()
+}
+
+func doRestartApp() {
+	time.Sleep(1)
+	syscall.Sync()
+	out, err := exec.Command("/bin/systemctl", "restart", "stratux").Output()
+	if err != nil {
+		log.Printf("restart error: %s\n%s", err.Error(), out)
+	} else {
+		log.Printf("restart: %s\n", out)
+	}
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -496,11 +517,13 @@ func managementInterface() {
 	http.HandleFunc("/getSatellites", handleSatellitesRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/restart", handleRestartRequest)
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
+	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
