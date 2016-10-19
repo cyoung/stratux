@@ -100,7 +100,6 @@ type ReadCloser interface {
 	io.Closer
 }
 
-
 type msg struct {
 	MessageClass     uint
 	TimeReceived     time.Time
@@ -1292,8 +1291,8 @@ func main() {
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
-    // Removed here, but may replace later
-//	develFlag := flag.Bool("developer", false, "Developer mode")
+	// Removed here, but may replace later
+	//	develFlag := flag.Bool("developer", false, "Developer mode")
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
@@ -1339,8 +1338,8 @@ func main() {
 
 	if globalSettings.DeveloperMode == true {
 		log.Printf("Developer mode set\n")
-	} 
-    
+	}
+
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
