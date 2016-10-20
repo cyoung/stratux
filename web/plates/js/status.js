@@ -101,7 +101,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_SETTINGS_GET).
 		then(function (response) {
 			settings = angular.fromJson(response.data);
-			$scope.developerMode = settings.DeveloperMode;
+			$scope.DeveloperMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
@@ -142,7 +142,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 
     var clicks = 0;
     var clickSeconds = 0;
-    var developerModeClick = 0;
+    var DeveloperModeClick = 0;
     
     var clickInterval = $interval(function () {
         if ((clickSeconds >= 3))
@@ -171,14 +171,14 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
         {
             clicks=0;
             clickSeconds=0;
-            developerModeClick = 1;
+            DeveloperModeClick = 1;
             $http.get(URL_DEV_TOGGLE_GET);
             location.reload();
         }
     }
     
     $scope.GetDeveloperModeClick = function() {
-        return developerModeClick;
+        return DeveloperModeClick;
     }
 	// Status Controller tasks
 	setHardwareVisibility();

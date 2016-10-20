@@ -86,7 +86,7 @@ app.controller('MainCtrl', function ($scope, $http) {
     $http.get(URL_SETTINGS_GET)
     .then(function(response) {
 			settings = angular.fromJson(response.data);
-            $scope.developerMode = settings.DeveloperMode;
+            $scope.DeveloperMode = settings.DeveloperMode;
     }, function(response) {
         //Second function handles error
     });	
