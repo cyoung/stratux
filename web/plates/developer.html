@@ -4,13 +4,31 @@
 			<span class="panel_label">Developer Mode Items</span>
 		</div>
 		<div class="panel-body">
-            <div class="panel-group col-sm-6">
+            <div class="panel-group col-sm-5">
                 <div class="panel panel-default">
                     <div class="panel-heading">Restart Stratux application</div>
                     <div class="panel-body">
-                        <div class="form-group reset-flow">
-                            <div class="col-xs-12">
-                                <a ng-click="postRestart()" ui-turn-off="modalRestartApp" class="btn btn-primary">Restart Application</a>                      
+                        <div class="form-group reset-flow"  align="center">
+                            <div class="col-xs-5">
+                                <a ng-click="postRestart()" class="btn btn-primary">Restart Application</a>                      
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-group col-sm-5">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Logfile (Size: {{Logfile_Size}} bytes)</div>
+                    <div class="panel-body">
+                        <div class="form-group reset-flow" align="center">
+                            <div class="col-xs-5">
+                                <a href="./downloadlog" ng-click="postDownloadLog()" class="btn btn-primary">Download Logfile</a>     
+                             </div>
+                            <div class="col-xs-5">
+                                <a ng-click="postDeleteLog()" class="btn btn-primary">Delete Logfile</a>                      
+                             </div>
+                            <div class="col-xs-5">
+                                <a href="./downloaddb" ng-click="postDownloadDB()" class="btn btn-primary">Download Database</a>                      
                              </div>
                         </div>
                     </div>

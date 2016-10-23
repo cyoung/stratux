@@ -15,6 +15,9 @@ var URL_REBOOT			= "http://" + URL_HOST_BASE + "/reboot";
 var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
 var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
 var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
+var URL_DELETELOGFILE   = "http://" + URL_HOST_BASE + "/deletelogfile";
+var URL_DOWNLOADLOGFILE = "http://" + URL_HOST_BASE + "/downloadlog";
+var URL_DOWNLOADDB      = "http://" + URL_HOST_BASE + "/downloaddb";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);

@@ -77,6 +77,7 @@ const (
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 )
 
+var logFileHandle *os.File
 var usage *du.DiskUsage
 
 var maxSignalStrength int
@@ -737,6 +738,10 @@ func updateStatus() {
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
+	fileInfo, err := logFileHandle.Stat()
+	if err == nil {
+		globalStatus.Logfile_Size = fileInfo.Size()
+	}
 }
 
 type WeatherMessage struct {
@@ -1035,8 +1040,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-
-	Errors []string
+	Errors                                     []string
+	Logfile_Size							   int64
 }
 
 var globalSettings settings
@@ -1238,10 +1243,44 @@ func gracefulShutdown() {
 	os.Exit(1)
 }
 
+func reopenLogFile() {
+	// Duplicate log.* output to debugLog.
+	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
+		addSystemError(err_log)
+		log.Printf("%s\n", err_log.Error())
+	} else {
+		defer fp.Close()
+		mfp := io.MultiWriter(fp, os.Stdout)
+		log.SetOutput(mfp)
+	}
+
+	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
+	
+}
+
 func signalWatcher() {
 	sig := <-sigs
 	log.Printf("signal caught: %s - shutting down.\n", sig.String())
 	gracefulShutdown()
+}
+
+func clearDebugLogFile() {
+	if logFileHandle != nil {
+		_, err := logFileHandle.Seek(0,0)
+		if err != nil {
+			log.Printf("Could not seek to the beginning of the logfile\n")
+			return
+		} else {
+			err2 := logFileHandle.Truncate(0)
+			if err2 != nil {
+				log.Printf("Could not truncate the logfile\n")
+				return
+			}
+			log.Printf("Logfile truncated\n")
+		}
+	}
 }
 
 func main() {
@@ -1308,6 +1347,8 @@ func main() {
 		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
+		// Keep the logfile handle for later use
+		logFileHandle = fp
 		mfp := io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}
