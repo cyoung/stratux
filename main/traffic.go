@@ -75,7 +75,6 @@ const (
 )
 
 type TrafficInfo struct {
-	Type                string //
 	Icao_addr           uint32
 	Reg                 string    // Registration. Calculated from Icao_addr for civil aircraft of US registry.
 	Tail                string    // Callsign. Transmitted by aircraft.
