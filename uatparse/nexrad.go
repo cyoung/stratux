@@ -11,13 +11,13 @@ const (
 )
 
 type NEXRADBlock struct {
-	radar_type uint32
-	scale      int
-	latNorth   float64
-	lonWest    float64
-	height     float64
-	width      float64
-	intensity  []uint8 // Really only 4-bit values.
+	Radar_Type uint32
+	Scale      int
+	LatNorth   float64
+	LonWest    float64
+	Height     float64
+	Width      float64
+	Intensity  []uint8 // Really only 4-bit values.
 }
 
 func block_location(block_num int, ns_flag bool, scale_factor int) (float64, float64, float64, float64) {
@@ -73,20 +73,20 @@ func (f *UATFrame) decodeNexradFrame() {
 	if rle_flag { // Single bin, RLE encoded.
 		lat, lon, h, w := block_location(block_num, ns_flag, scale_factor)
 		var tmp NEXRADBlock
-		tmp.radar_type = f.Product_id
-		tmp.scale = scale_factor
-		tmp.latNorth = lat
-		tmp.lonWest = lon
-		tmp.height = h
-		tmp.width = w
-		tmp.intensity = make([]uint8, 0)
+		tmp.Radar_Type = f.Product_id
+		tmp.Scale = scale_factor
+		tmp.LatNorth = lat
+		tmp.LonWest = lon
+		tmp.Height = h
+		tmp.Width = w
+		tmp.Intensity = make([]uint8, 0)
 
 		intensityData := f.FISB_data[3:]
 		for _, v := range intensityData {
 			intensity := uint8(v) & 0x7
 			runlength := (uint8(v) >> 3) + 1
 			for runlength > 0 {
-				tmp.intensity = append(tmp.intensity, intensity)
+				tmp.Intensity = append(tmp.Intensity, intensity)
 				runlength--
 			}
 		}
@@ -124,19 +124,19 @@ func (f *UATFrame) decodeNexradFrame() {
 					bn := row_start + row_x
 					lat, lon, h, w := block_location(bn, ns_flag, scale_factor)
 					var tmp NEXRADBlock
-					tmp.radar_type = f.Product_id
-					tmp.scale = scale_factor
-					tmp.latNorth = lat
-					tmp.lonWest = lon
-					tmp.height = h
-					tmp.width = w
-					tmp.intensity = make([]uint8, 0)
+					tmp.Radar_Type = f.Product_id
+					tmp.Scale = scale_factor
+					tmp.LatNorth = lat
+					tmp.LonWest = lon
+					tmp.Height = h
+					tmp.Width = w
+					tmp.Intensity = make([]uint8, 0)
 					for k := 0; k < 128; k++ {
 						z := uint8(0)
 						if f.Product_id == 64 {
 							z = 1
 						}
-						tmp.intensity = append(tmp.intensity, z)
+						tmp.Intensity = append(tmp.Intensity, z)
 					}
 					f.NEXRAD = append(f.NEXRAD, tmp)
 				}
