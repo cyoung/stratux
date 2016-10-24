@@ -39,6 +39,9 @@ var trafficUpdate *uibroadcaster
 // Situation updates channel.
 var situationUpdate *uibroadcaster
 
+// Raw weather (UATFrame packet stream) update channel.
+var weatherRawUpdate *uibroadcaster
+
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
 */
@@ -71,7 +74,7 @@ func handleJsonIo(conn *websocket.Conn) {
 	}
 	// Subscribe the socket to receive updates.
 	trafficUpdate.AddSocket(conn)
-	weatherUpdate.AddSocket(conn)
+	weatherRawUpdate.AddSocket(conn)
 	situationUpdate.AddSocket(conn)
 
 	trafficMutex.Unlock()
@@ -516,6 +519,7 @@ func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
 	situationUpdate = NewUIBroadcaster()
+	weatherRawUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))

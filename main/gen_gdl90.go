@@ -745,9 +745,6 @@ type WeatherMessage struct {
 	Time              string
 	Data              string
 	LocaltimeReceived time.Time
-	Ticks             int64
-	TowerLat          float64
-	TowerLon          float64
 }
 
 // Send update to connected websockets.
@@ -771,25 +768,11 @@ func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 	if x[0] == "PIREP" {
 		globalStatus.UAT_PIREP_total++
 	}
-	if x[0] == "NEXRAD" {
-		log.Printf("registerADSBTextMessageReceived: %s\n", msg)
-		wm.Type = x[0]
-		wm.Data = strings.Join(x[1:], " ")
-		wm.Location = "NEXRAD"
-		wm.Time = "NONE"
-	} else {
-		wm.Type = x[0]
-		wm.Location = x[1]
-		wm.Time = x[2]
-		wm.Data = strings.Join(x[3:], " ")
-	}
+	wm.Type = x[0]
+	wm.Location = x[1]
+	wm.Time = x[2]
+	wm.Data = strings.Join(x[3:], " ")
 	wm.LocaltimeReceived = stratuxClock.Time
-	wm.TowerLon = uatMsg.Lon
-	wm.TowerLat = uatMsg.Lat
-	//	now := time.Now()
-	//	Year := time.Year()
-	uatTime := time.Date(2016, time.Month(uatMsg.Frames[0].FISB_month), int(uatMsg.Frames[0].FISB_day), int(uatMsg.Frames[0].FISB_hours), int(uatMsg.Frames[0].FISB_minutes), int(uatMsg.Frames[0].FISB_seconds), 0, time.UTC)
-	wm.Ticks = uatTime.UnixNano() / 1000000
 
 	// Send to weatherUpdate channel for any connected clients.
 	weatherUpdate.SendJSON(wm)
@@ -905,6 +888,7 @@ func parseInput(buf string) ([]byte, uint16) {
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
 				UpdateUATStats(f.Product_id)
+				weatherRawUpdate.SendJSON(f)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
