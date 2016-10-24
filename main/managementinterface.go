@@ -36,6 +36,9 @@ type SettingMessage struct {
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
 
+// Situation updates channel.
+var situationUpdate *uibroadcaster
+
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
 */
@@ -511,6 +514,7 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	situationUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
