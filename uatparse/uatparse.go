@@ -4,11 +4,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"io/ioutil"
 	"strconv"
 	"strings"
 )
 
+var elementIdentifier byte
 const (
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -24,7 +26,9 @@ const (
 	// assume 6 byte frames: 2 header bytes, 4 byte payload
 	// (TIS-B heartbeat with one address, or empty FIS-B APDU)
 	UPLINK_MAX_INFO_FRAMES = (424 / 6)
-
+    COLS_PER_BIN = 32
+	ROWS_PER_BIN = 4
+	
 	dlac_alpha = "\x03ABCDEFGHIJKLMNOPQRSTUVWXYZ\x1A\t\x1E\n| !\"#$%&'()*+,-./0123456789:;<=>?"
 )
 
@@ -185,6 +189,123 @@ func formatDLACData(p string) []string {
 		p = p[pos+1:]
 	}
 	return ret
+}
+
+func (f *UATFrame) decodeNexradFrame() {
+	ret := make([]string, 0)
+	builder := make([]string, 0)
+	
+	if len(f.FISB_data) < int(f.FISB_length) {
+		return
+	}
+	mEmpty := make([]int32, 1)
+	mData := make([]int32, COLS_PER_BIN * ROWS_PER_BIN)
+	elementIdentifier := f.FISB_data[0] & 0x80
+	mBlock := uint32(f.FISB_data[0] & 0x0f) << 16
+	mBlock = mBlock | uint32(f.FISB_data[1]) << 8
+	mBlock = mBlock | uint32(f.FISB_data[2])
+	index := 3
+	// Make 32 * 4 array
+	if elementIdentifier != 0 {
+		// Clear the array
+		for c:=0; c < (COLS_PER_BIN * ROWS_PER_BIN); c++ {
+			mData[c] = 0
+		}
+		j := 0
+		for index < int(f.FISB_length) {
+			numberOfBins := ((f.FISB_data[index] & 0xf8) >> 3) + 1
+			for i:=0; i < int(numberOfBins); i++ {
+				if j >= int(COLS_PER_BIN*ROWS_PER_BIN) {
+					return
+				}
+				mData[j] = int32(f.FISB_data[index] & 0x07)
+				j++
+			}
+			index++
+		}
+	} else {
+		bitmapLen := int32(f.FISB_data[index] & 0x0f)
+		// Start with 1 element
+		
+		mEmpty[0] = int32(mBlock)
+		if (f.FISB_data[index] & 0x10) != 0 {
+			mEmpty = append(mEmpty, int32(mBlock+1))
+		}
+		if (f.FISB_data[index] & 0x20) != 0 {
+			mEmpty = append(mEmpty, int32(mBlock+2))
+		}
+		if (f.FISB_data[index] & 0x30) != 0 {
+			mEmpty = append(mEmpty, int32(mBlock+3))
+		}
+		if (f.FISB_data[index] & 0x40) != 0 {
+			mEmpty = append(mEmpty, int32(mBlock+4))
+		}
+		for i:=1; i<int(bitmapLen); i++ {
+			if (f.FISB_data[index+i] & 0x01) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 - 3))
+			}
+			if (f.FISB_data[index+i] & 0x02) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 - 2))
+			}
+			if (f.FISB_data[index+i] & 0x04) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 - 1))
+			}
+			if (f.FISB_data[index+i] & 0x08) != 0 {
+				mEmpty = append(mEmpty, int32( mBlock + uint32(i) * 8 - 0))
+			}
+			if (f.FISB_data[index+i] & 0x10) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 + 1))
+			}
+			if (f.FISB_data[index+i] & 0x20) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 + 2))
+			}
+			if (f.FISB_data[index+i] & 0x40) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 + 3))
+			}
+			if (f.FISB_data[index+i] & 0x80) != 0 {
+				mEmpty = append(mEmpty, int32(mBlock + uint32(i) * 8 + 4))
+			}
+		}
+	}
+	log.Printf("NEXRAD: elementIdentifier %d mBlock %d\n",elementIdentifier, mBlock)
+	log.Printf("NEXRAD: mEmpty %d mData %d\n",mEmpty, mData)
+	// field 1 - NEXRAD
+	builder = append(builder,"NEXRAD")
+	// CONUS
+	if f.Product_id == 63 {
+		builder = append(builder,"0")
+	} else {
+		builder = append(builder,"1")
+	}
+	// Field 3 block
+	builder = append(builder,fmt.Sprintf("%d",mBlock))
+	// Field 4 Columns
+	builder = append(builder,fmt.Sprintf("%d",COLS_PER_BIN))
+	// Field 5 Rows
+	builder = append(builder,fmt.Sprintf("%d",ROWS_PER_BIN))
+	if elementIdentifier != 0 {
+		builder = append(builder,"1")
+		bin := ""
+		for br := range mData {
+			bin = bin + fmt.Sprintf("%d,",mData[br])
+		}
+		if bin[len(bin)-1] == ',' {
+			bin = bin[0:len(bin)-1]
+		}
+		builder = append(builder,bin)
+	} else {
+		builder = append(builder,"0")
+		bin2 := ""
+		for be := range mEmpty {
+			bin2 = bin2 + fmt.Sprintf("%d,",mEmpty[be])
+		}
+		if bin2[len(bin2)-1] == ',' {
+			bin2 = bin2[0:len(bin2)-1]
+		}
+		builder = append(builder,bin2)
+	}
+	ret = append(ret, fmt.Sprintf(strings.Join(builder, " ")))
+	f.Text_data = ret
 }
 
 // Whole frame contents is DLAC encoded text.
@@ -500,6 +621,9 @@ func (f *UATFrame) decodeInfoFrame() {
 			case 8, 11, 13:
 				f.decodeAirmet()
 		*/
+	case  63, 64:
+		f.decodeNexradFrame()
+		
 	default:
 		fmt.Fprintf(ioutil.Discard, "don't know what to do with product id: %d\n", f.Product_id)
 	}

@@ -57,6 +57,35 @@ func handleWeatherWS(conn *websocket.Conn) {
 	}
 }
 
+func handleJsonIo(conn *websocket.Conn) {
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	// Subscribe the socket to receive updates.
+	trafficUpdate.AddSocket(conn)
+	weatherUpdate.AddSocket(conn)
+	
+	trafficMutex.Unlock()
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 // Works just as weather updates do.
 
 func handleTrafficWS(conn *websocket.Conn) {
@@ -509,6 +538,13 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleTrafficWS)}
+			s.ServeHTTP(w, req)
+		})
+
+	http.HandleFunc("/jsonio",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleJsonIo)}
 			s.ServeHTTP(w, req)
 		})
 
