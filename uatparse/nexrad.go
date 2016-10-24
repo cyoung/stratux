@@ -143,5 +143,5 @@ func (f *UATFrame) decodeNexradFrame() {
 			}
 		}
 	}
-	return ret
+
 }
