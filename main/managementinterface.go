@@ -72,6 +72,7 @@ func handleJsonIo(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	trafficUpdate.AddSocket(conn)
 	weatherUpdate.AddSocket(conn)
+	situationUpdate.AddSocket(conn)
 
 	trafficMutex.Unlock()
 
