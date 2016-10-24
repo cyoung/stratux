@@ -790,10 +790,9 @@ func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 	//	Year := time.Year()
 	uatTime := time.Date(2016, time.Month(uatMsg.Frames[0].FISB_month), int(uatMsg.Frames[0].FISB_day), int(uatMsg.Frames[0].FISB_hours), int(uatMsg.Frames[0].FISB_minutes), int(uatMsg.Frames[0].FISB_seconds), 0, time.UTC)
 	wm.Ticks = uatTime.UnixNano() / 1000000
-	wmJSON, _ := json.Marshal(&wm)
 
 	// Send to weatherUpdate channel for any connected clients.
-	weatherUpdate.Send(wmJSON)
+	weatherUpdate.SendJSON(wm)
 }
 
 func UpdateUATStats(ProductID uint32) {
