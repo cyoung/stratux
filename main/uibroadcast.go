@@ -11,6 +11,7 @@
 package main
 
 import (
+	"encoding/json"
 	"golang.org/x/net/websocket"
 	"sync"
 	"time"
@@ -34,6 +35,11 @@ func NewUIBroadcaster() *uibroadcaster {
 
 func (u *uibroadcaster) Send(msg []byte) {
 	u.messages <- msg
+}
+
+func (u *uibroadcaster) SendJSON(i interface{}) {
+	j, _ := json.Marshal(&i)
+	u.Send(j)
 }
 
 func (u *uibroadcaster) AddSocket(sock *websocket.Conn) {
