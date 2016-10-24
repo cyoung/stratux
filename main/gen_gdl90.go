@@ -745,11 +745,10 @@ type WeatherMessage struct {
 	Time              string
 	Data              string
 	LocaltimeReceived time.Time
-	Ticks			  int64
-	TowerLon		  float64
-	TowerLat		  float64
+	Ticks             int64
+	TowerLon          float64
+	TowerLat          float64
 	TisId             byte
-	
 }
 
 // Send update to connected websockets.
@@ -774,7 +773,7 @@ func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 		globalStatus.UAT_PIREP_total++
 	}
 	if x[0] == "NEXRAD" {
-		log.Printf("registerADSBTextMessageReceived: %s\n",msg)
+		log.Printf("registerADSBTextMessageReceived: %s\n", msg)
 		wm.Type = x[0]
 		wm.Data = strings.Join(x[1:], " ")
 		wm.Location = "NEXRAD"
@@ -788,9 +787,9 @@ func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 	wm.LocaltimeReceived = stratuxClock.Time
 	wm.TowerLon = uatMsg.Lon
 	wm.TowerLat = uatMsg.Lat
-//	now := time.Now()
-//	Year := time.Year()
-	uatTime := time.Date(2016, time.Month(uatMsg.Frames[0].FISB_month),int(uatMsg.Frames[0].FISB_day), int(uatMsg.Frames[0].FISB_hours), int(uatMsg.Frames[0].FISB_minutes), int(uatMsg.Frames[0].FISB_seconds), 0, time.UTC)
+	//	now := time.Now()
+	//	Year := time.Year()
+	uatTime := time.Date(2016, time.Month(uatMsg.Frames[0].FISB_month), int(uatMsg.Frames[0].FISB_day), int(uatMsg.Frames[0].FISB_hours), int(uatMsg.Frames[0].FISB_minutes), int(uatMsg.Frames[0].FISB_seconds), 0, time.UTC)
 	wm.Ticks = uatTime.UnixNano() / 1000000
 	wmJSON, _ := json.Marshal(&wm)
 

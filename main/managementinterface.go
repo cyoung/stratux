@@ -69,7 +69,7 @@ func handleJsonIo(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	trafficUpdate.AddSocket(conn)
 	weatherUpdate.AddSocket(conn)
-	
+
 	trafficMutex.Unlock()
 
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
