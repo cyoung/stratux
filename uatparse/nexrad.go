@@ -17,7 +17,7 @@ type NEXRADBlock struct {
 	LonWest    float64
 	Height     float64
 	Width      float64
-	Intensity  []uint8 // Really only 4-bit values.
+	Intensity  []uint16 // Really only 4-bit values, but using this as a hack for the JSON encoding.
 }
 
 func block_location(block_num int, ns_flag bool, scale_factor int) (float64, float64, float64, float64) {
@@ -79,12 +79,12 @@ func (f *UATFrame) decodeNexradFrame() {
 		tmp.LonWest = lon
 		tmp.Height = h
 		tmp.Width = w
-		tmp.Intensity = make([]uint8, 0)
+		tmp.Intensity = make([]uint16, 0)
 
 		intensityData := f.FISB_data[3:]
 		for _, v := range intensityData {
-			intensity := uint8(v) & 0x7
-			runlength := (uint8(v) >> 3) + 1
+			intensity := uint16(v) & 0x7
+			runlength := (uint16(v) >> 3) + 1
 			for runlength > 0 {
 				tmp.Intensity = append(tmp.Intensity, intensity)
 				runlength--
@@ -130,9 +130,9 @@ func (f *UATFrame) decodeNexradFrame() {
 					tmp.LonWest = lon
 					tmp.Height = h
 					tmp.Width = w
-					tmp.Intensity = make([]uint8, 0)
+					tmp.Intensity = make([]uint16, 0)
 					for k := 0; k < 128; k++ {
-						z := uint8(0)
+						z := uint16(0)
 						if f.Product_id == 64 {
 							z = 1
 						}
