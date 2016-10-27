@@ -293,6 +293,7 @@ func doReboot() {
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handleDevelModeToggle called!!!\n")
 	globalSettings.DeveloperMode = true
+	saveSettings()
 }
 
 func handleRestartRequest(w http.ResponseWriter, r *http.Request) {
