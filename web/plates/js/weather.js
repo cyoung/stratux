@@ -140,7 +140,12 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		var dNow = new Date();
 		var dThen = parseShortDatetime(obj.Time);
 		data_item.age = dThen.getTime();
-		data_item.time = deltaTimeString(dNow - dThen) + " old";
+        	if (obj.Type == "WINDS") {
+	            data_item.time = deltaTimeString(dThen - dNow) + " from now";
+	        } else {
+	            data_item.time = deltaTimeString(dNow - dThen) + " old";
+	        }
+        
 		// data_item.received = utcTimeString(obj.LocaltimeReceived);
 		data_item.data = obj.Data;
 	}
