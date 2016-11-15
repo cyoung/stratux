@@ -237,7 +237,7 @@
 
 
 /* ***************************************************************************
-everything below this comment represents tweeks to the mobile-angular-uis CSS
+everything below this comment represents tweaks to the mobile-angular-uis CSS
 *************************************************************************** */
 
 @font-face {
@@ -396,6 +396,9 @@ pre {
 	border-radius: 0px;
 }
 
+body {
+    font-weight: 400;
+}
 
 /* change right sidebar behavior to always push */
 
