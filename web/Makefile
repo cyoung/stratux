@@ -1,5 +1,6 @@
 ifeq ($(statuxBuild),)
 stratuxBuild=`git log -n 1 --pretty=%H`
+buildtime=`date +%s`
 endif
 
 all:
@@ -34,4 +35,5 @@ all:
 	cp index.html /var/www
 	cp stratux.appcache /var/www
 	# Mark the manifest with the git hash.
+	echo "# build time: " ${buildtime} >>/var/www/stratux.appcache
 	echo "# Stratux build: " ${stratuxBuild} >>/var/www/stratux.appcache
