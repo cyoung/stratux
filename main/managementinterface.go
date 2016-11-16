@@ -44,16 +44,16 @@ var situationUpdate *uibroadcaster
 var weatherRawUpdate *uibroadcaster
 
 func handleWeatherUpdateWS(conn *websocket.Conn) {
-    
+
 	timer := time.NewTicker(5 * time.Second)
-//    weatherWatchedUpdate.AddSocket(conn)
+	//    weatherWatchedUpdate.AddSocket(conn)
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
 		update, _ := json.Marshal(&WatchedStations)
 		_, err := conn.Write(update)
 
 		if err != nil {
-						log.Printf("watched weather client disconnected.\n")
+			log.Printf("watched weather client disconnected.\n")
 			break
 		}
 		<-timer.C
@@ -506,7 +506,7 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
-    weatherWatchedUpdate = NewUIBroadcaster()
+	weatherWatchedUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
