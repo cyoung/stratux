@@ -221,6 +221,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":
 						globalSettings.AHRS_Enabled = val.(bool)
+					case "AHRS_GDL90_Enabled":
+						globalSettings.AHRS_GDL90_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "DisplayTrafficSource":
