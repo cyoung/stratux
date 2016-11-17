@@ -6373,50 +6373,62 @@ a.label:focus {
 
 .label-default {
   background-color: #777777;
+  border-radius: 5px;
 }
 
 .label-default[href]:focus {
   background-color: #5e5e5e;
+  border-radius: 5px;
 }
 
 .label-primary {
   background-color: #007aff;
+  border-radius: 5px;
 }
 
 .label-primary[href]:focus {
   background-color: #0062cc;
+  border-radius: 5px;
 }
 
 .label-success {
   background-color: #4cd964;
+  border-radius: 5px;
 }
 
 .label-success[href]:focus {
   background-color: #2ac845;
+  border-radius: 5px;
 }
 
 .label-info {
   background-color: #34aadc;
+  border-radius: 5px;  
 }
 
 .label-info[href]:focus {
   background-color: #218ebd;
+  border-radius: 5px;  
 }
 
 .label-warning {
   background-color: #ffcc00;
+  border-radius: 5px;
 }
 
 .label-warning[href]:focus {
   background-color: #cca300;
+  border-radius: 5px;
 }
 
 .label-danger {
   background-color: #ff3b30;
+  border-radius: 5px;
 }
 
 .label-danger[href]:focus {
   background-color: #fc0d00;
+  border-radius: 5px;
 }
 
 .badge {
