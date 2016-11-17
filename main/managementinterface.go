@@ -37,7 +37,7 @@ var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
 var gdl90Update *uibroadcaster
 
-func handleGdl90WS(conn *websocket.Conn) {
+func handleGDL90WS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	gdl90Update.AddSocket(conn)
 
@@ -539,7 +539,7 @@ func managementInterface() {
 	trafficUpdate = NewUIBroadcaster()
 	situationUpdate = NewUIBroadcaster()
 	weatherRawUpdate = NewUIBroadcaster()
-    	gdl90Update = NewUIBroadcaster()
+	gdl90Update = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -548,7 +548,7 @@ func managementInterface() {
 	http.HandleFunc("/gdl90",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
-				Handler: websocket.Handler(handleGdl90WS)}
+				Handler: websocket.Handler(handleGDL90WS)}
 			s.ServeHTTP(w, req)
 		})
 	http.HandleFunc("/status",
