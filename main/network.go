@@ -15,7 +15,6 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
-	"encoding/json"
 	"log"
 	"math"
 	"math/rand"
@@ -197,14 +196,9 @@ var serialOutputChan chan []byte
 var networkGDL90Chan chan []byte
 
 func networkOutWatcher() {
-	//ticker := time.NewTicker(10 * time.Second)
-	//var nmsg gdl90NetMessage
 	for {
-		select {
-		case ch := <-networkGDL90Chan:
-			gdlJSON, _ := json.Marshal(ch)
-			gdl90Update.Send(gdlJSON)
-		}
+		ch := <-networkGDL90Chan
+		gdl90Update.SendJSON(ch)
 	}
 }
 
