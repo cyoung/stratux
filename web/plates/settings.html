@@ -237,26 +237,6 @@
 		</div>
 	</div> 
 
-	<div class="modal" ui-if="modalAHRSWarning" ui-state="modalAHRSWarning">
-		<div class="modal-overlay "></div>
-       	<div class="vertical-alignment-helper center-block">
-        	<div class="modal-dialog vertical-align-center">
-   			  <div class="modal-content">
-				<div class="modal-header">
-				  <button class="close" 
-						  ui-turn-off="modalAHRSWarning"></button>
-				  <h4 class="modal-title">AHRS Output to EFB: Compatibility Note</h4>
-				</div>
-				<div class="modal-body">
-				  <p>This option must be enabled to send AHRS messages to compatible EFBs (WingX, iFly, etc.) over the WiFi interface using the GDL90 protocol. If <strong>AHRS Module</strong> is not enabled or AHRS hardware is not present, Stratux will estimate pitch and bank angles from GPS groundspeed, climb rate, and turn rate.</p>
-				  <p><strong>AHRS output is not compatible with ForeFlight 7.6, and must be disabled for ForeFlight 7.6 to work at all. Stratux will automatically disable AHRS output if it detects a connected ForeFlight client.</strong></p>
-				</div>
-				<div class="modal-footer">
-				  <a ui-turn-off="modalAHRSWarning" class="btn btn-primary">Acknowledge</a>
-				</div>
-			  </div>
-    	  </div>
-    </div>
   </div> 
 	
 </div>
