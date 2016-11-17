@@ -143,6 +143,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 	if (msg.msgType & NETWORK_GDL90_STANDARD) != 0 {
 		// It's a GDL90 message. Send to serial output channel (which may or may not cause something to happen).
 		serialOutputChan <- msg.msg
+		networkGDL90Chan <- msg.msg
 	}
 
 	netMutex.Lock()
@@ -192,6 +193,14 @@ func sendToAllConnectedClients(msg networkMessage) {
 }
 
 var serialOutputChan chan []byte
+var networkGDL90Chan chan []byte
+
+func networkOutWatcher() {
+	for {
+		ch := <-networkGDL90Chan
+		gdl90Update.SendJSON(ch)
+	}
+}
 
 // Monitor serial output channel, send to serial port.
 func serialOutWatcher() {
@@ -603,6 +612,7 @@ func ffMonitor() {
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
 	serialOutputChan = make(chan []byte, 1024)     // Buffered channel, 1024 GDL90 messages.
+	networkGDL90Chan = make(chan []byte, 1024)
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -612,4 +622,5 @@ func initNetwork() {
 	go sleepMonitor()
 	go networkStatsCounter()
 	go serialOutWatcher()
+	go networkOutWatcher()
 }

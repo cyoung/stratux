@@ -5,22 +5,22 @@
 .modal {
 }
 .vertical-alignment-helper {
-    display:table;
-    height: 100%;
-    width: 75%;
+	display:table;
+	height: 100%;
+	width: 75%;
 }
 .vertical-align-center {
-    /* To center vertically */
-    display: table-cell;
-    vertical-align: middle;
+	/* To center vertically */
+	display: table-cell;
+	vertical-align: middle;
 }
 
 .modal-content {
-    /* Bootstrap sets the size of the modal in the modal-dialog class, we need to inherit it */
-    width:inherit;
-    height:inherit;
-    /* To center horizontally */
-    margin: 0 auto;
+	/* Bootstrap sets the size of the modal in the modal-dialog class, we need to inherit it */
+	width:inherit;
+	height:inherit;
+	/* To center horizontally */
+	margin: 0 auto;
 }
 
 .traffic-page {}
@@ -131,22 +131,44 @@
 	content: "\f1d9";
 }
 
+.report_TAF {
+	border-radius: 5px;
+	background-color: cornsilk;
+	color: black;
+}
+
+.report_PIREP {
+	border-radius: 5px;
+	background-color: gainsboro;
+	color: black;
+}
+
+.report_WINDS {
+	border-radius: 5px;
+	background-color: lavender;
+	color: black;
+}
+
 .flight_condition_VFR {
+	border-radius: 5px;
 	background-color: forestgreen;
 	color: white;
 }
 
 .flight_condition_MVFR {
+	border-radius: 5px;
 	background-color: blue;
 	color: white;
 }
 
 .flight_condition_IFR {
+	border-radius: 5px;
 	background-color: crimson;
 	color: white;
 }
 
 .flight_condition_LIFR {
+	border-radius: 5px;
 	background-color: darkorchid;
 	color: white;
 }
