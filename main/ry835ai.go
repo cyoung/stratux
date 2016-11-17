@@ -1966,23 +1966,15 @@ func gpsAttitudeSender() {
 					mySituation.Roll = myGPSPerfStats[index].gpsRoll
 					mySituation.Gyro_heading = float64(mySituation.TrueCourse)
 					mySituation.LastAttitudeTime = stratuxClock.Time
-					//if globalSettings.ForeFlightSimMode == true {
-					//	globalSettings.AHRS_GDL90_Enabled = false // both can't be simultaneously active
-					//	makeFFAHRSSimReport()
-					//} else if globalSettings.AHRS_GDL90_Enabled == true {
-					//globalSettings.ForeFlightSimMode = false // both can't be simultaneoussly active
-					//makeAHRSGDL90Report()
-					//}
 
-					if globalSettings.AHRS_GDL90_Enabled == true {
-						makeAHRSGDL90Report()
-					}
+					makeAHRSGDL90Report()
 				}
 				mySituation.mu_GPSPerf.Unlock()
 			}
 		}
 	}
 }
+
 func attitudeReaderSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
@@ -2007,9 +1999,7 @@ func attitudeReaderSender() {
 		//		if isGPSGroundTrackValid(), etc.
 
 		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		if globalSettings.AHRS_GDL90_Enabled == true {
-			makeAHRSGDL90Report()
-		}
+		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()
 	}

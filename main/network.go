@@ -597,7 +597,6 @@ func ffMonitor() {
 		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
 			p.FFCrippled = true
 			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
-			globalSettings.AHRS_GDL90_Enabled = false
 			if !ff_warned {
 				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)

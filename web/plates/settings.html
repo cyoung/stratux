@@ -70,12 +70,6 @@
 		<div class="panel panel-default">
 			<div class="panel-heading">Configuration</div>
 			<div class="panel-body">
-				<div class="form-group">
-					<label class="control-label col-xs-7"><a ui-turn-on="modalAHRSWarning">AHRS Output to EFB</a></label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='AHRS_GDL90_Enabled' settings-change ui-turn-on="modalAHRSWarning"></ui-switch>
-					</div>
-				</div>
 				<div class="form-group reset-flow">
 					<label class="control-label col-xs-5">Mode S Code (Hex)</label>
 					<form name="modeForm" ng-submit="updatemodes()" novalidate>

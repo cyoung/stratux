@@ -1001,7 +1001,6 @@ type settings struct {
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
-	AHRS_GDL90_Enabled   bool
 }
 
 type status struct {
@@ -1066,7 +1065,6 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
-	globalSettings.AHRS_GDL90_Enabled = false
 }
 
 func readSettings() {
