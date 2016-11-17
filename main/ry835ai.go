@@ -27,8 +27,6 @@ import (
 
 	"os"
 	"os/exec"
-
-	"../mpu6050"
 )
 
 const (
@@ -88,7 +86,7 @@ type SituationData struct {
 	Pressure_alt      float64
 	LastTempPressTime time.Time
 
-	// From MPU6050 accel/gyro.
+	// From AHRS source.
 	Pitch            float64
 	Roll             float64
 	Gyro_heading     float64
@@ -464,10 +462,11 @@ func validateNMEAChecksum(s string) (string, bool) {
 //TODO: Some more robust checking above current and last speed.
 //TODO: Dynamic adjust for gain based on groundspeed
 func setTrueCourse(groundSpeed uint16, trueCourse float64) {
-	if myMPU6050 != nil && globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
-			myMPU6050.ResetHeading(trueCourse, 0.10)
-		}
+	if mySituation.GroundSpeed >= 7 && groundSpeed >= 7 {
+		// This was previously used to filter small ground speed spikes caused by GPS position drift.
+		//  It was passed to the previous AHRS heading calculator. Currently unused, maybe in the future it will be.
+		_ = trueCourse
+		_ = groundSpeed
 	}
 }
 
@@ -1844,7 +1843,6 @@ func gpsSerialReader() {
 
 var i2cbus embd.I2CBus
 var myBMP180 *bmp180.BMP180
-var myMPU6050 *mpu6050.MPU6050
 
 func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	temp, err := myBMP180.Temperature()
@@ -1859,18 +1857,8 @@ func readBMP180() (float64, float64, error) { // ºCelsius, Meters
 	return temp, altitude, nil
 }
 
-func readMPU6050() (float64, float64, error) { //TODO: error checking.
-	pitch, roll := myMPU6050.PitchAndRoll()
-	return pitch, roll, nil
-}
-
 func initBMP180() error {
 	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initMPU6050() error {
-	myMPU6050 = mpu6050.New() //TODO: error checking.
 	return nil
 }
 
@@ -1975,37 +1963,6 @@ func gpsAttitudeSender() {
 	}
 }
 
-func attitudeReaderSender() {
-	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
-		// Read pitch and roll.
-		pitch, roll, err_mpu6050 := readMPU6050()
-
-		if err_mpu6050 != nil {
-			log.Printf("readMPU6050(): %s\n", err_mpu6050.Error())
-			globalStatus.RY835AI_connected = false
-			break
-		}
-
-		mySituation.mu_Attitude.Lock()
-
-		mySituation.Pitch = pitch
-		mySituation.Roll = roll
-		mySituation.Gyro_heading = myMPU6050.Heading() //FIXME. Experimental.
-		mySituation.LastAttitudeTime = stratuxClock.Time
-
-		// Send, if valid.
-		//		if isGPSGroundTrackValid(), etc.
-
-		// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
-		makeAHRSGDL90Report()
-
-		mySituation.mu_Attitude.Unlock()
-	}
-	globalStatus.RY835AI_connected = false
-}
-
 /*
 	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
 		data structure. Calling functions must protect this in a satelliteMutex.
@@ -2081,18 +2038,12 @@ func initAHRS() error {
 	if err := initI2C(); err != nil { // I2C bus.
 		return err
 	}
-	if err := initBMP180(); err != nil { // I2C temperature and pressure altitude.
-		i2cbus.Close()
+
+	if err := initBMP180(); err == nil { // I2C temperature and pressure altitude.
+		go tempAndPressureReader()
+	} else {
 		return err
 	}
-	if err := initMPU6050(); err != nil { // I2C accel/gyro.
-		i2cbus.Close()
-		myBMP180.Close()
-		return err
-	}
-	globalStatus.RY835AI_connected = true
-	go attitudeReaderSender()
-	go tempAndPressureReader()
 
 	return nil
 }

@@ -438,10 +438,8 @@ func makeStratuxStatus() []byte {
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware: RY835AI.
-	if globalStatus.RY835AI_connected {
-		msg[15] = msg[15] | (1 << 2)
-	}
+	// Connected hardware.
+	//	RY835AI: msg[15] = msg[15] | (1 << 2)
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
@@ -1024,7 +1022,6 @@ type status struct {
 	GPS_connected                              bool
 	GPS_solution                               string
 	GPS_detected_type                          uint
-	RY835AI_connected                          bool
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32

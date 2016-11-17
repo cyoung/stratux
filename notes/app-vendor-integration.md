@@ -103,7 +103,6 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "GPS_satellites_locked": 0,     // Number of GPS satellites used in last GPS lock.
   "GPS_connected": true,          // GPS unit connected and functioning.
   "GPS_solution": "",             // "DGPS (WAAS)", "3D GPS", "N/A", or "" when GPS not connected/enabled.
-  "RY835AI_connected": false,     // GPS/AHRS unit - use only for debugging (this will be removed).
   "Uptime": 227068,               // Device uptime (in milliseconds).
   "CPUTemp": 42.236               // CPU temperature (in ºC).
 }
