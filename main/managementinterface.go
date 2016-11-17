@@ -35,6 +35,25 @@ type SettingMessage struct {
 // Weather updates channel.
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
+var gdl90Update *uibroadcaster
+
+func handleGdl90WS(conn *websocket.Conn) {
+	// Subscribe the socket to receive updates.
+	gdl90Update.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
 
 // Situation updates channel.
 var situationUpdate *uibroadcaster
@@ -520,11 +539,18 @@ func managementInterface() {
 	trafficUpdate = NewUIBroadcaster()
 	situationUpdate = NewUIBroadcaster()
 	weatherRawUpdate = NewUIBroadcaster()
+    	gdl90Update = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/view_logs/", viewLogs)
 
+	http.HandleFunc("/gdl90",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleGdl90WS)}
+			s.ServeHTTP(w, req)
+		})
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{

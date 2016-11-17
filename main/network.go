@@ -15,6 +15,7 @@ import (
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
+	"encoding/json"
 	"log"
 	"math"
 	"math/rand"
@@ -143,6 +144,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 	if (msg.msgType & NETWORK_GDL90_STANDARD) != 0 {
 		// It's a GDL90 message. Send to serial output channel (which may or may not cause something to happen).
 		serialOutputChan <- msg.msg
+		networkGDL90Chan <- msg.msg
 	}
 
 	netMutex.Lock()
@@ -192,6 +194,19 @@ func sendToAllConnectedClients(msg networkMessage) {
 }
 
 var serialOutputChan chan []byte
+var networkGDL90Chan chan []byte
+
+func networkOutWatcher() {
+	//ticker := time.NewTicker(10 * time.Second)
+	//var nmsg gdl90NetMessage
+	for {
+		select {
+		case ch := <-networkGDL90Chan:
+			gdlJSON, _ := json.Marshal(ch)
+			gdl90Update.Send(gdlJSON)
+		}
+	}
+}
 
 // Monitor serial output channel, send to serial port.
 func serialOutWatcher() {
@@ -603,6 +618,7 @@ func ffMonitor() {
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
 	serialOutputChan = make(chan []byte, 1024)     // Buffered channel, 1024 GDL90 messages.
+	networkGDL90Chan = make(chan []byte, 1024)
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -612,4 +628,5 @@ func initNetwork() {
 	go sleepMonitor()
 	go networkStatsCounter()
 	go serialOutWatcher()
+	go networkOutWatcher()
 }
