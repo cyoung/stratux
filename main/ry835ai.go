@@ -1870,21 +1870,20 @@ func initI2C() error {
 // Unused at the moment. 5 second update, since read functions in bmp180 are slow.
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
-	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
+	for {
 		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
 		// Process.
 		if err_bmp180 != nil {
 			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			globalStatus.RY835AI_connected = false
+			return
 		} else {
 			mySituation.Temp = temp
 			mySituation.Pressure_alt = alt
 			mySituation.LastTempPressTime = stratuxClock.Time
 		}
 	}
-	globalStatus.RY835AI_connected = false
 }
 
 func makeFFAHRSSimReport() {
@@ -2034,7 +2033,7 @@ func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
 
-func initAHRS() error {
+func initI2CSensors() error {
 	if err := initI2C(); err != nil { // I2C bus.
 		return err
 	}
@@ -2048,7 +2047,7 @@ func initAHRS() error {
 	return nil
 }
 
-func pollRY835AI() {
+func pollGPS() {
 	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	go gpsAttitudeSender()
@@ -2061,14 +2060,6 @@ func pollRY835AI() {
 				go gpsSerialReader()
 			}
 		}
-		// RY835AI I2C enabled, was not connected previously?
-		if globalSettings.AHRS_Enabled && !globalStatus.RY835AI_connected {
-			err := initAHRS()
-			if err != nil {
-				log.Printf("initAHRS(): %s\ndisabling AHRS sensors.\n", err.Error())
-				globalStatus.RY835AI_connected = false
-			}
-		}
 	}
 }
 
@@ -2079,5 +2070,7 @@ func initRY835AI() {
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	go pollRY835AI()
+	initI2CSensors()
+
+	go pollGPS()
 }
