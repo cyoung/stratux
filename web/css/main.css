@@ -131,6 +131,21 @@
 	content: "\f1d9";
 }
 
+.report_TAF {
+	background-color: cornsilk;
+	color: black;
+}
+
+.report_PIREP {
+	background-color: gainsboro;
+	color: black;
+}
+
+.report_WINDS {
+	background-color: lavender;
+	color: black;
+}
+
 .flight_condition_VFR {
 	background-color: forestgreen;
 	color: white;
