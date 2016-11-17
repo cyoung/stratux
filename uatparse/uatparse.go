@@ -61,6 +61,9 @@ type UATFrame struct {
 	RecordFormat       uint8
 	ReportStart        string
 	ReportEnd          string
+
+	// For NEXRAD.
+	NEXRAD []NEXRADBlock
 }
 
 type UATMsg struct {
@@ -500,6 +503,9 @@ func (f *UATFrame) decodeInfoFrame() {
 			case 8, 11, 13:
 				f.decodeAirmet()
 		*/
+	case 63, 64:
+		f.decodeNexradFrame()
+
 	default:
 		fmt.Fprintf(ioutil.Discard, "don't know what to do with product id: %d\n", f.Product_id)
 	}

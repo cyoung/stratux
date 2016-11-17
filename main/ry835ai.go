@@ -457,6 +457,15 @@ func calculateNACp(accuracy float32) uint8 {
 }
 
 /*
+	registerSituationUpdate().
+	 Called whenever there is a change in mySituation.
+*/
+func registerSituationUpdate() {
+	logSituation()
+	situationUpdate.SendJSON(mySituation)
+}
+
+/*
 processNMEALine parses NMEA-0183 formatted strings against several message types.
 
 Standard messages supported: RMC GGA VTG GSA
@@ -472,7 +481,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	defer func() {
 		if sentenceUsed || globalSettings.DEBUG {
-			logSituation()
+			registerSituationUpdate()
 		}
 		mySituation.mu_GPS.Unlock()
 	}()

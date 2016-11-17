@@ -36,12 +36,48 @@ type SettingMessage struct {
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
 
+// Situation updates channel.
+var situationUpdate *uibroadcaster
+
+// Raw weather (UATFrame packet stream) update channel.
+var weatherRawUpdate *uibroadcaster
+
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
 */
 func handleWeatherWS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	weatherUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func handleJsonIo(conn *websocket.Conn) {
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	// Subscribe the socket to receive updates.
+	trafficUpdate.AddSocket(conn)
+	weatherRawUpdate.AddSocket(conn)
+	situationUpdate.AddSocket(conn)
+
+	trafficMutex.Unlock()
 
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
@@ -482,6 +518,8 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	situationUpdate = NewUIBroadcaster()
+	weatherRawUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -509,6 +547,13 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleTrafficWS)}
+			s.ServeHTTP(w, req)
+		})
+
+	http.HandleFunc("/jsonio",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleJsonIo)}
 			s.ServeHTTP(w, req)
 		})
 
