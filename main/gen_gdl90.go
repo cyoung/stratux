@@ -755,6 +755,7 @@ func registerADSBTextMessageReceived(msg string) {
 	}
 
 	var wm WeatherMessage
+	var dataStr string
 
 	if (x[0] == "METAR") || (x[0] == "SPECI") {
 		globalStatus.UAT_METAR_total++
@@ -773,12 +774,46 @@ func registerADSBTextMessageReceived(msg string) {
 	wm.Location = x[1]
 	wm.Time = x[2]
 	wm.Data = strings.Join(x[3:], " ")
+	dataStr = wm.Data
 	wm.LocaltimeReceived = stratuxClock.Time
 
 	wmJSON, _ := json.Marshal(&wm)
 
 	// Send to weatherUpdate channel for any connected clients.
 	weatherUpdate.Send(wmJSON)
+	var wxType string
+	wxType = x[0]
+	if wxType == "SPECI" {
+		wxType = "METAR"
+	}
+	if wxType == "TAF.AMD" {
+		wxType = "TAF"
+	}
+	// Update the watch list here
+	// We look to see if the name is in the list, and if not, we exit
+	if strings.Contains(globalSettings.WatchList, x[1]) {
+		// If the list is empty, add this report and return
+		for wx := range WatchedStations {
+			//        log.Printf("wsplit[1] %s x[1] %s\n",wsplit[1],x[1])
+			// If the station ID and type match, then overwrite the string
+			if WatchedStations[wx].MsgType == wxType && WatchedStations[wx].Location == x[1] {
+				log.Printf("Updated position %d, station %s to %s\n", wx, x[1], msg)
+				WatchedStations[wx].Time = x[2]
+				WatchedStations[wx].Data = dataStr
+				//                weatherWatchedUpdate.SendJSON(WatchedStations)
+				return
+			}
+		}
+		// The type is not in the list, so lets add the string and return
+		log.Printf("add %s %s to the list, size is %d\n", x[0], x[1], len(WatchedStations))
+		var thisWatch watchedStationType
+		thisWatch.MsgType = wxType
+		thisWatch.Location = x[1]
+		thisWatch.Time = x[2]
+		thisWatch.Data = dataStr
+		WatchedStations = append(WatchedStations, thisWatch)
+		//        weatherWatchedUpdate.SendJSON(WatchedStations)
+	}
 }
 
 func UpdateUATStats(ProductID uint32) {
@@ -1039,8 +1074,16 @@ type status struct {
 	Errors []string
 }
 
+type watchedStationType struct {
+	MsgType  string
+	Location string
+	Time     string
+	Data     string
+}
+
 var globalSettings settings
 var globalStatus status
+var WatchedStations []watchedStationType
 
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
@@ -1255,6 +1298,8 @@ func main() {
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]string, 0)
+	WatchedStations = make([]watchedStationType, 0)
+
 	//FlightBox: detect via presence of /etc/FlightBox file.
 	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"

@@ -33,8 +33,32 @@ type SettingMessage struct {
 }
 
 // Weather updates channel.
+var weatherWatchedUpdate *uibroadcaster
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
+
+// Situation updates channel.
+var situationUpdate *uibroadcaster
+
+// Raw weather (UATFrame packet stream) update channel.
+var weatherRawUpdate *uibroadcaster
+
+func handleWeatherUpdateWS(conn *websocket.Conn) {
+
+	timer := time.NewTicker(5 * time.Second)
+	//    weatherWatchedUpdate.AddSocket(conn)
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		update, _ := json.Marshal(&WatchedStations)
+		_, err := conn.Write(update)
+
+		if err != nil {
+			log.Printf("watched weather client disconnected.\n")
+			break
+		}
+		<-timer.C
+	}
+}
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
@@ -482,6 +506,7 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	weatherWatchedUpdate = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
@@ -503,6 +528,12 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleWeatherWS)}
+			s.ServeHTTP(w, req)
+		})
+	http.HandleFunc("/weatherwatched",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleWeatherUpdateWS)}
 			s.ServeHTTP(w, req)
 		})
 	http.HandleFunc("/traffic",

@@ -155,6 +155,37 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		data_item.data = obj.Data;
 	}
 
+	function setDataItemWatched(wx, data_item) {
+        
+        var dataString = "";
+        var i;
+        
+        i=0;
+        c=0;
+		data_item.type = wx.MsgType;
+		data_item.update = false;
+
+		data_item.flight_condition = parseFlightCondition(wx.MsgType, wx.Data);
+		data_item.location = wx.Location;
+
+		var dNow = new Date();
+		var dThen = parseShortDatetime(wx.Time);
+		data_item.age = dThen.getTime();
+        data_item.time = deltaTimeString(dNow - dThen) + " old";
+		data_item.data = wx.Data;
+	}
+    
+    function setDataItemTest(Data, data_item) {
+        var msgSplit = Data.split(" ");
+        data_item.type = msgSplit[0];
+        data_item.update = true;
+        data_item.flight_condition = "VFR";
+        data_item.location=msgSplit[1];
+        var dNow = new Date();
+        data_item.age = dNow.getTime();
+        data_item.data = Data;
+    }
+    
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
 			return; // we are getting called once after clicking away from the status page
@@ -191,6 +222,7 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 			var message = JSON.parse(msg.data);
 			// we need to use an array so AngularJS can perform sorting; it also means we need to loop to find an aircraft in the data_list set
 			var found = false;
+            /*
 			if (inList(message.Location, $scope.watching)) {
 				for (var i = 0, len = $scope.watch_list.length; i < len; i++) {
 					if (($scope.watch_list[i].type === message.Type) && ($scope.watch_list[i].location === message.Location)) {
@@ -205,6 +237,7 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 					$scope.watch_list.unshift(new_data_item); // add to start of array
 				}
 			}
+            */
 			// add to scrolling data_list
 			{
 				var new_data_item = {};
@@ -214,10 +247,73 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 					$scope.data_list.pop(); // remove last from array
 			}
 			$scope.data_count = $scope.data_list.length;
-			$scope.watch_count = $scope.watch_list.length;
 			$scope.$apply();
 		};
-	}
+    };
+    
+    function connectWatched($scope) {
+
+        if (($scope === undefined) || ($scope === null))
+			return; // we are getting called once after clicking away from the status page
+
+        if (($scope.socketWatched === undefined) || ($scope.socketWatched === null)) {
+			socketWatched = new WebSocket(URL_WEATHER_WATCH_WS);
+			$scope.socketWatched = socketWatched; // store status socket in scope for enter/exit usage
+		}
+        
+        $scope.ConnectStateStatus = "Disconnected";
+        
+		socketWatched.onopen = function (msg) {
+			// $scope.ConnectStyle = "label-success";
+			$scope.ConnectStateStatus = "Connected";
+		};
+
+		socketWatched.onclose = function (msg) {
+			// $scope.ConnectStyle = "label-danger";
+			$scope.ConnectStateStatus = "Disconnected";
+			$scope.$apply();
+			setTimeout(connectWatched, 1000);
+		};
+
+		socketWatched.onerror = function (msg) {
+			// $scope.ConnectStyle = "label-danger";
+			$scope.ConnectStateStatus = "Problem";
+			$scope.$apply();
+		};
+
+		socketWatched.onmessage = function (msg) {
+			console.log('Received watched weather update.');
+
+			$scope.raw_data = angular.toJson(msg.data, true);
+			var watched = JSON.parse(msg.data)
+			// Update Status
+            // Copy watched stations
+            console.log(watched);
+            console.log(watched[0]);
+            for (var j = 0; j < watched.length; j++)
+            {
+                found = false;
+                    
+                for (var i = 0; i < $scope.watch_list.length; i++) {
+                    if ((found === false) && ($scope.watch_list[i].type === watched[j].MsgType) && ($scope.watch_list[i].location === watched[j].Location)) {
+                        setDataItemWatched(watched[j], $scope.watch_list[i]);
+                        found = true;
+                    }
+                }
+                
+                if (!found) {
+                    var new_data_item = {};
+                    setDataItemWatched(watched[j], new_data_item);
+                    $scope.watch_list.unshift(new_data_item); // add to start of array
+                }
+            }
+
+			$scope.watch_count = $scope.watch_list.length;
+			$scope.$apply(); // trigger any needed refreshing of data
+
+        };
+        
+    }
 
 	// perform cleanup every 5 minutes
 	var clearStaleMessages = $interval(function () {
@@ -249,6 +345,10 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.socket.close();
 			$scope.socket = null;
 		}
+		if (($scope.socketWatched !== undefined) && ($scope.socketWatched !== null)) {
+			$scope.socketWatched.close();
+			$scope.socketWatched = null;
+		}
 		// stop stale message cleanup
 		$interval.cancel(clearStaleMessages);
 	};
@@ -258,4 +358,5 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 	// Weather Controller tasks
 	updateWatchList();
 	connect($scope); // connect - opens a socket and listens for messages
+    connectWatched($scope);
 };
