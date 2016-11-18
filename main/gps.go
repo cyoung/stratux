@@ -4,7 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	ry835ai.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
+	gps.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
 */
 
 package main
@@ -2009,7 +2009,7 @@ func pollGPS() {
 	}
 }
 
-func initRY835AI() {
+func initGPS() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_GPSPerf = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}

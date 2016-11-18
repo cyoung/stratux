@@ -257,7 +257,7 @@ func makeOwnshipReport() bool {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
-	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
+	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if isGPSGroundTrackValid() {
@@ -1342,7 +1342,8 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY835AI()
+	// Start the GPS external sensor monitoring.
+	initGPS()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
