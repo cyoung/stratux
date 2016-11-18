@@ -79,8 +79,6 @@ type SituationData struct {
 	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
 	LastValidNMEAMessage     string    // last NMEA message processed.
 
-	mu_Attitude *sync.Mutex
-
 	// From BMP180 pressure sensor.
 	Temp              float64
 	Pressure_alt      float64
@@ -2066,7 +2064,6 @@ func pollGPS() {
 func initRY835AI() {
 	mySituation.mu_GPS = &sync.Mutex{}
 	mySituation.mu_GPSPerf = &sync.Mutex{}
-	mySituation.mu_Attitude = &sync.Mutex{}
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
