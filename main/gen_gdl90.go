@@ -430,9 +430,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	if globalSettings.AHRS_Enabled {
-		msg[12] = 1 << 0
-	}
+	// msg[12] = 1 << 0
 
 	// Valid/Enabled: last bit unused.
 
@@ -991,7 +989,6 @@ type settings struct {
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
-	AHRS_Enabled         bool
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
@@ -1056,7 +1053,6 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
-	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.

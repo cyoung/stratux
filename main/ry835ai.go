@@ -1938,7 +1938,7 @@ func gpsAttitudeSender() {
 	for {
 		<-timer.C
 		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
-		for globalSettings.GPS_Enabled && globalStatus.GPS_connected /*&& globalSettings.GPSAttitude_Enabled*/ && !(globalSettings.AHRS_Enabled) {
+		for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
 			<-timer.C
 
 			if mySituation.Quality == 0 || !calcGPSAttitude() {

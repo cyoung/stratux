@@ -130,7 +130,6 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
       "Capability": 2
     }
   ],
-  "AHRS_Enabled": false,
   "DEBUG": false,
   "ReplayLog": true,
   "PPM": 0,

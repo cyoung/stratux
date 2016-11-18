@@ -109,7 +109,6 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				$scope.visible_es = true;
 			}
 			$scope.visible_gps = settings.GPS_Enabled;
-			$scope.visible_ahrs = settings.AHRS_Enabled;
 		}, function (response) {
 			// nop
 		});
