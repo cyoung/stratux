@@ -114,7 +114,7 @@ var myGPSPerfStats []gpsPerfStats
 var serialConfig *serial.Config
 var serialPort *serial.Port
 
-var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
+var readyToInitGPS bool //TODO: replace with channel control to terminate goroutine when complete
 
 var satelliteMutex *sync.Mutex
 var Satellites map[string]SatelliteInfo
@@ -206,54 +206,6 @@ func initGPSSerial() bool {
 	if globalSettings.DEBUG {
 		log.Printf("Using %s for GPS\n", device)
 	}
-
-	/* Developer option -- uncomment to allow "hot" configuration of GPS (assuming 38.4 kpbs on warm start)
-		serialConfig = &serial.Config{Name: device, Baud: 38400}
-		p, err := serial.OpenPort(serialConfig)
-		if err != nil {
-			log.Printf("serial port err: %s\n", err.Error())
-			return false
-		} else { // reset port to 9600 baud for configuration
-		        cfg1 := make([]byte, 20)
-		        cfg1[0] = 0x01 // portID.
-		        cfg1[1] = 0x00 // res0.
-		        cfg1[2] = 0x00 // res1.
-		        cfg1[3] = 0x00 // res1.
-
-	        	//      [   7   ] [   6   ] [   5   ] [   4   ]
-		        //      0000 0000 0000 0000 1000 0000 1100 0000
-		        // UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
-		        cfg1[4] = 0xC0
-		        cfg1[5] = 0x08
-		        cfg1[6] = 0x00
-		        cfg1[7] = 0x00
-
-	        	// Baud rate. Little endian order.
-		        bdrt1 := uint32(9600)
-		        cfg1[11] = byte((bdrt1 >> 24) & 0xFF)
-		        cfg1[10] = byte((bdrt1 >> 16) & 0xFF)
-		        cfg1[9] = byte((bdrt1 >> 8) & 0xFF)
-		        cfg1[8] = byte(bdrt1 & 0xFF)
-
-	        	// inProtoMask. NMEA and UBX. Little endian.
-		        cfg1[12] = 0x03
-		        cfg1[13] = 0x00
-
-		        // outProtoMask. NMEA. Little endian.
-		        cfg1[14] = 0x02
-		        cfg1[15] = 0x00
-
-	        	cfg1[16] = 0x00 // flags.
-		        cfg1[17] = 0x00 // flags.
-
-	        	cfg1[18] = 0x00 //pad.
-		        cfg1[19] = 0x00 //pad.
-
-	        	p.Write(makeUBXCFG(0x06, 0x00, 20, cfg1))
-			p.Close()
-		}
-
-		-- End developer option */
 
 	// Open port at default baud for config.
 	serialConfig = &serial.Config{Name: device, Baud: baudrate}
@@ -520,7 +472,7 @@ func calcGPSAttitude() bool {
 
 	// second case: index is behind index-1. This could be result of day rollover. If time is within n seconds of UTC,
 	// we rebase to the previous day, and will re-rebase the entire slice forward to the current day once all values roll over.
-	// TO-DO: Validate by testing at 0000Z
+	//TODO: Validate by testing at 0000Z
 	if dt < 0 {
 		log.Printf("GPS attitude: Current GPS time (%.2f) is older than last GPS time (%.2f). Checking for 0000Z rollover.\n", t1, t0)
 		if myGPSPerfStats[index-1].nmeaTime > 86300 && myGPSPerfStats[index].nmeaTime < 100 { // be generous with the time window at rollover
@@ -1024,7 +976,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
-			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+			if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 				trueCourse = float32(tc)
 				setTrueCourse(uint16(groundspeed), tc)
 				tmpSituation.TrueCourse = trueCourse
@@ -1032,7 +984,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else {
 				thisGpsPerf.coursef = -999.9 // regression will skip negative values
 				// Negligible movement. Don't update course, but do use the slow speed.
-				// TO-DO: use average course over last n seconds?
+				//TODO: use average course over last n seconds?
 			}
 			tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
@@ -1131,7 +1083,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_SBAS
 					svStr = fmt.Sprintf("S%d", sv)
 					sv -= 87 // subtract 87 to convert to NMEA from PRN.
-				} else { // TO-DO: Galileo
+				} else { //TODO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1218,9 +1170,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
 				}
 				return false
-			} /* else {
-				log.Printf("GPS week # %v valid; evaluate time and date\n", utcWeek) //debug option
-			} */
+			}
 
 			// field 2 is UTC time
 			if len(x[2]) < 7 {
@@ -1279,13 +1229,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+		if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
-			// TO-DO: use average course over last n seconds?
+			//TODO: use average course over last n seconds?
 		}
 		tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
@@ -1515,7 +1465,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil && groundspeed > 3 { // some receivers return null COG at low speeds. Need to ignore this condition.
 			return false
 		}
-		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+		if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.TrueCourse = trueCourse
@@ -1527,7 +1477,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				thisGpsPerf.coursef = -999.9
 			}
 			// Negligible movement. Don't update course, but do use the slow speed.
-			// TO-DO: use average course over last n seconds?
+			//TODO: use average course over last n seconds?
 		}
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
 			updateGPSPerf = true
@@ -1600,7 +1550,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
 					svGLONASS = true
-				} else { // TO-DO: Galileo
+				} else { //TODO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1638,7 +1588,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				tmpSituation.Satellites++
 			}
 		}
-		//log.Printf("There are %d satellites in solution from this GSA message\n", sat) // TESTING - DEBUG
 
 		// field 16: HDOP
 		// Accuracy estimate
@@ -1725,7 +1674,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv < 97 { // GLONASS
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-			} else { // TO-DO: Galileo
+			} else { //TODO: Galileo
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
 			}
@@ -1803,13 +1752,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 	}
 
-	// if we've gotten this far, the message isn't one that we want to parse
+	// If we've gotten this far, the message isn't one that we can use.
 	return false
 }
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	readyToInitGPS = false // TO-DO: replace with channel control to terminate goroutine when complete
+	readyToInitGPS = false //TODO: replace with channel control to terminate goroutine when complete
 
 	i := 0 //debug monitor
 	scanner := bufio.NewScanner(serialPort)
@@ -1835,7 +1784,7 @@ func gpsSerialReader() {
 		log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
 	}
 	globalStatus.GPS_connected = false
-	readyToInitGPS = true // TO-DO: replace with channel control to terminate goroutine when complete
+	readyToInitGPS = true //TODO: replace with channel control to terminate goroutine when complete
 	return
 }
 
@@ -1986,8 +1935,7 @@ func updateConstellation() {
 			// do any other calculations needed for this satellite
 		}
 	}
-	//log.Printf("Satellite counts: %d tracking channels, %d with >0 dB-Hz signal\n", tracked, seen) // DEBUG - REMOVE
-	//log.Printf("Satellite struct: %v\n", Satellites)                                               // DEBUG - REMOVE
+
 	mySituation.Satellites = uint16(sats)
 	mySituation.SatellitesTracked = uint16(tracked)
 	mySituation.SatellitesSeen = uint16(seen)
@@ -2046,13 +1994,13 @@ func initI2CSensors() error {
 }
 
 func pollGPS() {
-	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	go gpsAttitudeSender()
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
-		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TODO: Implement more robust method (channel control) to kill zombie serial readers
 			globalStatus.GPS_connected = initGPSSerial()
 			if globalStatus.GPS_connected {
 				go gpsSerialReader()
