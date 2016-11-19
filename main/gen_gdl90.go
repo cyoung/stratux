@@ -748,7 +748,7 @@ type WeatherMessage struct {
 }
 
 // Send update to connected websockets.
-func registerADSBTextMessageReceived(msg string) {
+func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 	x := strings.Split(msg, " ")
 	if len(x) < 5 {
 		return
@@ -768,17 +768,14 @@ func registerADSBTextMessageReceived(msg string) {
 	if x[0] == "PIREP" {
 		globalStatus.UAT_PIREP_total++
 	}
-
 	wm.Type = x[0]
 	wm.Location = x[1]
 	wm.Time = x[2]
 	wm.Data = strings.Join(x[3:], " ")
 	wm.LocaltimeReceived = stratuxClock.Time
 
-	wmJSON, _ := json.Marshal(&wm)
-
 	// Send to weatherUpdate channel for any connected clients.
-	weatherUpdate.Send(wmJSON)
+	weatherUpdate.SendJSON(wm)
 }
 
 func UpdateUATStats(ProductID uint32) {
@@ -891,11 +888,12 @@ func parseInput(buf string) ([]byte, uint16) {
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
 				UpdateUATStats(f.Product_id)
+				weatherRawUpdate.SendJSON(f)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
 			for _, r := range textReports {
-				registerADSBTextMessageReceived(r)
+				registerADSBTextMessageReceived(r, uatMsg)
 			}
 			thisMsg.uatMsg = uatMsg
 		}

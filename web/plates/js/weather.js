@@ -140,7 +140,17 @@ function WeatherCtrl($rootScope, $scope, $state, $http, $interval) {
 		var dNow = new Date();
 		var dThen = parseShortDatetime(obj.Time);
 		data_item.age = dThen.getTime();
-		data_item.time = deltaTimeString(dNow - dThen) + " old";
+		var diff_ms = Math.abs(dThen - dNow);
+
+		// If time is more than two days away, don't attempt to display data age.
+		if (diff_ms > (1000*60*60*24*2)) {
+			data_item.time = "?";
+		} else if (dThen > dNow) {
+			data_item.time = deltaTimeString(dThen - dNow) + " from now";
+		} else {
+			data_item.time = deltaTimeString(dNow - dThen) + " old";
+		}
+
 		// data_item.received = utcTimeString(obj.LocaltimeReceived);
 		data_item.data = obj.Data;
 	}

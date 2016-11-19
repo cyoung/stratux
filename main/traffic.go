@@ -207,8 +207,7 @@ func sendTrafficUpdates() {
 		traffic[icao] = ti // write the updated ti back to the map
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
-			tiJSON, _ := json.Marshal(&ti)
-			trafficUpdate.Send(tiJSON)
+			trafficUpdate.SendJSON(ti)
 		}
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
@@ -235,8 +234,7 @@ func registerTrafficUpdate(ti TrafficInfo) {
 			return
 		}
 	*/ // Send all traffic to the websocket and let JS sort it out. This will provide user indication of why they see 1000 ES messages and no traffic.
-	tiJSON, _ := json.Marshal(&ti)
-	trafficUpdate.Send(tiJSON)
+	trafficUpdate.SendJSON(ti)
 }
 
 func makeTrafficReportMsg(ti TrafficInfo) []byte {
