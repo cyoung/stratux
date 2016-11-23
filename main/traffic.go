@@ -84,7 +84,7 @@ type TrafficInfo struct {
 	TargetType          uint8     // types decribed in const above
 	SignalLevel         float64   // Signal level, dB RSSI.
 	Squawk              int       // Squawk code
-	Position_valid      bool      // set when position report received. Unset after n seconds? (To-do)
+	Position_valid      bool      //TODO: set when position report received. Unset after n seconds?
 	Lat                 float32   // decimal degrees, north positive
 	Lng                 float32   // decimal degrees, east positive
 	Alt                 int32     // Pressure altitude, feet
@@ -109,7 +109,7 @@ type TrafficInfo struct {
 	Last_GnssDiffAlt     int32     // Altitude at last GnssDiffFromBaroAlt update.
 	Last_speed           time.Time // Time of last velocity and track update (stratuxClock).
 	Last_source          uint8     // Last frequency on which this target was received.
-	ExtrapolatedPosition bool      // TO-DO: True if Stratux is "coasting" the target from last known position.
+	ExtrapolatedPosition bool      //TODO: True if Stratux is "coasting" the target from last known position.
 	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated.
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated.
 	//FIXME: Some indicator that Bearing and Distance are valid, since they aren't always available.
@@ -184,7 +184,7 @@ func sendTrafficUpdates() {
 		log.Printf("==================================================================\n")
 	}
 	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
-	for icao, ti := range traffic { // TO-DO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+	for icao, ti := range traffic { //TODO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
 			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
@@ -209,7 +209,8 @@ func sendTrafficUpdates() {
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
 		}
-		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB. TO-DO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
+		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB.
+			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
 
 			if ti.Icao_addr == uint32(code) { //
@@ -688,7 +689,7 @@ func esListen() {
 			}
 
 			// generate human readable summary of message types for debug
-			// TO-DO: Use for ES message statistics?
+			//TODO: Use for ES message statistics?
 			/*
 				var s1 string
 				if newTi.DF == 17 {
@@ -1072,7 +1073,7 @@ func icao2reg(icao_addr uint32) (string, bool) {
 	} else if (icao_addr >= 0xC00001) && (icao_addr <= 0xC3FFFF) {
 		nation = "CA"
 	} else {
-		// future national decoding is TO-DO
+		//TODO: future national decoding.
 		return "NON-NA", false
 	}
 

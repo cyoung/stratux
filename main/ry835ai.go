@@ -96,7 +96,7 @@ type SituationData struct {
 var serialConfig *serial.Config
 var serialPort *serial.Port
 
-var readyToInitGPS bool // TO-DO: replace with channel control to terminate goroutine when complete
+var readyToInitGPS bool //TODO: replace with channel control to terminate goroutine when complete
 
 var satelliteMutex *sync.Mutex
 var Satellites map[string]SatelliteInfo
@@ -618,13 +618,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
-			if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+			if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 				trueCourse = float32(tc)
 				setTrueCourse(uint16(groundspeed), tc)
 				tmpSituation.TrueCourse = trueCourse
 			} else {
 				// Negligible movement. Don't update course, but do use the slow speed.
-				// TO-DO: use average course over last n seconds?
+				//TODO: use average course over last n seconds?
 			}
 			tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
@@ -709,7 +709,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_SBAS
 					svStr = fmt.Sprintf("S%d", sv)
 					sv -= 87 // subtract 87 to convert to NMEA from PRN.
-				} else { // TO-DO: Galileo
+				} else { //TODO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -857,13 +857,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+		if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
-			// TO-DO: use average course over last n seconds?
+			//TODO: use average course over last n seconds?
 		}
 		tmpSituation.LastGroundTrackTime = stratuxClock.Time
 
@@ -1054,13 +1054,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		if groundspeed > 3 { // TO-DO: use average groundspeed over last n seconds to avoid random "jumps"
+		if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.TrueCourse = trueCourse
 		} else {
 			// Negligible movement. Don't update course, but do use the slow speed.
-			// TO-DO: use average course over last n seconds?
+			//TODO: use average course over last n seconds?
 		}
 
 		tmpSituation.LastGroundTrackTime = stratuxClock.Time
@@ -1118,7 +1118,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
 					svGLONASS = true
-				} else { // TO-DO: Galileo
+				} else { //TODO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1243,7 +1243,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv < 97 { // GLONASS
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-			} else { // TO-DO: Galileo
+			} else { //TODO: Galileo
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
 			}
@@ -1327,7 +1327,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 func gpsSerialReader() {
 	defer serialPort.Close()
-	readyToInitGPS = false // TO-DO: replace with channel control to terminate goroutine when complete
+	readyToInitGPS = false //TODO: replace with channel control to terminate goroutine when complete
 
 	i := 0 //debug monitor
 	scanner := bufio.NewScanner(serialPort)
@@ -1353,7 +1353,7 @@ func gpsSerialReader() {
 		log.Printf("Exiting gpsSerialReader() after i=%d loops\n", i) // debug monitor
 	}
 	globalStatus.GPS_connected = false
-	readyToInitGPS = true // TO-DO: replace with channel control to terminate goroutine when complete
+	readyToInitGPS = true //TODO: replace with channel control to terminate goroutine when complete
 	return
 }
 
@@ -1584,7 +1584,7 @@ func initAHRS() error {
 }
 
 func pollRY835AI() {
-	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
+	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	for {
 		<-timer.C
