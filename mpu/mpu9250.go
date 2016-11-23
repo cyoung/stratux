@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	DECAY            = 0.98
+	DECAY            = 0.8
 	GYRORANGE        = 250
 	ACCELRANGE       = 4
-	UPDATEFREQ       = 100
+	UPDATEFREQ       = 1000
 )
 
 type MPU9250 struct {
@@ -42,6 +42,10 @@ func NewMPU9250() (*MPU9250, error) {
 		return nil, err
 	}
 
+	// Set Gyro (Accel) LPFs to 20 (21) Hz to filter out prop/glareshield vibrations above 1200 (1260) RPM
+	mpu.SetGyroLPF(21)
+	mpu.SetAccelLPF(21)
+
 	m.mpu = mpu
 	m.valid = true
 
@@ -64,34 +68,23 @@ func (m *MPU9250) run() {
 
 				if data.GAError == nil && data.N > 0 {
 					m.T = data.T.UnixNano()
-					smooth(&m.turnRate, data.G3)
+					smooth(&m.turnRate, -data.G3) // TODO westphae: gross approx, depends on attitude!
 					smooth(&m.gLoad, data.A3)
-					smooth(&m.slipSkid, math.Asin(data.A2/data.A3)*180/math.Pi) //TODO westphae: Not sure if the sign is correct!
-
-					// Quick and dirty calcs just to test - these are no good for pitch >> 0
-					m.pitch += data.DT.Seconds() * data.G1
-					m.roll += data.DT.Seconds() * data.G2
-					m.heading -= data.DT.Seconds() * data.G3
-
-					if m.pitch > 90 {
-						m.pitch = 180 - m.pitch
-					}
-					if m.pitch < -90 {
-						m.pitch = -180 - m.pitch
-					}
-					if (m.roll > 180) || (m.roll < -180) {
-						m.roll = -m.roll
-					}
-					if m.heading > 360 {
-						m.heading -= 360
-					}
-					if m.heading < 0 {
-						m.heading += 360
-					}
+					smooth(&m.slipSkid, math.Atan2(-data.A1, data.A3)*180/math.Pi)
 				}
 
 				if data.MagError == nil && data.NM > 0 {
-					smooth(&m.headingMag, math.Atan2(data.M2, data.M1))
+					hM := math.Atan2(-data.M2, data.M1)*180/math.Pi
+					if hM - m.headingMag < -180 {
+						hM += 360
+					}
+					smooth(&m.headingMag, hM)
+					for m.headingMag < 0 {
+						m.headingMag += 360
+					}
+					for m.headingMag >= 360 {
+						m.headingMag -= 360
+					}
 				}
 			case <-m.quit:
 				m.mpu.CloseMPU()
@@ -107,30 +100,6 @@ func smooth(val *float64, new float64) {
 
 func (m *MPU9250) ResetHeading(newHeading float64, gain float64) {
 	m.heading = newHeading
-}
-
-func (m *MPU9250) Pitch() (float64, error) {
-	if m.valid {
-		return m.pitch, nil
-	} else {
-		return 0, errors.New("MPU error: data not available")
-	}
-}
-
-func (m *MPU9250) Roll() (float64, error) {
-	if m.valid {
-		return m.roll, nil
-	} else {
-		return 0, errors.New("MPU error: data not available")
-	}
-}
-
-func (m *MPU9250) Heading() (float64, error) {
-	if m.valid {
-		return m.heading, nil
-	} else {
-		return 0, errors.New("MPU error: data not available")
-	}
 }
 
 func (m *MPU9250) MagHeading() (float64, error) {

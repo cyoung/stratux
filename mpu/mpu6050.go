@@ -124,19 +124,6 @@ func (d *MPU6050) getMPUData() {
 	}
 }
 
-// Temperature returns the current temperature reading.
-func (d *MPU6050) Pitch() (float64, error) {
-	return (d.pitch - d.pitch_resting), nil
-}
-
-func (d *MPU6050) Roll() (float64, error) {
-	return (d.roll - d.roll_resting), nil
-}
-
-func (d *MPU6050) Heading() (float64, error) {
-	return d.heading, nil
-}
-
 func (d *MPU6050) run() {
 	time.Sleep(d.poll)
 	go func() {

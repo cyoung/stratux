@@ -24,7 +24,7 @@ import (
 
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
-	"github.com/kidoman/embd/sensor/bmp180"
+	// "github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
 	"os"
@@ -104,6 +104,7 @@ type SituationData struct {
 	SlipSkid	 float64
 	RateOfTurn	 float64
 	GLoad		 float64
+	LastMagTime      time.Time
 	LastAttitudeTime time.Time
 }
 
@@ -1355,43 +1356,40 @@ var i2cbus embd.I2CBus
 var myBMPX80 mpu.BMP
 var myMPU mpu.MPU
 
-func readBMP() (float64, float64, error) { // ºCelsius, Meters
+func readBMP() (float64, float64, error) { // ºCelsius, feet
 	temp, err := myBMPX80.Temperature()
 	if err != nil {
-		return 0.0, 0.0, err
+		return 0.0, 0.0, fmt.Errorf("AHRS Error: Couldn't read temp from BMP: %s", err)
 	}
-	altitude, err := myBMPX80.Altitude()
-	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
+	press, err := myBMPX80.Pressure()
 	if err != nil {
-		return temp, 0.0, err
+		return temp, 0.0, fmt.Errorf("AHRS Error: Couldn't read temp from BMP: %s", err)
 	}
+	altitude := CalcAltitude(press)
 	return temp, altitude, nil
 }
 
 func initBMP() error {
-	//TODO: support the BMP280 with something like this
-	//for i:=0; i < MPURETRYNUM; i++ {
-	//	myBMPX80, err = newBMP280(i2cbus)
+	bmp, err := mpu.NewBMP280(&i2cbus, 100 * time.Millisecond)
+	if err == nil {
+		myBMPX80 = bmp
+		mySituation.BMPExists = true
+		log.Println("AHRS: Successfully initialized BMP280")
+		return nil
+	}
+
+	// TODO westphae: make bmp180 to fit bmp interface
+	//for i := 0; i < MPURETRYNUM; i++ {
+	//	myBMPX80 = bmp180.New(i2cbus)
+	//	_, err := myBMPX80.Temperature() // Test to see if it works, since bmp180.New doesn't return err
 	//	if err != nil {
 	//		time.Sleep(250 * time.Millisecond)
 	//	} else {
 	//		mySituation.BMPExists = true
-	//		log.Println("AHRS: Successfully initialized BMP280")
+	//		log.Println("AHRS: Successfully initialized BMP180")
 	//		return nil
 	//	}
 	//}
-
-	for i := 0; i < MPURETRYNUM; i++ {
-		myBMPX80 = bmp180.New(i2cbus)
-		_, err := myBMPX80.Temperature() // Test to see if it works, since bmp180.New doesn't return err
-		if err != nil {
-			time.Sleep(250 * time.Millisecond)
-		} else {
-			mySituation.BMPExists = true
-			log.Println("AHRS: Successfully initialized BMP180")
-			return nil
-		}
-	}
 
 	mySituation.BMPExists = false
 	log.Println("AHRS Error: couldn't initialize BMP280 or BMP180")
@@ -1446,7 +1444,7 @@ func tempAndPressureReader() {
 		temp, alt, err := readBMP()
 		// Process.
 		if err != nil {
-			log.Printf("readBMP(): %s\n", err.Error())
+			log.Printf("readBMP(): %s\n", err)
 			mySituation.BMPExists = false
 		} else {
 			mySituation.Temp = temp
@@ -1483,16 +1481,19 @@ func makeAHRSGDL90Report() {
 	palt := uint16(0xFFFF)
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
-		pitch = int16(mySituation.Pitch * 10)
-		roll = int16(mySituation.Roll * 10)
-		hdg = int16(mySituation.Gyro_heading * 10)
-		slip_skid = int16(mySituation.SlipSkid * 10)
-		yaw_rate = int16(mySituation.RateOfTurn * 10)
-		g = int16(mySituation.GLoad * 10)
+		pitch = int16(roundToInt(mySituation.Pitch * 10))
+		roll = int16(roundToInt(mySituation.Roll * 10))
+		hdg = int16(roundToInt(mySituation.Gyro_heading * 10))
+		slip_skid = int16(roundToInt(mySituation.SlipSkid * 10))
+		yaw_rate = int16(roundToInt(mySituation.RateOfTurn * 10))
+		g = int16(roundToInt(mySituation.GLoad * 10))
+	}
+	if isMagValid() {
+		hdg = int16(roundToInt(mySituation.Mag_heading * 10))
 	}
 	if isTempPressValid() {
-		palt = uint16(mySituation.Pressure_alt + 5000)
-		vs = int16(mySituation.RateOfClimb)
+		palt = uint16(roundToInt(mySituation.Pressure_alt + 5000))
+		vs = int16(roundToInt(mySituation.RateOfClimb))
 	}
 
 	// Roll.
@@ -1540,37 +1541,36 @@ func makeAHRSGDL90Report() {
 
 func attitudeReaderSender() {
 	var (
-		roll, pitch, heading			float64
-		droll, dpitch, dheading			float64  // Kalman uncertainties in the AHRS outputs
-		t					time.Time
-		s					*ahrs.State
-		m					*ahrs.Measurement
-		bx, by, bz, ax, ay, az, mx, my, mz	float64
-		mpuError, magError			error
-		headingMag, slipSkid, turn_Rate, gLoad	float64
+		roll, pitch, heading					float64
+		t							time.Time
+		s							*ahrs.SimpleState
+		m							*ahrs.Measurement
+		bx, by, bz, ax, ay, az, mx, my, mz			float64
+		mpuError, magError					error
+		headingMag, slipSkid, turnRate, gLoad			float64
+		err_headingMag, err_slipSkid, err_turnRate, err_gLoad	error
 	)
 	m = ahrs.NewMeasurement()
 
 	//TODO westphae: remove this logging when finished testing, or make it optional in settings
-	logger := ahrs.NewSensorLogger(fmt.Sprintf("sensors_%s.csv", time.Now().Format("20060102_150405")),
+	logger := ahrs.NewSensorLogger(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")),
 		"T", "TS", "A1", "A2", "A3", "H1", "H2", "H3", "M1", "M2", "M3", "TW", "W1", "W2", "W3", "TA", "Alt",
 		"pitch", "roll", "heading", "mag_heading", "slip_skid", "turn_rate", "g_load", "T_Attitude")
 	defer logger.Close()
 
-	kalmanListener, err := ahrsweb.NewKalmanListener()
+	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
-		log.Printf("AHRS error starting KalmanListener: %s\n", err.Error())
-	} else {
-		log.Println("AHRS KalmanListener started successfully")
+		log.Printf("AHRS error starting ahrswebListener: %s\n", err.Error())
 	}
 
+	// Need a 10Hz sampling freq
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY83XAI_connected && globalSettings.AHRS_Enabled {
 		<-timer.C
 		t = stratuxClock.Time
 		m.T = float64(t.UnixNano()/1000)/1e6
 
-		// Take Kalman Filter "measurement" sensor readings
+		// Take sensor readings
 		m.UValid = false //TODO westphae: set m.U1, m.U2, m.U3 here once we have an airspeed sensor
 
 		_, bx, by, bz, ax, ay, az, mx, my, mz, mpuError, magError = myMPU.ReadRaw()
@@ -1588,98 +1588,82 @@ func attitudeReaderSender() {
 		m.MValid = false //TODO westphae: for now
 
 		m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 250 * time.Millisecond
-		if !m.WValid {
-			log.Println("AHRS Warning: GPS not valid")
-		} else {
+		if m.WValid {
 			m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
 			m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
 			m.W3 = float64(mySituation.GPSVertVel * KTSPERFPS) //TODO westphae: Use BMP here instead of GPS
 		}
 
-		// Run the Kalman filter
+		// Run the AHRS calcs
 		if s == nil { // s is nil if we should (re-)initialize the Kalman state
-			s = ahrs.Initialize(m)
+			s = ahrs.InitializeSimple(m)
 		}
-		s.Predict(m.T) // Predict stage of Kalman filter
-		s.Update(m) // Update stage of Kalman filter
+		s.Compute(m)
 
-		roll, pitch, heading = ahrs.FromQuaternion(s.E0, s.E1, s.E2, s.E3)
-		droll, dpitch, dheading = ahrs.VarFromQuaternion(s.E0, s.E1, s.E2, s.E3,
-			math.Sqrt(s.M.Get(6, 6)), math.Sqrt(s.M.Get(7, 7)),
-			math.Sqrt(s.M.Get(8, 8)), math.Sqrt(s.M.Get(9, 9)))
-
-		// Apply some heuristics:
-		if s.U1 < 0 {
-			//s = nil //TODO westphae: can we do something smarter here?
-			s.U1 = -s.U1
-			s.E0 = -s.E0
+		if qq := math.Abs(s.E0*s.E0 + s.E1*s.E1 + s.E2*s.E2 + s.E3*s.E3 - 1); qq > 1e-5 {
+			log.Printf("AHRS Warning: Quaternion not unit, size is %f\n", qq)
 		}
 
-		if droll > 2.5*DEG || dpitch > 2.5*DEG {
-			//s = nil
-			log.Printf("AHRS too uncertain: roll %5.1f +/- %3.1f, pitch %4.1f +/- %3.1f, heading %5.1f +/- %3.1f\n",
-				roll/DEG, droll/DEG, pitch/DEG, dpitch/DEG, heading/DEG, dheading/DEG)
+		// Debugging server:
+		if ahrswebListener != nil {
+			ahrswebListener.Send(&s.State, m)
 		}
-		// Heuristics done
 
 		// If we have valid AHRS info, then send
-		if s != nil {
+		if s.Valid() {
 			mySituation.mu_Attitude.Lock()
 
-			if headingMag, err_headingMag := myMPU.MagHeading(); err_headingMag != nil {
+			roll, pitch, heading = s.CalcRollPitchHeading()
+			mySituation.Roll = roll
+			mySituation.Pitch = pitch
+			mySituation.Gyro_heading = heading
+
+			if headingMag, err_headingMag = myMPU.MagHeading(); err_headingMag != nil {
 				log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
 			} else {
-				mySituation.Mag_heading = headingMag / DEG
+				mySituation.Mag_heading = headingMag
+				mySituation.LastMagTime = t
 			}
 
-			if slipSkid, err_slipSkid := myMPU.SlipSkid(); err_slipSkid != nil {
+			if slipSkid, err_slipSkid = myMPU.SlipSkid(); err_slipSkid != nil {
 				log.Printf("AHRS MPU Error: %s\n", err_slipSkid.Error())
 			} else {
 				mySituation.SlipSkid = slipSkid
 			}
 
-			if turnRate, err_turnRate := myMPU.RateOfTurn(); err_turnRate != nil {
+			if turnRate, err_turnRate = myMPU.RateOfTurn(); err_turnRate != nil {
 				log.Printf("AHRS MPU Error: %s\n", err_turnRate.Error())
 			} else {
-				mySituation.RateOfTurn = turnRate / DEG
+				mySituation.RateOfTurn = turnRate
 			}
 
-			if gLoad, err_gLoad := myMPU.GLoad(); err_gLoad != nil {
+			if gLoad, err_gLoad = myMPU.GLoad(); err_gLoad != nil {
 				log.Printf("AHRS MPU Error: %s\n", err_gLoad.Error())
 			} else {
 				mySituation.GLoad = gLoad
 			}
-
-			mySituation.Pitch = pitch / DEG
-			mySituation.Roll = roll / DEG
-			mySituation.Gyro_heading = heading / DEG
 
 			mySituation.LastAttitudeTime = t
 
 			// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 			mySituation.mu_Attitude.Unlock()
 		} else {
+			s = nil
 			mySituation.LastAttitudeTime = time.Time{}
-
 		}
+
 		makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
 		logger.Log(
-			float64(time.Now().UnixNano() / 1000) / 1e6,
+			float64(t.UnixNano() / 1000) / 1e6,
 			m.T, m.A1, m.A2, m.A3, m.B1, m.B2, m.B3, m.M1, m.M2, m.M3,
 			float64(mySituation.LastGroundTrackTime.UnixNano() / 1000) / 1e6, m.W1, m.W2, m.W3,
 			float64(mySituation.LastTempPressTime.UnixNano() / 1000) / 1e6, mySituation.Pressure_alt,
-			pitch/DEG, roll/DEG, heading/DEG, headingMag/DEG, slipSkid, turn_Rate/DEG, gLoad,
+			pitch, roll, heading, headingMag, slipSkid, turnRate, gLoad,
 			float64(mySituation.LastAttitudeTime.UnixNano() / 1000) / 1e6)
-
-		if kalmanListener != nil {
-			log.Println("AHRS: Sending to KalmanListener")
-			kalmanListener.Send(s, m)
-		}
-		log.Println("AHRS: Finished sending to KalmanListener")
 	}
 	globalStatus.RY83XAI_connected = false
-	kalmanListener.Close()
+	ahrswebListener.Close()
 }
 
 /*
@@ -1751,6 +1735,10 @@ func isAHRSValid() bool {
 
 func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
+}
+
+func isMagValid() bool {
+	return stratuxClock.Since(mySituation.LastMagTime) < 1*time.Second
 }
 
 func initAHRS() error {
