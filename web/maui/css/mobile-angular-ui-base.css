@@ -850,6 +850,7 @@
 .fa-warning:before,
 .fa-exclamation-triangle:before {
   content: "\f071";
+  list-style-type: none;
 }
 
 .fa-plane:before {

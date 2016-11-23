@@ -130,6 +130,78 @@ type ADSBTower struct {
 var ADSBTowers map[string]ADSBTower // Running list of all towers seen. (lat,lng) -> ADSBTower
 var ADSBTowerMutex *sync.Mutex
 
+type settings struct {
+	UAT_Enabled          bool
+	ES_Enabled           bool
+	Ping_Enabled         bool
+	GPS_Enabled          bool
+	NetworkOutputs       []networkConnection
+	SerialOutputs        map[string]serialConnection
+	AHRS_Enabled         bool
+	DisplayTrafficSource bool
+	DEBUG                bool
+	ReplayLog            bool
+	PPM                  int
+	OwnshipModeS         string
+	WatchList            string
+	DeveloperMode        bool
+	RecordSituation      bool
+	RecordTraffic        bool
+	RecordUAT            bool
+	Record1090ES         bool
+	RecordStatus         bool
+}
+
+type status struct {
+	Version                                    string
+	Build                                      string
+	HardwareBuild                              string
+	Devices                                    uint32
+	Connected_Users                            uint
+	DiskBytesFree                              uint64
+	UAT_messages_last_minute                   uint
+	UAT_messages_max                           uint
+	ES_messages_last_minute                    uint
+	ES_messages_max                            uint
+	UAT_traffic_targets_tracking               uint16
+	ES_traffic_targets_tracking                uint16
+	Ping_connected                             bool
+	GPS_satellites_locked                      uint16
+	GPS_satellites_seen                        uint16
+	GPS_satellites_tracked                     uint16
+	GPS_position_accuracy                      float32
+	GPS_connected                              bool
+	GPS_solution                               string
+	RY835AI_connected                          bool
+	Uptime                                     int64
+	UptimeClock                                time.Time
+	CPUTemp                                    float32
+	NetworkDataMessagesSent                    uint64
+	NetworkDataMessagesSentNonqueueable        uint64
+	NetworkDataBytesSent                       uint64
+	NetworkDataBytesSentNonqueueable           uint64
+	NetworkDataMessagesSentLastSec             uint64
+	NetworkDataMessagesSentNonqueueableLastSec uint64
+	NetworkDataBytesSentLastSec                uint64
+	NetworkDataBytesSentNonqueueableLastSec    uint64
+	UAT_METAR_total                            uint32
+	UAT_TAF_total                              uint32
+	UAT_NEXRAD_total                           uint32
+	UAT_SIGMET_total                           uint32
+	UAT_PIREP_total                            uint32
+	UAT_NOTAM_total                            uint32
+	UAT_OTHER_total                            uint32
+	Errors                                     []string
+	Logfile_Size                               int64
+	WebsocketClientCount                       int
+	TrackIsRecording                           bool
+	TrackRecordingStatus                       string
+}
+
+var globalSettings settings
+var globalStatus status
+
+
 // Construct the CRC table. Adapted from FAA ref above.
 func crcInit() {
 	var i uint16
@@ -977,69 +1049,6 @@ func getProductNameFromId(product_id int) string {
 	return fmt.Sprintf("Unknown (%d)", product_id)
 }
 
-type settings struct {
-	UAT_Enabled          bool
-	ES_Enabled           bool
-	Ping_Enabled         bool
-	GPS_Enabled          bool
-	NetworkOutputs       []networkConnection
-	SerialOutputs        map[string]serialConnection
-	AHRS_Enabled         bool
-	DisplayTrafficSource bool
-	DEBUG                bool
-	ReplayLog            bool
-	PPM                  int
-	OwnshipModeS         string
-	WatchList            string
-	DeveloperMode        bool
-}
-
-type status struct {
-	Version                                    string
-	Build                                      string
-	HardwareBuild                              string
-	Devices                                    uint32
-	Connected_Users                            uint
-	DiskBytesFree                              uint64
-	UAT_messages_last_minute                   uint
-	UAT_messages_max                           uint
-	ES_messages_last_minute                    uint
-	ES_messages_max                            uint
-	UAT_traffic_targets_tracking               uint16
-	ES_traffic_targets_tracking                uint16
-	Ping_connected                             bool
-	GPS_satellites_locked                      uint16
-	GPS_satellites_seen                        uint16
-	GPS_satellites_tracked                     uint16
-	GPS_position_accuracy                      float32
-	GPS_connected                              bool
-	GPS_solution                               string
-	RY835AI_connected                          bool
-	Uptime                                     int64
-	UptimeClock                                time.Time
-	CPUTemp                                    float32
-	NetworkDataMessagesSent                    uint64
-	NetworkDataMessagesSentNonqueueable        uint64
-	NetworkDataBytesSent                       uint64
-	NetworkDataBytesSentNonqueueable           uint64
-	NetworkDataMessagesSentLastSec             uint64
-	NetworkDataMessagesSentNonqueueableLastSec uint64
-	NetworkDataBytesSentLastSec                uint64
-	NetworkDataBytesSentNonqueueableLastSec    uint64
-	UAT_METAR_total                            uint32
-	UAT_TAF_total                              uint32
-	UAT_NEXRAD_total                           uint32
-	UAT_SIGMET_total                           uint32
-	UAT_PIREP_total                            uint32
-	UAT_NOTAM_total                            uint32
-	UAT_OTHER_total                            uint32
-
-	Errors []string
-}
-
-var globalSettings settings
-var globalStatus status
-
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
@@ -1055,6 +1064,11 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
+	globalSettings.Record1090ES = true
+	globalSettings.RecordStatus = true
+	globalSettings.RecordSituation = true
+	globalSettings.RecordTraffic = true
+	globalSettings.RecordUAT = true
 }
 
 func readSettings() {
