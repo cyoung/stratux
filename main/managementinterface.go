@@ -159,7 +159,6 @@ func handleStatusWS(conn *websocket.Conn) {
 		*/
 
 		// Send status.
-		<-timer.C
 		update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
@@ -167,19 +166,20 @@ func handleStatusWS(conn *websocket.Conn) {
 			//			log.Printf("Web client disconnected.\n")
 			break
 		}
+		<-timer.C
 	}
 }
 
 func handleSituationWS(conn *websocket.Conn) {
 	timer := time.NewTicker(100 * time.Millisecond)
 	for {
-		<-timer.C
 		situationJSON, _ := json.Marshal(&mySituation)
 		_, err := conn.Write(situationJSON)
 
 		if err != nil {
 			break
 		}
+		<-timer.C
 
 	}
 

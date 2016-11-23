@@ -536,7 +536,6 @@ func networkStatsCounter() {
 	var previousNetworkMessagesSent, previousNetworkBytesSent, previousNetworkMessagesSentNonqueueable, previousNetworkBytesSentNonqueueable uint64
 
 	for {
-		<-timer.C
 		globalStatus.NetworkDataMessagesSentLastSec = globalStatus.NetworkDataMessagesSent - previousNetworkMessagesSent
 		globalStatus.NetworkDataBytesSentLastSec = globalStatus.NetworkDataBytesSent - previousNetworkBytesSent
 		globalStatus.NetworkDataMessagesSentNonqueueableLastSec = globalStatus.NetworkDataMessagesSentNonqueueable - previousNetworkMessagesSentNonqueueable
@@ -549,6 +548,7 @@ func networkStatsCounter() {
 		previousNetworkBytesSent = globalStatus.NetworkDataBytesSent
 		previousNetworkMessagesSentNonqueueable = globalStatus.NetworkDataMessagesSentNonqueueable
 		previousNetworkBytesSentNonqueueable = globalStatus.NetworkDataBytesSentNonqueueable
+		<-timer.C
 
 	}
 

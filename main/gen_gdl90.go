@@ -676,7 +676,6 @@ func isCPUTempValid() bool {
 func cpuTempMonitor() {
 	timer := time.NewTicker(1 * time.Second)
 	for {
-		<-timer.C
 
 		// Update CPUTemp.
 		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
@@ -695,6 +694,7 @@ func cpuTempMonitor() {
 		if t >= -99.0 { // Only update if valid value was obtained.
 			globalStatus.CPUTemp = t
 		}
+		<-timer.C
 
 	}
 }

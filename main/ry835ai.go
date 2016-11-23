@@ -1398,7 +1398,6 @@ func initI2C() error {
 func tempAndPressureReader() {
 	timer := time.NewTicker(5 * time.Second)
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
 		// Read temperature and pressure altitude.
 		temp, alt, err_bmp180 := readBMP180()
 		// Process.
@@ -1410,6 +1409,7 @@ func tempAndPressureReader() {
 			mySituation.Pressure_alt = alt
 			mySituation.LastTempPressTime = stratuxClock.Time
 		}
+		<-timer.C
 	}
 	globalStatus.RY835AI_connected = false
 }
@@ -1464,7 +1464,6 @@ func makeAHRSGDL90Report() {
 func attitudeReaderSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for globalStatus.RY835AI_connected && globalSettings.AHRS_Enabled {
-		<-timer.C
 		// Read pitch and roll.
 		pitch, roll, err_mpu6050 := readMPU6050()
 
@@ -1488,6 +1487,7 @@ func attitudeReaderSender() {
 		makeAHRSGDL90Report()
 
 		mySituation.mu_Attitude.Unlock()
+		<-timer.C
 	}
 	globalStatus.RY835AI_connected = false
 }
@@ -1587,7 +1587,6 @@ func pollRY835AI() {
 	readyToInitGPS = true //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	for {
-		<-timer.C
 		// GPS enabled, was not connected previously?
 		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TO-DO: Implement more robust method (channel control) to kill zombie serial readers
 			globalStatus.GPS_connected = initGPSSerial()
@@ -1603,6 +1602,7 @@ func pollRY835AI() {
 				globalStatus.RY835AI_connected = false
 			}
 		}
+		<-timer.C
 	}
 }
 
