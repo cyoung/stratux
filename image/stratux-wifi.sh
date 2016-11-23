@@ -5,9 +5,6 @@
 /usr/bin/killall -9 hostapd hostapd-edimax
 /usr/sbin/service isc-dhcp-server stop
 
-
-# Detect RPi version.
-#  Per http://elinux.org/RPi_HardwareHistory
 #Assume PI3 settings
 DAEMON_CONF=/etc/hostapd/hostapd.conf
 DAEMON_SBIN=/usr/sbin/hostapd
@@ -18,7 +15,8 @@ DAEMON_USER_PREF=/etc/hostapd/hostapd.user
 #temp hostapd.conf
 DAEMON_TMP=/tmp/hostapd.conf
 
-#check for pi2 and change files
+# Detect RPi version.
+#  Per http://elinux.org/RPi_HardwareHistory
 EW7811Un=$(lsusb | grep EW-7811Un)
 RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//'`
 if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ] || [ "$RPI_REV" = "900092" ] || [ "$RPI_REV" = "900093" ] && [ "$EW7811Un" != '' ]; then
