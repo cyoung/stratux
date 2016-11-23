@@ -161,7 +161,7 @@ echo "${BOLD}No errors found. Continuning...${NORMAL}"
 echo ""
 
 # files to edit
-HOSTAPD=('/etc/hostapd/hostapd.conf' '/etc/hostapd/hostapd-edimax.conf')
+HOSTAPD=('/etc/hostapd/hostapd.user')
 
 ####
 #### File modification loop
