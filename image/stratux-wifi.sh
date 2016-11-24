@@ -43,6 +43,10 @@ if [ ! -f $DAEMON_USER_PREF ]; then
             	sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
+	
+	#make sure there is time to get the file written before checking for it again
+    	sleep 1
+	
 	# If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
 	#Any more then this they somebody was messing with things and its not our fault things are this bad
 	if [ ! -f $DAEMON_USER_PREF ]; then 
@@ -69,6 +73,6 @@ cat ${DAEMON_USER_PREF} >> ${DAEMON_TMP}
 
 ${DAEMON_SBIN} -B ${DAEMON_TMP}
 
-sleep 5
+sleep 3
 
 /usr/sbin/service isc-dhcp-server start
