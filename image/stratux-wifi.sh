@@ -13,48 +13,6 @@ DAEMON_USER_PREF=/etc/hostapd/hostapd.user
 
 DAEMON_TMP=/tmp/hostapd.conf
 
-# This code checks for the existence of ostapd.user and if it exists it leaves it alone.
-# If the file does not exist it copys over the values from the existing hostapd.conf to hostapd.user and removes them
-# check for hostapd.user and if needed create properly
-if [ ! -f $DAEMON_USER_PREF ]; then 
-	# values to move
-	HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
-	#values to remove
-	HOSTAPD_VALUES_RM=('#auth_algs=' '#wpa=' '#wpa_passphrase=' '#wpa_key_mgmt=' '#wpa_pairwise=' '#rsn_pairwise=')
-
-	DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
-
-	# move any custom values
-	for i in "${HOSTAPD_VALUES[@]}"
-	do
-    		if grep -q "^$i" $DAEMON_CONF
-		then
-        		grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
-        		sed -i '/^'"$i"'/d' $DAEMON_CONF
-			sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
-		fi
-	done
-# just remove commented values
-	for i in "${HOSTAPD_VALUES_RM[@]}"
-	do
-    		if grep -q "^$i" $DAEMON_CONF
-		then
-        		sed -i '/^'"$i"'/d' $DAEMON_CONF
-            		sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
-		fi
-	done
-	
-	#make sure there is time to get the file written before checking for it again
-    	sleep 1
-	
-	# If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
-	#Any more then this they somebody was messing with things and its not our fault things are this bad
-	if [ ! -f $DAEMON_USER_PREF ]; then 
-		echo "ssid=stratux" >> $DAEMON_USER_PREF
-		echo "channel=1" >> $DAEMON_USER_PREF
-	fi
-fi
-
 # Detect RPi version.
 #  Per http://elinux.org/RPi_HardwareHistory
 EW7811Un=$(lsusb | grep EW-7811Un)
