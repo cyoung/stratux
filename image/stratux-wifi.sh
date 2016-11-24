@@ -45,13 +45,14 @@ if [ ! -f $DAEMON_USER_PREF ]; then
             	sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
+	# If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
+	#Any more then this they somebody was messing with things and its not our fault things are this bad
+	if [ ! -f $DAEMON_USER_PREF ]; then 
+		echo "ssid=stratux" >> $DAEMON_USER_PREF
+		echo "channel=1" >> $DAEMON_USER_PREF
+	fi
 fi
 
-# If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
-#Any more then this they somebody was messing with things and its not our fault things are this bad
-if [ ! -f $DAEMON_USER_PREF ]; then 
-	echo $"ssid=stratux\nchannel=1" >> $DAEMON_USER_PREF
-fi
 # Detect RPi version.
 #  Per http://elinux.org/RPi_HardwareHistory
 EW7811Un=$(lsusb | grep EW-7811Un)
