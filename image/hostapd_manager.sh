@@ -90,7 +90,7 @@ while getopts $options option; do
           OPT_C=$OPTARG
           echo "$parm Channel option -c used: $OPT_C"
           if [[ "$OPT_C" =~ ^[0-9]+$ ]] && [ "$OPT_C" -ge 1 -a "$OPT_C" -le 13  ]; then
-          	echo "${GREEN}    Channel will now be set to ${BOLD}${UNDR}$OPT_C.${WHITE}${NORMAL}"
+          	echo "${GREEN}    Channel will now be set to ${BOLD}${UNDR}$OPT_C${NORMAL}.${WHITE}${NORMAL}"
           else
             echo "${BOLD}${RED}$err Channel is not within acceptable values, exiting...${WHITE}${NORMAL}"
             exit 1
@@ -254,9 +254,31 @@ do
     echo ""
   fi
 done
-echo "${YELLOW}$att Don't forget to reboot... $att ${WHITE}"
+echo "${RED}${BOLD} $att At this time the script will restart your WiFi services. $att ${WHITE}${NORMAL}"
+echo "If you are connected to Stratux through the ${BOLD}192.168.10.1${NORMAL} interface then you will be disconnected"
+echo "Please wait 1 min and look for the new SSID on your wireless device."
+sleep 3
+echo "${YELLOW}$att Restarting Stratux WiFi Services... $att ${WHITE}"
+echo "Killing hostapd..."
+/usr/bin/killall -9 hostapd hostapd-edimax
+echo "Killed..."
+echo ""
+echo "Killing DHCP Server..."
+echo ""
+/usr/sbin/service isc-dhcp-server stop
+sleep 0.5
+echo "Killed..."
+echo ""
+echo "ifdown wlan0..."
+ifdown wlan0
+sleep 0.5
+echo "ifup wlan0..."
+echo "Calling Stratux WiFI Start Script(stratux-wifi.sh)..."
+ifup wlan0
+sleep 0.5
 echo ""
 echo ""
+echo "All systems should be up and running and you should see your new SSID!"
 
 ### End main loop ###
 
