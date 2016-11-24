@@ -59,8 +59,6 @@ if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ] || [ "$RPI_REV" = "900
  # This is a RPi2B or RPi0 with Edimax USB Wifi dongle.
  DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
  DAEMON_SBIN=/etc/hostapd/hostapd-edimax
-# else
-#  DAEMON_CONF=/etc/hostapd/hostapd.conf
 fi
 
 #Make a new hostapd or hostapd-edimax conf file based on logic above
