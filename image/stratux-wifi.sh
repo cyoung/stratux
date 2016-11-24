@@ -50,7 +50,7 @@ fi
 # If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
 #Any more then this they somebody was messing with things and its not our fault things are this bad
 if [ ! -f $DAEMON_USER_PREF ]; then 
-	echo $"ssid=stratux\nchannel=1\n" >> $DAEMON_USER_PREF
+	echo $"ssid=stratux\nchannel=1" >> $DAEMON_USER_PREF
 fi
 # Detect RPi version.
 #  Per http://elinux.org/RPi_HardwareHistory
