@@ -69,7 +69,7 @@ fi
 #If an option should be followed by an argument, it should be followed by a ":".
 #Notice there is no ":" after "oqh". The leading ":" suppresses error messages from
 #getopts. This is required to get my unrecognized option code to work.
-options=':s:c:e:oqh'
+options=':s:c:eoqh'
 while getopts $options option; do
   case $option in
     s)  #set option "s"
@@ -90,7 +90,7 @@ while getopts $options option; do
           OPT_C=$OPTARG
           echo "$parm Channel option -c used: $OPT_C"
           if [[ "$OPT_C" =~ ^[0-9]+$ ]] && [ "$OPT_C" -ge 1 -a "$OPT_C" -le 13  ]; then
-          	echo "${GREEN}    Channel will now be set to ${BOLD}${UNDR}$OPT_C${NORMAL}.${WHITE}${NORMAL}"
+          	echo "${GREEN}    Channel will now be set to ${BOLD}${UNDR}$OPT_C${WHITE}${NORMAL}."
           else
             echo "${BOLD}${RED}$err Channel is not within acceptable values, exiting...${WHITE}${NORMAL}"
             exit 1
@@ -99,8 +99,8 @@ while getopts $options option; do
       ;;
     e)  #set option "e"
       if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
-          echo "${BOLD}${RED}$err Encryption option(-e) used without passphrase, exiting...${WHITE}${NORMAL}"
-          exit 1
+          echo "${BOLD}${RED}$err Encryption option(-e) used without passphrase, Passphrase will be set to ${BOLD}$defaultPass${NORMAL}...${WHITE}${NORMAL}"
+          OPT_E=$defaultPass
       else
         OPT_E=$OPTARG
         echo "$parm Encryption option -e used:"
@@ -126,7 +126,7 @@ while getopts $options option; do
       HELP
       ;;
    \?) # invalid option
-     echo "${BOLD}${RED}$err Invalid option -$OPTARG" >&2
+     echo "${BOLD}${RED}$err Invalid option -$OPTARG ${WHITE}${NORMAL}" >&2
      exit 1
      ;;
    :) # Missing Arg 
@@ -254,7 +254,7 @@ do
     echo ""
   fi
 done
-echo "${RED}${BOLD} $att At this time the script will restart your WiFi services. $att ${WHITE}${NORMAL}"
+echo "${RED}${BOLD} $att At this time the script will restart your WiFi services.${WHITE}${NORMAL}"
 echo "If you are connected to Stratux through the ${BOLD}192.168.10.1${NORMAL} interface then you will be disconnected"
 echo "Please wait 1 min and look for the new SSID on your wireless device."
 sleep 3
