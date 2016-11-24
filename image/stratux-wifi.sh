@@ -17,14 +17,14 @@ DAEMON_TMP=/tmp/hostapd.conf
 # If the file does not exist it copys over the values from the existing hostapd.conf to hostapd.user and removes them
 # check for hostapd.user and if needed create properly
 if [ ! -f $DAEMON_USER_PREF ]; then 
-# values to move
-HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
-#values to remove
-HOSTAPD_VALUES_RM=('#auth_algs=' '#wpa=' '#wpa_passphrase=' '#wpa_key_mgmt=' '#wpa_pairwise=' '#rsn_pairwise=')
+	# values to move
+	HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
+	#values to remove
+	HOSTAPD_VALUES_RM=('#auth_algs=' '#wpa=' '#wpa_passphrase=' '#wpa_key_mgmt=' '#wpa_pairwise=' '#rsn_pairwise=')
 
-DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
+	DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
 
-# move any custom values
+	# move any custom values
 	for i in "${HOSTAPD_VALUES[@]}"
 	do
     	if grep -q "^$i" $DAEMON_CONF
