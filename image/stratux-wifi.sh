@@ -32,9 +32,8 @@ if [ ! -f $DAEMON_USER_PREF ]; then
     	if grep -q "^$i" $DAEMON_CONF
 		then
         	grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
-            echo "deleting lines..."
         	sed -i '/^'"$i"'/d' $DAEMON_CONF
-            sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
+		sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
 # just remove commented values
@@ -43,7 +42,7 @@ if [ ! -f $DAEMON_USER_PREF ]; then
     	if grep -q "^$i" $DAEMON_CONF
 		then
         	sed -i '/^'"$i"'/d' $DAEMON_CONF
-            sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
+            	sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
 fi
