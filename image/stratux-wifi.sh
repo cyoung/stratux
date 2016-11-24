@@ -27,20 +27,20 @@ if [ ! -f $DAEMON_USER_PREF ]; then
 	# move any custom values
 	for i in "${HOSTAPD_VALUES[@]}"
 	do
-    	if grep -q "^$i" $DAEMON_CONF
+    		if grep -q "^$i" $DAEMON_CONF
 		then
-        	grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
-        	sed -i '/^'"$i"'/d' $DAEMON_CONF
-		sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
+        		grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
+        		sed -i '/^'"$i"'/d' $DAEMON_CONF
+			sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
 # just remove commented values
 	for i in "${HOSTAPD_VALUES_RM[@]}"
 	do
-    	if grep -q "^$i" $DAEMON_CONF
+    		if grep -q "^$i" $DAEMON_CONF
 		then
-        	sed -i '/^'"$i"'/d' $DAEMON_CONF
-            	sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
+        		sed -i '/^'"$i"'/d' $DAEMON_CONF
+            		sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
 	
