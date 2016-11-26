@@ -58,7 +58,7 @@
 		</div>
 	</div>
 </div>
-	
+
 <div class="col-sm-12">
 	<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
@@ -96,7 +96,7 @@
 			</div>
 		</div>
 	</div>
-	
+
 	<div class="panel-group col-sm-6">
 		<div class="panel panel-default">
 			<div class="panel-heading">Commands</div>
@@ -115,7 +115,7 @@
 				</div>
 				<div class="form-group reset-flow">
 					<div class="col-xs-12">
-	  				  <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button> 				
+	  				  <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button>
 	  				 </div>
 				</div>
 				<div class="form-group reset-flow">
@@ -128,6 +128,32 @@
 	</div>
 
 </div>
+
+<div class="col-sm-12">
+	<div class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">AHRS</div>
+			<div class="panel-body">
+				<div class="form-group reset-flow">
+					<img src="img/BNO055_Axis.jpg">
+					<label class="control-label col-xs-5">BNO055 Orientation</label>
+					<form name="modeForm" ng-submit="updatebno055axis()" novalidate>
+						<!-- TODO: Display dropdown here -->
+						<input class="col-xs-7" type="string" text="P0" required ng-model="BNO055Axis" placeholder="BNO055 Axis" ng-blur="updatebno055axis()" />
+					</form>
+					<!-- TODO: Button to Reset AHRS & checkbox if calibration data should be loaded or not -->
+					<!-- TODO: Button to Read System & Calibration Status + Values  -->
+					<!-- TODO: Button to Read IDs & Revisions -->
+					<!-- TODO: Textfield to Write Calibration Values -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+</div>
+
     <!-- Developer mode area -->
 <div class="col-sm-12">
 	<div ng-show="DeveloperMode" class="panel-group col-sm-6">
@@ -154,7 +180,7 @@
 	</div>
 </div>
 -->
- 
+
 <div class="col-sm-12">
  	<h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
    	<h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
@@ -165,10 +191,10 @@
     <div class="modal-overlay "></div>
        	<div class="vertical-alignment-helper center-block">
         	<div class="modal-dialog vertical-align-center">
-     
+
       <div class="modal-content">
         <div class="modal-header">
-          <button class="close" 
+          <button class="close"
                   ui-turn-off="modalReboot"></button>
           <h4 class="modal-title">Are you really sure?</h4>
         </div>
@@ -184,15 +210,15 @@
     	  </div>
     </div>
   </div>
-  
+
   <div class="modal" ui-if="modalShutdown" ui-state="modalShutdown">
     <div class="modal-overlay "></div>
        	<div class="vertical-alignment-helper center-block">
         	<div class="modal-dialog vertical-align-center">
-     
+
       <div class="modal-content">
         <div class="modal-header">
-          <button class="close" 
+          <button class="close"
                   ui-turn-off="modalShutdown"></button>
           <h4 class="modal-title">Are you really sure?</h4>
         </div>
@@ -207,6 +233,6 @@
       </div>
     	  </div>
     </div>
-  </div> 
+  </div>
 </div>
 

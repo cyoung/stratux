@@ -15,6 +15,7 @@ all:
 	cp img/logo*.png /var/www/img
 	cp img/screen*.png /var/www/img
 	cp img/world.png /var/www/img
+	cp img/BNO055_Axis.jpg /var/www/img
 	mkdir -p /var/www/maui
 	mkdir -p /var/www/maui/js
 	cp maui/js/angular-ui-router.min.js /var/www/maui/js

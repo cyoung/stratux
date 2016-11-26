@@ -982,6 +982,16 @@ func getProductNameFromId(product_id int) string {
 	return fmt.Sprintf("Unknown (%d)", product_id)
 }
 
+const (
+	DebugLevelNone    = 0
+	DebugLevelError   = 1
+	DebugLevelWarning = 2
+	DebugLevelInfo    = 3
+	DebugLevelDebug   = 4
+	DebugLevelVerbose = 5
+	DebugLevelAll     = 6
+)
+
 type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
@@ -991,6 +1001,7 @@ type settings struct {
 	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
+	DEBUGLevel			 int
 	ReplayLog            bool
 	PPM                  int
 	OwnshipModeS         string
@@ -1352,6 +1363,8 @@ func main() {
 
 	// Initialize the (out) network handler.
 	initNetwork()
+	
+	go startAHRS()
 
 	// Start printing stats periodically to the logfiles.
 	go printStats()

@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"strconv"
 )
 
 type SettingMessage struct {
@@ -319,6 +320,26 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+					case "BNO055Axis":
+						// Expecting a number 0-7
+						if len(val.(string)) != 1 { // Wrong length
+						log.Printf("handleSettingsSetRequest:BNO055Axis: Wrong length\n")
+							continue
+						}
+						number, err := strconv.ParseUint(val.(string), 10, 8)
+						if err != nil {
+							log.Printf("handleSettingsSetRequest:BNO055Axis: %s\n", err.Error())
+							continue
+						}
+						if number > 7 {
+							log.Printf("handleSettingsSetRequest:BNO055Axis: number too big %d\n", number)
+							continue
+						}
+						if err != nil { // Number not valid.
+							log.Printf("handleSettingsSetRequest:OwnshipModeS: %s\n", err.Error())
+							continue
+						}
+						// TODO
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}

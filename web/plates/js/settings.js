@@ -6,13 +6,13 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog'];
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
 	}
 	$scope.update_files = '';
-	
+
 	function loadSettings(data) {
 		settings = angular.fromJson(data);
 		// consider using angular.extend()
@@ -32,6 +32,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
+		$scope.BNO055Axis = settings.BNO055Axis;
 		$scope.DeveloperMode = settings.DeveloperMode;
 	}
 
@@ -131,6 +132,16 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+	$scope.updatebno055axis = function () {
+		if ($scope.BNO055Axis !== settings["BNO055Axis"]) {
+			settings["BNO055Axis"] = $scope.BNO055Axis.toUpperCase();
+			newsettings = {
+				"BNO055Axis": $scope.BNO055Axis.toUpperCase()
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
@@ -180,7 +191,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			alert ("file does not appear to be an update")
 			return;
 		}
-		
+
 		fd.append("update_file", file);
 
 		$http.post(URL_UPDATE_UPLOAD, fd, {
