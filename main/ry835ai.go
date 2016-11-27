@@ -16,7 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"io/ioutil"
 	"bufio"
 
 	"github.com/kidoman/embd"
@@ -101,6 +101,23 @@ var readyToInitGPS bool //TODO: replace with channel control to terminate gorout
 var satelliteMutex *sync.Mutex
 var Satellites map[string]SatelliteInfo
 
+func getPiRevision() byte {
+	
+	ret := byte(0)
+	ret = 0
+	temp, err := ioutil.ReadFile("/proc/device-tree/model")
+	if err == nil {
+		tempStr := strings.Trim(string(temp),"\n")
+		if strings.Contains(tempStr, "Raspberry Pi 3") {
+			ret = 3
+		}
+		if strings.Contains(tempStr, "Raspberry Pi 2") {
+			ret = 2 
+		}
+	}
+	return ret
+}
+
 /*
 u-blox5_Referenzmanual.pdf
 Platform settings
@@ -167,7 +184,13 @@ func initGPSSerial() bool {
 		baudrate = 4800
 		device = "/dev/prolific0"
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
-		device = "/dev/ttyAMA0"
+		// If this is a RPi 3, use ttyS0 instead of ttyAMA0
+		if getPiRevision() == 3 {
+			device = "/dev/ttyS0"
+		} else {
+			device = "/dev/ttyAMA0"
+		}
+
 	} else {
 		log.Printf("No suitable device found.\n")
 		return false
