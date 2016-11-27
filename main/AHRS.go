@@ -10,29 +10,17 @@
 package main
 
 import (
-	//"flag"
+	"bytes"
 	"fmt"
+	"github.com/tarm/serial"
+	"io/ioutil"
 	"log"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	//"bufio"
-	"bytes"
-	"io/ioutil"
-
-	//"github.com/kidoman/embd"
-	//_ "github.com/kidoman/embd/host/all"
-	//"github.com/kidoman/embd/sensor/bmp180"
-	"github.com/tarm/serial"
-	//"serial"
-	//"github.com/mikepb/go-serial"
-
-	"os"
-	//"BNO055"
-	//"os/exec"
 )
 
 type AHRS_ReadError byte
@@ -62,35 +50,45 @@ const (
 	calibrationLocation_windows = "stratux_AHRS_calibration.conf"
 )
 
-//var serialConfig *serial.Config
-var AHRSserialPort *serial.Port
+var msAHRSserialPort *serial.Port
 
-var bf bytes.Buffer    // serial receive buffer
-var bfMutex sync.Mutex // sync access to the buffer
+var mReceiveBuffer bytes.Buffer    // serial receive buffer
+var mReceiveBufferMutex sync.Mutex // sync access to the buffer
 
-var WaitRead bool  // waiting for a Read
-var WaitWrite bool // waiting for a Write
+var mBNO055RWMutex sync.Mutex     // syncs access to the BNO055
+var mBNO055ConfigMutex sync.Mutex // syncs the config mode of the BNO055. TODO should eventually sync all access to the BNO055
 
-var WaitForData int // Amount of bytes expected to be read. 2 for a write, > 2 for a read
+var mfWaitRead bool  // waiting for a Read
+var mfWaitWrite bool // waiting for a Write
+
+var mintWaitForData int // Amount of bytes expected to be read. 2 for a write, > 2 for a read
 var mbtLastAHRS_WriteError byte
 var mbtLastAHRS_ReadError byte
 var mbtLastBNO055_WriteError byte
 var mbtLastBNO055_ReadError byte
 
-var ReadRetryDelay time.Duration
-var WriteRetryDelay time.Duration
+var mtReadRetryDelay time.Duration
+var mtWriteRetryDelay time.Duration
 
-var run bool             // set to false to stop
-var connected bool       // if the serial port is open
-var BNO055NeedsInit bool // if the BNO055 is initialized
+var mfRun bool             // set to false to stop
+var mfConnected bool       // if the serial port is open
+var mfBNO055NeedsInit bool // if the BNO055 is initialized
 
-var DataReadBuffer []byte // where received data will be stored
+var mbtDataReadBuffer []byte // where received data will be stored
 
-var isWindows bool // if we are in windows or linux
+var mfIsWindows bool // if we are in windows or linux
+var mfInfoRead bool
+
+func DebugPrintf(pintDebugLevel int, format string, v ...interface{}) {
+	if globalSettings.DEBUG && globalSettings.DEBUGLevel >= pintDebugLevel {
+		log.Printf(format, v...)
+	}
+}
 
 func startAHRS() {
+	mfInfoRead = false
 	globalSettings.DEBUG = true
-	globalSettings.DEBUGLevel = DebugLevelInfo
+	globalSettings.DEBUGLevel = DebugLevelAll
 
 	DebugPrintf(DebugLevelInfo, "AHRS start")
 	/*DebugPrintf(DebugLevel, "GOHOSTOS: %s", os.Getenv("HOSTOS"))
@@ -110,33 +108,52 @@ func startAHRS() {
 		}
 	}*/
 
-	ReadRetryDelay = 100
-	WriteRetryDelay = 100
+	mtReadRetryDelay = 100
+	mtWriteRetryDelay = 100
 
 	//mySituation.mu_AHRS = &sync.Mutex{}
-	isWindows = strings.Contains(strings.ToLower(os.Getenv("OS")), "windows")
+	mfIsWindows = strings.Contains(strings.ToLower(os.Getenv("OS")), "windows")
 
-	BNO055_GetCalibrationData()
+	//BNO055_LoadCalibrationData()
 
 	// create the serial receive buffer
 	ReadBuffer := make([]byte, 500)
-	bf := bytes.NewBuffer(ReadBuffer)
-	bf.Reset()
+	mReceiveBuffer := bytes.NewBuffer(ReadBuffer)
+	mReceiveBuffer.Reset()
 
-	BNO055NeedsInit = true
-	run = true
+	mfBNO055NeedsInit = true
+	mfRun = true
 	go BNO055_Receiver()
 	go BNO055_QueueWorker()
 
+	//_, _, calibrationData := BNO055_ReadCalibrationData()
+	//BNO055_SaveCalibrationData(BNO055_CalibrationDataFilename(), calibrationData)
+
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
-		if connected { // serial port is open
-			if BNO055NeedsInit {
+		if mfConnected { // serial port is open
+			if mfBNO055NeedsInit {
 				if BNO055_InitLoop() { // TODO infinite loop if never initializes
-					BNO055_ReadCalibration()
+					result, calibrationStatus, calibrationData := BNO055_ReadCalibrationData()
+					if result {
+						if calibrationStatus == 0x0F { // only save if it's fully calibrated
+							// write calibration data to file
+							BNO055_SaveCalibrationData(BNO055_CalibrationDataFilename(), calibrationData)
+						} else {
+							DebugPrintf(DebugLevelWarning, "BNO055 - Not fully calibrated, don't write calibration data.")
+						}
+					} else {
+						DebugPrintf(DebugLevelWarning, "BNO055 - Couldn't read calibration data.")
+					}
 				}
 			} else {
-				AHRS_LoopSimple()
+				if !mfInfoRead {
+					mfInfoRead = true
+					BNO055GetInfo()
+				}
+				mBNO055ConfigMutex.Lock() // so no configuration takes places while reading
+				BNO055_LoopSimple()
+				mBNO055ConfigMutex.Unlock()
 			}
 		}
 		//time.Sleep(200 * time.Millisecond)
@@ -144,22 +161,76 @@ func startAHRS() {
 	}
 }
 
-/*func PadLeft(str, pad string, length int) string {
-	for {
-		str = pad + str
-		if len(str) > length {
-			return str[0:length]
+func BNO055_Reset() bool {
+	//result := true
+	BNO055_Write(BNO055_SYS_TRIGGER, []byte{0x20}, 1) // answer is 0xEE, but this will be ignored. Only write once
+	time.Sleep(300 * time.Millisecond)
+	// try to read system status
+	return BNO055_ReadBool(BNO055_SYS_STATUS, 5)
+}
+
+func BNO055_Init(pfWriteCalibration bool) bool {
+	// Reset
+	mfBNO055NeedsInit = true
+	result := BNO055_Reset()
+	if result {
+		if pfWriteCalibration {
+			// Write Calibration data
+			result, data := BNO055_LoadCalibrationData()
+			if result {
+				result = BNO055_WriteCalibrationData(data)
+				if !result {
+					DebugPrintf(DebugLevelError, "BNO055_Init - Couldn't write data!")
+				}
+			} else {
+				result = false
+				DebugPrintf(DebugLevelError, "BNO055_Init - Couldn't get data!")
+			}
+		}
+	} else {
+		DebugPrintf(DebugLevelError, "BNO055_Init - Couldn't reset!")
+	}
+	return result
+}
+
+func BNO055_InitLoop() bool {
+	result := false
+	for mfRun && mfConnected {
+		temp := BNO055_Init(true)
+		if temp {
+			DebugPrintf(DebugLevelInfo, "Init BNO055 successful!")
+			mfBNO055NeedsInit = false
+			result = true
+			break
+		} else {
+			DebugPrintf(DebugLevelError, "BNO055_InitLoop - Init FAILED!")
+			time.Sleep(time.Millisecond * 500)
 		}
 	}
-}*/
+	return result
+}
 
-func DebugPrintf(pintDebugLevel int, format string, v ...interface{}) {
-	if globalSettings.DEBUG && globalSettings.DEBUGLevel >= pintDebugLevel {
-		log.Printf(format, v...)
+func BNO055_SetOPRMode(pBNO055_OPRMode byte) bool {
+	return BNO055_Write(BNO055_OPR_MODE, []byte{pBNO055_OPRMode}, 3)
+}
+
+func BNO055GetInfo() {
+	globalSettings.BNO055Status = BNO055_ReadStatusString()
+	globalSettings.BNO055IDs = BNO055_ReadIDsRevsString()
+
+	result, _, calibrationData := BNO055_ReadCalibrationData()
+	if result {
+		var data string
+		for i := 0; i < 18; i++ {
+			data += fmt.Sprintf("%02X", calibrationData[i])
+		}
+		globalSettings.BNO055Calibration = data
+	} else {
+		DebugPrintf(DebugLevelWarning, "BNO055GetInfo - Couldn't read calibration data.")
 	}
 }
 
-func AHRS_LoopSimple() {
+func BNO055_LoopSimple() {
 	// Read calibration status
 	//ReadCalibration()
 
@@ -206,13 +277,13 @@ func BNO055_ReadStatus() (result bool, MAG byte, ACC byte, GYR byte, SYS byte, S
 		if result {
 			ERR, result = BNO055_ReadByteBool(BNO055_SYS_ERR, 3)
 			if !result {
-				DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadStatus ERR")
+				DebugPrintf(DebugLevelError, "BNO055_ReadStatus - Error ERR")
 			}
 		} else {
-			DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadStatus SYS")
+			DebugPrintf(DebugLevelError, "BNO055_ReadStatus - Error SYS")
 		}
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadStatus CALIB")
+		DebugPrintf(DebugLevelError, "BNO055_ReadStatus - Error CALIB")
 	}
 	return result, MAG, ACC, GYR, SYS, System, ERR
 }
@@ -269,7 +340,7 @@ func BNO055_ReadStatusString() string {
 		}
 		text += "\r\n"
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadStatusString")
+		DebugPrintf(DebugLevelError, "BNO055_ReadStatusString - Error")
 	}
 	return text
 }
@@ -286,27 +357,26 @@ func BNO055_ReadIDsRevs() (result bool, BNO_CHIP_ID byte, ACC_ID byte, MAG_ID by
 				if result {
 					BL_REV_ID, result = BNO055_ReadByteBool(BNO055_BL_REV_ID, 3)
 					if result {
-						var temp []byte
-						result := BNO055_ReadBytesBool(BNO055_SW_REV_ID_LSB, 2, temp, 3)
+						result, temp := BNO055_ReadBytesBool(BNO055_SW_REV_ID_LSB, 2, 3)
 						if result {
 							SW_REV_ID = uint16(temp[0]) | uint16(temp[1])<<8
 						} else {
-							DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs SW_REV_ID")
+							DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error SW_REV_ID")
 						}
 					} else {
-						DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs BL_REV_ID")
+						DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error BL_REV_ID")
 					}
 				} else {
-					DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs GYR_ID")
+					DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error GYR_ID")
 				}
 			} else {
-				DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs MAG_ID")
+				DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error MAG_ID")
 			}
 		} else {
-			DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs ACC_ID")
+			DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error ACC_ID")
 		}
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevs CHIP_ID")
+		DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevs - Error CHIP_ID")
 	}
 	return result, BNO_CHIP_ID, ACC_ID, MAG_ID, GYR_ID, SW_REV_ID, BL_REV_ID
 }
@@ -315,17 +385,16 @@ func BNO055_ReadIDsRevsString() string {
 	var text string
 	result, BNO_CHIP_ID, ACC_ID, MAG_ID, GYR_ID, SW_REV_ID, BL_REV_ID := BNO055_ReadIDsRevs()
 	if result {
-		text = fmt.Sprintf("BNO055 ID: %d, ACC_ID: %d,  MAG_ID: %d, GYR_ID: %d, SW_REV_ID: %d, BL_REV_ID: %d", BNO_CHIP_ID, ACC_ID, MAG_ID, GYR_ID, SW_REV_ID, BL_REV_ID)
+		text = fmt.Sprintf("BNO055 ID: %02X, ACC_ID: %02X,  MAG_ID: %02X, GYR_ID: %02X, SW_REV_ID: %04X, BL_REV_ID: %d", BNO_CHIP_ID, ACC_ID, MAG_ID, GYR_ID, SW_REV_ID, BL_REV_ID)
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadIDsRevsString")
+		DebugPrintf(DebugLevelError, "BNO055_ReadIDsRevsString - Error")
 	}
 	return text
 }
 
 func BNO055_ReadAxis() (byte, bool) {
-	var data []byte
 	var config byte
-	result := BNO055_ReadBytesBool(BNO055_AXIS_MAP_CONFIG, 2, data, 3)
+	result, data := BNO055_ReadBytesBool(BNO055_AXIS_MAP_CONFIG, 2, 3)
 	if result {
 		if data[0]&0x3F == 0x21 {
 			switch data[1] & 0x03 {
@@ -355,7 +424,7 @@ func BNO055_ReadAxis() (byte, bool) {
 			}
 		}
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - Error BNO055_ReadAxis")
+		DebugPrintf(DebugLevelError, "BNO055_ReadAxis - Error BNO055_ReadAxis")
 	}
 	return config, result
 }
@@ -393,26 +462,124 @@ func BNO055_WriteAxis(pbtAxis byte) bool {
 			data[0] = 0x24
 			data[1] = 0x00
 		}
-		result = BNO055_Write(BNO055_AXIS_MAP_CONFIG, data, 3)
+
+		mBNO055ConfigMutex.Lock() // TODO put this in BNO055_SetOPRMode
+		if BNO055_SetOPRMode(BNO055_OPRModeCONFIGMODE) {
+			result = BNO055_Write(BNO055_AXIS_MAP_CONFIG, data, 3)
+
+			// Select BNO055 system operation mode
+			if !BNO055_SetOPRMode(BNO055_OPRModeNDOF) {
+				DebugPrintf(DebugLevelError, "BNO055_WriteAxis - Couldn't get BNO055 NDOF mode")
+			}
+		} else {
+			DebugPrintf(DebugLevelError, "BNO055_WriteAxis - Couldn't get BNO055 config mode")
+		}
+		mBNO055ConfigMutex.Unlock()
 	}
 	return result
 }
 
-func BNO055_ReadQuaternions() (bool, [4]int16) {
-	result := false
-	var data [4]int16
-	temp := BNO055_Read(BNO055_QUA_DATA_W_LSB, 8, 3) // read in all data
-	if temp != nil && len(temp) == 8 {
-		data[0] = int16(temp[1])<<8 | int16(temp[0]) // convert to 16bit
-		data[1] = int16(temp[3])<<8 | int16(temp[2])
-		data[2] = int16(temp[5])<<8 | int16(temp[4])
-		data[3] = int16(temp[7])<<8 | int16(temp[6])
-		result = true
+func BNO055_CalibrationDataFilename() string {
+	var file string
+	if mfIsWindows {
+		file = calibrationLocation_windows
+	} else {
+		file = calibrationLocation_rpi
 	}
-	return result, data
+	return file
 }
 
-func BNO055_ReadCalibration() (bool, []byte) {
+func BNO055_LoadCalibrationDataString() string {
+	var text string
+	result, data := BNO055_LoadCalibrationData()
+	if result {
+		for i := 0; i < len(data); i++ {
+			text += fmt.Sprintf("%02X", data[i])
+		}
+	}
+	return text
+}
+
+func BNO055_ParseCalibrationData(pstrCalibrationData string) (bool, []byte) {
+	result := false
+	calibration := make([]byte, 18)
+	if len(pstrCalibrationData) == 36 {
+		for i := 0; i < 18; i++ {
+			// try to parse
+			temp, err := strconv.ParseUint(pstrCalibrationData[i*2:i*2+2], 16, 8)
+			if err != nil {
+				DebugPrintf(DebugLevelError, "BNO055_ParseCalibrationData - Calibration data (%s) error: %s", pstrCalibrationData, err)
+			} else {
+				calibration[i] = byte(temp)
+				result = true
+				DebugPrintf(DebugLevelInfo, "BNO055_ParseCalibrationData - Calibration data: %x", calibration)
+			}
+		}
+	} else {
+		DebugPrintf(DebugLevelError, "BNO055_ParseCalibrationData - Calibration data (%s) has the wrong length. 36 expected", pstrCalibrationData)
+	}
+	return result, calibration
+}
+
+func BNO055_LoadCalibrationData() (bool, []byte) {
+	// get from settings
+	result := false
+	var calibration []byte
+	file := BNO055_CalibrationDataFilename()
+	if _, err := os.Stat(file); err == nil {
+		// file exists
+		content, err := ioutil.ReadFile(file)
+		if err != nil {
+			DebugPrintf(DebugLevelError, "BNO055_LoadCalibrationData - Cannot open %s to read calibration data!", file)
+		} else {
+			lines := strings.Split(string(content), "\n")
+			if len(lines) >= 1 {
+				result, calibration = BNO055_ParseCalibrationData(file)
+			}
+		}
+	} else {
+		DebugPrintf(DebugLevelWarning, "BNO055_LoadCalibrationData - Cannot open %s to read calibration data!\r\n%s", file, err)
+	}
+	//return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	//return []byte{0xFF, 0xF8, 0xFF, 0xFF, 0x00, 0x05, 0xFF, 0x57, 0x00, 0x59, 0xFF, 0x5A, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x01}
+	return result, calibration
+}
+
+func BNO055_SaveCalibrationData(pstrFile string, calibrationData []byte) bool {
+	// write calibration data to file
+	var data string
+	canwrite := false
+	result := false
+	for i := 0; i < 18; i++ {
+		//data += PadLeft(strconv.FormatUint(uint64(calibrationData[i]), 16),"0",2)
+		data += fmt.Sprintf("%02X", calibrationData[i])
+	}
+	text := make([]byte, 36)
+	copy(text[:], data)
+	if _, err := os.Stat(pstrFile); err != nil {
+		// file doesn't exist, create it
+		file, err := os.Create(pstrFile)
+		if err != nil {
+			DebugPrintf(DebugLevelError, "BNO055_SaveCalibrationData - Cannot create %s to write calibration data! Error: %s", pstrFile, err)
+		} else {
+			DebugPrintf(DebugLevelInfo, "BNO055_SaveCalibrationData - Calibration file %s created.", file.Name())
+			canwrite = true
+		}
+	}
+	if canwrite {
+		err := ioutil.WriteFile(pstrFile, text, os.ModePerm)
+		if err != nil {
+			DebugPrintf(DebugLevelError, "BNO055_SaveCalibrationData - Cannot open %s to write calibration data! Error: %s", pstrFile, err)
+		} else {
+			DebugPrintf(DebugLevelInfo, "BNO055_SaveCalibrationData - Calibration data written.")
+			result = true
+		}
+	}
+	return result
+}
+
+func BNO055_ReadCalibrationData() (bool, byte, []byte) {
+	mBNO055ConfigMutex.Lock()
 	calibrationStatus, result := BNO055_ReadByteBool(BNO055_CALIB_STAT, 3)
 	calibrationData := make([]byte, 18)
 
@@ -420,7 +587,7 @@ func BNO055_ReadCalibration() (bool, []byte) {
 		DebugPrintf(DebugLevelInfo, "BNO055 Calibration status: MAG: %d, ACC: %d, GYR: %d, SYS: %d\r\n", calibrationStatus&0x03, (calibrationStatus>>2)&0x03, (calibrationStatus>>4)&0x03, (calibrationStatus>>6)&0x03)
 
 		// Select BNO055 config mode
-		if BNO055_WriteByte(BNO055_OPR_MODE, BNO055_OPRModeCONFIGMODE, 3) {
+		if BNO055_SetOPRMode(BNO055_OPRModeCONFIGMODE) {
 			temp := BNO055_Read(BNO055_ACC_OFFSET_X_LSB, 6, 3)
 			if temp != nil && len(temp) == 6 {
 				DebugPrintf(DebugLevelInfo, "ACC X: %d, Y: %d, Z: %d\r\n", int16(temp[0])|int16(temp[1])<<8, int16(temp[2])|int16(temp[3])<<8, int16(temp[4])|int16(temp[5])<<8)
@@ -449,41 +616,59 @@ func BNO055_ReadCalibration() (bool, []byte) {
 			DebugPrintf(DebugLevelInfo, "CalibrationData: %x", calibrationData)
 
 			// Select BNO055 system operation mode
-			BNO055_WriteByte(BNO055_OPR_MODE, BNO055_OPRModeNDOF, 3)
-
-			if calibrationStatus == 0x0F { // only save if it's fully calibrated
-				// write calibration data to file
-				var data string
-				for i := 0; i < 18; i++ {
-					//data += PadLeft(strconv.FormatUint(uint64(calibrationData[i]), 16),"0",2)
-					data += fmt.Sprintf("%02X", calibrationData[i])
-				}
-				var file string
-				if isWindows {
-					file = calibrationLocation_windows
-				} else {
-					file = calibrationLocation_rpi
-				}
-				// file exists
-				text := make([]byte, 36)
-				copy(text[:], data)
-				err := ioutil.WriteFile(file, text, os.ModePerm)
-				if err != nil {
-					DebugPrintf(DebugLevelError, "BNO055 - Cannot open %s to write calibration data!", file)
-				} else {
-					DebugPrintf(DebugLevelInfo, "Calibration data written.")
-				}
-			} else {
-				DebugPrintf(DebugLevelWarning, "BNO055 - Not fully calibrated, don't write calibration data.")
+			if !BNO055_SetOPRMode(BNO055_OPRModeNDOF) {
+				DebugPrintf(DebugLevelError, "BNO055_ReadCalibrationData - Couldn't get BNO055 NDOF mode")
 			}
 		} else {
-			DebugPrintf(DebugLevelError, "BNO055 - Couldn't get BNO055 config mode")
+			DebugPrintf(DebugLevelError, "BNO055_ReadCalibrationData - Couldn't get BNO055 config mode")
 		}
 	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - BNO055 - Couldn't get calibration status")
+		DebugPrintf(DebugLevelError, "BNO055_ReadCalibrationData - Couldn't get calibration status")
 	}
 
-	return result, calibrationData
+	defer mBNO055ConfigMutex.Unlock()
+	return result, calibrationStatus, calibrationData
+}
+
+// switches to config and writes
+func BNO055_WriteCalibrationData(pbtCalibrationData []byte) bool {
+	mBNO055ConfigMutex.Lock()
+	// Config mode
+	result := BNO055_SetOPRMode(BNO055_OPRModeCONFIGMODE)
+	if result {
+		// Write Calibration data
+		result = BNO055_Write(BNO055_ACC_OFFSET_X_LSB, pbtCalibrationData, 5)
+		if result {
+			//result = Write_BNO055Byte(BNO055_UNIT_SEL, 0x80, 3) // set Android - no influence on Quaterions
+			//if result {
+			// Switch to NDOF
+			result = BNO055_SetOPRMode(BNO055_OPRModeNDOF)
+			if !result {
+				DebugPrintf(DebugLevelError, "BNO055_WriteCalibrationData - Couldn't set NDOF mode!")
+			}
+			//}
+		} else {
+			DebugPrintf(DebugLevelError, "BNO055_WriteCalibrationData - Couldn't write data!")
+		}
+	} else {
+		DebugPrintf(DebugLevelError, "BNO055_WriteCalibrationData - Couldn't set config mode!")
+	}
+	defer mBNO055ConfigMutex.Unlock()
+	return result
+}
+
+func BNO055_ReadQuaternions() (bool, [4]int16) {
+	result := false
+	var data [4]int16
+	temp := BNO055_Read(BNO055_QUA_DATA_W_LSB, 8, 3) // read in all data
+	if temp != nil && len(temp) == 8 {
+		data[0] = int16(temp[1])<<8 | int16(temp[0]) // convert to 16bit
+		data[1] = int16(temp[3])<<8 | int16(temp[2])
+		data[2] = int16(temp[5])<<8 | int16(temp[4])
+		data[3] = int16(temp[7])<<8 | int16(temp[6])
+		result = true
+	}
+	return result, data
 }
 
 func toEulerianAngle(quatw float64, quatx float64, quaty float64, quatz float64) (pitch float64, roll float64, yaw float64) {
@@ -511,296 +696,10 @@ func toEulerianAngle(quatw float64, quatx float64, quaty float64, quatz float64)
 	return pitch, roll, yaw
 }
 
-func BNO055_GetCalibrationData() (bool, []byte) {
-	// get from settings
-	result := true
-	var file string
-	var calibration []byte
-	if isWindows {
-		file = calibrationLocation_windows
-	} else {
-		file = calibrationLocation_rpi
-	}
-	if _, err := os.Stat(file); err == nil {
-		// file exists
-		content, err := ioutil.ReadFile(file)
-		if err != nil {
-			DebugPrintf(DebugLevelError, "BNO055 - Cannot open %s to read calibration data!", file)
-		} else {
-			lines := strings.Split(string(content), "\n")
-			if len(lines) >= 1 && len(lines[0]) == 36 {
-				calibration = make([]byte, 18)
-				for i := 0; i < 18; i++ {
-					// try to parse
-					temp, err := strconv.ParseUint(lines[0][i*2:i*2+2], 16, 8)
-					if err != nil {
-						DebugPrintf(DebugLevelError, "BNO055 - Calibration data error: %s", file, err)
-					} else {
-						calibration[i] = byte(temp)
-					}
-				}
-				DebugPrintf(DebugLevelInfo, "Calibration data: %x", calibration)
-			}
-		}
-	} else {
-		DebugPrintf(DebugLevelWarning, "BNO055 - Cannot open %s to read calibration data!\r\n%s", file, err)
-	}
-	//return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	//return []byte{0xFF, 0xF8, 0xFF, 0xFF, 0x00, 0x05, 0xFF, 0x57, 0x00, 0x59, 0xFF, 0x5A, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x01}
-	return result, calibration
-}
-
-func BNO055_InitLoop() bool {
-	result := false
-	for run && connected {
-		temp := BNO055_Init(true)
-		if temp {
-			DebugPrintf(DebugLevelInfo, "Init BNO055 successful!")
-			BNO055NeedsInit = false
-			result = true
-			break
-		} else {
-			DebugPrintf(DebugLevelError, "BNO055 - Init FAILED!")
-			time.Sleep(time.Millisecond * 500)
-		}
-	}
-	return result
-}
-
-// switches to config and writes
-func BNO055_WriteCalibrationData(pbtCalibrationData []byte) bool {
-	// Config mode
-	result := BNO055_SetOPRMode(BNO055_OPRModeCONFIGMODE)
-	if result {
-		// Write Calibration data
-		result = BNO055_Write(BNO055_ACC_OFFSET_X_LSB, pbtCalibrationData, 5)
-		if result {
-			//result = Write_BNO055Byte(BNO055_UNIT_SEL, 0x80, 3) // set Android - no influence on Quaterions
-			//if result {
-			// Switch to NDOF
-			result = BNO055_SetOPRMode(BNO055_OPRModeNDOF)
-			if !result {
-				DebugPrintf(DebugLevelError, "BNO055 - BNO055_WriteCalibrationData - Couldn't set NDOF mode!")
-			}
-			//}
-		} else {
-			DebugPrintf(DebugLevelError, "BNO055 - BNO055_WriteCalibrationData - Couldn't write data!")
-		}
-	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - BNO055_WriteCalibrationData - Couldn't set config mode!")
-	}
-	return result
-}
-
-func BNO055_Init(pfWriteCalibration bool) bool {
-	// Reset
-	result := BNO055_Reset()
-	if result {
-		if pfWriteCalibration {
-			// Write Calibration data
-			result, data := BNO055_GetCalibrationData()
-			if result {
-				result = BNO055_WriteCalibrationData(data)
-				if !result {
-					DebugPrintf(DebugLevelError, "BNO055 - BNO055_Init - Couldn't write data!")
-				}
-			} else {
-				result = false
-				DebugPrintf(DebugLevelError, "BNO055 - BNO055_Init - Couldn't get data!")
-			}
-		}
-	} else {
-		DebugPrintf(DebugLevelError, "BNO055 - BNO055_Init - Couldn't reset!")
-	}
-	return result
-}
-
-func BNO055_SetOPRMode(pBNO055_OPRMode byte) bool {
-	return BNO055_Write(BNO055_OPR_MODE, []byte{pBNO055_OPRMode}, 3)
-}
-
-func BNO055_Reset() bool {
-	//result := true
-	BNO055_Write(BNO055_SYS_TRIGGER, []byte{0x20}, 1) // answer is 0xEE, but this will be ignored. Only write once
-	time.Sleep(300 * time.Millisecond)
-	// try to read system status
-	return BNO055_ReadBool(BNO055_SYS_STATUS, 5)
-}
-
-func BNO055_Receiver() {
-	buf := make([]byte, 50)
-	for run {
-		if connected {
-			len, err := AHRSserialPort.Read(buf)
-			if err != nil {
-				connected = false
-				AHRSserialPort.Close()
-				DebugPrintf(DebugLevelError, "BNO055 - Disconnected1. Error:", err)
-				//time.Sleep(500 * time.Millisecond)
-			} else if len > 0 {
-				bfMutex.Lock()
-				for i := 0; i < len; i++ {
-					bf.WriteByte(buf[i])
-				}
-				bfMutex.Unlock()
-			}
-			//time.Sleep(1 * time.Microsecond)	not needed since we're reading blocking
-		} else { // not connected
-			// attempt to reconnect
-			DebugPrintf(DebugLevelInfo, "Attempt to reconnect")
-			if AHRS_InitSerial() {
-				DebugPrintf(DebugLevelInfo, "Connected")
-				BNO055NeedsInit = true
-				connected = true
-			} else {
-				DebugPrintf(DebugLevelError, "BNO055 - Reconnect failed - wait")
-				connected = false
-				time.Sleep(500 * time.Millisecond)
-			}
-		}
-	}
-	AHRSserialPort.Close()
-}
-
-func BNO055_QueueWorker() {
-	for run {
-		if WaitForData > 0 { // Waiting for data
-			bfMutex.Lock()
-			if bf.Len() >= 2 { // an error could be reported - when resetting the BNO it sends a single '0xEE'. But recognizing that doesn't make sense
-				result, _ := bf.ReadByte() // Peek()
-				if result == 0xEE {        // Response
-					result, _ = bf.ReadByte() // Peek()
-					if WaitForData == 2 {     // Write ACK/Error
-						done := false
-						if result == BNO055_WriteErrorWRITE_SUCCESS { // WRITE_SUCCESS
-							mbtLastAHRS_WriteError = AHRS_WriteErrorNone
-							done = true
-						} else if result >= BNO055_WriteErrorMIN && result <= BNO055_WriteErrorMAX { // valid error
-							mbtLastAHRS_WriteError = AHRS_WriteErrorSensor
-							done = true
-						} else { // invalid error, ignore. return byte to buffer
-							bf.UnreadByte()
-						}
-						if done {
-							mbtLastBNO055_WriteError = result
-							WaitForData = 0 // always before setting the handler
-							WaitWrite = false
-							DebugPrintf(DebugLevelVerbose, "wd")
-						}
-					} else { // Read Error
-						if result >= BNO055_ReadErrorMIN && result <= BNO055_ReadErrorMAX { // valid error
-							mbtLastBNO055_ReadError = result
-							mbtLastAHRS_ReadError = AHRS_ReadErrorSensor
-							WaitForData = 0 // always before setting the handler
-							WaitWrite = false
-							DebugPrintf(DebugLevelVerbose, "wd")
-						} else { // invalid error, ignore. return byte to buffer
-							bf.UnreadByte()
-						}
-					}
-				} else if result == 0xBB { // Read Response
-					// check if all bytes are in
-					if bf.Len() >= WaitForData-1 { // -1 because we already read 1 byte
-						length, _ := bf.ReadByte()
-						data := make([]byte, length)
-						data[0] = length
-						if length == (byte)(WaitForData-2) {
-							DataReadBuffer = make([]byte, length)
-							for i := 0; i < int(length); i++ {
-								DataReadBuffer[i], _ = bf.ReadByte()
-							}
-							mbtLastAHRS_ReadError = AHRS_ReadErrorNone
-						} else {
-							mbtLastAHRS_ReadError = AHRS_ReadErrorWrongLength
-						}
-						WaitForData = 0 // always before setting the handler
-						WaitRead = false
-						DebugPrintf(DebugLevelVerbose, "rd")
-					} else { // return byte to buffer
-						bf.UnreadByte()
-					}
-				} /*else { // Wrong data - don't remove anything as the receiving routine will filter out invalid data
-				}*/
-			}
-			bfMutex.Unlock()
-		}
-		/*else {    don't remove anything as the receiving routine will filter out invalid data
-		}*/
-		time.Sleep(1 * time.Microsecond) // to avoid high system usage
-	}
-}
-
-func BNO055_Write(pbtRegister byte, pbtData []byte, pintAttempts int) bool {
-	result := false
-	if connected && pbtData != nil {
-		length := byte(len(pbtData))
-		if length > 0 && length <= 128 {
-			Buffer := make([]byte, 4+length)
-			index := byte(0)
-			Buffer[index] = 0xAA // Start
-			index++
-			Buffer[index] = 0x00 // Write
-			index++
-			Buffer[index] = pbtRegister // Register
-			index++
-			Buffer[index] = length // Length
-			index++
-			copy(Buffer[index:index+length], pbtData)
-
-			for i := 0; i < pintAttempts && connected; i++ {
-				if i > 0 {
-					DebugPrintf(DebugLevelVerbose, "retry write")
-				}
-				WaitForData = 2
-				WaitWrite = true
-				mbtLastAHRS_WriteError = AHRS_WriteErrorNone
-				DebugPrintf(DebugLevelVerbose, "ws")
-				count, err := AHRSserialPort.Write(Buffer)
-				if err != nil {
-					connected = false
-					AHRSserialPort.Close()
-					DebugPrintf(DebugLevelError, "BNO055 - Disconnected2. Error:", err)
-					//time.Sleep(500 * time.Millisecond)
-				} else {
-					if count == len(Buffer) {
-						counter := 0
-						for counter < int(length)+100 && WaitWrite {
-							time.Sleep(1 * time.Millisecond)
-							counter++
-						}
-						if !WaitWrite && mbtLastAHRS_WriteError == AHRS_WriteErrorNone { // success
-							result = true
-							DebugPrintf(DebugLevelVerbose, "wo")
-							break
-						} else {
-							//DebugPrintf(DebugLevelVerbose, "we")
-							if mbtLastAHRS_WriteError == AHRS_WriteErrorNone {
-								mbtLastAHRS_WriteError = AHRS_WriteErrorTimeout
-								DebugPrintf(DebugLevelError, "BNO055 - Write Timeout")
-							} else {
-								DebugPrintf(DebugLevelError, "BNO055 - Write Error")
-
-							}
-						}
-					} else {
-						DebugPrintf(DebugLevelError, "BNO055 - Write Error Serialport")
-						mbtLastAHRS_WriteError = AHRS_WriteErrorSerialport
-					}
-				}
-				time.Sleep(WriteRetryDelay * time.Millisecond)
-			}
-		}
-	}
-	return result
-}
-
-func BNO055_WriteByte(pbtRegister byte, pbtData byte, pintAttempts int) bool {
-	return BNO055_Write(pbtRegister, []byte{pbtData}, pintAttempts)
-}
-
 func BNO055_Read(pbtRegister byte, pbtCount byte, pintAttempts int) []byte {
+	mBNO055RWMutex.Lock()
 	var result []byte
-	if connected && pbtCount > 0 && pbtCount < 128 /*&& openCom(cboComPort.Text)*/ {
+	if mfConnected && pbtCount > 0 && pbtCount < 128 /*&& openCom(cboComPort.Text)*/ {
 		Buffer := make([]byte, 4)
 		index := 0
 		Buffer[index] = 0xAA // Start
@@ -812,52 +711,53 @@ func BNO055_Read(pbtRegister byte, pbtCount byte, pintAttempts int) []byte {
 		Buffer[index] = pbtCount // Count
 		index++
 
-		for i := 0; i < pintAttempts && connected; i++ {
+		for i := 0; i < pintAttempts && mfConnected; i++ {
 			if i > 0 {
 				DebugPrintf(DebugLevelVerbose, "retry read")
 			}
-			WaitForData = int(pbtCount + 2)
-			WaitRead = true
+			mintWaitForData = int(pbtCount + 2)
+			mfWaitRead = true
 			mbtLastAHRS_ReadError = AHRS_ReadErrorNone
 			DebugPrintf(DebugLevelVerbose, "rs")
-			count, err := AHRSserialPort.Write(Buffer)
+			count, err := msAHRSserialPort.Write(Buffer)
 			if err != nil {
-				connected = false
-				AHRSserialPort.Close()
-				DebugPrintf(DebugLevelError, "BNO055 - Disconnected3. Error:", err)
+				mfConnected = false
+				msAHRSserialPort.Close()
+				DebugPrintf(DebugLevelError, "BNO055_Read - Disconnected3. Error:", err)
 				time.Sleep(500 * time.Millisecond)
 			} else {
 				if count == len(Buffer) {
 					counter := 0
-					for counter < int(pbtCount)+100 && WaitRead {
+					for counter < int(pbtCount)+100 && mfWaitRead {
 						time.Sleep(1 * time.Millisecond)
 						counter++
 					}
-					if !WaitRead && mbtLastAHRS_ReadError == AHRS_ReadErrorNone { // success
-						if len(DataReadBuffer) == int(pbtCount) {
-							result = DataReadBuffer
+					if !mfWaitRead && mbtLastAHRS_ReadError == AHRS_ReadErrorNone { // success
+						if len(mbtDataReadBuffer) == int(pbtCount) {
+							result = mbtDataReadBuffer
 							DebugPrintf(DebugLevelVerbose, "ro")
 							break
 						} else {
-							DebugPrintf(DebugLevelError, "BNO055 - Read Wrong Data")
+							DebugPrintf(DebugLevelError, "BNO055_Read - Read Wrong Data")
 							mbtLastAHRS_ReadError = AHRS_ReadErrorWrongData
 						}
 					} else {
 						if mbtLastAHRS_ReadError == AHRS_ReadErrorNone {
 							mbtLastAHRS_ReadError = AHRS_ReadErrorTimeout
-							DebugPrintf(DebugLevelError, "BNO055 - Read Timeout")
+							DebugPrintf(DebugLevelError, "BNO055_Read - Read Timeout")
 						} else {
-							DebugPrintf(DebugLevelError, "BNO055 - Read Error")
+							DebugPrintf(DebugLevelError, "BNO055_Read - Read Error")
 						}
 					}
 				} else {
-					DebugPrintf(DebugLevelError, "BNO055 - Read Error Serialport")
+					DebugPrintf(DebugLevelError, "BNO055_Read - Read Error Serialport")
 					mbtLastAHRS_ReadError = AHRS_ReadErrorSerialport
 				}
 			}
-			time.Sleep(ReadRetryDelay * time.Millisecond)
+			time.Sleep(mtReadRetryDelay * time.Millisecond)
 		}
 	}
+	defer mBNO055RWMutex.Unlock()
 	return result
 }
 
@@ -889,12 +789,185 @@ func BNO055_ReadByte(pbtRegister byte, pintAttempts int) byte {
 	return data
 }
 
-func BNO055_ReadBytesBool(pbtRegister byte, pbtCount byte, pbtData []byte, pintAttempts int) bool {
-	pbtData = BNO055_Read(pbtRegister, pbtCount, pintAttempts)
-	return pbtData != nil && len(pbtData) == int(pbtCount)
+func BNO055_ReadBytesBool(pbtRegister byte, pbtCount byte, pintAttempts int) (bool, []byte) {
+	pbtData := BNO055_Read(pbtRegister, pbtCount, pintAttempts)
+	return pbtData != nil && len(pbtData) == int(pbtCount), pbtData
 }
 
-func AHRS_InitSerial() bool {
+func BNO055_Write(pbtRegister byte, pbtData []byte, pintAttempts int) bool {
+	mBNO055RWMutex.Lock()
+	result := false
+	if mfConnected && pbtData != nil {
+		length := byte(len(pbtData))
+		if length > 0 && length <= 128 {
+			Buffer := make([]byte, 4+length)
+			index := byte(0)
+			Buffer[index] = 0xAA // Start
+			index++
+			Buffer[index] = 0x00 // Write
+			index++
+			Buffer[index] = pbtRegister // Register
+			index++
+			Buffer[index] = length // Length
+			index++
+			copy(Buffer[index:index+length], pbtData)
+
+			for i := 0; i < pintAttempts && mfConnected; i++ {
+				if i > 0 {
+					DebugPrintf(DebugLevelVerbose, "retry write")
+				}
+				mintWaitForData = 2
+				mfWaitWrite = true
+				mbtLastAHRS_WriteError = AHRS_WriteErrorNone
+				DebugPrintf(DebugLevelVerbose, "ws")
+				count, err := msAHRSserialPort.Write(Buffer)
+				if err != nil {
+					mfConnected = false
+					msAHRSserialPort.Close()
+					DebugPrintf(DebugLevelError, "BNO055_Write - Disconnected2. Error:", err)
+					//time.Sleep(500 * time.Millisecond)
+				} else {
+					if count == len(Buffer) {
+						counter := 0
+						for counter < int(length)+100 && mfWaitWrite {
+							time.Sleep(1 * time.Millisecond)
+							counter++
+						}
+						if !mfWaitWrite && mbtLastAHRS_WriteError == AHRS_WriteErrorNone { // success
+							result = true
+							DebugPrintf(DebugLevelVerbose, "wo")
+							break
+						} else {
+							//DebugPrintf(DebugLevelVerbose, "we")
+							if mbtLastAHRS_WriteError == AHRS_WriteErrorNone {
+								mbtLastAHRS_WriteError = AHRS_WriteErrorTimeout
+								DebugPrintf(DebugLevelError, "BNO055_Write - Write Timeout")
+							} else {
+								DebugPrintf(DebugLevelError, "BNO055_Write - Write Error")
+
+							}
+						}
+					} else {
+						DebugPrintf(DebugLevelError, "BNO055_Write - Write Error Serialport")
+						mbtLastAHRS_WriteError = AHRS_WriteErrorSerialport
+					}
+				}
+				time.Sleep(mtWriteRetryDelay * time.Millisecond)
+			}
+		}
+	}
+	defer mBNO055RWMutex.Unlock()
+	return result
+}
+
+func BNO055_WriteByte(pbtRegister byte, pbtData byte, pintAttempts int) bool {
+	return BNO055_Write(pbtRegister, []byte{pbtData}, pintAttempts)
+}
+
+func BNO055_Receiver() {
+	buf := make([]byte, 50)
+	for mfRun {
+		if mfConnected {
+			len, err := msAHRSserialPort.Read(buf)
+			if err != nil {
+				mfConnected = false
+				msAHRSserialPort.Close()
+				DebugPrintf(DebugLevelError, "BNO055_Receiver - Disconnected1. Error:", err)
+				//time.Sleep(500 * time.Millisecond)
+			} else if len > 0 {
+				mReceiveBufferMutex.Lock()
+				for i := 0; i < len; i++ {
+					mReceiveBuffer.WriteByte(buf[i])
+				}
+				mReceiveBufferMutex.Unlock()
+			}
+			//time.Sleep(1 * time.Microsecond)	not needed since we're reading blocking
+		} else { // not connected
+			// attempt to reconnect
+			DebugPrintf(DebugLevelInfo, "Attempt to reconnect")
+			if BNO055_InitSerial() {
+				DebugPrintf(DebugLevelInfo, "Connected")
+				mfBNO055NeedsInit = true
+				mfConnected = true
+			} else {
+				DebugPrintf(DebugLevelError, "BNO055_Receiver - Reconnect failed - wait")
+				mfConnected = false
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}
+	msAHRSserialPort.Close()
+}
+
+func BNO055_QueueWorker() {
+	for mfRun {
+		if mintWaitForData > 0 { // Waiting for data
+			mReceiveBufferMutex.Lock()
+			if mReceiveBuffer.Len() >= 2 { // an error could be reported - when resetting the BNO it sends a single '0xEE'. But recognizing that doesn't make sense
+				result, _ := mReceiveBuffer.ReadByte() // Peek()
+				if result == 0xEE {                    // Response
+					result, _ = mReceiveBuffer.ReadByte() // Peek()
+					if mintWaitForData == 2 {             // Write ACK/Error
+						done := false
+						if result == BNO055_WriteErrorWRITE_SUCCESS { // WRITE_SUCCESS
+							mbtLastAHRS_WriteError = AHRS_WriteErrorNone
+							done = true
+						} else if result >= BNO055_WriteErrorMIN && result <= BNO055_WriteErrorMAX { // valid error
+							mbtLastAHRS_WriteError = AHRS_WriteErrorSensor
+							done = true
+						} else { // invalid error, ignore. return byte to buffer
+							mReceiveBuffer.UnreadByte()
+						}
+						if done {
+							mbtLastBNO055_WriteError = result
+							mintWaitForData = 0 // always before setting the handler
+							mfWaitWrite = false
+							DebugPrintf(DebugLevelVerbose, "wd")
+						}
+					} else { // Read Error
+						if result >= BNO055_ReadErrorMIN && result <= BNO055_ReadErrorMAX { // valid error
+							mbtLastBNO055_ReadError = result
+							mbtLastAHRS_ReadError = AHRS_ReadErrorSensor
+							mintWaitForData = 0 // always before setting the handler
+							mfWaitWrite = false
+							DebugPrintf(DebugLevelVerbose, "wd")
+						} else { // invalid error, ignore. return byte to buffer
+							mReceiveBuffer.UnreadByte()
+						}
+					}
+				} else if result == 0xBB { // Read Response
+					// check if all bytes are in
+					if mReceiveBuffer.Len() >= mintWaitForData-1 { // -1 because we already read 1 byte
+						length, _ := mReceiveBuffer.ReadByte()
+						data := make([]byte, length)
+						data[0] = length
+						if length == (byte)(mintWaitForData-2) {
+							mbtDataReadBuffer = make([]byte, length)
+							for i := 0; i < int(length); i++ {
+								mbtDataReadBuffer[i], _ = mReceiveBuffer.ReadByte()
+							}
+							mbtLastAHRS_ReadError = AHRS_ReadErrorNone
+						} else {
+							mbtLastAHRS_ReadError = AHRS_ReadErrorWrongLength
+						}
+						mintWaitForData = 0 // always before setting the handler
+						mfWaitRead = false
+						DebugPrintf(DebugLevelVerbose, "rd")
+					} else { // return byte to buffer
+						mReceiveBuffer.UnreadByte()
+					}
+				} /*else { // Wrong data - don't remove anything as the receiving routine will filter out invalid data
+				}*/
+			}
+			mReceiveBufferMutex.Unlock()
+		}
+		/*else {    don't remove anything as the receiving routine will filter out invalid data
+		}*/
+		time.Sleep(1 * time.Microsecond) // to avoid high system usage
+	}
+}
+
+func BNO055_InitSerial() bool {
 	var device string
 	baudrate := int(115200)
 
@@ -908,7 +981,7 @@ func AHRS_InitSerial() bool {
 		//DebugPrintf(DebugLevel, "No suitable device found.\n")
 		//return false
 	}
-	if isWindows {
+	if mfIsWindows {
 		device = "COM11"
 	}
 
@@ -920,10 +993,10 @@ func AHRS_InitSerial() bool {
 	serialConfig := &serial.Config{Name: device, Baud: baudrate, ReadTimeout: 0} // blocking read
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
-		DebugPrintf(DebugLevelError, "BNO055 - serial port err: %s\n", err.Error())
+		DebugPrintf(DebugLevelError, "BNO055_InitSerial - serial port err: %s\n", err.Error())
 		return false
 	}
 
-	AHRSserialPort = p
+	msAHRSserialPort = p
 	return true
 }

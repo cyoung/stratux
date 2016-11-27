@@ -1001,12 +1001,16 @@ type settings struct {
 	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
-	DEBUGLevel			 int
+	DEBUGLevel           int
 	ReplayLog            bool
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
+	BNO055Axis           byte
+	BNO055Status         string
+	BNO055IDs            string
+	BNO055Calibration    string
 }
 
 type status struct {
@@ -1363,7 +1367,7 @@ func main() {
 
 	// Initialize the (out) network handler.
 	initNetwork()
-	
+
 	go startAHRS()
 
 	// Start printing stats periodically to the logfiles.

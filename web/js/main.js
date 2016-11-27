@@ -15,6 +15,9 @@ var URL_REBOOT			= "http://" + URL_HOST_BASE + "/reboot";
 var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
 var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
 var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
+var URL_BNO055UPDATEINFO	= "http://" + URL_HOST_BASE + "/bno055updateinfo";
+var URL_RESETBNO055CALIB	= "http://" + URL_HOST_BASE + "/resetbno055calib";
+var URL_RESETBNO055ONLY	= "http://" + URL_HOST_BASE + "/resetbno055only";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
@@ -89,5 +92,5 @@ app.controller('MainCtrl', function ($scope, $http) {
             $scope.DeveloperMode = settings.DeveloperMode;
     }, function(response) {
         //Second function handles error
-    });	
+    });
 });

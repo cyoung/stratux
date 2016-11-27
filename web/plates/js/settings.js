@@ -28,12 +28,16 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.GPS_Enabled = settings.GPS_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
+		$scope.DEBUGLevel = settings.DEBUGLevel;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
-		$scope.BNO055Axis = settings.BNO055Axis;
 		$scope.DeveloperMode = settings.DeveloperMode;
+		$scope.BNO055Axis = settings.BNO055Axis;
+		$scope.BNO055Status = settings.BNO055Status;
+		$scope.BNO055IDs = settings.BNO055IDs;
+		$scope.BNO055Calibration = settings.BNO055Calibration;
 	}
 
 	function getSettings() {
@@ -142,6 +146,16 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+	$scope.updatebno055calibration = function () {
+		if ($scope.BNO055Calibration !== settings["BNO055Calibration"]) {
+			settings["BNO055Calibration"] = $scope.BNO055Calibration.toUpperCase();
+			newsettings = {
+				"BNO055Calibration": $scope.BNO055Calibration.toUpperCase()
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
@@ -159,6 +173,42 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$window.location.href = "/";
 		$location.path('/home');
 		$http.post(URL_REBOOT).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
+	};
+
+	$scope.BNO055UpdateInfo = function () {
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_BNO055UPDATEINFO).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
+	};
+
+	$scope.ResetBNO055LoadCalibration = function () {
+		$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_RESETBNO055CALIB).
+		then(function (response) {
+			// do nothing
+			// $scope.$apply();
+		}, function (response) {
+			// do nothing
+		});
+	};
+
+	$scope.ResetBNO055Only = function () {
+			$window.location.href = "/";
+		$location.path('/home');
+		$http.post(URL_RESETBNO055ONLY).
 		then(function (response) {
 			// do nothing
 			// $scope.$apply();

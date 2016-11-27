@@ -139,12 +139,33 @@
 					<label class="control-label col-xs-5">BNO055 Orientation</label>
 					<form name="modeForm" ng-submit="updatebno055axis()" novalidate>
 						<!-- TODO: Display dropdown here -->
-						<input class="col-xs-7" type="string" text="P0" required ng-model="BNO055Axis" placeholder="BNO055 Axis" ng-blur="updatebno055axis()" />
+						<input class="col-xs-7" type="string" text="--" required ng-model="BNO055Axis" placeholder="BNO055 Axis" ng-blur="updatebno055axis()" />
+					</form>
+				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-5">BNO055 System & Calibration Status + Values</label>
+					<input class="col-xs-7" type="string" text="--" required ng-model="BNO055Status" placeholder="BNO055 System & Calibration Status + Values" ng-blur="" />
+				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-5">BNO055 IDs & Revisions</label>
+					<input class="col-xs-7" type="string" text="--" required ng-model="BNO055IDs" placeholder="BNO055 IDs & Revisions" ng-blur="" />
+				</div>
+				<div class="form-group reset-flow">
+					<label class="control-label col-xs-5">BNO055 Calibration Values</label>
+					<form name="modeForm" ng-submit="updatebno055calibration()" novalidate>
+						<input class="col-xs-7" type="string" text="--" required ng-model="BNO055Calibration" placeholder="BNO055 Calibration Values" ng-blur="updatebno055calibration()" />
 					</form>
 					<!-- TODO: Button to Reset AHRS & checkbox if calibration data should be loaded or not -->
 					<!-- TODO: Button to Read System & Calibration Status + Values  -->
 					<!-- TODO: Button to Read IDs & Revisions -->
 					<!-- TODO: Textfield to Write Calibration Values -->
+				</div>
+				<div class="form-group reset-flow">
+					<div class="col-xs-12">
+						<a ng-click="BNO055UpdateInfo()" class="btn btn-primary">Update Info</a>
+						<a ng-click="ResetBNO055LoadCalibration()" class="btn btn-primary">Reset & load calibration data</a>
+						<a ng-click="ResetBNO055Only()" class="btn btn-primary">Reset only</a>
+					</div>
 				</div>
 			</div>
 		</div>
