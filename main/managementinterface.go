@@ -360,7 +360,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							log.Printf("handleSettingsSetRequest: BNO055Calibration: Error writing (%s)\n", val.(string))
 						}
 					default:
-						log.Printf("handleSettingsSetRequest: json: unrecognized key:%s\n", key)
+						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
 				saveSettings()
