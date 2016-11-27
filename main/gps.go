@@ -1890,7 +1890,7 @@ func gpsAttitudeSender() {
 
 			if mySituation.Quality == 0 || !calcGPSAttitude() {
 				if globalSettings.DEBUG {
-					log.Printf("Could'nt calculate GPS-based attitude statistics\n")
+					log.Printf("Couldn't calculate GPS-based attitude statistics\n")
 				}
 			} else {
 				mySituation.mu_GPSPerf.Lock()
