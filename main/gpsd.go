@@ -61,22 +61,24 @@ func processTPV(r interface{}) {
 		mySituation.mu_GPS.Unlock()
 	}()
 
+	// 0 = No gps data, 1 = No fix, 2 = 2D fix, 3 = 3D fix
+	// Without a way to report 2D coordinates to the client without
+	// reporting bad altitude data, discard 2D fixes.
 	switch tpv.Mode {
-	case 0:
+	case 0, 1, 2:
 		mySituation.Quality = 0
 		return
-	case 1:
-		mySituation.Quality = 0
-		return
-	case 2: // 2D gps
-		mySituation.Quality = 1
 	case 3: // 3D gps
-		mySituation.Quality = 1
-		mySituation.Alt = float32(tpv.Alt) * 3.28084 // meters to feet
-		mySituation.AccuracyVert = float32(tpv.Epv)
-		mySituation.GPSVertVel = float32(tpv.Climb)
+		// accept fix
+	default:
+		log.Printf("Unknown gpsd TPV mode %i received, ignoring TPV.", tpv.Mode)
+		return
 	}
 
+	mySituation.Quality = 1
+	mySituation.Alt = float32(tpv.Alt) * 3.28084 // meters to feet
+	mySituation.AccuracyVert = float32(tpv.Epv)
+	mySituation.GPSVertVel = float32(tpv.Climb)
 	mySituation.Lat = float32(tpv.Lat)
 	mySituation.Lng = float32(tpv.Lon)
 	mySituation.Accuracy = float32(math.Sqrt(tpv.Epx*tpv.Epx + tpv.Epy*tpv.Epy))
