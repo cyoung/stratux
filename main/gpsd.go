@@ -36,6 +36,16 @@ func satelliteTypeCode(satType uint8) string {
 	}
 }
 
+// Caller must protect Satellites with satelliteMutex.
+func isSbasInSolution() bool {
+        for _, satellite := range Satellites {
+                if(satellite.Type == SAT_TYPE_SBAS && satellite.InSolution) {
+                        return true
+                }
+        }
+        return false
+}
+
 func processDEVICES(r interface{}) {
 	devices := r.(*gpsd.DEVICESReport)
 	log.Printf("DEVICES (%d)", len(devices.Devices))
@@ -66,12 +76,14 @@ func processTPV(r interface{}) {
 	log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
 
 	mySituation.mu_GPS.Lock()
+	satelliteMutex.Lock()
 
 	defer func() {
 		if globalSettings.DEBUG {
 			logSituation()
 		}
 		mySituation.mu_GPS.Unlock()
+		satelliteMutex.Unlock()
 	}()
 
 	// 0 = No gps data, 1 = No fix, 2 = 2D fix, 3 = 3D fix
@@ -88,7 +100,12 @@ func processTPV(r interface{}) {
 		return
 	}
 
-	mySituation.Quality = 1
+	if(isSbasInSolution()) {
+		mySituation.Quality = 2
+	} else {
+		mySituation.Quality = 1
+	}
+
 	mySituation.Alt = float32(tpv.Alt) * 3.28084 // meters to feet
 	mySituation.AccuracyVert = float32(tpv.Epv)
 	mySituation.GPSVertVel = float32(tpv.Climb)
