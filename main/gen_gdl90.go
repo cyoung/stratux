@@ -35,7 +35,8 @@ import (
 	"github.com/ricochet2200/go-disk-usage/du"
 )
 
-// http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
+// https://www.faa.gov/nextgen/programs/adsb/Archival/
+// https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
 var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
@@ -194,10 +195,18 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
+func isDetectedOwnshipValid() bool {
+	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen) < 10*time.Second
+}
+
 func makeOwnshipReport() bool {
-	if !isGPSValid() {
+	gpsValid := isGPSValid()
+	selfOwnshipValid := isDetectedOwnshipValid()
+	if !gpsValid && !selfOwnshipValid {
 		return false
 	}
+	curOwnship := OwnshipTrafficInfo
+
 	msg := make([]byte, 28)
 	// See p.16.
 	msg[0] = 0x0A // Message type "Ownship".
@@ -216,15 +225,26 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
-	tmp := makeLatLng(mySituation.Lat)
-	msg[5] = tmp[0] // Latitude.
-	msg[6] = tmp[1] // Latitude.
-	msg[7] = tmp[2] // Latitude.
-
-	tmp = makeLatLng(mySituation.Lng)
-	msg[8] = tmp[0]  // Longitude.
-	msg[9] = tmp[1]  // Longitude.
-	msg[10] = tmp[2] // Longitude.
+	var tmp []byte
+	if selfOwnshipValid {
+		tmp = makeLatLng(curOwnship.Lat)
+		msg[5] = tmp[0] // Latitude.
+		msg[6] = tmp[1] // Latitude.
+		msg[7] = tmp[2] // Latitude.
+		tmp = makeLatLng(curOwnship.Lng)
+		msg[8] = tmp[0]  // Longitude.
+		msg[9] = tmp[1]  // Longitude.
+		msg[10] = tmp[2] // Longitude.
+	} else {
+		tmp = makeLatLng(mySituation.Lat)
+		msg[5] = tmp[0] // Latitude.
+		msg[6] = tmp[1] // Latitude.
+		msg[7] = tmp[2] // Latitude.
+		tmp = makeLatLng(mySituation.Lng)
+		msg[8] = tmp[0]  // Longitude.
+		msg[9] = tmp[1]  // Longitude.
+		msg[10] = tmp[2] // Longitude.
+	}
 
 	// This is **PRESSURE ALTITUDE**
 	//FIXME: Temporarily removing "invalid altitude" when pressure altitude not available - using GPS altitude instead.
@@ -233,25 +253,30 @@ func makeOwnshipReport() bool {
 	var alt uint16
 	var altf float64
 
-	if isTempPressValid() {
+	if selfOwnshipValid {
+		altf = float64(curOwnship.Alt)
+	} else if isTempPressValid() {
 		altf = float64(mySituation.Pressure_alt)
 	} else {
 		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
+
 	altf = (altf + 1000) / 25
 
 	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid || isGPSGroundTrackValid() {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
 	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid && curOwnship.Speed_valid {
+		gdSpeed = curOwnship.Speed
+	} else if isGPSGroundTrackValid() {
 		gdSpeed = mySituation.GroundSpeed
 	}
 
@@ -267,7 +292,9 @@ func makeOwnshipReport() bool {
 
 	// Track is degrees true, set from GPS true course.
 	groundTrack := float32(0)
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid {
+		groundTrack = float32(curOwnship.Track)
+	} else if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
 
@@ -288,6 +315,17 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
+	if selfOwnshipValid {
+		// Limit tail number to 7 characters.
+		tail := curOwnship.Tail
+		if len(tail) > 7 {
+			tail = tail[:7]
+		}
+		// Copy tail number into message.
+		for i := 0; i < len(tail); i++ {
+			msg[19+i] = tail[i]
+		}
+	}
 	// Create callsign "Stratux".
 	msg[19] = 0x53
 	msg[20] = 0x74

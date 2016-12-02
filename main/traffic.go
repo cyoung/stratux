@@ -213,8 +213,10 @@ func sendTrafficUpdates() {
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
 
-			if ti.Icao_addr == uint32(code) { //
-				log.Printf("Ownship target detected for code %X\n", code) // DEBUG - REMOVE
+			if ti.Icao_addr == uint32(code) {
+				if globalSettings.DEBUG {
+					log.Printf("Ownship target detected for code %X\n", code)
+				}
 				OwnshipTrafficInfo = ti
 			} else {
 				msg = append(msg, makeTrafficReportMsg(ti)...)
