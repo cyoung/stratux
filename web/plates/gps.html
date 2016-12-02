@@ -63,16 +63,16 @@
 			<div class="panel-body towers-page">
 				<div class="row">
 					<span class="col-xs-3"><strong>Satellite</strong></span>
-					<!--<span class="col-xs-2 text-right"><strong>NMEA Code</strong></span>-->
+					<!--<span class="col-xs-2 text-right"><strong>PRN Code</strong></span>-->
 					<span class="col-xs-3 text-right"><strong>Elevation</strong></span>
 					<span class="col-xs-3 text-right"><strong>Azimuth</strong></span>
 					<span class="col-xs-3 text-right"><strong>Signal</strong></span>
 				</div>
 
-				<div class="row" ng-repeat="satellite in data_list | orderBy: 'SatelliteNMEA'">
+				<div class="row" ng-repeat="satellite in data_list | orderBy: 'Prn'">
 					<div class="separator"></div>
 					<span class="col-xs-3">{{satellite.SatelliteID}}<span ng-show="satellite.InSolution">&nbsp;&#x2705;</span></span>
-					<!--<span class="col-xs-2 text-right">{{satellite.SatelliteNMEA}}</span>-->
+					<!--<span class="col-xs-2 text-right">{{satellite.Prn}}</span>-->
 					<span class="col-xs-3 text-right">{{satellite.Elevation < -5 ? "---" : satellite.Elevation}}&deg;</span>
 					<span class="col-xs-3 text-right">{{satellite.Azimuth < 0 ? "---" : satellite.Azimuth}}&deg;</span>
 					<span class="col-xs-3 text-right">{{satellite.Signal < 1 ? "---" : satellite.Signal}}<span style="font-size:50%">&nbsp;dB-Hz</span></span>
