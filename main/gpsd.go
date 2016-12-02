@@ -28,22 +28,27 @@ func satelliteType(prnId int) uint8 {
 
 func satelliteTypeCode(satType uint8) string {
 	switch satType {
-	case SAT_TYPE_GPS: return "G"
-	case SAT_TYPE_SBAS: return "S"
-	case SAT_TYPE_GLONASS: return "R"
-	case SAT_TYPE_UNKNOWN: return "U"
-	default: return "U"
+	case SAT_TYPE_GPS:
+		return "G"
+	case SAT_TYPE_SBAS:
+		return "S"
+	case SAT_TYPE_GLONASS:
+		return "R"
+	case SAT_TYPE_UNKNOWN:
+		return "U"
+	default:
+		return "U"
 	}
 }
 
 // Caller must protect Satellites with satelliteMutex.
 func isSbasInSolution() bool {
-        for _, satellite := range Satellites {
-                if(satellite.Type == SAT_TYPE_SBAS && satellite.InSolution) {
-                        return true
-                }
-        }
-        return false
+	for _, satellite := range Satellites {
+		if satellite.Type == SAT_TYPE_SBAS && satellite.InSolution {
+			return true
+		}
+	}
+	return false
 }
 
 func processDEVICES(r interface{}) {
@@ -100,7 +105,7 @@ func processTPV(r interface{}) {
 		return
 	}
 
-	if(isSbasInSolution()) {
+	if isSbasInSolution() {
 		mySituation.Quality = 2
 	} else {
 		mySituation.Quality = 1
