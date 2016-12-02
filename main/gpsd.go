@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/stratoberry/go-gpsd"
+	"github.com/stratux/go-gpsd"
 	"log"
 	"math"
 	"sync"
