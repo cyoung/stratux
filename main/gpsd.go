@@ -122,6 +122,7 @@ func processSKY(r interface{}) {
 		var thisSatellite SatelliteInfo
 		thisSatellite.Type = satelliteType(int(satellite.PRN))
 		thisSatellite.SatelliteID = fmt.Sprint(satelliteTypeCode(thisSatellite.Type), int(satellite.PRN))
+		thisSatellite.Prn = uint8(satellite.PRN)
 		thisSatellite.Azimuth = int16(satellite.Az)
 		thisSatellite.Elevation = int16(satellite.El)
 		thisSatellite.Signal = int8(satellite.Ss)
