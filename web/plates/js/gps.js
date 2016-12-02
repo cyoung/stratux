@@ -129,7 +129,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	function setSatellite(obj, new_satellite) {
-		new_satellite.SatelliteNMEA = obj.SatelliteNMEA;
+		new_satellite.Prn = obj.Prn;
 		new_satellite.SatelliteID = obj.SatelliteID;     // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
 		new_satellite.Elevation = obj.Elevation;        // Angle above local horizon, -xx to +90
 		new_satellite.Azimuth = obj.Azimuth;         // Bearing (degrees true), 0-359

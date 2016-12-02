@@ -40,7 +40,7 @@ const (
 )
 
 type SatelliteInfo struct {
-	SatelliteNMEA    uint8     // NMEA ID of the satellite. 1-32 is GPS, 33-54 is SBAS, 65-88 is Glonass.
+	Prn              uint8     // PRN ID of the satellite. 1-32 is GPS, 65-88 is Glonass, 120-138 is SBAS
 	SatelliteID      string    // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
 	Elevation        int16     // Angle above local horizon, -xx to +90
 	Azimuth          int16     // Bearing (degrees true), 0-359
@@ -716,7 +716,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					//log.Printf("UBX,03: Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr) // DEBUG
 				} else { // this satellite isn't in the Satellites data structure
 					thisSatellite.SatelliteID = svStr
-					thisSatellite.SatelliteNMEA = uint8(sv)
+					thisSatellite.Prn = uint8(sv)
 					thisSatellite.Type = uint8(svType)
 					//log.Printf("UBX,03: Creating new satellite %s\n", svStr) // DEBUG
 				}
@@ -1125,7 +1125,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr)
 				} else { // this satellite isn't in the Satellites data structure, so create it
 					thisSatellite.SatelliteID = svStr
-					thisSatellite.SatelliteNMEA = uint8(sv)
+					thisSatellite.Prn = uint8(sv)
 					thisSatellite.Type = uint8(svType)
 					//log.Printf("Creating new satellite %s from GSA message\n", svStr) // DEBUG
 				}
@@ -1250,7 +1250,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				//log.Printf("Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr) // DEBUG
 			} else { // this satellite isn't in the Satellites data structure, so create it new
 				thisSatellite.SatelliteID = svStr
-				thisSatellite.SatelliteNMEA = uint8(sv)
+				thisSatellite.Prn = uint8(sv)
 				thisSatellite.Type = uint8(svType)
 				//log.Printf("Creating new satellite %s\n", svStr) // DEBUG
 			}

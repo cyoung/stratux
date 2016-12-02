@@ -8,19 +8,47 @@ import (
 	"sync"
 )
 
-func getNMEAName(sv int) string {
-	// GPS NMEA = PRN. GLONASS NMEA = PRN + 65. SBAS is PRN; needs to be converted to NMEA for compatiblity with GSV messages.
-	if sv < 33 { // indicates GPS
-		return fmt.Sprintf("G%d", sv)
-	} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
-		return fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
-	} else if sv < 97 { // GLONASS
-		return fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-	} else if (sv >= 120) && (sv < 162) { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
-		return fmt.Sprintf("S%d", sv)
-	} else { // TO-DO: Galileo
-		return fmt.Sprintf("U%d", sv)
+// Determine type of satellite based on PRN number.
+func satelliteType(prnId int) uint8 {
+	// TODO: Galileo
+	switch {
+	case 0 < prnId && prnId <= 32:
+		return SAT_TYPE_GPS
+	case 32 < prnId && prnId <= 64:
+		// This is actually the NMEA id range for SBAS: WAAS, EGNOS, MSAS, etc.
+		return SAT_TYPE_SBAS
+	case 64 < prnId && prnId <= 96:
+		return SAT_TYPE_GLONASS
+	case 120 <= prnId && prnId <= 138:
+		return SAT_TYPE_SBAS
+	default:
+		return SAT_TYPE_UNKNOWN
 	}
+}
+
+func satelliteTypeCode(satType uint8) string {
+	switch satType {
+	case SAT_TYPE_GPS:
+		return "G"
+	case SAT_TYPE_SBAS:
+		return "S"
+	case SAT_TYPE_GLONASS:
+		return "R"
+	case SAT_TYPE_UNKNOWN:
+		return "U"
+	default:
+		return "U"
+	}
+}
+
+// Caller must protect Satellites with satelliteMutex.
+func isSbasInSolution() bool {
+	for _, satellite := range Satellites {
+		if satellite.Type == SAT_TYPE_SBAS && satellite.InSolution {
+			return true
+		}
+	}
+	return false
 }
 
 func processDEVICES(r interface{}) {
@@ -53,12 +81,14 @@ func processTPV(r interface{}) {
 	log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
 
 	mySituation.mu_GPS.Lock()
+	satelliteMutex.Lock()
 
 	defer func() {
 		if globalSettings.DEBUG {
 			logSituation()
 		}
 		mySituation.mu_GPS.Unlock()
+		satelliteMutex.Unlock()
 	}()
 
 	// 0 = No gps data, 1 = No fix, 2 = 2D fix, 3 = 3D fix
@@ -75,7 +105,12 @@ func processTPV(r interface{}) {
 		return
 	}
 
-	mySituation.Quality = 1
+	if isSbasInSolution() {
+		mySituation.Quality = 2
+	} else {
+		mySituation.Quality = 1
+	}
+
 	mySituation.Alt = float32(tpv.Alt) * 3.28084 // meters to feet
 	mySituation.AccuracyVert = float32(tpv.Epv)
 	mySituation.GPSVertVel = float32(tpv.Climb)
@@ -107,7 +142,9 @@ func processSKY(r interface{}) {
 
 	for _, satellite := range sky.Satellites {
 		var thisSatellite SatelliteInfo
-		thisSatellite.SatelliteID = getNMEAName(int(satellite.PRN)) // fmt.Sprintf("%v", satellite.PRN)
+		thisSatellite.Type = satelliteType(int(satellite.PRN))
+		thisSatellite.SatelliteID = fmt.Sprint(satelliteTypeCode(thisSatellite.Type), int(satellite.PRN))
+		thisSatellite.Prn = uint8(satellite.PRN)
 		thisSatellite.Azimuth = int16(satellite.Az)
 		thisSatellite.Elevation = int16(satellite.El)
 		thisSatellite.Signal = int8(satellite.Ss)
