@@ -6,7 +6,12 @@ import (
 	"log"
 	"math"
 	"sync"
+	"time"
 )
+
+// Channel to disconnect current gpsd connection
+var disconnectGpsd chan struct{}
+var gps *gpsd.Session
 
 // Determine type of satellite based on PRN number.
 func satelliteType(prnId int) uint8 {
@@ -196,18 +201,45 @@ func initGpsd() {
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	var gps *gpsd.Session
-	var err error
+	disconnectGpsd = make(chan struct{})
 
-	if gps, err = gpsd.Dial(gpsd.DefaultAddress); err != nil {
-		log.Printf("Failed to connect to gpsd: %s", err)
+	setGpsdHost(gpsd.DefaultAddress)
+}
+
+func setGpsdHost(address string) {
+	// kill existing monitor goroutine if it exists
+	if gps != nil {
+		log.Printf("Stopping previous gpsd session")
+		disconnectGpsd <- struct{}{}
 	}
 
-	gps.AddFilter("DEVICES", processDEVICES)
-	gps.AddFilter("TPV", processTPV)
-	gps.AddFilter("SKY", processSKY)
-	gps.AddFilter("ATT", processATT)
+	go func() {
+		for {
+			var err error
+			if gps, err = gpsd.Dial(address); err != nil {
+				log.Printf("Failed to connect to gpsd: %s", err)
+				time.Sleep(time.Second)
+				continue
+			}
 
-	gps.SendCommand("DEVICES")
-	gps.Watch()
+			log.Printf("Gpsd %s Connected.", address)
+
+			gps.AddFilter("DEVICES", processDEVICES)
+			gps.AddFilter("TPV", processTPV)
+			gps.AddFilter("SKY", processSKY)
+			gps.AddFilter("ATT", processATT)
+
+			reconnect := gps.Watch()
+
+			select {
+			case <-disconnectGpsd:
+				log.Printf("Gpsd %s disconnecting", address)
+				gps.Close()
+				return
+			case <-reconnect:
+				log.Printf("Gpsd %s disconnected. Reconnecting..", address)
+				time.Sleep(time.Second)
+			}
+		}
+	}()
 }
