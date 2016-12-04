@@ -58,7 +58,9 @@ func isSbasInSolution() bool {
 
 func processDEVICES(r interface{}) {
 	devices := r.(*gpsd.DEVICESReport)
-	log.Printf("DEVICES (%d)", len(devices.Devices))
+	if globalSettings.DEBUG {
+		log.Printf("DEVICES (%d)", len(devices.Devices))
+	}
 	for _, dev := range devices.Devices {
 		log.Printf("  %s %s %x %s %s %i %s %s %i %s %s %i %d %d",
 			dev.Path,
@@ -83,7 +85,9 @@ func processDEVICES(r interface{}) {
 
 func processTPV(r interface{}) {
 	tpv := r.(*gpsd.TPVReport)
-	log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
+	if globalSettings.DEBUG {
+		log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
+	}
 
 	mySituation.mu_GPS.Lock()
 	satelliteMutex.Lock()
@@ -133,7 +137,9 @@ func processTPV(r interface{}) {
 
 func processSKY(r interface{}) {
 	sky := r.(*gpsd.SKYReport)
-	log.Printf("SKY", sky.Device, sky.Tag)
+	if globalSettings.DEBUG {
+		log.Printf("SKY", sky.Device, sky.Tag)
+	}
 
 	mySituation.mu_GPS.Lock()
 	satelliteMutex.Lock()
@@ -176,7 +182,9 @@ func processSKY(r interface{}) {
 
 func processATT(r interface{}) {
 	att := r.(*gpsd.ATTReport)
-	log.Printf("ATT", att.Device, att.Tag, att.Pitch, att.Roll, att.Heading)
+	if globalSettings.DEBUG {
+		log.Printf("ATT", att.Device, att.Tag, att.Pitch, att.Roll, att.Heading)
+	}
 
 	mySituation.mu_GPS.Lock()
 
