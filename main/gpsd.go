@@ -10,7 +10,7 @@ import (
 )
 
 // Channel to disconnect current gpsd connection
-var disconnectGpsd chan struct{}
+var killGpsd chan struct{}
 var gps *gpsd.Session
 
 // Determine type of satellite based on PRN number.
@@ -201,16 +201,24 @@ func initGpsd() {
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	disconnectGpsd = make(chan struct{})
+	killGpsd = make(chan struct{})
 
-	setGpsdHost(gpsd.DefaultAddress)
+	if globalSettings.GPS_Enabled {
+		connectGpsd(globalSettings.GpsdAddress)
+	}
 }
 
-func setGpsdHost(address string) {
+// Main interface for enabling and changing the gpsd connection
+// Calling will block until previous connection disconnects
+// If address is zero value, it connects to gpsd on the local machine
+func connectGpsd(address string) {
 	// kill existing monitor goroutine if it exists
 	if gps != nil {
-		log.Printf("Stopping previous gpsd session")
-		disconnectGpsd <- struct{}{}
+		disconnectGpsd()
+	}
+
+	if address == "" {
+		address = gpsd.DefaultAddress
 	}
 
 	go func() {
@@ -232,9 +240,10 @@ func setGpsdHost(address string) {
 			reconnect := gps.Watch()
 
 			select {
-			case <-disconnectGpsd:
+			case <-killGpsd:
 				log.Printf("Gpsd %s disconnecting", address)
 				gps.Close()
+				gps = nil
 				return
 			case <-reconnect:
 				log.Printf("Gpsd %s disconnected. Reconnecting..", address)
@@ -242,4 +251,11 @@ func setGpsdHost(address string) {
 			}
 		}
 	}()
+}
+
+// Disconnect from gpsd
+// Blocks until connection is disconnected and all goroutines are stopped
+func disconnectGpsd() {
+	log.Printf("Stopping gpsd session")
+	killGpsd <- struct{}{}
 }
