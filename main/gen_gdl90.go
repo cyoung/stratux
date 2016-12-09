@@ -1161,6 +1161,21 @@ func openReplay(fn string, compressed bool) (WriteCloser, error) {
 	return ret, err
 }
 
+/*
+	fsWriteTest().
+	 Makes a temporary file in 'dir', checks for error. Deletes the file.
+*/
+
+func fsWriteTest(dir string) error {
+	fn := dir + "/.write_test"
+	err := ioutil.WriteFile(fn, []byte("test\n"), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(fn)
+	return err
+}
+
 func printStats() {
 	statTimer := time.NewTicker(30 * time.Second)
 	diskUsageWarning := false
