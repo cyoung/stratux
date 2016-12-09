@@ -984,6 +984,7 @@ type settings struct {
 	ES_Enabled           bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
+	GpsdAddress          string
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
 	AHRS_Enabled         bool
@@ -1046,6 +1047,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
 	globalSettings.GPS_Enabled = true
+	globalSettings.GpsdAddress = "localhost:2947"
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},

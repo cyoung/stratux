@@ -218,6 +218,12 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "Ping_Enabled":
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
+						switch {
+						case val.(bool) == true && globalSettings.GPS_Enabled == false:
+							connectGpsd(globalSettings.GpsdAddress)
+						case val.(bool) == false && globalSettings.GPS_Enabled == true:
+							disconnectGpsd()
+						}
 						globalSettings.GPS_Enabled = val.(bool)
 					case "AHRS_Enabled":
 						globalSettings.AHRS_Enabled = val.(bool)

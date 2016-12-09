@@ -6,7 +6,12 @@ import (
 	"log"
 	"math"
 	"sync"
+	"time"
 )
+
+// Channel to disconnect current gpsd connection
+var killGpsd chan struct{}
+var gps *gpsd.Session
 
 // Determine type of satellite based on PRN number.
 func satelliteType(prnId int) uint8 {
@@ -53,7 +58,9 @@ func isSbasInSolution() bool {
 
 func processDEVICES(r interface{}) {
 	devices := r.(*gpsd.DEVICESReport)
-	log.Printf("DEVICES (%d)", len(devices.Devices))
+	if globalSettings.DEBUG {
+		log.Printf("DEVICES (%d)", len(devices.Devices))
+	}
 	for _, dev := range devices.Devices {
 		log.Printf("  %s %s %x %s %s %i %s %s %i %s %s %i %d %d",
 			dev.Path,
@@ -78,7 +85,9 @@ func processDEVICES(r interface{}) {
 
 func processTPV(r interface{}) {
 	tpv := r.(*gpsd.TPVReport)
-	log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
+	if globalSettings.DEBUG {
+		log.Printf("TPV", tpv.Device, tpv.Mode, tpv.Time, tpv.Tag)
+	}
 
 	mySituation.mu_GPS.Lock()
 	satelliteMutex.Lock()
@@ -128,7 +137,9 @@ func processTPV(r interface{}) {
 
 func processSKY(r interface{}) {
 	sky := r.(*gpsd.SKYReport)
-	log.Printf("SKY", sky.Device, sky.Tag)
+	if globalSettings.DEBUG {
+		log.Printf("SKY", sky.Device, sky.Tag)
+	}
 
 	mySituation.mu_GPS.Lock()
 	satelliteMutex.Lock()
@@ -171,7 +182,9 @@ func processSKY(r interface{}) {
 
 func processATT(r interface{}) {
 	att := r.(*gpsd.ATTReport)
-	log.Printf("ATT", att.Device, att.Tag, att.Pitch, att.Roll, att.Heading)
+	if globalSettings.DEBUG {
+		log.Printf("ATT", att.Device, att.Tag, att.Pitch, att.Roll, att.Heading)
+	}
 
 	mySituation.mu_GPS.Lock()
 
@@ -196,18 +209,61 @@ func initGpsd() {
 	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
-	var gps *gpsd.Session
-	var err error
+	killGpsd = make(chan struct{})
 
-	if gps, err = gpsd.Dial(gpsd.DefaultAddress); err != nil {
-		log.Printf("Failed to connect to gpsd: %s", err)
+	if globalSettings.GPS_Enabled {
+		connectGpsd(globalSettings.GpsdAddress)
+	}
+}
+
+// Main interface for enabling and changing the gpsd connection
+// Calling will block until previous connection disconnects
+// If address is zero value, it connects to gpsd on the local machine
+func connectGpsd(address string) {
+	// kill existing monitor goroutine if it exists
+	if gps != nil {
+		disconnectGpsd()
 	}
 
-	gps.AddFilter("DEVICES", processDEVICES)
-	gps.AddFilter("TPV", processTPV)
-	gps.AddFilter("SKY", processSKY)
-	gps.AddFilter("ATT", processATT)
+	if address == "" {
+		address = gpsd.DefaultAddress
+	}
 
-	gps.SendCommand("DEVICES")
-	gps.Watch()
+	go func() {
+		for {
+			var err error
+			if gps, err = gpsd.Dial(address); err != nil {
+				log.Printf("Failed to connect to gpsd: %s", err)
+				time.Sleep(time.Second)
+				continue
+			}
+
+			log.Printf("Gpsd %s Connected.", address)
+
+			gps.AddFilter("DEVICES", processDEVICES)
+			gps.AddFilter("TPV", processTPV)
+			gps.AddFilter("SKY", processSKY)
+			gps.AddFilter("ATT", processATT)
+
+			reconnect := gps.Watch()
+
+			select {
+			case <-killGpsd:
+				log.Printf("Gpsd %s disconnecting", address)
+				gps.Close()
+				gps = nil
+				return
+			case <-reconnect:
+				log.Printf("Gpsd %s disconnected. Reconnecting..", address)
+				time.Sleep(time.Second)
+			}
+		}
+	}()
+}
+
+// Disconnect from gpsd
+// Blocks until connection is disconnected and all goroutines are stopped
+func disconnectGpsd() {
+	log.Printf("Stopping gpsd session")
+	killGpsd <- struct{}{}
 }
