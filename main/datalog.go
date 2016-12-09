@@ -532,13 +532,13 @@ func isDataLogReady() bool {
 }
 
 func logSituation() {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.ReplayLog && isDataLogReady() && globalSettings.RecordSituation {
 		dataLogChan <- DataLogRow{tbl: "mySituation", data: mySituation}
 	}
 }
 
 func logStatus() {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.ReplayLog && isDataLogReady() && globalSettings.RecordStatus {
 		dataLogChan <- DataLogRow{tbl: "status", data: globalStatus}
 	}
 }
@@ -550,25 +550,25 @@ func logSettings() {
 }
 
 func logTraffic(ti TrafficInfo) {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.ReplayLog && isDataLogReady() && globalSettings.RecordTraffic {
 		dataLogChan <- DataLogRow{tbl: "traffic", data: ti}
 	}
 }
 
 func logMsg(m msg) {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.ReplayLog && isDataLogReady() && globalSettings.RecordUAT {
 		dataLogChan <- DataLogRow{tbl: "messages", data: m}
 	}
 }
 
 func logESMsg(m esmsg) {
-	if globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.ReplayLog && isDataLogReady() && globalSettings.Record1090ES {
 		dataLogChan <- DataLogRow{tbl: "es_messages", data: m}
 	}
 }
 
 func logDump1090TermMessage(m Dump1090TermMessage) {
-	if globalSettings.DEBUG && globalSettings.ReplayLog && isDataLogReady() {
+	if globalSettings.DEBUG && globalSettings.ReplayLog && isDataLogReady() && globalSettings.Record1090ES {
 		dataLogChan <- DataLogRow{tbl: "dump1090_terminal", data: m}
 	}
 }

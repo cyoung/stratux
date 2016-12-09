@@ -266,6 +266,16 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 				for key, val := range msg {
 					// log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
 					switch key {
+					case "RecordSituation":
+						globalSettings.RecordSituation = val.(bool)
+					case "RecordTraffic":
+						globalSettings.RecordTraffic = val.(bool)
+					case "RecordStatus":
+						globalSettings.RecordStatus = val.(bool)
+					case "RecordUAT":
+						globalSettings.RecordUAT = val.(bool)
+					case "Record1090ES":
+						globalSettings.Record1090ES = val.(bool)
 					case "UAT_Enabled":
 						globalSettings.UAT_Enabled = val.(bool)
 					case "ES_Enabled":
