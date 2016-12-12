@@ -70,7 +70,7 @@ func icao2reg(icao_addr uint32) (string, bool) {
 	} else if (icao_addr >= 0xC00001) && (icao_addr <= 0xC3FFFF) {
 		nation = "CA"
 	} else {
-		// future national decoding is TO-DO
+		//TODO: future national decoding.
 		return "NON-NA", false
 	}
 
