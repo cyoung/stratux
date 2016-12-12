@@ -76,6 +76,15 @@ const (
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
+
+	GPS_TYPE_NMEA     = 0x01
+	GPS_TYPE_UBX      = 0x02
+	GPS_TYPE_SIRF     = 0x03
+	GPS_TYPE_MEDIATEK = 0x04
+	GPS_TYPE_FLARM    = 0x05
+	GPS_TYPE_GARMIN   = 0x06
+	// other GPS types to be defined as needed
+
 )
 
 var usage *du.DiskUsage
@@ -271,7 +280,7 @@ func makeOwnshipReport() bool {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
-	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry835ai.go.
+	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if selfOwnshipValid && curOwnship.Speed_valid {
@@ -459,18 +468,14 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	if globalSettings.AHRS_Enabled {
-		msg[12] = 1 << 0
-	}
+	// msg[12] = 1 << 0
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware: RY835AI.
-	if globalStatus.RY835AI_connected {
-		msg[15] = msg[15] | (1 << 2)
-	}
+	// Connected hardware.
+	//	RY835AI: msg[15] = msg[15] | (1 << 2)
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
@@ -1022,7 +1027,6 @@ type settings struct {
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
-	AHRS_Enabled         bool
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
@@ -1052,7 +1056,7 @@ type status struct {
 	GPS_position_accuracy                      float32
 	GPS_connected                              bool
 	GPS_solution                               string
-	RY835AI_connected                          bool
+	GPS_detected_type                          uint
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
@@ -1087,7 +1091,6 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
-	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
@@ -1392,7 +1395,8 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY835AI()
+	// Start the GPS external sensor monitoring.
+	initGPS()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

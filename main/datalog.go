@@ -474,6 +474,7 @@ func dataLog() {
 		makeTable(msg{}, "messages", db)
 		makeTable(esmsg{}, "es_messages", db)
 		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
+		makeTable(gpsPerfStats{}, "gps_attitude", db)
 		makeTable(StratuxStartup{}, "startup", db)
 	}
 
@@ -564,6 +565,12 @@ func logMsg(m msg) {
 func logESMsg(m esmsg) {
 	if globalSettings.ReplayLog && isDataLogReady() {
 		dataLogChan <- DataLogRow{tbl: "es_messages", data: m}
+	}
+}
+
+func logGPSAttitude(gpsPerf gpsPerfStats) {
+	if globalSettings.ReplayLog && isDataLogReady() {
+		dataLogChan <- DataLogRow{tbl: "gps_attitude", data: gpsPerf}
 	}
 }
 

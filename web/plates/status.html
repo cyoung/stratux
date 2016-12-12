@@ -3,16 +3,6 @@
             <a ng-click="VersionClick()" class="btn btn-hidden"<strong>Version: <span>{{Version}} ({{Build}})</span></strong></a>
     </div>
 	<div class="panel panel-default">
-		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
-			<span class="panel_label">Errors</span>
-		</div>
-		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
-			<ul>
-				<li class="status-error" ng-repeat="err in Errors">
-					<span class="fa fa-exclamation-triangle icon-red"></span> <span class="icon-red">{{err}}</span>
-				</li>
-			</ul>
-		</div>
 		<div class="panel-heading">
 			<span class="panel_label">Status</span>
 			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
@@ -82,12 +72,6 @@
 					<label class="col-xs-6">GPS satellites:</label>
 					<span class="col-xs-6">{{GPS_satellites_locked}} in solution; {{GPS_satellites_seen}} seen; {{GPS_satellites_tracked}} tracked</span>
 				</div>
-				<div class="row" ng-class="{'section_invisible': !visible_ahrs}">
-					<label class="col-xs-6">AHRS:</label>
-					<div id="RY835AI_connected-container" class="col-xs-6">
-						<div ng-class="RY835AI_connected ? 'fa fa-check-circle text-success' : 'fa fa-times-circle text-danger'"></div>
-					</div>
-				</div>
 				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
 				<div class="separator"></div>
                 <div class="row" ng-class="{'section_invisible': !visible_uat}">
@@ -141,6 +125,24 @@
 					</div>
 				</div>
 			</div>
-		</div>
+		</div>	
 	</div>
+
+	<div class="panel panel-default">
+		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
+			<span class="panel_label">Errors</span>
+		</div>
+		<div class="panel-body" ng-class="{'section_invisible': !visible_errors}">
+			<ul>
+				<li class="status-error" ng-repeat="err in Errors">
+					<span class="fa fa-exclamation-triangle icon-red"></span> <span class="icon-red">{{err}}</span>
+				</li>
+				</ul>
+			</div>
+	</div>
+				
+				
+		
+				
+			
 </div>
