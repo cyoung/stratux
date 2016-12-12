@@ -76,7 +76,6 @@ cp -f 10-stratux.rules mnt/etc/udev/rules.d
 
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
-cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
 
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
