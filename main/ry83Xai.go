@@ -1543,7 +1543,7 @@ func attitudeReaderSender() {
 	var (
 		roll, pitch, heading					float64
 		t							time.Time
-		s							*ahrs.SimpleState
+		s							ahrs.AHRSProvider
 		m							*ahrs.Measurement
 		bx, by, bz, ax, ay, az, mx, my, mz			float64
 		mpuError, magError					error
@@ -1574,8 +1574,10 @@ func attitudeReaderSender() {
 		m.UValid = false //TODO westphae: set m.U1, m.U2, m.U3 here once we have an airspeed sensor
 
 		_, bx, by, bz, ax, ay, az, mx, my, mz, mpuError, magError = myMPU.ReadRaw()
-		m.B1, m.B2, m.B3 = +by, -bx, +bz // This is how the RY83XAI are wired up
-		m.A1, m.A2, m.A3 = -ay, +ax, -az
+		//m.B1, m.B2, m.B3 = +by, -bx, +bz // This is how the RY83XAI is wired up
+		//m.A1, m.A2, m.A3 = -ay, +ax, -az // This is how the RY83XAI is wired up
+		m.B1, m.B2, m.B3 = -bx, +by, -bz // This is how the OpenFlightBox board is wired up
+		m.A1, m.A2, m.A3 = -ay, +ax, +az // This is how the OpenFlightBox board is wired up
 		m.M1, m.M2, m.M3 = +mx, +my, +mz
 		m.SValid = mpuError == nil
 		m.MValid = magError == nil
@@ -1587,7 +1589,7 @@ func attitudeReaderSender() {
 		}
 		m.MValid = false //TODO westphae: for now
 
-		m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 250 * time.Millisecond
+		m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 500 * time.Millisecond
 		if m.WValid {
 			m.W1 = float64(mySituation.GroundSpeed) * math.Sin(float64(mySituation.TrueCourse) * DEG)
 			m.W2 = float64(mySituation.GroundSpeed) * math.Cos(float64(mySituation.TrueCourse) * DEG)
@@ -1596,17 +1598,13 @@ func attitudeReaderSender() {
 
 		// Run the AHRS calcs
 		if s == nil { // s is nil if we should (re-)initialize the Kalman state
-			s = ahrs.InitializeSimple(m)
+			s = ahrs.InitializeSimple(m, "")
 		}
 		s.Compute(m)
 
-		if qq := math.Abs(s.E0*s.E0 + s.E1*s.E1 + s.E2*s.E2 + s.E3*s.E3 - 1); qq > 1e-5 {
-			log.Printf("AHRS Warning: Quaternion not unit, size is %f\n", qq)
-		}
-
 		// Debugging server:
 		if ahrswebListener != nil {
-			ahrswebListener.Send(&s.State, m)
+			ahrswebListener.Send(s.GetState(), m)
 		}
 
 		// If we have valid AHRS info, then send
@@ -1614,9 +1612,9 @@ func attitudeReaderSender() {
 			mySituation.mu_Attitude.Lock()
 
 			roll, pitch, heading = s.CalcRollPitchHeading()
-			mySituation.Roll = roll
-			mySituation.Pitch = pitch
-			mySituation.Gyro_heading = heading
+			mySituation.Roll = roll / ahrs.Deg
+			mySituation.Pitch = pitch / ahrs.Deg
+			mySituation.Gyro_heading = heading / ahrs.Deg
 
 			if headingMag, err_headingMag = myMPU.MagHeading(); err_headingMag != nil {
 				log.Printf("AHRS MPU Error: %s\n", err_headingMag.Error())
@@ -1659,7 +1657,7 @@ func attitudeReaderSender() {
 			m.T, m.A1, m.A2, m.A3, m.B1, m.B2, m.B3, m.M1, m.M2, m.M3,
 			float64(mySituation.LastGroundTrackTime.UnixNano() / 1000) / 1e6, m.W1, m.W2, m.W3,
 			float64(mySituation.LastTempPressTime.UnixNano() / 1000) / 1e6, mySituation.Pressure_alt,
-			pitch, roll, heading, headingMag, slipSkid, turnRate, gLoad,
+			pitch / ahrs.Deg, roll / ahrs.Deg, heading / ahrs.Deg, headingMag, slipSkid, turnRate, gLoad,
 			float64(mySituation.LastAttitudeTime.UnixNano() / 1000) / 1e6)
 	}
 	globalStatus.RY83XAI_connected = false
