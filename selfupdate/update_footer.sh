@@ -26,6 +26,9 @@ cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
 
+#WiFi Hostapd ver test and hostapd.conf builder script
+cp -f stratux-wifi.sh /usr/sbin/
+
 #SDR Serial Script
 cp -f sdr-tool.sh /usr/sbin/
 
