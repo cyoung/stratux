@@ -25,14 +25,8 @@ wlan0mac=$(head -c 8 /sys/class/net/wlan0/address)
 
 # Is there an Edimax Mac Address at wlan0
 if [ ${edimaxMac[*]} =~ "$wlan0mac" ]; then
-     # If so then lets see if we have 
-     # Detect RPi version. Per http://elinux.org/RPi_HardwareHistory
-     #RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//'`
-     #if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ] || [ "$RPI_REV" = "900092" ] || [ "$RPI_REV" = "900093" ]; then
-      # This is a RPi2B or RPi0 with Edimax USB Wifi dongle.
-      DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
-      DAEMON_SBIN=/usr/sbin//hostapd-edimax
-     #fi
+     DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
+     DAEMON_SBIN=/usr/sbin//hostapd-edimax
 fi
 
 #Make a new hostapd or hostapd-edimax conf file based on logic above
