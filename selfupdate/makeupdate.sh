@@ -35,6 +35,7 @@ cp image/10-stratux.rules work/bin/
 cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
 cp image/fancontrol.py work/bin/
+cp image/stratux-wifi.sh work/bin/
 
 #TODO: librtlsdr.
 cd work/
