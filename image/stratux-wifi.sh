@@ -11,6 +11,9 @@ DAEMON_SBIN=/usr/sbin/hostapd
 #User settings for hostapd.conf and hostapd-edimax.conf
 DAEMON_USER_PREF=/etc/hostapd/hostapd.user
 
+# Temporary hostapd.conf built by combining
+# non-editable /etc/hostapd/hostapd.conf or hostapd-edimax.conf
+# and the user configurable /etc/hostapd/hostapd.conf
 DAEMON_TMP=/tmp/hostapd.conf
 
 # Detect RPi version.
