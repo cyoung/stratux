@@ -11,6 +11,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -71,11 +72,26 @@ const (
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
+	dhcp_lease_dir         = "/var/lib/dhcp"
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
 
+var dhcpLeaseFileWarning bool
+var dhcpLeaseDirectoryLastTest time.Time // Last time fsWriteTest() was run on the DHCP lease directory.
+
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
+	// Do a write test. Even if we are able to read the file, it may be out of date because there's a fs write issue.
+	// Only perform the test once every 5 minutes to minimize writes.
+	if !dhcpLeaseFileWarning && (stratuxClock.Since(dhcpLeaseDirectoryLastTest) >= 5*time.Minute) {
+		err := fsWriteTest(dhcp_lease_dir)
+		if err != nil {
+			err_p := fmt.Errorf("Write error on '%s', your EFB may have issues receiving weather and traffic.", dhcp_lease_dir)
+			addSystemError(err_p)
+			dhcpLeaseFileWarning = true
+		}
+		dhcpLeaseDirectoryLastTest = stratuxClock.Time
+	}
 	dat, err := ioutil.ReadFile(dhcp_lease_file)
 	ret := make(map[string]string)
 	if err != nil {
@@ -557,7 +573,7 @@ func networkStatsCounter() {
 /*
 	ffMonitor().
 		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS.
+		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
 
 */
 
@@ -596,8 +612,7 @@ func ffMonitor() {
 		}
 		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
 			p.FFCrippled = true
-			//FIXME: AHRS doesn't need to be disabled globally, just messages need to be filtered.
-			globalSettings.AHRS_Enabled = false
+			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
 			if !ff_warned {
 				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)

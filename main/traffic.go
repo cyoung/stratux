@@ -178,13 +178,13 @@ func sendTrafficUpdates() {
 		}
 	}
 
-	var msg []byte
+	msgs := make([][]byte, 1)
 	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
 	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
-	for icao, ti := range traffic { //TODO: Limit number of aircraft in traffic message. ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
 			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
@@ -213,17 +213,29 @@ func sendTrafficUpdates() {
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
 
-			if ti.Icao_addr == uint32(code) { //
-				log.Printf("Ownship target detected for code %X\n", code) // DEBUG - REMOVE
+			if ti.Icao_addr == uint32(code) {
+				if globalSettings.DEBUG {
+					log.Printf("Ownship target detected for code %X\n", code)
+				}
 				OwnshipTrafficInfo = ti
 			} else {
-				msg = append(msg, makeTrafficReportMsg(ti)...)
+				cur_n := len(msgs) - 1
+				if len(msgs[cur_n]) >= 35 {
+					// Batch messages into packets with at most 35 traffic reports
+					//  to keep each packet under 1KB.
+					cur_n++
+					msgs = append(msgs, make([]byte, 0))
+				}
+				msgs[cur_n] = append(msgs[cur_n], makeTrafficReportMsg(ti)...)
 			}
 		}
 	}
 
-	if len(msg) > 0 {
-		sendGDL90(msg, false)
+	for i := 0; i < len(msgs); i++ {
+		msg := msgs[i]
+		if len(msg) > 0 {
+			sendGDL90(msg, false)
+		}
 	}
 }
 
