@@ -23,7 +23,7 @@ RPI_REV=`cat /proc/cpuinfo | grep 'Revision' | awk '{print $3}' | sed 's/^1000//
 if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ] || [ "$RPI_REV" = "900092" ] || [ "$RPI_REV" = "900093" ] && [ "$EW7811Un" != '' ]; then
  # This is a RPi2B or RPi0 with Edimax USB Wifi dongle.
  DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
- DAEMON_SBIN=/usr/sbin//hostapd-edimax
+ DAEMON_SBIN=/usr/sbin/hostapd-edimax
 fi
 
 #Make a new hostapd or hostapd-edimax conf file based on logic above
