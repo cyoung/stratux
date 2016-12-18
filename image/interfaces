@@ -4,10 +4,6 @@ iface lo inet loopback
 iface eth0 inet dhcp
 
 allow-hotplug wlan0
-#iface wlan0 inet manual
-#wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
-#iface default inet dhcp
-
 
 iface wlan0 inet static
   address 192.168.10.1
@@ -16,21 +12,41 @@ iface wlan0 inet static
 
 ##
 ##   Second Wifi Dongle for local work and internet access
-##     wifi must be open for these settings to work
+##   This template is for adding a second wifi dongle to your PI for internet access while debugging
+##     Modify /etc/wpa_supplicant/wpa_supplicant.conf with your settings also( see below )
 ##
-## uncomment the next two lines to activate the service as well as modify the settings and comments below
-#allow-hotplug wlan1
-#iface wlan1 inet static
+##  Uncomment the following lines as needed. 
 
-# The SSID you want to connect to
-# uncomment the next line and modify if necessary
-#  wireless-essid 6719
-# The address you want to use on your network
-# uncomment the next line and modify if necessary
-#  address 192.168.1.50
-# The address of your netmask
-# uncomment the next line and modify if necessary
-#  netmask 255.255.255.0
-# The gateway of your router that you are connecting to
-# uncomment the next line and modify
-#  gateway 192.168.1.1
+# allow-hotplug wlan1
+# iface wlan1 inet manual
+#     wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+# iface name_of_WPA_Config inet dhcp
+# iface name_of_other_WPA_Config inet dhcp
+
+
+## End of interfaces
+
+
+#contents of wpa_supplicant.conf
+#############################################################
+# ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+# update_config=1
+
+# network={
+#     ssid="SSID_1"
+#     id_str="name_of_WPA_Config"
+#     scan_ssid=1
+#     key_mgmt=WPA-PSK
+#     psk="mypassword"
+#     priority=1
+# }
+
+# network={
+#     ssid="SSID_2"
+#     id_str="name_of_other_WPA_Config"
+#     scan_ssid=1
+#     key_mgmt=WPA-PSK
+#     psk="mypassword"
+#     priority=3
+# }
+#############################################################
