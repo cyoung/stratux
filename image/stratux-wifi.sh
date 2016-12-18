@@ -27,10 +27,7 @@ if [ "$RPI_REV" = "a01041" ] || [ "$RPI_REV" = "a21041" ] || [ "$RPI_REV" = "900
 fi
 
 #Make a new hostapd or hostapd-edimax conf file based on logic above
-cp -f ${DAEMON_CONF} ${DAEMON_TMP}
-
-#inject user settings from file to tmp conf
-cat ${DAEMON_USER_PREF} >> ${DAEMON_TMP}
+cat ${DAEMON_USER_PREF} ${DAEMON_CONF} > ${DAEMON_TMP}
 
 ${DAEMON_SBIN} -B ${DAEMON_TMP}
 
