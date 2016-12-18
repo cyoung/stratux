@@ -10,6 +10,9 @@ iface wlan0 inet static
   netmask 255.255.255.0
   post-up /usr/sbin/stratux-wifi.sh
 
+#####################################################################
+##               Custom settings not for novice users!!!!!!  
+##               Modify at your own risk!!!!!!!!!!!!!!!!!!!
 ##
 ##   Second Wifi Dongle for local work and internet access
 ##   This template is for adding a second wifi dongle to your PI for internet access while debugging
