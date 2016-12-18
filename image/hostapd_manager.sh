@@ -270,12 +270,18 @@ sleep 0.5
 echo "Killed..."
 echo ""
 echo "ifdown wlan0..."
+echo ""
 ifdown wlan0
 sleep 0.5
+echo "ifdown done..."
+echo ""
 echo "ifup wlan0..."
-echo "Calling Stratux WiFI Start Script(stratux-wifi.sh)..."
+echo "This calls the Stratux WiFI Start Script(stratux-wifi.sh)..."
+echo ""
 ifup wlan0
 sleep 0.5
+echo ""
+echo "ifup done..."
 echo ""
 echo ""
 echo "All systems should be up and running and you should see your new SSID!"

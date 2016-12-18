@@ -23,6 +23,9 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
+#WiFi Hostapd ver test and hostapd.conf builder script
+cp -f stratux-wifi.sh /usr/sbin/
+
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
 
