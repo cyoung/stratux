@@ -3,7 +3,7 @@
 #
 # This script throttles a fan based on CPU temperature.
 #
-# It expects a fan that's externally powered, and uses GPIO pin 11 for control.
+# It expects a fan that's externally powered, and uses GPIO pin 12 for control.
 
 import RPi.GPIO as GPIO
 import time
