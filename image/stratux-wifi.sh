@@ -29,13 +29,6 @@ if [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]; then
      DAEMON_SBIN=/usr/sbin//hostapd-edimax
 fi
 
-# I believe a version check of the RPI is not relevant here.
-# Since the use of wlan0 for the Access Point is hard-coded in the hostapd.conf/hostapd-edimax.conf to wlan0 we only need to check wlan0's MAC
-# If the MAC at wlan0 belongs to an Edimax dongle then the edimax driver and config file must be used regardless of RPI version(RPI0/2/3).
-# Note: Another approach is to check for total number of WLANs and then audit each wlans MAC and if available choose a wlan that is not edimax
-# and inject that wlan value when we build the tmp config file.
-# That seems like much more work...
-
 #Make a new hostapd or hostapd-edimax conf file based on logic above
 cat ${DAEMON_USER_PREF} ${DAEMON_CONF} > ${DAEMON_TMP}
 
