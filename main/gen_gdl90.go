@@ -1243,23 +1243,6 @@ func gracefulShutdown() {
 	os.Exit(1)
 }
 
-func reopenLogFile() {
-	// Duplicate log.* output to debugLog.
-	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
-		addSystemError(err_log)
-		log.Printf("%s\n", err_log.Error())
-	} else {
-		defer fp.Close()
-		mfp := io.MultiWriter(fp, os.Stdout)
-		log.SetOutput(mfp)
-	}
-
-	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
-	
-}
-
 func signalWatcher() {
 	sig := <-sigs
 	log.Printf("signal caught: %s - shutting down.\n", sig.String())
