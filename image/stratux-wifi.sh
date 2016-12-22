@@ -81,7 +81,6 @@ function ap-start {
 	#Make a new hostapd or hostapd-edimax conf file based on logic above
 	cat ${DAEMON_USER_PREF} <(echo) ${DAEMON_CONF} > ${DAEMON_TMP}
 
-#	/usr/sbin/hostapd-edimax-newest -dd /tmp/hostapd.conf
 	${DAEMON_SBIN} -B ${DAEMON_TMP}
 
 	sleep 3
