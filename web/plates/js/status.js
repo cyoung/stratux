@@ -55,6 +55,42 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) + " m" : " ");
+			var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
+			var tempGpsHardwareString = "Not installed";
+			switch(gpsHardwareCode) {
+				case 1:
+					tempGpsHardwareString = "Serial port";
+					break;
+				case 2:
+					tempGpsHardwareString = "Prolific USB-serial bridge";
+					break;
+				case 6:
+					tempGpsHardwareString = "USB u-blox 6 GPS receiver";
+					break;
+				case 7:
+					tempGpsHardwareString = "USB u-blox 7 GNSS receiver";
+					break;
+				case 8:
+					tempGpsHardwareString = "USB u-blox 8 GNSS receiver";
+					break;
+				default:
+					tempGpsHardwareString = "Not installed";
+			}
+			$scope.GPS_hardware = tempGpsHardwareString;
+			var gpsProtocol = (status.GPS_detected_type >> 4);
+			var tempGpsProtocolString = "Not communicating";
+			switch(gpsProtocol) {
+				case 1:
+					tempGpsProtocolString = "NMEA protocol";
+					break;
+				case 3:
+					tempGpsProtocolString = "UBX protocol";
+					break;
+				default:
+					tempGpsProtocolString = "Not communicating";
+			}
+			$scope.GPS_protocol = tempGpsProtocolString;
+			
 			$scope.UAT_METAR_total = status.UAT_METAR_total;
 			$scope.UAT_TAF_total = status.UAT_TAF_total;
 			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
