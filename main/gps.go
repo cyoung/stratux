@@ -188,17 +188,22 @@ func initGPSSerial() bool {
 
 	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI over USB).
 		device = "/dev/ublox8"
-	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, RY725AI over USB).
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
+	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, RY725AI over USB).
 		device = "/dev/ublox7"
-	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162).
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX7
+	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162 Rev 1).
 		device = "/dev/ublox6"
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX6
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/prolific0"
+		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
+		globalStatus.GPS_detected_type = GPS_TYPE_UART
 	} else {
 		log.Printf("No suitable device found.\n")
 		return false
@@ -434,7 +439,7 @@ Method uses stored performance statistics from myGPSPerfStats[]. Ideally, calcul
 assuming 10 Hz sampling frequency. Lower frequency sample rates will increase calculation window for smoother response, at the
 cost of slightly increased lag.
 
-(c) 2016 AvSquirrel (https://github.com/AvSquirrel) . All rights reserved.
+(c) 2016 Keith Tschohl. All rights reserved.
 Distributable under the terms of the "BSD-New" License that can be found in
 the LICENSE file, herein included as part of this header.
 */
@@ -542,19 +547,19 @@ func calcGPSAttitude() bool {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
 		}
-		halfwidth = 7 * dt_avg
+		halfwidth = 12 * dt_avg
 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
 		}
-		halfwidth = 3.5
+		halfwidth = 3.0
 	}
 
 	if halfwidth > 3.5 {
 		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
 	}
 
-	if globalStatus.GPS_detected_type == GPS_TYPE_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
+	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
 		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
 		tempSpeedTime = make([]float64, length, length) // all are length of original slice
 		tempSpeed = make([]float64, length, length)
@@ -857,8 +862,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			// set the global GPS type to UBX as soon as we see our first (valid length)
 			// PUBX,01 position message, even if we don't have a fix
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-				globalStatus.GPS_detected_type = GPS_TYPE_UBX
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
+				globalStatus.GPS_detected_type |= GPS_PROTOCOL_UBX
 				log.Printf("GPS detected: u-blox NMEA position message seen.\n")
 			}
 
@@ -1258,8 +1263,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		// use RMC / GGA message detection to sense "NMEA" type.
-		if globalStatus.GPS_detected_type == 0 {
-			globalStatus.GPS_detected_type = GPS_TYPE_NMEA
+		if (globalStatus.GPS_detected_type & 0xf0) == 0 {
+			globalStatus.GPS_detected_type |= GPS_PROTOCOL_NMEA
 		}
 
 		// Quality indicator.
@@ -1281,7 +1286,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		tmpSituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.nmeaTime = tmpSituation.LastFixSinceMidnightUTC
 		}
 
@@ -1322,7 +1327,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.Alt = float32(alt * 3.28084) // Convert to feet.
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.alt = float32(tmpSituation.Alt)
 		}
 
@@ -1339,7 +1344,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// Timestamp.
 		tmpSituation.LastFixLocalTime = stratuxClock.Time
 
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			updateGPSPerf = true
 			thisGpsPerf.msgType = x[0]
 		}
@@ -1383,8 +1388,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		// use RMC / GGA message detection to sense "NMEA" type.
-		if globalStatus.GPS_detected_type == 0 {
-			globalStatus.GPS_detected_type = GPS_TYPE_NMEA
+		if (globalStatus.GPS_detected_type & 0xf0) == 0 {
+			globalStatus.GPS_detected_type |= GPS_PROTOCOL_NMEA
 		}
 
 		if x[2] != "A" { // invalid fix
@@ -1403,7 +1408,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.LastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.nmeaTime = tmpSituation.LastFixSinceMidnightUTC
 		}
 
@@ -1462,7 +1467,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GroundSpeed = uint16(groundspeed)
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.gsf = float32(groundspeed)
 		}
 
@@ -1476,17 +1481,17 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.TrueCourse = trueCourse
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 				thisGpsPerf.coursef = float32(tc)
 			}
 		} else {
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 				thisGpsPerf.coursef = -999.9
 			}
 			// Negligible movement. Don't update course, but do use the slow speed.
 			//TODO: use average course over last n seconds?
 		}
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			updateGPSPerf = true
 			thisGpsPerf.msgType = x[0]
 		}
