@@ -245,9 +245,11 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else {
-		// Set 5 Hz update. Little endian order.
-		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
+		// Byte order for UBX configuration is little endian.
+
+		// Set 10 Hz update to make gpsattitude more responsive.
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
+		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
@@ -260,20 +262,25 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
 		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
-		// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
 
-		// TESTING: 5Hz unified GPS + GLONASS
-
-		// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
-		// for SBAS (WAAS), so little real-world impact.
+		// Notes: ublox8 is multi-GNSS capable (simultaneous decoding of GPS and GLONASS, or
+		// GPS and Galileo) if SBAS (e.g. WAAS) is unavailable. This may provide robustness
+		// against jamming / interference on one set of frequencies. However, this will drop the
+		// position reporting rate to 5 Hz during times multi-GNSS is in use. This shouldn't affect
+		// gpsattitude too much --  without WAAS corrections, the algorithm could get jumpy at higher
+		// sampling rates.
 
 		cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
 		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
 		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS (WAAS) with 2-3 tracking channels
 		beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
 		qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-		//glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
-		glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
+
+		if (device == "/dev/ublox8") || (device == "/dev/ttyAMA0") { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS configuration.\n")
+			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+		}
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
 		cfgGnss = append(cfgGnss, beidou...)
