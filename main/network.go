@@ -115,6 +115,14 @@ func getDHCPLeases() (map[string]string, error) {
 		}
 	}
 
+        // Add IP's set through the settings page
+	if globalSettings.StaticIps != nil {
+		for _, ip := range globalSettings.StaticIps {
+			ret[ip] = ""
+		}
+	}
+
+
 	// Added the ability to have static IP hosts stored in /etc/stratux-static-hosts.conf
 
 	dat2, err := ioutil.ReadFile(extra_hosts_file)

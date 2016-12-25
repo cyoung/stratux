@@ -134,7 +134,9 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "ReplayLog": true,
   "PPM": 0,
   "OwnshipModeS": "F00000",
-  "WatchList": ""
+  "WatchList": "",
+  "DeveloperMode": false,
+  "StaticIps": []
 }
 ```
 * `http://192.168.10.1/setSettings` - set device settings. Use an HTTP POST of JSON content in the format given above - posting only the fields containing the settings to be modified.

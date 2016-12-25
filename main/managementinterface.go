@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
@@ -319,6 +320,26 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+					case "StaticIps":
+						ipsStr := val.(string)
+						ips := strings.Split(ipsStr, " ")
+						if ipsStr == "" {
+							ips = make([]string, 0)
+						}
+
+						re, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
+						err := ""
+						for _, ip := range ips {
+							// Verify IP format
+							if !re.MatchString(ip) {
+								err = err + "Invalid IP: " + ip + ". "
+							}
+						}
+						if err  != "" {
+							log.Printf("handleSettingsSetRequest:StaticIps: %s\n", err)
+							continue
+						}
+						globalSettings.StaticIps = ips
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
