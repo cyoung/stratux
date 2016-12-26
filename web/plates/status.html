@@ -46,24 +46,47 @@
 					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style1" ng-attr-style="width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;">{{ES_messages_last_minute}}</div></div></span>
 					<span class="col-xs-2 text-right">{{ES_messages_max}}</span>
 				</div>
-				<!--
-                <div id="uat_products" style="display: none;">
-                    <div class="row"><span class="col-xs-1">&nbsp;</span></div>
-                    <div class="row">
-                        <label class="col-xs-6">UAT Products</label>
-                        <label class="col-xs-3 text-right">Last Minute</label>
-                        <label class="col-xs-3"></label>
-                    </div>
-                    <div>{{product_rows}}</div>
-                </div>
--->
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
 				</div>
-				<div class="row" ng-class="{'section_invisible': !visible_uat}">
-					<label class="col-xs-6">UAT Towers:</label>
-					<span class="col-xs-6">{{UAT_Towers}}</span>
-				</div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-6">
+                        <span><strong>UAT Statistics</strong></span>
+                    </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <strong align="center" style="background-color: #f7f7f7" class="col-xs-3">Towers</strong>
+						<span align="center" style="background-color: #f7f7f7" class="col-xs-3">METARS</span>
+                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">TAFS</span>
+                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">NEXRAD</span>
+                    </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <span align="center" class="col-xs-3">{{UAT_Towers}}</span>
+						<span align="center" class="col-xs-3">{{UAT_METAR_total}}</span>
+                        <span align="center" class="col-xs-3">{{UAT_TAF_total}}</span>
+                        <span align="center" class="col-xs-3">{{UAT_NEXRAD_total}}</span>
+                    </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">PIREP</span>
+						<span align="center" style="background-color: #f7f7f7" class="col-xs-3">SIGMET</span>
+                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">NOTAMS</span>
+                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">Other</span>
+                     </div>
+                </div>
+                <div class="row" ng-class="{'section_invisible': !visible_uat}">
+                    <div class="col-sm-12">
+                        <span align="center" class="col-xs-3">{{UAT_PIREP_total}}</span>
+                        <span align="center" class="col-xs-3">{{UAT_SIGMET_total}}</span>
+                        <span align="center" class="col-xs-3">{{UAT_NOTAM_total}}</span>
+                        <span align="center" class="col-xs-3">{{UAT_OTHER_total}}</span>
+                    </div>
+                </div>
+				<div class="separator"></div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS hardware:</label>
 					<span class="col-xs-6">{{GPS_hardware}} ({{GPS_protocol}})</span>
@@ -76,47 +99,6 @@
 					<label class="col-xs-6">GPS satellites:</label>
 					<span class="col-xs-6">{{GPS_satellites_locked}} in solution; {{GPS_satellites_seen}} seen; {{GPS_satellites_tracked}} tracked</span>
 				</div>
-				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
-				<div class="separator"></div>
-                <div class="row" ng-class="{'section_invisible': !visible_uat}">
-                    <div class="col-sm-6">
-                        <span><strong>UAT Statistics</strong></span>
-                    </div>
-                </div>
-                <div class="row" ng-class="{'section_invisible': !visible_uat}">
-                    <div class="col-sm-12">
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">METARS</span>
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">TAFS</span>
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">NEXRAD</span>
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">PIREP</span>
-                    </div>
-                </div>
-                <div class="row" ng-class="{'section_invisible': !visible_uat}">
-                    <div class="col-sm-12">
-                        <span align="center" class="col-xs-3">{{UAT_METAR_total}}</span>
-                        <span align="center" class="col-xs-3">{{UAT_TAF_total}}</span>
-                        <span align="center" class="col-xs-3">{{UAT_NEXRAD_total}}</span>
-                        <span align="center" class="col-xs-3">{{UAT_PIREP_total}}</span>
-                    </div>
-                </div>
-                <div class="row" ng-class="{'section_invisible': !visible_uat}">
-                    <div class="col-sm-12">
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">SIGMET</span>
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">NOTAMS</span>
-                        <span align="center" style="background-color: #f7f7f7" class="col-xs-3">Other</span>
-                     </div>
-                </div>
-                <div class="row" ng-class="{'section_invisible': !visible_uat}">
-                    <div class="col-sm-12">
-                        <span align="center" class="col-xs-3">{{UAT_SIGMET_total}}</span>
-                        <span align="center" class="col-xs-3">{{UAT_NOTAM_total}}</span>
-                        <span align="center" class="col-xs-3">{{UAT_OTHER_total}}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="row" ng-class="{'section_invisible': !visible_uat}">
-				<div class="separator"></div>
-				<div class="row"><span class="col-xs-1">&nbsp;</span></div>
 				<div class="separator"></div>
 				<div class="row">
 					<div class="col-sm-4 label_adj">
@@ -127,12 +109,15 @@
 						<span class="col-xs-5"><strong>CPU Temp:</strong></span>
 						<span class="col-xs-7">{{CPUTemp}}</span>
 					</div>
+					<div class="col-sm-4 label_adj">
+						<span class="col-xs-5"><strong>Free Storage:</strong></span>
+						<span class="col-xs-7">{{DiskSpace}} MiB</span>
+					</div>
 				</div>
 			</div>
 		</div>	
 	</div>
-
-	<div class="panel panel-default">
+	<div class="panel panel-default" ng-class="{'section_invisible': !visible_errors}">
 		<div class="panel-heading" ng-class="{'section_invisible': !visible_errors}">
 			<span class="panel_label">Errors</span>
 		</div>
@@ -144,9 +129,4 @@
 				</ul>
 			</div>
 	</div>
-				
-				
-		
-				
-			
 </div>

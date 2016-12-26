@@ -91,6 +91,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			}
 			$scope.GPS_protocol = tempGpsProtocolString;
 			
+			var MiBFree = status.DiskBytesFree/1048576;
+			$scope.DiskSpace = MiBFree.toFixed(1);
+			
 			$scope.UAT_METAR_total = status.UAT_METAR_total;
 			$scope.UAT_TAF_total = status.UAT_TAF_total;
 			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
@@ -117,7 +120,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			var boardtemp = status.CPUTemp;
 			if (boardtemp != undefined) {
 				/* boardtemp is celcius to tenths */
-				$scope.CPUTemp = String(boardtemp.toFixed(1) + 'C / ' + ((boardtemp * 9 / 5) + 32.0).toFixed(1) + 'F');
+				$scope.CPUTemp = String(boardtemp.toFixed(1) + '°C / ' + ((boardtemp * 9 / 5) + 32.0).toFixed(1) + '°F');
 			} else {
 				// $('#CPUTemp').text('unavailable');
 			}
