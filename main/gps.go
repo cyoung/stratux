@@ -530,7 +530,7 @@ func calcGPSAttitude() bool {
 	var lengthHeading, lengthSpeed int
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
-	halfwidth := float64(1.4)                         // width of regression evaluation window. Default of 1.4 seconds for 5 Hz sampling; will increase up to 3.5 sec @ 1 Hz
+	halfwidth := float64(1.4)                         // width of regression evaluation window. Default of 1.4 seconds for 10 Hz sampling; will increase to 2.8 sec @ 5 Hz, and to 3.5 sec @ 1 Hz
 
 	// frequency detection
 	tempSpeedTime = make([]float64, 0)
@@ -1962,7 +1962,7 @@ func isGPSConnected() bool {
 isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
 and if the GPS subsystem has recently detected a GPS device.
 
-If false, 'Quality` is set to 0 ("No fix"), as is the number of satellites in solution.
+If false, 'Quality` is set to 0 ("No fix"), NACp == 0, and horizontal / vertical accuracy set to large numbers
 */
 
 func isGPSValid() bool {
@@ -1972,6 +1972,9 @@ func isGPSValid() bool {
 	} else {
 		mySituation.Quality = 0
 		mySituation.Satellites = 0
+		mySituation.Accuracy = 999999
+		mySituation.AccuracyVert = 999999
+		mySituation.NACp = 0
 	}
 	return isValid
 }
