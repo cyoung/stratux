@@ -1,12 +1,12 @@
 <div class="section text-left help-page">
 	<p>The <strong>Status</strong> page provides an overview of your Stratux device.</p>
-	<p>The current state of you device is shown at the top - <code>Connected</code> in green or <code>Disconected</code>in red.</p>
+	<p>Status of the connection to your device is shown at the top of the page: <code style="color: #25C666">Connected</code> in green or <code>Disconnected</code>in red.</p>
 	<p class="text-warning">Note: SDR and GPS devices must be manually enabled on the <strong>Settings</strong> page.</p>
 	<p>Depending on the hardware you have installed in your Stratux, status messages will be shown for the following:</p>
 	<ul class="list-simple">
 		<li><strong>Messages</strong> is the number of messages received by the UAT (978 MHz) and 1090 MHz radios. "Current" is the 60-second rolling total for each receiver; "Peak" is the maximum 60-second total. The 1090 total includes all 1090 MHz Mode S messages received, including all-call and TCAS interrogations that do not carry ADS-B position information.</li>
-		<li><strong>UAT Statistics</strong> provides the status of the UAT FIS-B uplink. The number of ground-based transceivers (GBT) currently being received is indicated under <strong>Towers</strong>. Additional details are available on the <strong>Towers</strong> page. FIS-B message counts since Stratux startup are listed in the appropriate categories.</li>
-		<li><strong>GPS hardware</strong> indicates the type and connection status of any attached GPS receivers. <strong>GPS solution</strong> indicates the current position solution type, and estimated horizontal accuracy. <strong>GPS satellites</strong> indicates the number of satellites used in that solution, the number of satellites being received, and the number of satellites tracked in the GPS almanac data. Position and accuracy details can be viewed on the <strong>GPS/AHRS</strong> page.</li>
+		<li><strong>UAT Statistics</strong> provides the status of the UAT / FIS-B uplink. The number of ground-based transceivers (GBT) currently received is indicated in the column labeled "Towers". Additional details are available on the <strong>Towers</strong> page. Counts of FIS-B weather and information messages are listed under the appropriate categories.</li>
+		<li><strong>GPS hardware</strong> indicates the type and connection status of any attached GPS receivers. <strong>GPS solution</strong> indicates the current position solution type and estimated horizontal accuracy. <strong>GPS satellites</strong> indicates the number of satellites used in that solution, the number of satellites being received, and the number of satellites tracked in the GPS almanac data. Additional position and accuracy details can be viewed on the <strong>GPS/AHRS</strong> page.</li>
 	</ul>
 	<p>Additional statistics listed include the number of detected software-defined radios (SDRs), number of current DHCP network clients, Stratux application uptime, the temperature of the Raspberry Pi CPU, and the total amount of available space on the micro SD card.</p>
 </div>

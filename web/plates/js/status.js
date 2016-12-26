@@ -54,7 +54,15 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
-			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) + " m" : " ");
+			switch(status.GPS_solution) {
+				case "Disconnected":
+				case "No Fix":
+				case "Unknown":
+					$scope.GPS_position_accuracy = "";
+					break;
+				default:
+					$scope.GPS_position_accuracy = ", " + status.GPS_position_accuracy.toFixed(1) + " m";
+			}
 			var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
 			var tempGpsHardwareString = "Not installed";
 			switch(gpsHardwareCode) {
@@ -84,7 +92,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 					tempGpsProtocolString = "NMEA protocol";
 					break;
 				case 3:
-					tempGpsProtocolString = "UBX protocol";
+					tempGpsProtocolString = "NMEA-UBX protocol";
 					break;
 				default:
 					tempGpsProtocolString = "Not communicating";
