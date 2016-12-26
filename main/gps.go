@@ -528,9 +528,9 @@ func calcGPSAttitude() bool {
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
 	var lengthHeading, lengthSpeed int
+	var halfwidth float64 // width of regression evaluation window. Minimum of 1.5 seconds and maximum of 3.5 seconds.
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
-	halfwidth := float64(1.4)                         // width of regression evaluation window. Default of 1.4 seconds for 10 Hz sampling; will increase to 2.8 sec @ 5 Hz, and to 3.5 sec @ 1 Hz
 
 	// frequency detection
 	tempSpeedTime = make([]float64, 0)
@@ -546,7 +546,7 @@ func calcGPSAttitude() bool {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
 		}
-		halfwidth = 14 * dt_avg
+		halfwidth = 9 * dt_avg
 		mySituation.PositionSampleRate = 1 / dt_avg
 	} else {
 		if globalSettings.DEBUG {
@@ -558,6 +558,8 @@ func calcGPSAttitude() bool {
 
 	if halfwidth > 3.5 {
 		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
+	} else if halfwidth < 1.5 {
+		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
 	}
 
 	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
