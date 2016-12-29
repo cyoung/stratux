@@ -54,6 +54,10 @@ cp -f interfaces mnt/etc/network/interfaces
 cp stratux-wifi.sh mnt/usr/sbin/
 chmod 755 mnt/usr/sbin/stratux-wifi.sh
 
+#SDR Serial Script
+cp -f sdr-tool.sh mnt/usr/sbin/sdr-tool.sh
+chmod 755 mnt/usr/sbin/sdr-tool.sh
+
 #ping udev
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 
@@ -72,7 +76,6 @@ cp -f 10-stratux.rules mnt/etc/udev/rules.d
 
 #stratux files
 cp -f ../libdump978.so mnt/usr/lib/libdump978.so
-cp -f ../linux-mpu9150/libimu.so mnt/usr/lib/libimu.so
 
 #go1.5.1 setup
 cp -rf /root/go mnt/root/
@@ -126,6 +129,18 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 cp -f config.txt mnt/boot/
 
 #external OLED screen
-#apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil screen
-#git clone https://github.com/rm-hull/ssd1306
-#cd ssd1306 && python setup.py install
+apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil python-daemon screen
+#for fancontrol.py:
+pip install wiringpi
+cd /root
+git clone https://github.com/rm-hull/ssd1306
+cd ssd1306 && python setup.py install
+cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
+mkdir -p /etc/stratux-screen/
+cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
+cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
+
+#startup scripts
+cp -f ../__lib__systemd__system__stratux.service mnt/lib/systemd/system/stratux.service
+cp -f ../__root__stratux-pre-start.sh mnt/root/stratux-pre-start.sh
+cp -f rc.local mnt/etc/rc.local

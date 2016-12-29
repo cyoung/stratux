@@ -9,12 +9,11 @@ endif
 all:
 	make xdump978
 	make xdump1090
-	make xlinux-mpu9150
 	make xgen_gdl90
 
 xgen_gdl90:
-	go get -t -d -v ./main ./test ./linux-mpu9150/mpu ./godump978 ./mpu ./uatparse
-	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/ry83Xai.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go
+	go get -t -d -v ./main ./test ./godump978 ./uatparse ./sensors
+	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go
 
 xdump1090:
 	git submodule update --init
@@ -23,10 +22,6 @@ xdump1090:
 xdump978:
 	cd dump978 && make lib
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
-
-xlinux-mpu9150:
-	git submodule update --init
-	cd linux-mpu9150 && make -f Makefile-native-shared
 
 .PHONY: test
 test:
@@ -53,4 +48,3 @@ clean:
 	rm -f gen_gdl90 libdump978.so
 	cd dump1090 && make clean
 	cd dump978 && make clean
-	rm -f linux-mpu9150/*.o linux-mpu9150/*.so

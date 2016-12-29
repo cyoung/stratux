@@ -54,9 +54,14 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
-			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) : "");
-			$scope.RY835AI_connected = status.RY835AI_connected;
-
+			$scope.GPS_position_accuracy = String(status.GPS_solution ? ", " + status.GPS_position_accuracy.toFixed(1) + " m" : " ");
+			$scope.UAT_METAR_total = status.UAT_METAR_total;
+			$scope.UAT_TAF_total = status.UAT_TAF_total;
+			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
+			$scope.UAT_SIGMET_total = status.UAT_SIGMET_total;
+			$scope.UAT_PIREP_total = status.UAT_PIREP_total;
+			$scope.UAT_NOTAM_total = status.UAT_NOTAM_total;
+			$scope.UAT_OTHER_total = status.UAT_OTHER_total;
 			// Errors array.
 			if (status.Errors.length > 0) {
 				$scope.visible_errors = true;
@@ -95,6 +100,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_SETTINGS_GET).
 		then(function (response) {
 			settings = angular.fromJson(response.data);
+			$scope.DeveloperMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
@@ -103,7 +109,6 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				$scope.visible_es = true;
 			}
 			$scope.visible_gps = settings.GPS_Enabled;
-			$scope.visible_ahrs = settings.AHRS_Enabled;
 		}, function (response) {
 			// nop
 		});
@@ -133,7 +138,16 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		getTowers();
 	}, (5 * 1000), 0, false);
 
-
+    var clicks = 0;
+    var clickSeconds = 0;
+    var DeveloperModeClick = 0;
+    
+    var clickInterval = $interval(function () {
+        if ((clickSeconds >= 3))
+            clicks=0;
+        clickSeconds++;
+    }, 1000);
+    
 	$state.get('home').onEnter = function () {
 		// everything gets handled correctly by the controller
 	};
@@ -144,7 +158,26 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		$interval.cancel(updateTowers);
 	};
-
+    
+    $scope.VersionClick = function() {
+        if (clicks==0)
+        {
+            clickSeconds = 0;
+        }
+        ++clicks;
+        if ((clicks > 7) && (clickSeconds < 3))
+        {
+            clicks=0;
+            clickSeconds=0;
+            DeveloperModeClick = 1;
+            $http.get(URL_DEV_TOGGLE_GET);
+            location.reload();
+        }
+    }
+    
+    $scope.GetDeveloperModeClick = function() {
+        return DeveloperModeClick;
+    }
 	// Status Controller tasks
 	setHardwareVisibility();
 	connect($scope); // connect - opens a socket and listens for messages

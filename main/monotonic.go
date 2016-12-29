@@ -21,6 +21,8 @@ type monotonic struct {
 	Milliseconds uint64
 	Time         time.Time
 	ticker       *time.Ticker
+	realTimeSet  bool
+	RealTime     time.Time
 }
 
 func (m *monotonic) Watcher() {
@@ -28,6 +30,9 @@ func (m *monotonic) Watcher() {
 		<-m.ticker.C
 		m.Milliseconds += 10
 		m.Time = m.Time.Add(10 * time.Millisecond)
+		if m.realTimeSet {
+			m.RealTime = m.RealTime.Add(10 * time.Millisecond)
+		}
 	}
 }
 
@@ -41,6 +46,17 @@ func (m *monotonic) HumanizeTime(t time.Time) string {
 
 func (m *monotonic) Unix() int64 {
 	return int64(m.Since(time.Time{}).Seconds())
+}
+
+func (m *monotonic) HasRealTimeReference() bool {
+	return m.realTimeSet
+}
+
+func (m *monotonic) SetRealTimeReference(t time.Time) {
+	if !m.realTimeSet { // Only allow the real clock to be set once.
+		m.RealTime = t
+		m.realTimeSet = true
+	}
 }
 
 func NewMonotonic() *monotonic {

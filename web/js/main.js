@@ -9,9 +9,12 @@ var URL_SATELLITES_GET	= "http://"	+ URL_HOST_BASE + "/getSatellites"
 var URL_STATUS_WS 		= "ws://"	+ URL_HOST_BASE + "/status"
 var URL_TRAFFIC_WS 		= "ws://"	+ URL_HOST_BASE + "/traffic";
 var URL_WEATHER_WS 		= "ws://"	+ URL_HOST_BASE + "/weather";
+var URL_DEVELOPER_GET   = "ws://"   + URL_HOST_BASE + "/developer";
 var URL_UPDATE_UPLOAD	= "http://" + URL_HOST_BASE + "/updateUpload";
 var URL_REBOOT			= "http://" + URL_HOST_BASE + "/reboot";
 var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
+var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
+var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
@@ -62,6 +65,12 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			templateUrl: 'plates/settings.html',
 			controller: 'SettingsCtrl',
 			reloadOnSearch: false
+		})
+        .state('developer', {
+			url: '/developer',
+			templateUrl: 'plates/developer.html',
+			controller: 'DeveloperCtrl',
+			reloadOnSearch: false
 		});
 	$urlRouterProvider.otherwise('/');
 });
@@ -72,6 +81,13 @@ app.run(function ($transform) {
 });
 
 // For this app we have a MainController for whatever and individual controllers for each page
-app.controller('MainCtrl', function ($rootScope, $scope) {
+app.controller('MainCtrl', function ($scope, $http) {
 	// any logic global logic
+    $http.get(URL_SETTINGS_GET)
+    .then(function(response) {
+			settings = angular.fromJson(response.data);
+            $scope.DeveloperMode = settings.DeveloperMode;
+    }, function(response) {
+        //Second function handles error
+    });	
 });

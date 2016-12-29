@@ -35,7 +35,8 @@ import (
 	"github.com/ricochet2200/go-disk-usage/du"
 )
 
-// http://www.faa.gov/nextgen/programs/adsb/wsa/media/GDL90_Public_ICD_RevA.PDF
+// https://www.faa.gov/nextgen/programs/adsb/Archival/
+// https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
 var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
@@ -75,6 +76,15 @@ const (
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
+
+	GPS_TYPE_NMEA     = 0x01
+	GPS_TYPE_UBX      = 0x02
+	GPS_TYPE_SIRF     = 0x03
+	GPS_TYPE_MEDIATEK = 0x04
+	GPS_TYPE_FLARM    = 0x05
+	GPS_TYPE_GARMIN   = 0x06
+	// other GPS types to be defined as needed
+
 )
 
 var usage *du.DiskUsage
@@ -99,8 +109,6 @@ type ReadCloser interface {
 	io.Reader
 	io.Closer
 }
-
-var developerMode bool
 
 type msg struct {
 	MessageClass     uint
@@ -163,8 +171,8 @@ func prepareMessage(data []byte) []byte {
 	// Compute CRC before modifying the message.
 	crc := crcCompute(data)
 	// Add the two CRC16 bytes before replacing control characters.
-	data = append(data, byte(crc & 0xFF))
-	data = append(data, byte((crc >> 8) & 0xFF))
+	data = append(data, byte(crc&0xFF))
+	data = append(data, byte(crc>>8))
 
 	tmp := []byte{0x7E} // Flag start.
 
@@ -196,10 +204,18 @@ func makeLatLng(v float32) []byte {
 	return ret
 }
 
+func isDetectedOwnshipValid() bool {
+	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen) < 10*time.Second
+}
+
 func makeOwnshipReport() bool {
-	if !isGPSValid() {
+	gpsValid := isGPSValid()
+	selfOwnshipValid := isDetectedOwnshipValid()
+	if !gpsValid && !selfOwnshipValid {
 		return false
 	}
+	curOwnship := OwnshipTrafficInfo
+
 	msg := make([]byte, 28)
 	// See p.16.
 	msg[0] = 0x0A // Message type "Ownship".
@@ -218,15 +234,26 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
-	tmp := makeLatLng(mySituation.Lat)
-	msg[5] = tmp[0] // Latitude.
-	msg[6] = tmp[1] // Latitude.
-	msg[7] = tmp[2] // Latitude.
-
-	tmp = makeLatLng(mySituation.Lng)
-	msg[8] = tmp[0]  // Longitude.
-	msg[9] = tmp[1]  // Longitude.
-	msg[10] = tmp[2] // Longitude.
+	var tmp []byte
+	if selfOwnshipValid {
+		tmp = makeLatLng(curOwnship.Lat)
+		msg[5] = tmp[0] // Latitude.
+		msg[6] = tmp[1] // Latitude.
+		msg[7] = tmp[2] // Latitude.
+		tmp = makeLatLng(curOwnship.Lng)
+		msg[8] = tmp[0]  // Longitude.
+		msg[9] = tmp[1]  // Longitude.
+		msg[10] = tmp[2] // Longitude.
+	} else {
+		tmp = makeLatLng(mySituation.Lat)
+		msg[5] = tmp[0] // Latitude.
+		msg[6] = tmp[1] // Latitude.
+		msg[7] = tmp[2] // Latitude.
+		tmp = makeLatLng(mySituation.Lng)
+		msg[8] = tmp[0]  // Longitude.
+		msg[9] = tmp[1]  // Longitude.
+		msg[10] = tmp[2] // Longitude.
+	}
 
 	// This is **PRESSURE ALTITUDE**
 	//FIXME: Temporarily removing "invalid altitude" when pressure altitude not available - using GPS altitude instead.
@@ -235,25 +262,30 @@ func makeOwnshipReport() bool {
 	var alt uint16
 	var altf float64
 
-	if isTempPressValid() {
+	if selfOwnshipValid {
+		altf = float64(curOwnship.Alt)
+	} else if isTempPressValid() {
 		altf = float64(mySituation.Pressure_alt)
 	} else {
 		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
+
 	altf = (altf + 1000) / 25
 
 	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid || isGPSGroundTrackValid() {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
-	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from ry83xai.go.
+	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid && curOwnship.Speed_valid {
+		gdSpeed = curOwnship.Speed
+	} else if isGPSGroundTrackValid() {
 		gdSpeed = uint16(mySituation.GroundSpeed + 0.5)
 	}
 
@@ -269,7 +301,9 @@ func makeOwnshipReport() bool {
 
 	// Track is degrees true, set from GPS true course.
 	groundTrack := float32(0)
-	if isGPSGroundTrackValid() {
+	if selfOwnshipValid {
+		groundTrack = float32(curOwnship.Track)
+	} else if isGPSGroundTrackValid() {
 		groundTrack = mySituation.TrueCourse
 	}
 
@@ -290,6 +324,17 @@ func makeOwnshipReport() bool {
 
 	msg[18] = 0x01 // "Light (ICAO) < 15,500 lbs"
 
+	if selfOwnshipValid {
+		// Limit tail number to 7 characters.
+		tail := curOwnship.Tail
+		if len(tail) > 7 {
+			tail = tail[:7]
+		}
+		// Copy tail number into message.
+		for i := 0; i < len(tail); i++ {
+			msg[19+i] = tail[i]
+		}
+	}
 	// Create callsign "Stratux".
 	msg[19] = 0x53
 	msg[20] = 0x74
@@ -423,18 +468,14 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	if globalSettings.AHRS_Enabled {
-		msg[12] = 1 << 0
-	}
+	// msg[12] = 1 << 0
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware: RY83XAI.
-	if globalStatus.RY83XAI_connected {
-		msg[15] = msg[15] | (1 << 2)
-	}
+	// Connected hardware.
+	//	RY835AI: msg[15] = msg[15] | (1 << 2)
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
@@ -442,24 +483,12 @@ func makeStratuxStatus() []byte {
 	// Number of satellites tracked
 	msg[17] = byte(globalStatus.GPS_satellites_tracked)
 
-	// Summarize number of UAT and 1090ES traffic targets for reports that follow.
-	var uat_traffic_targets uint16
-	var es_traffic_targets uint16
-	for _, traf := range traffic {
-		switch traf.Last_source {
-		case TRAFFIC_SOURCE_1090ES:
-			es_traffic_targets++
-		case TRAFFIC_SOURCE_UAT:
-			uat_traffic_targets++
-		}
-	}
-
 	// Number of UAT traffic targets.
-	msg[18] = byte((uat_traffic_targets & 0xFF00) >> 8)
-	msg[19] = byte(uat_traffic_targets & 0xFF)
+	msg[18] = byte((globalStatus.UAT_traffic_targets_tracking & 0xFF00) >> 8)
+	msg[19] = byte(globalStatus.UAT_traffic_targets_tracking & 0xFF)
 	// Number of 1090ES traffic targets.
-	msg[20] = byte((es_traffic_targets & 0xFF00) >> 8)
-	msg[21] = byte(es_traffic_targets & 0xFF)
+	msg[20] = byte((globalStatus.ES_traffic_targets_tracking & 0xFF00) >> 8)
+	msg[21] = byte(globalStatus.ES_traffic_targets_tracking & 0xFF)
 
 	// Number of UAT messages per minute.
 	msg[22] = byte((globalStatus.UAT_messages_last_minute & 0xFF00) >> 8)
@@ -570,6 +599,9 @@ func heartBeatSender() {
 	for {
 		select {
 		case <-timer.C:
+			// Turn on green ACT LED on the Pi.
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
@@ -759,7 +791,7 @@ type WeatherMessage struct {
 }
 
 // Send update to connected websockets.
-func registerADSBTextMessageReceived(msg string) {
+func registerADSBTextMessageReceived(msg string, uatMsg *uatparse.UATMsg) {
 	x := strings.Split(msg, " ")
 	if len(x) < 5 {
 		return
@@ -767,16 +799,49 @@ func registerADSBTextMessageReceived(msg string) {
 
 	var wm WeatherMessage
 
+	if (x[0] == "METAR") || (x[0] == "SPECI") {
+		globalStatus.UAT_METAR_total++
+	}
+	if (x[0] == "TAF") || (x[0] == "TAF.AMD") {
+		globalStatus.UAT_TAF_total++
+	}
+	if x[0] == "WINDS" {
+		globalStatus.UAT_TAF_total++
+	}
+	if x[0] == "PIREP" {
+		globalStatus.UAT_PIREP_total++
+	}
 	wm.Type = x[0]
 	wm.Location = x[1]
 	wm.Time = x[2]
 	wm.Data = strings.Join(x[3:], " ")
 	wm.LocaltimeReceived = stratuxClock.Time
 
-	wmJSON, _ := json.Marshal(&wm)
-
 	// Send to weatherUpdate channel for any connected clients.
-	weatherUpdate.Send(wmJSON)
+	weatherUpdate.SendJSON(wm)
+}
+
+func UpdateUATStats(ProductID uint32) {
+	switch ProductID {
+	case 0, 20:
+		globalStatus.UAT_METAR_total++
+	case 1, 21:
+		globalStatus.UAT_TAF_total++
+	case 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 81, 82, 83:
+		globalStatus.UAT_NEXRAD_total++
+	// AIRMET and SIGMETS
+	case 2, 3, 4, 6, 11, 12, 22, 23, 24, 26, 254:
+		globalStatus.UAT_SIGMET_total++
+	case 5, 25:
+		globalStatus.UAT_PIREP_total++
+	case 8:
+		globalStatus.UAT_NOTAM_total++
+	case 413:
+		// Do nothing in the case since text is recorded elsewhere
+		return
+	default:
+		globalStatus.UAT_OTHER_total++
+	}
 }
 
 func parseInput(buf string) ([]byte, uint16) {
@@ -865,11 +930,13 @@ func parseInput(buf string) ([]byte, uint16) {
 			// Get all of the "product ids".
 			for _, f := range uatMsg.Frames {
 				thisMsg.Products = append(thisMsg.Products, f.Product_id)
+				UpdateUATStats(f.Product_id)
+				weatherRawUpdate.SendJSON(f)
 			}
 			// Get all of the text reports.
 			textReports, _ := uatMsg.GetTextReports()
 			for _, r := range textReports {
-				registerADSBTextMessageReceived(r)
+				registerADSBTextMessageReceived(r, uatMsg)
 			}
 			thisMsg.uatMsg = uatMsg
 		}
@@ -959,13 +1026,14 @@ type settings struct {
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	NetworkOutputs       []networkConnection
-	AHRS_Enabled         bool
+	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
+	DeveloperMode        bool
 }
 
 type status struct {
@@ -979,6 +1047,8 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	UAT_traffic_targets_tracking               uint16
+	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
@@ -986,7 +1056,7 @@ type status struct {
 	GPS_position_accuracy                      float32
 	GPS_connected                              bool
 	GPS_solution                               string
-	RY83XAI_connected                          bool
+	GPS_detected_type                          uint
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
@@ -998,7 +1068,17 @@ type status struct {
 	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
 	NetworkDataBytesSentNonqueueableLastSec    uint64
-	Errors                                     []string
+	UAT_METAR_total                            uint32
+	UAT_TAF_total                              uint32
+	UAT_NEXRAD_total                           uint32
+	UAT_SIGMET_total                           uint32
+	UAT_PIREP_total                            uint32
+	UAT_NOTAM_total                            uint32
+	UAT_OTHER_total                            uint32
+	PressureSensorConnected                    bool
+	IMUConnected                               bool
+
+	Errors []string
 }
 
 var globalSettings settings
@@ -1013,11 +1093,11 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
-	globalSettings.AHRS_Enabled = false
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
+	globalSettings.DeveloperMode = false
 }
 
 func readSettings() {
@@ -1084,6 +1164,21 @@ func openReplay(fn string, compressed bool) (WriteCloser, error) {
 
 	ret.Write([]byte(s))
 	return ret, err
+}
+
+/*
+	fsWriteTest().
+	 Makes a temporary file in 'dir', checks for error. Deletes the file.
+*/
+
+func fsWriteTest(dir string) error {
+	fn := dir + "/.write_test"
+	err := ioutil.WriteFile(fn, []byte("test\n"), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(fn)
+	return err
 }
 
 func printStats() {
@@ -1194,6 +1289,8 @@ func gracefulShutdown() {
 
 	//TODO: Any other graceful shutdown functions.
 
+	// Turn off green ACT LED on the Pi.
+	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
 	os.Exit(1)
 }
 
@@ -1209,6 +1306,12 @@ func main() {
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
+
+	// Set up mySituation, do it here so logging JSON doesn't panic
+	mySituation.mu_GPS = &sync.Mutex{}
+	mySituation.mu_GPSPerf = &sync.Mutex{}
+	mySituation.mu_Attitude = &sync.Mutex{}
+	mySituation.mu_Pressure = &sync.Mutex{}
 
 	// Set up status.
 	globalStatus.Version = stratuxVersion
@@ -1250,7 +1353,6 @@ func main() {
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
-	develFlag := flag.Bool("developer", false, "Developer mode")
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
@@ -1259,11 +1361,6 @@ func main() {
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
-
-	if *develFlag == true {
-		log.Printf("Developer mode flag true!\n")
-		developerMode = true
-	}
 
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -1299,10 +1396,27 @@ func main() {
 		globalSettings.ReplayLog = true
 	}
 
+	if globalSettings.DeveloperMode == true {
+		log.Printf("Developer mode set\n")
+	}
+
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	initRY83XAI()
+	// Start the AHRS sensor monitoring.
+	initI2CSensors()
+
+	// Start the GPS external sensor monitoring.
+	initGPS()
+
+	// Start appropriate AHRS calc, depending on whether or not we have an IMU connected
+	if globalStatus.IMUConnected {
+		log.Println("AHRS Info: IMU connected - starting sensorAttitudeSender")
+		go sensorAttitudeSender()
+	} else {
+		log.Println("AHRS Info: IMU not connected - starting gpsAttitudeSender")
+		go gpsAttitudeSender()
+	}
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

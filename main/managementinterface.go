@@ -35,6 +35,31 @@ type SettingMessage struct {
 // Weather updates channel.
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
+var gdl90Update *uibroadcaster
+
+func handleGDL90WS(conn *websocket.Conn) {
+	// Subscribe the socket to receive updates.
+	gdl90Update.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// Situation updates channel.
+var situationUpdate *uibroadcaster
+
+// Raw weather (UATFrame packet stream) update channel.
+var weatherRawUpdate *uibroadcaster
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
@@ -42,6 +67,36 @@ var trafficUpdate *uibroadcaster
 func handleWeatherWS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	weatherUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func handleJsonIo(conn *websocket.Conn) {
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	// Subscribe the socket to receive updates.
+	trafficUpdate.AddSocket(conn)
+	weatherRawUpdate.AddSocket(conn)
+	situationUpdate.AddSocket(conn)
+
+	trafficMutex.Unlock()
 
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
@@ -104,7 +159,6 @@ func handleStatusWS(conn *websocket.Conn) {
 		*/
 
 		// Send status.
-		<-timer.C
 		update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
@@ -112,19 +166,20 @@ func handleStatusWS(conn *websocket.Conn) {
 			//			log.Printf("Web client disconnected.\n")
 			break
 		}
+		<-timer.C
 	}
 }
 
 func handleSituationWS(conn *websocket.Conn) {
 	timer := time.NewTicker(100 * time.Millisecond)
 	for {
-		<-timer.C
 		situationJSON, _ := json.Marshal(&mySituation)
 		_, err := conn.Write(situationJSON)
 
 		if err != nil {
 			break
 		}
+		<-timer.C
 
 	}
 
@@ -219,8 +274,6 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
-					case "AHRS_Enabled":
-						globalSettings.AHRS_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "DisplayTrafficSource":
@@ -232,6 +285,22 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "Baud":
+						if serialOut, ok := globalSettings.SerialOutputs["/dev/serialout0"]; ok { //FIXME: Only one device for now.
+							newBaud := int(val.(float64))
+							if newBaud == serialOut.Baud { // Same baud rate. No change.
+								continue
+							}
+							log.Printf("changing /dev/serialout0 baud rate from %d to %d.\n", serialOut.Baud, newBaud)
+							serialOut.Baud = newBaud
+							// Close the port if it is open.
+							if serialOut.serialPort != nil {
+								log.Printf("closing /dev/serialout0 for baud rate change.\n")
+								serialOut.serialPort.Close()
+								serialOut.serialPort = nil
+							}
+							globalSettings.SerialOutputs["/dev/serialout0"] = serialOut
+						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
 					case "OwnshipModeS":
@@ -274,12 +343,34 @@ func doReboot() {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
+func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleDevelModeToggle called!!!\n")
+	globalSettings.DeveloperMode = true
+	saveSettings()
+}
+
+func handleRestartRequest(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleRestartRequest called\n")
+	go doRestartApp()
+}
+
 func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	go delayReboot()
+}
+
+func doRestartApp() {
+	time.Sleep(1)
+	syscall.Sync()
+	out, err := exec.Command("/bin/systemctl", "restart", "stratux").Output()
+	if err != nil {
+		log.Printf("restart error: %s\n%s", err.Error(), out)
+	} else {
+		log.Printf("restart: %s\n", out)
+	}
 }
 
 // AJAX call - /getClients. Responds with all connected clients.
@@ -307,7 +398,7 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
-	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(handler.Filename, globalStatus.HardwareBuild) {
+	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(strings.ToLower(handler.Filename), strings.ToLower(globalStatus.HardwareBuild)) {
 		w.WriteHeader(404)
 		return
 	}
@@ -444,11 +535,20 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	situationUpdate = NewUIBroadcaster()
+	weatherRawUpdate = NewUIBroadcaster()
+	gdl90Update = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/view_logs/", viewLogs)
 
+	http.HandleFunc("/gdl90",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleGDL90WS)}
+			s.ServeHTTP(w, req)
+		})
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
@@ -474,17 +574,26 @@ func managementInterface() {
 			s.ServeHTTP(w, req)
 		})
 
+	http.HandleFunc("/jsonio",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleJsonIo)}
+			s.ServeHTTP(w, req)
+		})
+
 	http.HandleFunc("/getStatus", handleStatusRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
 	http.HandleFunc("/getSatellites", handleSatellitesRequest)
 	http.HandleFunc("/getSettings", handleSettingsGetRequest)
 	http.HandleFunc("/setSettings", handleSettingsSetRequest)
+	http.HandleFunc("/restart", handleRestartRequest)
 	http.HandleFunc("/shutdown", handleShutdownRequest)
 	http.HandleFunc("/reboot", handleRebootRequest)
 	http.HandleFunc("/getClients", handleClientsGetRequest)
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
+	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

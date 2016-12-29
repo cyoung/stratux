@@ -11,6 +11,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"io/ioutil"
@@ -50,6 +52,12 @@ type networkConnection struct {
 	FFCrippled      bool
 }
 
+type serialConnection struct {
+	DeviceString string
+	Baud         int
+	serialPort   *serial.Port
+}
+
 var messageQueue chan networkMessage
 var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
@@ -64,10 +72,26 @@ const (
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
+	dhcp_lease_dir         = "/var/lib/dhcp"
+	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
+
+var dhcpLeaseFileWarning bool
+var dhcpLeaseDirectoryLastTest time.Time // Last time fsWriteTest() was run on the DHCP lease directory.
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
+	// Do a write test. Even if we are able to read the file, it may be out of date because there's a fs write issue.
+	// Only perform the test once every 5 minutes to minimize writes.
+	if !dhcpLeaseFileWarning && (stratuxClock.Since(dhcpLeaseDirectoryLastTest) >= 5*time.Minute) {
+		err := fsWriteTest(dhcp_lease_dir)
+		if err != nil {
+			err_p := fmt.Errorf("Write error on '%s', your EFB may have issues receiving weather and traffic.", dhcp_lease_dir)
+			addSystemError(err_p)
+			dhcpLeaseFileWarning = true
+		}
+		dhcpLeaseDirectoryLastTest = stratuxClock.Time
+	}
 	dat, err := ioutil.ReadFile(dhcp_lease_file)
 	ret := make(map[string]string)
 	if err != nil {
@@ -90,14 +114,33 @@ func getDHCPLeases() (map[string]string, error) {
 			ret[block_ip] = ""
 		}
 	}
+
+	// Added the ability to have static IP hosts stored in /etc/stratux-static-hosts.conf
+
+	dat2, err := ioutil.ReadFile(extra_hosts_file)
+	if err != nil {
+		return ret, nil
+	}
+
+	iplines := strings.Split(string(dat2), "\n")
+	block_ip2 := ""
+	for _, ipline := range iplines {
+		spacedip := strings.Split(ipline, " ")
+		if len(spacedip) == 2 {
+			// The ip is in block_ip2
+			block_ip2 = spacedip[0]
+			// the hostname is here
+			ret[block_ip2] = spacedip[1]
+		}
+	}
+
 	return ret, nil
 }
 
 func isSleeping(k string) bool {
 	ipAndPort := strings.Split(k, ":")
-	lastPing, ok := pingResponse[ipAndPort[0]]
 	// No ping response. Assume disconnected/sleeping device.
-	if !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
+	if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
 		return true
 	}
 	if stratuxClock.Since(outSockets[k].LastUnreachable) < (5 * time.Second) {
@@ -113,6 +156,12 @@ func isThrottled(k string) bool {
 }
 
 func sendToAllConnectedClients(msg networkMessage) {
+	if (msg.msgType & NETWORK_GDL90_STANDARD) != 0 {
+		// It's a GDL90 message. Send to serial output channel (which may or may not cause something to happen).
+		serialOutputChan <- msg.msg
+		networkGDL90Chan <- msg.msg
+	}
+
 	netMutex.Lock()
 	defer netMutex.Unlock()
 	for k, netconn := range outSockets {
@@ -135,11 +184,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 			if sleepFlag {
 				continue
 			}
-			_, err := netconn.Conn.Write(msg.msg) // Write immediately.
-			if err != nil {
-				//TODO: Maybe we should drop the client?  Retry first?
-				log.Printf("GDL Message error: %s\n", err.Error())
-			}
+			netconn.Conn.Write(msg.msg) // Write immediately.
 			totalNetworkMessagesSent++
 			globalStatus.NetworkDataMessagesSent++
 			globalStatus.NetworkDataMessagesSentNonqueueable++
@@ -159,6 +204,73 @@ func sendToAllConnectedClients(msg networkMessage) {
 			}
 			netconn.messageQueue = append(netconn.messageQueue, msg.msg) // each netconn.messageQueue is therefore an array (well, a slice) of formatted GDL90 messages
 			outSockets[k] = netconn
+		}
+	}
+}
+
+var serialOutputChan chan []byte
+var networkGDL90Chan chan []byte
+
+func networkOutWatcher() {
+	for {
+		ch := <-networkGDL90Chan
+		gdl90Update.SendJSON(ch)
+	}
+}
+
+// Monitor serial output channel, send to serial port.
+func serialOutWatcher() {
+	// Check every 30 seconds for a serial output device.
+	serialTicker := time.NewTicker(30 * time.Second)
+
+	serialDev := "/dev/serialout0" //FIXME: This is temporary. Only one serial output device for now.
+
+	for {
+		select {
+		case <-serialTicker.C:
+			if _, err := os.Stat(serialDev); !os.IsNotExist(err) { // Check if the device file exists.
+				var thisSerialConn serialConnection
+				// Check if we need to start handling a new device.
+				if val, ok := globalSettings.SerialOutputs[serialDev]; !ok {
+					newSerialOut := serialConnection{DeviceString: serialDev, Baud: 38400}
+					log.Printf("detected new serial output, setting up now: %s. Default baudrate 38400.\n", serialDev)
+					if globalSettings.SerialOutputs == nil {
+						globalSettings.SerialOutputs = make(map[string]serialConnection)
+					}
+					globalSettings.SerialOutputs[serialDev] = newSerialOut
+					saveSettings()
+					thisSerialConn = newSerialOut
+				} else {
+					thisSerialConn = val
+				}
+				// Check if we need to open the connection now.
+				if thisSerialConn.serialPort == nil {
+					cfg := &serial.Config{Name: thisSerialConn.DeviceString, Baud: thisSerialConn.Baud}
+					p, err := serial.OpenPort(cfg)
+					if err != nil {
+						log.Printf("serialout port (%s) err: %s\n", thisSerialConn.DeviceString, err.Error())
+						break // We'll attempt again in 30 seconds.
+					} else {
+						log.Printf("opened serialout: Name: %s, Baud: %d\n", thisSerialConn.DeviceString, thisSerialConn.Baud)
+					}
+					// Save the serial port connection.
+					thisSerialConn.serialPort = p
+					globalSettings.SerialOutputs[serialDev] = thisSerialConn
+				}
+			}
+
+		case b := <-serialOutputChan:
+			if val, ok := globalSettings.SerialOutputs[serialDev]; ok {
+				if val.serialPort != nil {
+					_, err := val.serialPort.Write(b)
+					if err != nil { // Encountered an error in writing to the serial port. Close it and set Serial_out_enabled.
+						log.Printf("serialout (%s) port err: %s. Closing port.\n", val.DeviceString, err.Error())
+						val.serialPort.Close()
+						val.serialPort = nil
+						globalSettings.SerialOutputs[serialDev] = val
+					}
+				}
+			}
 		}
 	}
 }
@@ -461,7 +573,7 @@ func networkStatsCounter() {
 /*
 	ffMonitor().
 		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS.
+		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
 
 */
 
@@ -500,8 +612,7 @@ func ffMonitor() {
 		}
 		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
 			p.FFCrippled = true
-			//FIXME: AHRS doesn't need to be disabled globally, just messages need to be filtered.
-			globalSettings.AHRS_Enabled = false
+			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
 			if !ff_warned {
 				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
 				addSystemError(e)
@@ -515,6 +626,8 @@ func ffMonitor() {
 
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
+	serialOutputChan = make(chan []byte, 1024)     // Buffered channel, 1024 GDL90 messages.
+	networkGDL90Chan = make(chan []byte, 1024)
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
 	netMutex = &sync.Mutex{}
@@ -523,4 +636,6 @@ func initNetwork() {
 	go messageQueueSender()
 	go sleepMonitor()
 	go networkStatsCounter()
+	go serialOutWatcher()
+	go networkOutWatcher()
 }
