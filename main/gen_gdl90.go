@@ -1403,11 +1403,11 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	// Start the AHRS sensor monitoring.
-	initI2CSensors()
-
 	// Start the GPS external sensor monitoring.
 	initGPS()
+
+	// Start the AHRS sensor monitoring.
+	initI2CSensors()
 
 	// Start appropriate AHRS calc, depending on whether or not we have an IMU connected
 	if globalStatus.IMUConnected {

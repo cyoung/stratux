@@ -200,7 +200,7 @@ func sensorAttitudeSender() {
 			m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse)*ahrs.Deg)
 			m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse)*ahrs.Deg)
 			if globalStatus.PressureSensorConnected {
-				m.W3 = mySituation.RateOfClimb * 3600 / 6076.12
+				m.W3 = mySituation.RateOfClimb * 60 / 6076.12
 			} else {
 				m.W3 = float64(mySituation.GPSVertVel) * 3600 / 6076.12
 			}
