@@ -249,6 +249,16 @@ func degreesHdg(angle float64) float64 {
 	return angle * 180.0 / math.Pi
 }
 
+// roundToInt16 cheaply rounds a float64 to an int16, rather than truncating
+func roundToInt16(in float64) (out int16) {
+	if in >= 0 {
+		out = int16(in + 0.5)
+	} else {
+		out = int16(in - 0.5)
+	}
+	return
+}
+
 /*
 Distance functions based on rectangular coordinate systems
 Simple calculations and "good enough" on small scale (± 1° of lat / lon)
@@ -320,5 +330,11 @@ func distance(lat1, lon1, lat2, lon2 float64) (dist, bearing float64) {
 
 	bearing = degreesHdg(math.Atan2(y, x))
 
+	return
+}
+
+// CalcAltitude determines the pressure altitude (feet) from the atmospheric pressure (hPa)
+func CalcAltitude(press float64) (altitude float64) {
+	altitude = 145366.45 * (1.0 - math.Pow(press/1013.25, 0.190284))
 	return
 }

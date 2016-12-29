@@ -286,7 +286,7 @@ func makeOwnshipReport() bool {
 	if selfOwnshipValid && curOwnship.Speed_valid {
 		gdSpeed = curOwnship.Speed
 	} else if isGPSGroundTrackValid() {
-		gdSpeed = mySituation.GroundSpeed
+		gdSpeed = uint16(mySituation.GroundSpeed + 0.5)
 	}
 
 	// gdSpeed should fit in 12 bits.
@@ -1075,6 +1075,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
+	PressureSensorConnected                    bool
+	IMUConnected                               bool
 
 	Errors []string
 }
@@ -1305,6 +1307,12 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
+	// Set up mySituation, do it here so logging JSON doesn't panic
+	mySituation.mu_GPS = &sync.Mutex{}
+	mySituation.mu_GPSPerf = &sync.Mutex{}
+	mySituation.mu_Attitude = &sync.Mutex{}
+	mySituation.mu_Pressure = &sync.Mutex{}
+
 	// Set up status.
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
@@ -1395,8 +1403,20 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
+	// Start the AHRS sensor monitoring.
+	initI2CSensors()
+
 	// Start the GPS external sensor monitoring.
 	initGPS()
+
+	// Start appropriate AHRS calc, depending on whether or not we have an IMU connected
+	if globalStatus.IMUConnected {
+		log.Println("AHRS Info: IMU connected - starting sensorAttitudeSender")
+		go sensorAttitudeSender()
+	} else {
+		log.Println("AHRS Info: IMU not connected - starting gpsAttitudeSender")
+		go gpsAttitudeSender()
+	}
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
