@@ -1,0 +1,346 @@
+<svg version="1.1"
+     baseProfile="full"
+     width="100%" height="100%" viewBox="-200 -200 400 400"
+     xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+        <clipPath id="earth-clip">
+            <rect x="-1200" y="0" width="2400" height="1200" />
+        </clipPath>
+
+        <clipPath id="pitch-clip">
+            <circle cx="0" cy="0" r="160" />
+        </clipPath>
+
+        <clipPath id="roll-clip">
+            <polygon points="0 0, -200 -200, 200 -200" />
+        </clipPath>
+
+        <clipPath id="heading-clip">
+            <rect x="-940" y="175" width="1880" height="3" stroke-width="0" />
+            <rect x="-940" y="192" width="1880" height="3" stroke-width="0" />
+        </clipPath>
+
+        <clipPath id="screen-clip">
+            <rect x="-200" y="-200" width="400" height="400" />
+        </clipPath>
+
+        <style type="text/css"><![CDATA[
+            .earth {
+                fill: chocolate;
+            }
+
+            .sky {
+                fill: deepskyblue;
+            }
+
+            .pointer {
+                stroke: goldenrod;
+                fill: yellow;
+            }
+
+            .pointerBG {
+                fill: goldenrod;
+            }
+
+            .marks {
+                fill: white;
+                stroke: white;
+                stroke-width: 2;
+            }
+
+            .markText {
+                font-size: 20;
+                font-family: sans-serif;
+                text-anchor: middle;
+                alignment-baseline: middle;
+                stroke-width: 0;
+            }
+        ]]></style>
+    </defs>
+
+    <g clip-path="url(#screen-clip)">
+        <!-- document.getElementsByClass("roll")[0].setAttribute("transform", "rotate(-roll)") -->
+        <!-- document.getElementsByClass("pitch")[0].setAttribute("transform", "translate(0, pitch*10)") -->
+        <g class="roll">
+            <g class="pitch">
+                <circle cx="0" cy="0" r="1200" class="sky" />
+                <line x1="-1200" x2="1200" y1="0" y2="0" class="marks"/>
+                <circle cx="0" cy="0" r="1200" class="earth" clip-path="url(#earth-clip)" />
+            </g>
+
+            <g  clip-path="url(#pitch-clip)">
+                <g class="marks pitch">
+                    <line x1="-20" x2="20" y1="-1050" y2="-1050" />
+                    <line x1="-10" x2="10" y1="-1025" y2="-1025" />
+                    <line x1="-40" x2="40" y1="-1000" y2="-1000" />
+                    <line x1="-10" x2="10" y1="-975" y2="-975" />
+                    <line x1="-20" x2="20" y1="-950" y2="-950" />
+                    <line x1="-10" x2="10" y1="-925" y2="-925" />
+                    <line x1="-40" x2="40" y1="-900" y2="-900" />
+                    <line x1="-10" x2="10" y1="-875" y2="-875" />
+                    <line x1="-20" x2="20" y1="-850" y2="-850" />
+                    <line x1="-10" x2="10" y1="-825" y2="-825" />
+                    <line x1="-40" x2="40" y1="-800" y2="-800" />
+                    <line x1="-10" x2="10" y1="-775" y2="-775" />
+                    <line x1="-20" x2="20" y1="-750" y2="-750" />
+                    <line x1="-10" x2="10" y1="-725" y2="-725" />
+                    <line x1="-40" x2="40" y1="-700" y2="-700" />
+                    <line x1="-10" x2="10" y1="-675" y2="-675" />
+                    <line x1="-20" x2="20" y1="-650" y2="-650" />
+                    <line x1="-10" x2="10" y1="-625" y2="-625" />
+                    <line x1="-40" x2="40" y1="-600" y2="-600" />
+                    <line x1="-10" x2="10" y1="-575" y2="-575" />
+                    <line x1="-20" x2="20" y1="-550" y2="-550" />
+                    <line x1="-10" x2="10" y1="-525" y2="-525" />
+                    <line x1="-40" x2="40" y1="-500" y2="-500" />
+                    <line x1="-10" x2="10" y1="-475" y2="-475" />
+                    <line x1="-20" x2="20" y1="-450" y2="-450" />
+                    <line x1="-10" x2="10" y1="-425" y2="-425" />
+                    <line x1="-40" x2="40" y1="-400" y2="-400" />
+                    <line x1="-10" x2="10" y1="-375" y2="-375" />
+                    <line x1="-20" x2="20" y1="-350" y2="-350" />
+                    <line x1="-10" x2="10" y1="-325" y2="-325" />
+                    <line x1="-40" x2="40" y1="-300" y2="-300" />
+                    <line x1="-10" x2="10" y1="-275" y2="-275" />
+                    <line x1="-20" x2="20" y1="-250" y2="-250" />
+                    <line x1="-10" x2="10" y1="-225" y2="-225" />
+                    <line x1="-40" x2="40" y1="-200" y2="-200" />
+                    <line x1="-10" x2="10" y1="-175" y2="-175" />
+                    <line x1="-20" x2="20" y1="-150" y2="-150" />
+                    <line x1="-10" x2="10" y1="-125" y2="-125" />
+                    <line x1="-40" x2="40" y1="-100" y2="-100" />
+                    <line x1="-10" x2="10" y1="-75"  y2="-75" />
+                    <line x1="-20" x2="20" y1="-50"  y2="-50" />
+                    <line x1="-10" x2="10" y1="-25"  y2="-25" />
+                    <line x1="-10" x2="10" y1="+25"  y2="+25" />
+                    <line x1="-20" x2="20" y1="+50"  y2="+50" />
+                    <line x1="-10" x2="10" y1="+75"  y2="+75" />
+                    <line x1="-40" x2="40" y1="+100" y2="+100" />
+                    <line x1="-10" x2="10" y1="+125" y2="+125" />
+                    <line x1="-20" x2="20" y1="+150" y2="+150" />
+                    <line x1="-10" x2="10" y1="+175" y2="+175" />
+                    <line x1="-40" x2="40" y1="+200" y2="+200" />
+                    <line x1="-10" x2="10" y1="+225" y2="+225" />
+                    <line x1="-20" x2="20" y1="+250" y2="+250" />
+                    <line x1="-10" x2="10" y1="+275" y2="+275" />
+                    <line x1="-40" x2="40" y1="+300" y2="+300" />
+                    <line x1="-10" x2="10" y1="+325" y2="+325" />
+                    <line x1="-20" x2="20" y1="+350" y2="+350" />
+                    <line x1="-10" x2="10" y1="+375" y2="+375" />
+                    <line x1="-40" x2="40" y1="+400" y2="+400" />
+                    <line x1="-10" x2="10" y1="+425" y2="+425" />
+                    <line x1="-20" x2="20" y1="+450" y2="+450" />
+                    <line x1="-10" x2="10" y1="+475" y2="+475" />
+                    <line x1="-40" x2="40" y1="+500" y2="+500" />
+                    <line x1="-10" x2="10" y1="+525" y2="+525" />
+                    <line x1="-20" x2="20" y1="+550" y2="+550" />
+                    <line x1="-10" x2="10" y1="+575" y2="+575" />
+                    <line x1="-40" x2="40" y1="+600" y2="+600" />
+                    <line x1="-10" x2="10" y1="+625" y2="+625" />
+                    <line x1="-20" x2="20" y1="+650" y2="+650" />
+                    <line x1="-10" x2="10" y1="+675" y2="+675" />
+                    <line x1="-40" x2="40" y1="+700" y2="+700" />
+                    <line x1="-10" x2="10" y1="+725" y2="+725" />
+                    <line x1="-20" x2="20" y1="+750" y2="+750" />
+                    <line x1="-10" x2="10" y1="+775" y2="+775" />
+                    <line x1="-40" x2="40" y1="+800" y2="+800" />
+                    <line x1="-10" x2="10" y1="+825" y2="+825" />
+                    <line x1="-20" x2="20" y1="+850" y2="+850" />
+                    <line x1="-10" x2="10" y1="+875" y2="+875" />
+                    <line x1="-40" x2="40" y1="+900" y2="+900" />
+                    <line x1="-10" x2="10" y1="+925" y2="+925" />
+                    <line x1="-20" x2="20" y1="+950" y2="+950" />
+                    <line x1="-10" x2="10" y1="+975" y2="+975" />
+                    <line x1="-40" x2="40" y1="+1000" y2="+1000" />
+                    <line x1="-10" x2="10" y1="+1025" y2="+1025" />
+                    <line x1="-20" x2="20" y1="+1050" y2="+1050" />
+                    <text x="-55" y="-1000" class="markText">80</text>
+                    <text x="+55" y="-1000" class="markText">80</text>
+                    <text x="-55" y="-900" class="markText">90</text>
+                    <text x="+55" y="-900" class="markText">90</text>
+                    <text x="-55" y="-800" class="markText">80</text>
+                    <text x="+55" y="-800" class="markText">80</text>
+                    <text x="-55" y="-700" class="markText">70</text>
+                    <text x="+55" y="-700" class="markText">70</text>
+                    <text x="-55" y="-600" class="markText">60</text>
+                    <text x="+55" y="-600" class="markText">60</text>
+                    <text x="-55" y="-500" class="markText">50</text>
+                    <text x="+55" y="-500" class="markText">50</text>
+                    <text x="-55" y="-400" class="markText">40</text>
+                    <text x="+55" y="-400" class="markText">40</text>
+                    <text x="-55" y="-300" class="markText">30</text>
+                    <text x="+55" y="-300" class="markText">30</text>
+                    <text x="-55" y="-200" class="markText">20</text>
+                    <text x="+55" y="-200" class="markText">20</text>
+                    <text x="-55" y="-100" class="markText">10</text>
+                    <text x="+55" y="-100" class="markText">10</text>
+                    <text x="-55" y="+100" class="markText">10</text>
+                    <text x="+55" y="+100" class="markText">10</text>
+                    <text x="-55" y="+200" class="markText">20</text>
+                    <text x="+55" y="+200" class="markText">20</text>
+                    <text x="-55" y="+300" class="markText">30</text>
+                    <text x="+55" y="+300" class="markText">30</text>
+                    <text x="-55" y="+400" class="markText">40</text>
+                    <text x="+55" y="+400" class="markText">40</text>
+                    <text x="-55" y="+500" class="markText">50</text>
+                    <text x="+55" y="+500" class="markText">50</text>
+                    <text x="-55" y="+600" class="markText">60</text>
+                    <text x="+55" y="+600" class="markText">60</text>
+                    <text x="-55" y="+700" class="markText">70</text>
+                    <text x="+55" y="+700" class="markText">70</text>
+                    <text x="-55" y="+800" class="markText">80</text>
+                    <text x="+55" y="+800" class="markText">80</text>
+                    <text x="-55" y="+900" class="markText">90</text>
+                    <text x="+55" y="+900" class="markText">90</text>
+                    <text x="-55" y="+1000" class="markText">80</text>
+                    <text x="+55" y="+1000" class="markText">80</text>
+                </g>
+            </g>
+        </g>
+
+        <g clip-path="url(#roll-clip)">
+            <g class="marks roll">
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-180)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-170)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-160)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-150)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-140)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-130)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-120)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-110)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-100)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-90)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-80)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-70)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-60)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-50)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-40)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(-30)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-20)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(-10)" />
+                <polygon points="-10 -189, 0 -175, 10 -189" stroke-width="0" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+10)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+20)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(+30)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+40)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+50)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(+60)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+70)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+80)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(+90)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+100)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+110)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(+120)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+130)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+140)" />
+                <line x1="0" x2="0" y1="-175" y2="-195" transform="rotate(+150)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+160)" />
+                <line x1="0" x2="0" y1="-175" y2="-189" transform="rotate(+170)" />
+            </g>
+        </g>
+
+        <!-- document.getElementsByClass("slipSkid")[0].setAttribute("transform", "translate(slipSkid, 0)") -->
+        <g class="marks">
+            <polygon points="-10 -160, 0 -174, 10 -160" stroke-width="0" />
+            <polygon points="-10 +160, 0 +174, 10 +160" stroke-width="0" />
+            <rect x="-10" y="-158" width="20" height="6" stroke-width="0" class="slipSkid" />
+        </g>
+
+        <!-- document.getElementsByClass("heading")[0].setAttribute("transform", "translate(-heading*2, 0)") -->
+        <g class="marks heading">
+
+            <g clip-path="url(#heading-clip)">
+                <line x1="-180" x2="-180" y1="175" y2="195" stroke-width="2"/>
+                <line x1="-120" x2="-120" y1="175" y2="195" stroke-width="2"/>
+                <line x1="-60"  x2="-60"  y1="175" y2="195" stroke-width="2"/>
+                <line x1="0"    x2="0"    y1="175" y2="195" stroke-width="2"/>
+                <line x1="+60"  x2="+60"  y1="175" y2="195" stroke-width="2"/>
+                <line x1="+120" x2="+120" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+180" x2="+180" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+240" x2="+240" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+300" x2="+300" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+360" x2="+360" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+420" x2="+420" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+480" x2="+480" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+540" x2="+540" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+600" x2="+600" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+660" x2="+660" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+720" x2="+720" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+780" x2="+780" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+840" x2="+840" y1="175" y2="195" stroke-width="2"/>
+                <line x1="+900" x2="+900" y1="175" y2="195" stroke-width="2"/>
+            </g>
+
+            <line x1="-200" x2="-200" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-160" x2="-160" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-140" x2="-140" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-100" x2="-100" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-80" x2="-80" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-40" x2="-40" y1="175" y2="195" stroke-width="1"/>
+            <line x1="-20" x2="-20" y1="175" y2="195" stroke-width="1"/>
+            <line x1="20" x2="20" y1="175" y2="195" stroke-width="1"/>
+            <line x1="40" x2="40" y1="175" y2="195" stroke-width="1"/>
+            <line x1="80" x2="80" y1="175" y2="195" stroke-width="1"/>
+            <line x1="100" x2="100" y1="175" y2="195" stroke-width="1"/>
+            <line x1="140" x2="140" y1="175" y2="195" stroke-width="1"/>
+            <line x1="160" x2="160" y1="175" y2="195" stroke-width="1"/>
+            <line x1="200" x2="200" y1="175" y2="195" stroke-width="1"/>
+            <line x1="220" x2="220" y1="175" y2="195" stroke-width="1"/>
+            <line x1="260" x2="260" y1="175" y2="195" stroke-width="1"/>
+            <line x1="280" x2="280" y1="175" y2="195" stroke-width="1"/>
+            <line x1="320" x2="320" y1="175" y2="195" stroke-width="1"/>
+            <line x1="340" x2="340" y1="175" y2="195" stroke-width="1"/>
+            <line x1="380" x2="380" y1="175" y2="195" stroke-width="1"/>
+            <line x1="400" x2="400" y1="175" y2="195" stroke-width="1"/>
+            <line x1="440" x2="440" y1="175" y2="195" stroke-width="1"/>
+            <line x1="460" x2="460" y1="175" y2="195" stroke-width="1"/>
+            <line x1="500" x2="500" y1="175" y2="195" stroke-width="1"/>
+            <line x1="520" x2="520" y1="175" y2="195" stroke-width="1"/>
+            <line x1="560" x2="560" y1="175" y2="195" stroke-width="1"/>
+
+            <line x1="+580" x2="+580" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+620" x2="+620" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+640" x2="+640" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+680" x2="+680" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+700" x2="+700" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+740" x2="+740" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+760" x2="+760" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+800" x2="+800" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+820" x2="+820" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+860" x2="+860" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+880" x2="+880" y1="175" y2="195" stroke-width="1"/>
+            <line x1="+920" x2="+920" y1="175" y2="195" stroke-width="1"/>
+
+            <text x="-180" y="+186" class="markText">270</text>
+            <text x="-120" y="+186" class="markText">300</text>
+            <text x="-60"  y="+186" class="markText">330</text>
+            <text x="0"    y="+186" class="markText">0</text>
+            <text x="60"   y="+186" class="markText">30</text>
+            <text x="120"  y="+186" class="markText">60</text>
+            <text x="180"  y="+186" class="markText">90</text>
+            <text x="240"  y="+186" class="markText">120</text>
+            <text x="300"  y="+186" class="markText">150</text>
+            <text x="360"  y="+186" class="markText">180</text>
+            <text x="420"  y="+186" class="markText">210</text>
+            <text x="480"  y="+186" class="markText">240</text>
+            <text x="540"  y="+186" class="markText">270</text>
+            <text x="600"  y="+186" class="markText">300</text>
+            <text x="660"  y="+186" class="markText">330</text>
+            <text x="720"  y="+186" class="markText">0</text>
+            <text x="780"  y="+186" class="markText">30</text>
+            <text x="840"  y="+186" class="markText">60</text>
+            <text x="900"  y="+186" class="markText">90</text>
+        </g>
+
+        <g class="pointer">
+            <polygon points="-150 -3, -78 -3, -75 0, -78 3, -150 3" />
+            <polygon points="+150 -3, +78 -3, +75 0, +78 3, +150 3" />
+
+            <polygon points="-75 25, 0 0, 75 25, 25 25, 25 20, -25 20, -25 25" class="pointerBG" />
+            <polygon points="-75 25, 0 0, 75 25, 0 10" />
+            <line x1="0" x2="0" y1="0" y2="10" />
+        </g>
+    </g>
+
+</svg>

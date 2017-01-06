@@ -50,7 +50,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		$scope.map_mark_x = Math.round((div_width - (font_size * 0.85)) / 2);
 		$scope.map_mark_y = Math.round((div_height - font_size) / 2);
-	};
+	}
 
 
 	function loadStatus(data) { // mySituation
@@ -104,19 +104,19 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		setGeoReferenceMap(status.Lat, status.Lng);
 
 		// $scope.$apply();
-	};
+	}
 
 	function getStatus() {
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_GPS_GET).
 		then(function (response) {
 			loadStatus(response.data);
-			ahrs.animate(1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading);
+			ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading);
 			// $scope.$apply();
 		}, function (response) {
 			$scope.raw_data = "error getting gps / ahrs status";
 		});
-	};
+	}
 
 	function getSatellites() {
 		// Simple GET request example (note: response is asynchronous)
@@ -126,7 +126,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		}, function (response) {
 			$scope.raw_data = "error getting satellite data";
 		});
-	};
+	}
 
 	function setSatellite(obj, new_satellite) {
 		new_satellite.SatelliteNMEA = obj.SatelliteNMEA;
@@ -157,10 +157,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 	
 	var updateStatus = $interval(function () {
-		// refresh GPS/AHRS status once each half second (aka polling)
+		// refresh GPS/AHRS status once each 200 milliseconds (aka polling)
 		getStatus();
 		getSatellites();
-	}, (1 * 500), 0, false);
+	}, (2 * 100), 0, false);
 
 	$state.get('gps').onEnter = function () {
 		// everything gets handled correctly by the controller
@@ -175,6 +175,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	// GPS/AHRS Controller tasks go here
 	var ahrs = new ahrsRenderer("ahrs_display");
 	ahrs.init();
-	ahrs.orientation(0, 0, 0);
+	ahrs.orientation(0, 0, 90);
 
-};
+}
