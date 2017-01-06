@@ -1403,11 +1403,14 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
-	// Start the GPS external sensor monitoring.
-	initGPS()
+	// Start the management interface.
+	go managementInterface()
 
 	// Start the AHRS sensor monitoring.
 	initI2CSensors()
+
+	// Start the GPS external sensor monitoring.
+	initGPS()
 
 	// Start appropriate AHRS calc, depending on whether or not we have an IMU connected
 	if globalStatus.IMUConnected {
@@ -1420,8 +1423,6 @@ func main() {
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
-	// Start the management interface.
-	go managementInterface()
 
 	// Initialize the (out) network handler.
 	initNetwork()
