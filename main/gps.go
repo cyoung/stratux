@@ -49,9 +49,10 @@ type SatelliteInfo struct {
 }
 
 type SituationData struct {
-	mu_GPS     *sync.Mutex
-	mu_GPSPerf *sync.Mutex
 	// From GPS.
+	mu_GPS                   *sync.Mutex
+	mu_GPSPerf               *sync.Mutex
+	mu_Satellite             *sync.Mutex
 	LastFixSinceMidnightUTC  float32
 	Lat                      float32
 	Lng                      float32
@@ -120,7 +121,6 @@ var serialPort *serial.Port
 
 var readyToInitGPS bool //TODO: replace with channel control to terminate goroutine when complete
 
-var satelliteMutex *sync.Mutex
 var Satellites map[string]SatelliteInfo
 
 /*
@@ -1095,7 +1095,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				var thisSatellite SatelliteInfo
 
 				// START OF PROTECTED BLOCK
-				satelliteMutex.Lock()
+				mySituation.mu_Satellite.Lock()
 
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1155,7 +1155,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 				updateConstellation()
-				satelliteMutex.Unlock()
+				mySituation.mu_Satellite.Unlock()
 				// END OF PROTECTED BLOCK
 
 				// end of satellite iteration loop
@@ -1562,7 +1562,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				var thisSatellite SatelliteInfo
 
 				// START OF PROTECTED BLOCK
-				satelliteMutex.Lock()
+				mySituation.mu_Satellite.Lock()
 
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1581,7 +1581,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 				updateConstellation()
-				satelliteMutex.Unlock()
+				mySituation.mu_Satellite.Unlock()
 				// END OF PROTECTED BLOCK
 
 			}
@@ -1686,7 +1686,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			var thisSatellite SatelliteInfo
 
 			// START OF PROTECTED BLOCK
-			satelliteMutex.Lock()
+			mySituation.mu_Satellite.Lock()
 
 			// Retrieve previous information on this satellite code.
 			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1749,7 +1749,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 			updateConstellation()
-			satelliteMutex.Unlock()
+			mySituation.mu_Satellite.Unlock()
 			// END OF PROTECTED BLOCK
 		}
 
@@ -1903,7 +1903,7 @@ func gpsAttitudeSender() {
 
 /*
 	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
-		data structure. Calling functions must protect this in a satelliteMutex.
+		data structure. Calling functions must protect this in a mySituation.mu_Satellite.
 
 */
 
@@ -1987,7 +1987,6 @@ func pollGPS() {
 }
 
 func initGPS() {
-	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
 
 	go pollGPS()
