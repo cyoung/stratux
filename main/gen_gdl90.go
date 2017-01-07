@@ -1381,6 +1381,9 @@ func main() {
 	ADSBTowerMutex = &sync.Mutex{}
 	MsgLog = make([]msg, 0)
 
+	// Start the management interface.
+	go managementInterface()
+
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
@@ -1403,9 +1406,6 @@ func main() {
 
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
-
-	// Start the management interface.
-	go managementInterface()
 
 	// Start the AHRS sensor monitoring.
 	initI2CSensors()
