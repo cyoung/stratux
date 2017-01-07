@@ -1877,7 +1877,7 @@ func gpsAttitudeSender() {
 	for {
 		<-timer.C
 		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
-		for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
+		for !(globalSettings.Sensors_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {
 			<-timer.C
 
 			if mySituation.Quality == 0 || !calcGPSAttitude() {
@@ -1974,6 +1974,7 @@ func isTempPressValid() bool {
 func pollGPS() {
 	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
+	go gpsAttitudeSender()
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?

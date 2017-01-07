@@ -94,7 +94,6 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.visible_uat = true;
 		$scope.visible_es = true;
 		$scope.visible_gps = true;
-		$scope.visible_ahrs = true;
 
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_SETTINGS_GET).

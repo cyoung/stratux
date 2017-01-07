@@ -468,14 +468,19 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	// msg[12] = 1 << 0
+	if globalSettings.Sensors_Enabled {
+		msg[12] = 1 << 0
+	}
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware.
-	//	RY835AI: msg[15] = msg[15] | (1 << 2)
+
+	// Connected hardware: IMU (spec really says just RY835AI, could revise for other IMUs
+	if globalStatus.IMUConnected {
+		msg[15] = msg[15] | (1 << 2)
+	}
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
@@ -1025,6 +1030,7 @@ type settings struct {
 	ES_Enabled           bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
+	Sensors_Enabled      bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
@@ -1088,6 +1094,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
 	globalSettings.GPS_Enabled = true
+	globalSettings.Sensors_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1196,6 +1203,9 @@ func printStats() {
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
+		}
+		if globalSettings.Sensors_Enabled {
+			log.Printf(" - Last IMU read: %s, Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastAttitudeTime), stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
 		if !diskUsageWarning && usage.Usage() > 95.0 {
@@ -1412,15 +1422,6 @@ func main() {
 
 	// Start the GPS external sensor monitoring.
 	initGPS()
-
-	// Start appropriate AHRS calc, depending on whether or not we have an IMU connected
-	if globalStatus.IMUConnected {
-		log.Println("AHRS Info: IMU connected - starting sensorAttitudeSender")
-		go sensorAttitudeSender()
-	} else {
-		log.Println("AHRS Info: IMU not connected - starting gpsAttitudeSender")
-		go gpsAttitudeSender()
-	}
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()

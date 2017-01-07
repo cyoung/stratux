@@ -9,20 +9,16 @@ function ahrsRenderer(location_id) {
 	var ai = document.getElementById("attitude_indicator"),
 	    _this = this;
 
-	this.ps = []
-	this.rs = []
-	this.hs = []
-	this.ss = []
+	this.ps = [];
+	this.rs = [];
+	this.hs = [];
+	this.ss = [];
 	
 	ai.onload = function() {
 		_this.ps = ai.contentDocument.getElementsByClassName("pitch");
 		_this.rs = ai.contentDocument.getElementsByClassName("roll");
 		_this.hs = ai.contentDocument.getElementsByClassName("heading");
 		_this.ss = ai.contentDocument.getElementsByClassName("slipSkid");
-		console.log(_this.ps.length);
-		console.log(_this.rs.length);
-		console.log(_this.hs.length);
-		console.log(_this.ss.length);
 	};
 
 }
@@ -35,6 +31,7 @@ ahrsRenderer.prototype = {
 		this.pitch = 0;
 		this.roll = 0;
 		this.heading = 0;
+		this.slipSkid = 0;
 
 		this.resize();
 	},
@@ -90,8 +87,7 @@ ahrsRenderer.prototype = {
 
 	draw: function() {
 		for (i=0; i<this.ps.length; i++) {
-			console.log("pitch " + i);
-			this.ps[i].setAttribute("transform", "translate(0,"+this.pitch*10+")")
+			this.ps[i].setAttribute("transform", "translate(0,"+this.pitch * 10+")")
 		}
 
 		for (i=0; i<this.rs.length; i++) {
@@ -99,11 +95,15 @@ ahrsRenderer.prototype = {
 		}
 
 		for (i=0; i<this.hs.length; i++) {
-			this.hs[i].setAttribute("transform", "translate("+(-this.heading*2)+",0)")
+		    var h = this.heading;
+		    while (h < 0) {
+		    	h += 360
+			}
+			this.hs[i].setAttribute("transform", "translate("+(-(this.heading % 360) * 2)+",0)")
 		}
 
 		for (i=0; i<this.ss.length; i++) {
-			this.ss[i].setAttribute("transform", "translate("+(-this.slipSkid*2)+",0)")
+			this.ss[i].setAttribute("transform", "translate("+(-this.slipSkid * 2)+",0)")
 		}
 	}
 };
