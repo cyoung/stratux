@@ -25,39 +25,6 @@
 				</div>
 			</div>
 		</div>
-	</div>
-	<div class="col-sm-6">
-		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">AHRS</span></div>
-			<div class="panel-body">
-				<div class="row">
-					<span class="col-xs-12">
-					    <div id="ahrs_display">
-							<object id="attitude_indicator" data="../img/ai.svg" type="image/svg+xml">
-								Your browser doesn't support svg.
-							</object>
-    					</div>
-					</span>
-				</div>
-				<div class="separator"></div>
-				<div class="row">
-					<strong class="col-xs-3 text-center">Heading:</strong>
-					<strong class="col-xs-3 text-center">Pitch:</strong>
-					<strong class="col-xs-3 text-center">Roll:</strong>
-					<strong class="col-xs-3 text-center">P-Alt:</strong>
-				</div>
-				<div class="row">
-					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
-<div class="col-sm-12">
-	<div class="col-sm-6">
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<span class="panel_label">Satellites</span>
@@ -93,7 +60,36 @@
 				</div>
 			</div>
 		</div>
-	</div>	
+	</div>
+	<div class="col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading"><span class="panel_label">AHRS</span></div>
+			<div class="panel-body">
+				<div class="row">
+					<span class="col-xs-12">
+					    <div id="ahrs_display">
+							<object id="attitude_indicator" data="../img/ai.svg" type="image/svg+xml">
+								Your browser doesn't support svg.
+							</object>
+    					</div>
+					</span>
+				</div>
+				<div class="separator"></div>
+				<div class="row">
+					<strong class="col-xs-3 text-center">Heading:</strong>
+					<strong class="col-xs-3 text-center">Pitch:</strong>
+					<strong class="col-xs-3 text-center">Roll:</strong>
+					<strong class="col-xs-3 text-center">P-Alt:</strong>
+				</div>
+				<div class="row">
+					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
 <!--
