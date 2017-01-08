@@ -36,6 +36,7 @@ func pollSensors() {
 		// If it's not currently connected, try connecting to pressure sensor
 		if globalSettings.Sensors_Enabled && !globalStatus.PressureSensorConnected {
 			globalStatus.PressureSensorConnected = initPressureSensor() // I2C temperature and pressure altitude.
+			go tempAndPressureSender()
 		}
 
 		// If it's not currently connected, try connecting to IMU
@@ -49,7 +50,6 @@ func initPressureSensor() (ok bool) {
 	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
 	if err == nil {
 		myPressureReader = bmp
-		go tempAndPressureSender()
 		log.Println("AHRS Info: Successfully initialized BMP280")
 		return true
 	}
