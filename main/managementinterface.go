@@ -285,6 +285,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
 						}
+					case "IMUMapping":
+						globalSettings.IMUMapping = val.([3]int)
+						globalStatus.IMUConnected = false // Force a restart of the IMU reader
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "Baud":

@@ -145,7 +145,8 @@ func sensorAttitudeSender() {
 		t                                                 time.Time
 		s                                                 ahrs.AHRSProvider
 		m                                                 *ahrs.Measurement
-		bx, by, bz, ax, ay, az, mx, my, mz                float64
+		a1, a2, a3, b1, b2, b3, m1, m2, m3                float64 // IMU measurements
+		ff       					  *[3][3]float64 // Sensor orientation matrix
 		mpuError, magError                                error
 		headingMag, slipSkid, turnRate, gLoad             float64
 		errHeadingMag, errSlipSkid, errTurnRate, errGLoad error
@@ -168,19 +169,46 @@ func sensorAttitudeSender() {
 	// Need a 10Hz sampling freq
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
+		ff = new([3][3]float64)
+		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
+			globalSettings.IMUMapping[0] = -1 // +2
+			globalSettings.IMUMapping[1] = +2 // -1
+			globalSettings.IMUMapping[2] = -3 // +3
+			saveSettings()
+		}
+		f := globalSettings.IMUMapping
+		for i := 0; i < 3; i++ {
+			if f[i] < 0 {
+				ff[i][-f[i] - 1] = -1
+			} else {
+				ff[i][f[i] - 1] = +1
+			}
+		}
+
 		<-timer.C
 		for (globalSettings.Sensors_Enabled && globalStatus.IMUConnected) {
 			<-timer.C
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano() / 1000) / 1e6
 
-			_, bx, by, bz, ax, ay, az, mx, my, mz, mpuError, magError = myIMUReader.ReadRaw()
-			//TODO westphae: allow user configuration of this mapping from a file, plus UI modification
-			//m.B1, m.B2, m.B3 = +by, -bx, +bz // This is how the RY83XAI is wired up
-			//m.A1, m.A2, m.A3 = -ay, +ax, -az // This is how the RY83XAI is wired up
-			m.B1, m.B2, m.B3 = -bx, +by, -bz // This is how the OpenFlightBox board is wired up
-			m.A1, m.A2, m.A3 = -ay, +ax, +az // This is how the OpenFlightBox board is wired up
-			m.M1, m.M2, m.M3 = +mx, +my, +mz
+			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.ReadRaw()
+			// This is how the RY83XAI is wired up
+			//m.A1, m.A2, m.A3 = -a2, +a1, -a3
+			//m.B1, m.B2, m.B3 = +b2, -b1, +b3
+			//m.M1, m.M2, m.M3 = +m1, +m2, +m3
+			// This is how the OpenFlightBox board is wired up
+			//m.A1, m.A2, m.A3 = +a1, -a2, +a3
+			//m.B1, m.B2, m.B3 = -b1, +b2, -b3
+			//m.M1, m.M2, m.M3 = +m2, +m1, +m3
+			m.A1 = -(ff[0][0]*a1 + ff[0][1]*a2 + ff[0][2]*a3)
+			m.A2 = -(ff[1][0]*a1 + ff[1][1]*a2 + ff[1][2]*a3)
+			m.A3 = -(ff[2][0]*a1 + ff[2][1]*a2 + ff[2][2]*a3)
+			m.B1 =   ff[0][0]*b1 + ff[0][1]*b2 + ff[0][2]*b3
+			m.B2 =   ff[1][0]*b1 + ff[1][1]*b2 + ff[1][2]*b3
+			m.B3 =   ff[2][0]*b1 + ff[2][1]*b2 + ff[2][2]*b3
+			m.M1 =   ff[0][0]*m1 + ff[0][1]*m2 + ff[0][2]*m3
+			m.M2 =   ff[1][0]*m1 + ff[1][1]*m2 + ff[1][2]*m3
+			m.M3 =   ff[2][0]*m1 + ff[2][1]*m2 + ff[2][2]*m3
 			m.SValid = mpuError == nil
 			m.MValid = magError == nil
 			if mpuError != nil {

@@ -56,7 +56,7 @@ ahrsRenderer.prototype = {
 	},
 
 	animate: function (t, pitch, roll, heading) {
-		var FPS = 100; // we assume we can maintain a certain frame rate
+		var FPS = 80; // we assume we can maintain a certain frame rate
 		var x_inc = ((pitch - this.pitch) / (FPS * t));
 		var y_inc = ((roll - this.roll) / (FPS * t));
 		if ((heading < this.heading) && (this.heading - heading) > 180) {
