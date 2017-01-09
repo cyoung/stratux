@@ -15,6 +15,8 @@ import (
 	"github.com/westphae/goflying/ahrsweb"
 )
 
+const numRetries uint8 = 5
+
 var (
 	i2cbus           embd.I2CBus
 	myPressureReader sensors.PressureReader
@@ -71,24 +73,6 @@ func initPressureSensor() (ok bool) {
 	return false
 }
 
-func initIMU() (ok bool) {
-	log.Println("AHRS Info: attempting to connect to MPU9250")
-	imu, err := sensors.NewMPU9250()
-	if err == nil {
-		myIMUReader = imu
-		time.Sleep(200 * time.Millisecond)
-		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
-		myIMUReader.Calibrate(1, 5)
-		log.Println("AHRS Info: Successfully calibrated MPU9250")
-		return true
-	}
-
-	// TODO westphae: try to connect to MPU9150
-
-	log.Println("AHRS Error: couldn't initialize MPU9250 or MPU9150")
-	return false
-}
-
 func tempAndPressureSender() {
 	var (
 		temp     float64
@@ -97,10 +81,12 @@ func tempAndPressureSender() {
 		altitude float64
 		err      error
 		dt       float64 = 0.1
+		failnum  uint8
 	)
 
 	// Initialize variables for rate of climb calc
 	u := 5 / (5 + float64(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
+	time.Sleep(time.Second)
 	if press, err = myPressureReader.Pressure(); err != nil {
 		log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
 		myPressureReader.Close()
@@ -120,9 +106,13 @@ func tempAndPressureSender() {
 		press, err = myPressureReader.Pressure()
 		if err != nil {
 			log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
-			myPressureReader.Close()
-			globalStatus.PressureSensorConnected = false // Try reconnecting a little later
-			break
+			failnum += 1
+			if failnum > numRetries {
+				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failnum, err)
+				myPressureReader.Close()
+				globalStatus.PressureSensorConnected = false // Try reconnecting a little later
+				break
+			}
 		}
 
 		// Update the Situation data.
@@ -138,8 +128,25 @@ func tempAndPressureSender() {
 	}
 }
 
+func initIMU() (ok bool) {
+	log.Println("AHRS Info: attempting to connect to MPU9250")
+	imu, err := sensors.NewMPU9250()
+	if err == nil {
+		myIMUReader = imu
+		time.Sleep(200 * time.Millisecond)
+		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
+		myIMUReader.Calibrate(1, 5)
+		log.Println("AHRS Info: Successfully calibrated MPU9250")
+		return true
+	}
+
+	// TODO westphae: try to connect to MPU9150
+
+	log.Println("AHRS Error: couldn't initialize MPU9250 or MPU9150")
+	return false
+}
+
 func sensorAttitudeSender() {
-	log.Println("AHRS Info: Setting up sensorAttitudeSender")
 	var (
 		roll, pitch, heading                              float64
 		t                                                 time.Time
@@ -150,6 +157,7 @@ func sensorAttitudeSender() {
 		mpuError, magError                                error
 		headingMag, slipSkid, turnRate, gLoad             float64
 		errHeadingMag, errSlipSkid, errTurnRate, errGLoad error
+		failnum						  uint8
 	)
 	m = ahrs.NewMeasurement()
 
@@ -169,6 +177,7 @@ func sensorAttitudeSender() {
 	// Need a 10Hz sampling freq
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
+		log.Println("AHRS Info: Initializing sensorAttitudeSender")
 		ff = new([3][3]float64)
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
@@ -185,6 +194,7 @@ func sensorAttitudeSender() {
 			}
 		}
 
+		failnum = 0
 		<-timer.C
 		for (globalSettings.Sensors_Enabled && globalStatus.IMUConnected) {
 			<-timer.C
@@ -213,8 +223,12 @@ func sensorAttitudeSender() {
 			m.MValid = magError == nil
 			if mpuError != nil {
 				log.Printf("AHRS Gyro/Accel Error: %s\n", mpuError)
-				myIMUReader.Close()
-				globalStatus.IMUConnected = false
+				failnum += 1
+				if failnum > numRetries {
+					log.Printf("AHRS Gyro/Accel Error: failed to read %d times, restarting: %s\n", failnum, mpuError)
+					myIMUReader.Close()
+					globalStatus.IMUConnected = false
+				}
 			}
 			if magError != nil {
 				log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
