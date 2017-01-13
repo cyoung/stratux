@@ -13,6 +13,9 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 		}, function (response) {
 			// do nothing
 		});
-	};    
-};
-    
+	};
+
+	$scope.webUIRefresh = function() {
+		location.reload(true);
+	}
+}
