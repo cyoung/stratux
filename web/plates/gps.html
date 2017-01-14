@@ -1,5 +1,5 @@
 <div class="col-sm-12">
-	<div class="col-sm-6">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading"><span class="panel_label">GPS</span></div>
 			<div class="panel-body">
@@ -18,13 +18,46 @@
 				<div class="row">
 					<strong class="col-xs-6 text-center">Location:</strong>
 					<strong class="col-xs-6 text-center">Track:</strong>
-                </div>
+				</div>
 				<div class="row">
 					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_accuracy}} m <br> {{gps_alt}} &plusmn; {{gps_vert_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
 					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
 				</div>
 			</div>
 		</div>
+	</div>
+	<div class="col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading"><span ng-click="hideClick()" class="panel_label">AHRS</span></div>
+			<div class="panel-body">
+				<div class="row">
+					<span class="col-xs-12">
+						<div id="ahrs_display">
+							<object id="attitude_indicator" data="../img/ai.svg" type="image/svg+xml">
+								Your browser doesn't support svg.
+							</object>
+						</div>
+					</span>
+				</div>
+				<div class="separator"></div>
+				<div class="row">
+					<strong class="col-xs-3 text-center">Heading:</strong>
+					<strong class="col-xs-3 text-center">Pitch:</strong>
+					<strong class="col-xs-3 text-center">Roll:</strong>
+					<strong class="col-xs-3 text-center">P-Alt:</strong>
+				</div>
+				<div class="row">
+					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
+					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="col-sm-12">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<span class="panel_label">Satellites</span>
@@ -57,35 +90,6 @@
 				<div class="row">
 					<label class="col-xs-6">Summary:</label>
 					<span class="col-xs-6">{{Satellites}} in solution; {{GPS_satellites_seen}} seen; {{GPS_satellites_tracked}} tracked</span>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="col-sm-6">
-		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">AHRS</span></div>
-			<div class="panel-body">
-				<div class="row">
-					<span class="col-xs-12">
-					    <div id="ahrs_display">
-							<object id="attitude_indicator" data="../img/ai.svg" type="image/svg+xml">
-								Your browser doesn't support svg.
-							</object>
-    					</div>
-					</span>
-				</div>
-				<div class="separator"></div>
-				<div class="row">
-					<strong class="col-xs-3 text-center">Heading:</strong>
-					<strong class="col-xs-3 text-center">Pitch:</strong>
-					<strong class="col-xs-3 text-center">Roll:</strong>
-					<strong class="col-xs-3 text-center">P-Alt:</strong>
-				</div>
-				<div class="row">
-					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
 				</div>
 			</div>
 		</div>

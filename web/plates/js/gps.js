@@ -5,7 +5,8 @@ GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // I
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.$parent.helppage = 'plates/gps-help.html';
 	$scope.data_list = [];
-	
+	$scope.isHidden = false;
+
 	var status = {};
 	var display_area_size = -1;
 
@@ -16,7 +17,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (width !== display_area_size) {
 			display_area_size = width;
 			$scope.map_width = width;
-			$scope.map_height = width *0.5;
+			$scope.map_height = width;
 		}
 		return width;
 	}
@@ -83,10 +84,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		$scope.gps_lat = status.Lat.toFixed(5); // result is string
 		$scope.gps_lon = status.Lng.toFixed(5); // result is string
-		$scope.gps_alt = Math.round(status.Alt);
-		$scope.gps_track = status.TrueCourse;
-		$scope.gps_speed = status.GroundSpeed;
-                $scope.gps_vert_speed = status.GPSVertVel.toFixed(1);
+		$scope.gps_alt = status.Alt.toFixed(1);
+		$scope.gps_track = status.TrueCourse.toFixed(1);
+		$scope.gps_speed = status.GroundSpeed.toFixed(1);
+        $scope.gps_vert_speed = status.GPSVertVel.toFixed(1);
 
 		// "LastGroundTrackTime":"0001-01-01T00:00:00Z"
 
@@ -157,10 +158,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 	
 	var updateStatus = $interval(function () {
-		// refresh GPS/AHRS status once each 200 milliseconds (aka polling)
+		// refresh GPS/AHRS status once each 100 milliseconds (aka polling)
 		getStatus();
 		getSatellites();
-	}, (2 * 100), 0, false);
+	}, 100, 0, false);
 
 	$state.get('gps').onEnter = function () {
 		// everything gets handled correctly by the controller
@@ -177,4 +178,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	ahrs.init();
 	ahrs.orientation(0, 0, 90);
 
+	$scope.hideClick = function() {
+		$scope.isHidden = !$scope.isHidden;
+		var disp = "block";
+		if ($scope.isHidden) {
+			disp = "none";
+		}
+		var hiders = document.querySelectorAll(".hider");
+
+		for (var i=0; i < hiders.length; i++) {
+			hiders[i].style.display = disp;
+		}
+	}
 }
