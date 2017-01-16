@@ -286,8 +286,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							globalSettings.ReplayLog = v
 						}
 					case "IMUMapping":
-						globalSettings.IMUMapping = val.([3]int)
-						globalStatus.IMUConnected = false // Force a restart of the IMU reader
+						if globalSettings.IMUMapping != val.([3]int) {
+							globalSettings.IMUMapping = val.([3]int)
+							globalStatus.IMUConnected = false // Force a restart of the IMU reader
+						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "Baud":
@@ -365,6 +367,64 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	go delayReboot()
+}
+
+var f int // We need this to be global to handle successive calls to handleOrientAHRS.
+
+func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This insures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		var (
+			action []byte = make([]byte, 1)
+			u, l int
+			err error
+		)
+
+		if _, err = r.Body.Read(action); err != nil {
+			log.Println("AHRS Error: handleOrientAHRS received invalid request")
+			http.Error(w, "orientation received invalid request", http.StatusBadRequest)
+		}
+
+		switch action[0] {
+		case 'f': // Set sensor "forward" direction (toward nose of airplane).
+			if f, err = getMinAccelDirection(); err != nil {
+				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusFailedDependency)
+				return
+			}
+			log.Printf("AHRS Info: sensor orientation: received forward direction %d\n", f)
+		case 'u': // Set sensor "up" direction (toward top of airplane).
+			if u, err = getMinAccelDirection(); err != nil {
+				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusFailedDependency)
+				return
+			}
+			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
+
+			if f==u || f==-u {
+				log.Println("AHRS Error: sensor orientation: up and forward axes cannot be the same")
+				http.Error(w, "up and forward axes cannot be the same", http.StatusBadRequest)
+				return
+			}
+
+			l = 6 / f / u
+			globalSettings.IMUMapping = [3]int{f, l, u}
+			saveSettings()
+			globalStatus.IMUConnected = false // restart the processes depending on the orientation
+			log.Printf("AHRS Info: sensor orientation success! forward: %d; left: %d; up: %d\n", f, l, u)
+		default: // Cancel the sensor calibration.
+			log.Println("AHRS Info: sensor orientation: canceled")
+		}
+
+	}
 }
 
 func doRestartApp() {
@@ -599,6 +659,7 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
+	http.HandleFunc("/orientAHRS", handleOrientAHRS)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

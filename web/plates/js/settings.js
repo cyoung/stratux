@@ -204,10 +204,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         console.log("sending " + action + " message.");
 		$http.post(URL_AHRS_ORIENT, action).
 		then(function (response) {
-			// success: do nothing
 			console.log("sent " + action + " message.");
 		}, function(response) {
 			// failure: cancel the calibration
+            console.log(response.data);
+            $scope.Orientation_Failure_Message = response.data;
 			switch (action) {
 				case "forward":
 					$scope.Ui.turnOff("modalCalibrateUp");

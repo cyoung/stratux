@@ -180,91 +180,7 @@
 </div>
 
 <div ui-content-for="modals">
-	<div class="modal" ui-if="modalCalibrateForward" ui-state="modalCalibrateForward">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateForward"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Forward Direction</h4>
-					</div>
-					<div class="modal-body">
-						<p>Beginning sensor calibration.  We will be telling the Stratux sensors which direction will be forward, which toward the left wing, and which toward the ground.  You only have to do this once.  The settings for this sensor will be saved for future flights.</p>
-						<p>First, point the Stratux/sensor box so that the end that will be pointing <strong>forward</strong> (toward the nose of the airplane) is pointing toward the sky, and while holding it that way, press the <strong>Set Forward Direction</strong> button.</p>
-						<p>The Stratux sensors will use the direction of gravity to determine the <strong>forward</strong> orientation.</p>
-					</div>
-					<div class="modal-footer">
-						<a ng-click="setOrientation('cancel')" ui-turn-off="modalCalibrateForward" class="btn btn-default">Cancel</a>
-						<a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateUp" class="btn btn-default btn-primary">Set Forward Direction</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="modal" ui-if="modalCalibrateUp" ui-state="modalCalibrateUp">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateUp"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Up Direction</h4>
-					</div>
-					<div class="modal-body">
-						<p>Next, place the Stratux/sensor box in the orientation it will be in during flight, and while holding it that way, press the <strong>Set Up Direction</strong> button.</p>
-						<p>The Stratux sensors will use the direction of gravity to determine the <strong>up</strong> orientation.</p>
-						<p>Once you've done that, the sensors will be calibrated.  The direction toward the left wing will be determined automatically.</p>
-					</div>
-					<div class="modal-footer">
-						<a ng-click="setOrientation('cancel')" ui-turn-off="modalCalibrateUp" class="btn btn-default">Cancel</a>
-						<a ng-click="setOrientation('up')" ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Up Direction</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="modal" ui-if="modalCalibrateDone" ui-state="modalCalibrateDone">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateDone"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Finished</h4>
-					</div>
-					<div class="modal-body">
-						<p>The sensors are calibrated.  These settings will be saved for future flights.</p>
-					</div>
-					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateDone" class="btn btn-default btn-primary">OK</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="modal" ui-if="modalCalibrateFailed" ui-state="modalCalibrateFailed">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateFailed"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Failed!</h4>
-					</div>
-					<div class="modal-body">
-						<p>There was an error!  Maybe you held the same side of the sensor up both times?</p>
-						<p>The calibration failed.</p>
-					</div>
-					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="modal" ui-if="modalReboot" ui-state="modalReboot">
+  <div class="modal" ui-if="modalReboot" ui-state="modalReboot">
     <div class="modal-overlay "></div>
        	<div class="vertical-alignment-helper center-block">
         	<div class="modal-dialog vertical-align-center">
@@ -310,6 +226,111 @@
       </div>
     	  </div>
     </div>
-  </div> 
+  </div>
+
+	<div class="modal" ui-if="modalCalibrateForward" ui-state="modalCalibrateForward">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateForward"></button>
+						<h4 class="modal-title">Calibrate AHRS Sensors: Forward Direction</h4>
+					</div>
+					<div class="modal-body">
+						<p>Beginning sensor calibration.  We will be telling the Stratux sensors which direction will be forward, which toward the left wing, and which toward the ground.  You only have to do this once.  The settings for this sensor will be saved for future flights.</p>
+						<p>First, point the Stratux/sensor box so that the end that will be pointing <strong>forward</strong> (toward the nose of the airplane) is pointing toward the sky, and while holding it that way, press the <strong>Set Forward Direction</strong> button.</p>
+						<p>The Stratux sensors will use the direction of gravity to determine the <strong>forward</strong> orientation.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
+						<a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateUp" class="btn btn-default btn-primary">Set Forward Direction</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateUp" ui-state="modalCalibrateUp">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateUp"></button>
+						<h4 class="modal-title">Calibrate AHRS Sensors: Up Direction</h4>
+					</div>
+					<div class="modal-body">
+						<p>Next, place the Stratux/sensor box in the orientation it will be in during flight, and while holding it that way, press the <strong>Set Up Direction</strong> button.</p>
+						<p>The Stratux sensors will use the direction of gravity to determine the <strong>up</strong> orientation.</p>
+						<p>Once you've done that, the sensors will be calibrated.  The direction toward the left wing will be determined automatically.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
+						<a ng-click="setOrientation('up')" ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Up Direction</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateDone" ui-state="modalCalibrateDone">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateDone"></button>
+						<h4 class="modal-title">Calibrate AHRS Sensors: Finished</h4>
+					</div>
+					<div class="modal-body">
+						<p>The sensors are calibrated.  These settings will be saved for future flights.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateDone" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateFailed" ui-state="modalCalibrateFailed">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateFailed"></button>
+						<h4 class="modal-title">Calibrate AHRS Sensors: Failed!</h4>
+					</div>
+					<div class="modal-body">
+						<p>There was an error: {{Orientation_Failure_Message}}</p>
+						<p><div id="orientationFailureMessage"></div></p>
+						<p>The calibration failed.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateCanceled" ui-state="modalCalibrateCanceled">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateCanceled"></button>
+						<h4 class="modal-title">Calibrate AHRS Sensors: Canceled</h4>
+					</div>
+					<div class="modal-body">
+						<p>Calibration canceled.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateCanceled" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 </div>
 

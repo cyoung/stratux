@@ -178,7 +178,6 @@ func sensorAttitudeSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
 		log.Println("AHRS Info: Initializing sensorAttitudeSender")
-		ff = new([3][3]float64)
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
 			globalSettings.IMUMapping[1] = +2 // -1
@@ -186,6 +185,7 @@ func sensorAttitudeSender() {
 			saveSettings()
 		}
 		f := globalSettings.IMUMapping
+		ff = new([3][3]float64)
 		for i := 0; i < 3; i++ {
 			if f[i] < 0 {
 				ff[i][-f[i] - 1] = -1
@@ -311,5 +311,26 @@ func sensorAttitudeSender() {
 				pitch/ahrs.Deg, roll/ahrs.Deg, heading/ahrs.Deg, headingMag, slipSkid, turnRate, gLoad,
 				float64(mySituation.LastAttitudeTime.UnixNano() / 1000)/1e6)
 		}
+		log.Println("AHRS Info: left sensorAttitudeSender loop")
 	}
+}
+
+func getMinAccelDirection() (i int, err error) {
+	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.ReadRaw()
+	if err != nil {
+		return
+	}
+	log.Printf("AHRS Info: sensor orientation accels %1.3f %1.3f %1.3f\n", a1, a2, a3)
+	switch {
+	case math.Abs(a1) > math.Abs(a2) && math.Abs(a1) > math.Abs(a3):
+		i = int(a1 / math.Abs(a1))
+	case math.Abs(a2) > math.Abs(a3) && math.Abs(a2) > math.Abs(a1):
+		i = int(a2 / math.Abs(a2)) * 2
+	case math.Abs(a3) > math.Abs(a1) && math.Abs(a3) > math.Abs(a2):
+		i = int(a3 / math.Abs(a3)) * 3
+	default:
+		err = fmt.Errorf("couldn't determine biggest accel from %1.3f %1.3f %1.3f", a1, a2, a3)
+	}
+
+	return
 }
