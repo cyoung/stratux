@@ -37,13 +37,19 @@ func pollSensors() {
 
 		// If it's not currently connected, try connecting to pressure sensor
 		if globalSettings.Sensors_Enabled && !globalStatus.PressureSensorConnected {
+			log.Println("AHRS Info: attempting pressure sensor connection.")
 			globalStatus.PressureSensorConnected = initPressureSensor() // I2C temperature and pressure altitude.
 			go tempAndPressureSender()
 		}
 
 		// If it's not currently connected, try connecting to IMU
 		if globalSettings.Sensors_Enabled && !globalStatus.IMUConnected {
+			log.Println("AHRS Info: attempting IMU connection.")
 			globalStatus.IMUConnected = initIMU() // I2C accel/gyro/mag.
+		} else if globalSettings.Sensors_Enabled {
+			log.Println("AHRS Info: IMU already connected.")
+		} else {
+			log.Println("AHRS Info: sensors disabled, not attempting to connect.")
 		}
 	}
 }
