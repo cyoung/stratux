@@ -717,11 +717,11 @@ func isCPUTempValid() bool {
 }
 
 /*
-	cpuTempMonitor() reads the RPi board temperature every second and updates it in globalStatus.
+	cpuMonitor() reads the RPi board temperature every second and updates it in globalStatus.
 	This is broken out into its own function (run as its own goroutine) because the RPi temperature
 	 monitor code is buggy, and often times reading this file hangs quite some time.
 */
-func cpuTempMonitor() {
+func cpuMonitor() {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
@@ -744,6 +744,9 @@ func cpuTempMonitor() {
 			globalStatus.CPUTemp = t
 		}
 
+		// Update CPULoad.
+		data, err := ioutil.ReadFile("/proc/loadavg")
+		globalStatus.CPULoad = string(data[0:14])
 	}
 }
 
@@ -1067,6 +1070,7 @@ type status struct {
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
+	CPULoad                                    string
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
@@ -1200,6 +1204,7 @@ func printStats() {
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
+		log.Printf(" - CPU load %s\n", globalStatus.CPULoad)
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
@@ -1435,7 +1440,7 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
-	go cpuTempMonitor()
+	go cpuMonitor()
 
 	reader := bufio.NewReader(os.Stdin)
 
