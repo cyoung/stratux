@@ -896,7 +896,7 @@ func esListen() {
 			// This packet identifies an ADS-R target who we already have data on on UAT, which data is less than 6 seconds old
 			//  => current data is actually more accurate than the packet we are currently parsing, so return.
 			if ti.TargetType == TARGET_TYPE_ADSR && prev_Last_source == TRAFFIC_SOURCE_UAT && stratuxClock.Since(prev_Last_seen) < 6*time.Second {
-				log.Printf("DEBUG: Received traffic update for %08X on 1090, but UAT data is less than 6 seconds old. Ignoring report.\n", icao_addr)
+				log.Printf("DEBUG: Received traffic update for %08X on 1090, but UAT data is less than 6 seconds old. Ignoring report.\n", ti.Icao_addr)
 				continue
 			}
 
