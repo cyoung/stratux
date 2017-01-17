@@ -444,6 +444,13 @@ func parseDownlinkReport(s string, signalLevel int) {
 		}
 	}
 
+	// This packet identifies a TIS-B/ADS-R target who we already have data on from 1090ES, which data is less than 6 seconds old
+	//  => current data is actually more accurate than the packet we are currently parsing, so return.
+	if (ti.TargetType == TARGET_TYPE_TISB || ti.TargetType == TARGET_TYPE_ADSR) && ti.Last_source == TRAFFIC_SOURCE_1090ES && stratuxClock.Since(ti.Last_seen) < 6*time.Second {
+		log.Printf("DEBUG: Received traffic update for %08X on UAT, but 1090 data is less than 6 seconds old. Ignoring report.\n", icao_addr)
+		return
+	}
+
 	// This is a hack to show the source of the traffic on moving maps.
 	if globalSettings.DisplayTrafficSource {
 		type_code := " "
@@ -693,6 +700,9 @@ func esListen() {
 					ti.Tail = thisReg
 				}
 			}
+			// Save values before modifying.
+			prev_Last_seen := ti.Last_seen
+			prev_Last_source := ti.Last_source
 
 			if newTi.SignalLevel > 0 {
 				ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
@@ -881,6 +891,13 @@ func esListen() {
 					ti.TargetType = TARGET_TYPE_TISB
 					ti.Addr_type = 3
 				}
+			}
+
+			// This packet identifies an ADS-R target who we already have data on on UAT, which data is less than 6 seconds old
+			//  => current data is actually more accurate than the packet we are currently parsing, so return.
+			if ti.TargetType == TARGET_TYPE_ADSR && prev_Last_source == TRAFFIC_SOURCE_UAT && stratuxClock.Since(prev_Last_seen) < 6*time.Second {
+				log.Printf("DEBUG: Received traffic update for %08X on 1090, but UAT data is less than 6 seconds old. Ignoring report.\n", icao_addr)
+				continue
 			}
 
 			if newTi.OnGround != nil { // DF=11 messages don't report "on ground" status so we need to check for valid values.
