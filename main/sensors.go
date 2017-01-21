@@ -46,10 +46,6 @@ func pollSensors() {
 		if globalSettings.Sensors_Enabled && !globalStatus.IMUConnected {
 			log.Println("AHRS Info: attempting IMU connection.")
 			globalStatus.IMUConnected = initIMU() // I2C accel/gyro/mag.
-		} else if globalSettings.Sensors_Enabled {
-			log.Println("AHRS Info: IMU already connected.")
-		} else {
-			log.Println("AHRS Info: sensors disabled, not attempting to connect.")
 		}
 	}
 }
@@ -242,7 +238,7 @@ func sensorAttitudeSender() {
 				// Don't necessarily disconnect here, unless AHRSProvider deeply depends on magnetometer
 			}
 
-			m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 500*time.Millisecond
+			m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond
 			if m.WValid {
 				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse) * ahrs.Deg)
 				m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse) * ahrs.Deg)
