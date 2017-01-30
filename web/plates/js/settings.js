@@ -33,6 +33,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
+		$scope.StaticIps = settings.StaticIps;
 	}
 
 	function getSettings() {
@@ -126,6 +127,15 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			settings["OwnshipModeS"] = $scope.OwnshipModeS.toUpperCase();
 			newsettings = {
 				"OwnshipModeS": $scope.OwnshipModeS.toUpperCase()
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+	$scope.updatestaticips = function () {
+		if ($scope.StaticIps !== settings.StaticIps) {
+			newsettings = {
+				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
