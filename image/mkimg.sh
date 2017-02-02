@@ -144,3 +144,6 @@ cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Al
 cp -f ../__lib__systemd__system__stratux.service mnt/lib/systemd/system/stratux.service
 cp -f ../__root__stratux-pre-start.sh mnt/root/stratux-pre-start.sh
 cp -f rc.local mnt/etc/rc.local
+
+#dhcpcd causes first boot hanging.
+chroot mnt/ systemctl disable dhcpcd
