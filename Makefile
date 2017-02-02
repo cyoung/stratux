@@ -43,6 +43,8 @@ install:
 	ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 	make www
 	cp -f dump1090/dump1090 /usr/bin/
+	cp -f image/hostapd_manager.sh /usr/sbin/
+	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
 	rm -f gen_gdl90 libdump978.so
