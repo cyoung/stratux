@@ -6,7 +6,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'AHRS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -26,7 +26,6 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
-		$scope.AHRS_Enabled = settings.AHRS_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
@@ -34,6 +33,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
+		$scope.StaticIps = settings.StaticIps;
 	}
 
 	function getSettings() {
@@ -127,6 +127,15 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			settings["OwnshipModeS"] = $scope.OwnshipModeS.toUpperCase();
 			newsettings = {
 				"OwnshipModeS": $scope.OwnshipModeS.toUpperCase()
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+	$scope.updatestaticips = function () {
+		if ($scope.StaticIps !== settings.StaticIps) {
+			newsettings = {
+				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));

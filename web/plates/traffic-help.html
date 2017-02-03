@@ -2,14 +2,14 @@
 	<p>The <strong>Traffic</strong> page provides a list of all aircraft position reports received within the last 60 seconds. Each time a new aircraft is detected, it is added to the list. Each time a new report is received for an existing aircraft, the list is updated. If a valid position for an aircraft has not been received within the last 60 seconds, the aircraft is removed from the list.</p>
 	<p>For each aircraft, the list includes the following details:</p>
 	<ul>
-		<li><strong>Callsign</strong> is the aircraft callsign or tail number. Unknown callsigns will be shown as <span class="label traffic-style11">[--N/A--]</span>. Color and symbol indicates traffic source:</li>
+		<li><strong>Callsign</strong> is the aircraft callsign or tail number. Unknown callsigns will be shown as <span class="label traffic-style11">[--N/A--]</span>. Color and symbol indicates traffic source. <br /><br />Additionally, if <strong>Show Traffic Source In Callsign</strong> is enabled on the <strong>Settings</strong> page, the prefix listed in parenthesis will be added to the beginning of the callsign.<br /><br /></li>
 		<ul class="list-simple">
-				<li><span class="label traffic-style11">&#x2708; ADSB1090</span> 1090 MHz air-to-air ADS-B traffic is displayed with a medium blue background and airplane symbol.</li>
-				<li><span class="label traffic-style12">&#x2708; ADSR1090</span> 1090 MHz ground-to-air ADS-R rebroadcasts are displayed with a light cyan background and airplane symbol.</li>
-				<li><span class="label traffic-style14">&#x1f4e1; TISB1090</span> 1090 MHZ TIS-B traffic is displayed with a light cyan background and antenna symbol.</li>
-				<li><span class="label traffic-style21">&#x2708; ADSB978</span> 978 MHz air-to-air ADS-B traffic is displayed with a light tan background and airplane symbol.</li>
-				<li><span class="label traffic-style22">&#x2708; ADSR978</span> 978 MHz ground-to-air ADS-R rebroadcasts are displayed with a gold background and airplane symbol.</li>
-				<li><span class="label traffic-style24">&#x1f4e1; TISB978</span> 978 MHz TIS-B traffic is displayed with a gold background and antenna symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style11">&#x2708; ADSB1090 (ea)</span> 1090 MHz air-to-air ADS-B traffic is displayed with a medium blue background and airplane symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style12">&#x2708; ADSR1090 (er)</span> 1090 MHz ground-to-air ADS-R rebroadcasts are displayed with a light cyan background and airplane symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style14">&#x1f4e1; TISB1090 (et)</span> 1090 MHZ TIS-B traffic is displayed with a light cyan background and antenna symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style21">&#x2708; ADSB978 (ua)</span> 978 MHz air-to-air ADS-B traffic is displayed with a light tan background and airplane symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style22">&#x2708; ADSR978 (ur)</span> 978 MHz ground-to-air ADS-R rebroadcasts are displayed with a gold background and airplane symbol.</li>
+				<li style="margin-bottom: 10px;"><span class="label traffic-style24">&#x1f4e1; TISB978 (ut)</span> 978 MHz TIS-B traffic is displayed with a gold background and antenna symbol.</li>
 		</ul>
 		<li><strong>Code</strong> is the ICAO 24-bit code (ADS-B/ADS-R targets), 24-bit FAA-assigned track file ID (TIS-B), or Mode C squawk code, if <strong>Show Squawk</strong> is enabled, and if a squawk code has been received for that target.</li>
 		<li><strong>Location</strong> - Reported latitude and longitude, DD° mm'.</li>

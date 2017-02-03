@@ -28,12 +28,6 @@
 						<ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
 					</div>
 				</div>
-				<div class="form-group">
-					<label class="control-label col-xs-7">AHRS</label>
-					<div class="col-xs-5">
-						<ui-switch ng-model='AHRS_Enabled' settings-change></ui-switch>
-					</div>
-				</div>
 			</div>
 		</div>
 	</div>
@@ -134,8 +128,27 @@
 	</div>
 </div>
 
-<!--
+    <!-- Developer mode area -->
 <div class="col-sm-12">
+	<div ng-show="DeveloperMode" class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">Developer Options</div>
+			<div class="panel-body">
+				<div class="col-xs-12">
+					<div class="form-group reset-flow">
+						<label class="control-label col-xs-5">Static IPs</label>
+						<form name="staticipForm" ng-submit="updatestaticips()" novalidate>
+							<input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="col-sm-12" ng-show="DeveloperMode" >
 	<div class="panel panel-default">
 		<div class="panel-heading">Raw Configuration</div>
 		<div class="panel-body">
@@ -144,7 +157,6 @@
 		</div>
 	</div>
 </div>
--->
  
 <div class="col-sm-12">
  	<h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
@@ -199,6 +211,5 @@
     	  </div>
     </div>
   </div> 
-
 </div>
 

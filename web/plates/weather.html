@@ -29,8 +29,11 @@
 						<div class="separator"></div>
 						<div class="col-sm-12">
 							<span class="col-xs-3"><strong>{{weather.location}}</strong></span>
-							<span ng-class="weather.flight_condition ? 'col-xs-3 label label-success flight_condition_{{weather.flight_condition}}' : 'col-xs-3'">{{weather.type}}</span>
-							<span class="col-xs-6 text-right">{{weather.time}}</span>
+                            <span class="col-xs-3" align="center">
+							<div align="center" ng-class="weather.flight_condition ? ' label label-success flight_condition_{{weather.flight_condition}}' : 'label label-success report_{{weather.type}}'">{{weather.type}}</div>
+                            </span>
+                            <span class="col-xs-4">&nbsp;</span>
+							<span class="col-xs-2 text-right" style="background-color: {{weather.backcolor}}">{{weather.time}}</span>
 						</div>
 						<div class="col-sm-12">
 							<span class="col-xs-10">{{weather.data}}</span>
@@ -62,8 +65,11 @@
 						<div class="separator"></div>
 						<div class="col-sm-12">
 							<span class="col-xs-3"><strong>{{weather.location}}</strong></span>
-							<span ng-class="weather.flight_condition ? 'col-xs-3 label label-success flight_condition_{{weather.flight_condition}}' : 'col-xs-3'">{{weather.type}}</span>
-							<span class="col-xs-6 text-right">{{weather.time}}</span>
+                            <span class="col-xs-3" align="center">
+							<div align="center" ng-class="weather.flight_condition ? ' label label-success flight_condition_{{weather.flight_condition}}' : 'label label-success report_{{weather.type}}'">{{weather.type}}</div>
+                            </span>
+                            <span class="col-xs-4">&nbsp;</span>
+							<span class="col-xs-2 text-right" style="background-color: {{weather.backcolor}}">{{weather.time}}</span>
 						</div>
 						<div class="col-sm-12">
 							<span class="col-xs-10">{{weather.data}}</span>

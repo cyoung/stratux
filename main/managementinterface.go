@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
@@ -35,6 +36,31 @@ type SettingMessage struct {
 // Weather updates channel.
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
+var gdl90Update *uibroadcaster
+
+func handleGDL90WS(conn *websocket.Conn) {
+	// Subscribe the socket to receive updates.
+	gdl90Update.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// Situation updates channel.
+var situationUpdate *uibroadcaster
+
+// Raw weather (UATFrame packet stream) update channel.
+var weatherRawUpdate *uibroadcaster
 
 /*
 	The /weather websocket starts off by sending the current buffer of weather messages, then sends updates as they are received.
@@ -42,6 +68,36 @@ var trafficUpdate *uibroadcaster
 func handleWeatherWS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
 	weatherUpdate.AddSocket(conn)
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func handleJsonIo(conn *websocket.Conn) {
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	// Subscribe the socket to receive updates.
+	trafficUpdate.AddSocket(conn)
+	weatherRawUpdate.AddSocket(conn)
+	situationUpdate.AddSocket(conn)
+
+	trafficMutex.Unlock()
 
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
@@ -104,7 +160,6 @@ func handleStatusWS(conn *websocket.Conn) {
 		*/
 
 		// Send status.
-		<-timer.C
 		update, _ := json.Marshal(&globalStatus)
 		_, err := conn.Write(update)
 
@@ -112,19 +167,20 @@ func handleStatusWS(conn *websocket.Conn) {
 			//			log.Printf("Web client disconnected.\n")
 			break
 		}
+		<-timer.C
 	}
 }
 
 func handleSituationWS(conn *websocket.Conn) {
 	timer := time.NewTicker(100 * time.Millisecond)
 	for {
-		<-timer.C
 		situationJSON, _ := json.Marshal(&mySituation)
 		_, err := conn.Write(situationJSON)
 
 		if err != nil {
 			break
 		}
+		<-timer.C
 
 	}
 
@@ -219,8 +275,6 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
-					case "AHRS_Enabled":
-						globalSettings.AHRS_Enabled = val.(bool)
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "DisplayTrafficSource":
@@ -266,6 +320,26 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+					case "StaticIps":
+						ipsStr := val.(string)
+						ips := strings.Split(ipsStr, " ")
+						if ipsStr == "" {
+							ips = make([]string, 0)
+						}
+
+						re, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
+						err := ""
+						for _, ip := range ips {
+							// Verify IP format
+							if !re.MatchString(ip) {
+								err = err + "Invalid IP: " + ip + ". "
+							}
+						}
+						if err  != "" {
+							log.Printf("handleSettingsSetRequest:StaticIps: %s\n", err)
+							continue
+						}
+						globalSettings.StaticIps = ips
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
@@ -499,11 +573,20 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	situationUpdate = NewUIBroadcaster()
+	weatherRawUpdate = NewUIBroadcaster()
+	gdl90Update = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.HandleFunc("/view_logs/", viewLogs)
 
+	http.HandleFunc("/gdl90",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleGDL90WS)}
+			s.ServeHTTP(w, req)
+		})
 	http.HandleFunc("/status",
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
@@ -526,6 +609,13 @@ func managementInterface() {
 		func(w http.ResponseWriter, req *http.Request) {
 			s := websocket.Server{
 				Handler: websocket.Handler(handleTrafficWS)}
+			s.ServeHTTP(w, req)
+		})
+
+	http.HandleFunc("/jsonio",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleJsonIo)}
 			s.ServeHTTP(w, req)
 		})
 
