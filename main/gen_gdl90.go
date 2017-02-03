@@ -97,6 +97,7 @@ const (
 
 )
 
+var logFileHandle *os.File
 var usage *du.DiskUsage
 
 var maxSignalStrength int
@@ -790,6 +791,10 @@ func updateStatus() {
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
+	fileInfo, err := logFileHandle.Stat()
+	if err == nil {
+		globalStatus.Logfile_Size = fileInfo.Size()
+	}
 }
 
 type WeatherMessage struct {
@@ -1086,8 +1091,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-
-	Errors []string
+	Errors                                     []string
+	Logfile_Size							   int64
 }
 
 var globalSettings settings
@@ -1310,6 +1315,23 @@ func signalWatcher() {
 	gracefulShutdown()
 }
 
+func clearDebugLogFile() {
+	if logFileHandle != nil {
+		_, err := logFileHandle.Seek(0,0)
+		if err != nil {
+			log.Printf("Could not seek to the beginning of the logfile\n")
+			return
+		} else {
+			err2 := logFileHandle.Truncate(0)
+			if err2 != nil {
+				log.Printf("Could not truncate the logfile\n")
+				return
+			}
+			log.Printf("Logfile truncated\n")
+		}
+	}
+}
+
 func main() {
 	// Catch signals for graceful shutdown.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -1374,6 +1396,8 @@ func main() {
 		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
+		// Keep the logfile handle for later use
+		logFileHandle = fp
 		mfp := io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}

@@ -364,6 +364,11 @@ func doReboot() {
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
+func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleDeleteLogFile called!!!\n")
+	clearDebugLogFile()
+}
+
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handleDevelModeToggle called!!!\n")
 	globalSettings.DeveloperMode = true
@@ -405,6 +410,18 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 func delayReboot() {
 	time.Sleep(1 * time.Second)
 	doReboot()
+}
+
+func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
+	http.ServeFile(w, r, "/var/log/stratux.log")
+}
+
+func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
+	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
 
 // Upload an update file.
@@ -615,7 +632,9 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
-
+	http.HandleFunc("/deletelogfile", handleDeleteLogFile)
+	http.HandleFunc("/downloadlog", handleDownloadLogRequest)
+	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
 	err := http.ListenAndServe(managementAddr, nil)
 
 	if err != nil {
