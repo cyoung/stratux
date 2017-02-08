@@ -137,9 +137,13 @@ func initIMU() (ok bool) {
 		myIMUReader = imu
 		time.Sleep(200 * time.Millisecond)
 		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
-		myIMUReader.Calibrate(1, 5)
-		log.Println("AHRS Info: Successfully calibrated MPU9250")
-		return true
+		if err := myIMUReader.Calibrate(1, 5); err == nil {
+			log.Println("AHRS Info: Successfully calibrated MPU9250")
+			return true
+		} else {
+			log.Println("AHRS Info: couldn't calibrate MPU9250")
+			return false
+		}
 	}
 
 	// TODO westphae: try to connect to MPU9150
