@@ -51,7 +51,9 @@ func NewBMP280(i2cbus *embd.I2CBus, freq time.Duration) (*BMP280, error) {
 
 func (bmp *BMP280) run() {
 	bmp.running = true
+	clock := time.NewTicker(100 * time.Millisecond)
 	for bmp.running {
+		<-clock.C
 		bmp.data = <-bmp.sensor.C
 	}
 }
