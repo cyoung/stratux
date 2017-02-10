@@ -1818,11 +1818,10 @@ func makeAHRSGDL90Report() {
 	if isAHRSValid() {
 		pitch = roundToInt16(mySituation.Pitch * 10)
 		roll = roundToInt16(mySituation.Roll * 10)
-		hdg = roundToInt16(mySituation.Gyro_heading * 10)
+		hdg = roundToInt16(mySituation.Gyro_heading * 10) // TODO westphae: switch to Mag_heading?
 		slip_skid = roundToInt16(mySituation.SlipSkid * 10)
 		yaw_rate = roundToInt16(mySituation.RateOfTurn * 10)
 		g = roundToInt16(mySituation.GLoad * 10)
-		hdg = roundToInt16(mySituation.Mag_heading * 10)
 	}
 	if isTempPressValid() {
 		palt = uint16(mySituation.Pressure_alt + 5000.5)
