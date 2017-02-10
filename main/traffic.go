@@ -549,7 +549,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 			}
 		}
 		if ns_vel_valid && ew_vel_valid {
-			if ns_vel != 0 && ew_vel != 0 {
+			if ns_vel != 0 || ew_vel != 0 {
 				//TODO: Track type
 				track = uint16((360 + 90 - (int16(math.Atan2(float64(ns_vel), float64(ew_vel)) * 180 / math.Pi))) % 360)
 			}
