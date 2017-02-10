@@ -351,6 +351,11 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	return prepareMessage(msg)
 }
 
+// parseDownlinkReport decodes a UAT downlink message to extract identity, state vector, and mode status data.
+// Decoded data is used to update a TrafficInfo object, keyed to the 24-bit ICAO code contained in the
+// downlink message.
+// Inputs are a checksum-verified hex string corresponding to the 18 or 34-byte UAT
+// message, and an int representing UAT signal amplitude (0-1000).
 func parseDownlinkReport(s string, signalLevel int) {
 
 	var ti TrafficInfo
@@ -385,31 +390,61 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 	ti.Addr_type = addr_type
 
-	// Parse tail number, if available.
-	if msg_type == 1 || msg_type == 3 { // Need "MS" portion of message.
-		base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  ..")
-		tail := ""
+	var uat_version byte // sent as part of MS element, byte 24
 
-		v := (uint16(frame[17]) << 8) | uint16(frame[18])
-		tail += string(base40_alphabet[(v/40)%40])
-		tail += string(base40_alphabet[v%40])
-		v = (uint16(frame[19]) << 8) | uint16(frame[20])
-		tail += string(base40_alphabet[(v/1600)%40])
-		tail += string(base40_alphabet[(v/40)%40])
-		tail += string(base40_alphabet[v%40])
-		v = (uint16(frame[21]) << 8) | uint16(frame[22])
-		tail += string(base40_alphabet[(v/1600)%40])
-		tail += string(base40_alphabet[(v/40)%40])
-		tail += string(base40_alphabet[v%40])
-
-		tail = strings.Trim(tail, " ")
-		ti.Tail = tail
-	}
-
-	// Extract emitter category.
+	// Extract parameters from Mode Status elements, if available.
 	if msg_type == 1 || msg_type == 3 {
-		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
-		ti.Emitter_category = uint8((v / 1600) % 40)
+		// Determine UAT message version. This is needed for some capability decoding and is useful for debugging.
+		uat_version = (frame[23] >> 2) % 0x08
+		//log.Printf("%06X: UAT version %v\n",icao_addr,uat_version)
+
+		// Extract emitter category.
+		if msg_type == 1 || msg_type == 3 {
+			v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
+			ti.Emitter_category = uint8((v / 1600) % 40)
+
+			// Decode callsign or Flight Plan ID (i.e. squawk code)
+			// If the CSID bit (byte 27, bit 7) is set to 1, all eight characters
+			// encoded in bytes 18-23 represent callsign.
+			// If the CSID bit is set to 0, the first four characters encoded in bytes 18-23
+			// represent the Mode A squawk code.
+
+			csid := (frame[26] >> 1) & 0x01
+
+			if csid == 1 { // decode as callsign
+				//log.Printf("CSID == 1. Decoding callsign.\n")
+				base40_alphabet := string("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  ..")
+				tail := ""
+
+				v := (uint16(frame[17]) << 8) | uint16(frame[18])
+				tail += string(base40_alphabet[(v/40)%40])
+				tail += string(base40_alphabet[v%40])
+				v = (uint16(frame[19]) << 8) | uint16(frame[20])
+				tail += string(base40_alphabet[(v/1600)%40])
+				tail += string(base40_alphabet[(v/40)%40])
+				tail += string(base40_alphabet[v%40])
+				v = (uint16(frame[21]) << 8) | uint16(frame[22])
+				tail += string(base40_alphabet[(v/1600)%40])
+				tail += string(base40_alphabet[(v/40)%40])
+				tail += string(base40_alphabet[v%40])
+				tail = strings.Trim(tail, " ")
+				ti.Tail = tail
+				//log.Printf("Callsign decoded as %s\n",tail)
+
+			} else if uat_version >= 2 { // decode as Mode 3/A code, if UAT version is at least 2
+				//log.Printf("CSID == 0. Decoding Mode 3/A code.\n")
+				v := (uint16(frame[17]) << 8) | uint16(frame[18])
+				squawk_a := (v / 40) % 40
+				squawk_b := v % 40
+				v = (uint16(frame[19]) << 8) | uint16(frame[20])
+				squawk_c := (v / 1600) % 40
+				squawk_d := (v / 40) % 40
+				squawk := 1000*squawk_a + 100*squawk_b + 10*squawk_c + squawk_d
+				ti.Squawk = int(squawk)
+				//log.Printf("Mode 3/A decoded as %d\n",squawk)
+			}
+		}
+
 	}
 
 	// OK.
