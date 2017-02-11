@@ -98,8 +98,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		$scope.ahrs_heading = Math.round(status.Gyro_heading);
 		// pitch and roll are in degrees
-		$scope.ahrs_pitch = Math.round(status.Pitch);
-		$scope.ahrs_roll = Math.round(status.Roll);
+		$scope.ahrs_pitch = Math.round(status.Pitch*10)/10;
+		$scope.ahrs_roll = Math.round(status.Roll*10)/10;
 		// "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
 
 		setGeoReferenceMap(status.Lat, status.Lng);
