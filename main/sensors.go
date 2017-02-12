@@ -270,7 +270,10 @@ func sensorAttitudeSender() {
 
 			// Debugging server:
 			if ahrswebListener != nil {
-				ahrswebListener.Send(s.GetState(), m)
+				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
+					log.Printf("Error writing to ahrsweb: %s\n", err)
+					ahrswebListener = nil
+				}
 			}
 
 			// If we have valid AHRS info, then send
