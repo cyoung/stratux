@@ -21,6 +21,7 @@ var (
 	i2cbus           embd.I2CBus
 	myPressureReader sensors.PressureReader
 	myIMUReader      sensors.IMUReader
+	cage             chan(bool)
 )
 
 func initI2CSensors() {
@@ -166,6 +167,7 @@ func sensorAttitudeSender() {
 		failnum						  uint8
 	)
 	m = ahrs.NewMeasurement()
+	cage = make(chan(bool))
 
 	//TODO westphae: remove this logging when finished testing, or make it optional in settings
 	logger := ahrs.NewSensorLogger(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")),
@@ -204,6 +206,12 @@ func sensorAttitudeSender() {
 		<-timer.C
 		for (globalSettings.Sensors_Enabled && globalStatus.IMUConnected) {
 			<-timer.C
+			select {
+			case <-cage:
+				s = nil
+			default:
+			}
+
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano() / 1000) / 1e6
 
@@ -339,4 +347,8 @@ func getMinAccelDirection() (i int, err error) {
 	}
 
 	return
+}
+
+func CageAHRS() {
+	cage<- true
 }

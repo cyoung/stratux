@@ -189,5 +189,14 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		for (var i=0; i < hiders.length; i++) {
 			hiders[i].style.display = disp;
 		}
-	}
+	};
+
+	$scope.AHRSCage = function() {
+		$http.post(URL_AHRS_CAGE).
+		then(function (response) {
+			// do nothing
+		}, function (response) {
+			// do nothing
+		});
+	};
 }

@@ -16,6 +16,7 @@ var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
 var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
 var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
 var URL_AHRS_ORIENT     = "http://" + URL_HOST_BASE + "/orientAHRS";
+var URL_AHRS_CAGE       = "http://" + URL_HOST_BASE + "/cageAHRS";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);

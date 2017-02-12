@@ -380,7 +380,7 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 
 	// For an OPTION method request, we return header without processing.
-	// This insures we are recognized as supporting cross-domain AJAX REST calls.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
 	if r.Method == "POST" {
 		var (
 			action []byte = make([]byte, 1)
@@ -424,6 +424,21 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 			log.Println("AHRS Info: sensor orientation: canceled")
 		}
 
+	}
+}
+
+func handleCageAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CageAHRS()
 	}
 }
 
@@ -660,6 +675,7 @@ func managementInterface() {
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
 	http.HandleFunc("/orientAHRS", handleOrientAHRS)
+	http.HandleFunc("/cageAHRS", handleCageAHRS)
 
 	err := http.ListenAndServe(managementAddr, nil)
 
