@@ -251,6 +251,7 @@ func sensorAttitudeSender() {
 				// Don't necessarily disconnect here, unless AHRSProvider deeply depends on magnetometer
 			}
 
+			m.TW = float64(mySituation.LastGroundTrackTime.UnixNano() / 1000) / 1e6
 			m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond
 			if m.WValid {
 				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse) * ahrs.Deg)
