@@ -403,7 +403,6 @@ func parseDownlinkReport(s string, signalLevel int) {
 		uat_version = (frame[23] >> 2) & 0x07
 
 		// Extract emitter category.
-
 		v := (uint16(frame[17]) << 8) | (uint16(frame[18]))
 		ti.Emitter_category = uint8((v / 1600) % 40)
 
@@ -448,12 +447,13 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.PriorityStatus = (frame[23] >> 5) & 0x07
 
 		// Following section is future-use for debugging and / or additional status info on UAT traffic. Message parsing needs testing.
-		/*
+
+		if globalSettings.DEBUG {
 			//declaration for mode status flags -- parse for debug logging
 			var status_sil byte
 			//var status_transmit_mso byte
 			var status_sda byte
-			//var status_nacv byte
+			var status_nacv byte
 			//var status_nicbaro byte
 			//var status_sil_supp byte
 			//var status_geom_vert_acc byte
@@ -469,7 +469,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 			// these are present in v1 and v2 messages
 			status_sil = frame[23] & 0x03
 			//status_transmit_mso = frame[24] >> 2
-			//status_nacv = (frame[25] >> 1) & 0x07
+			status_nacv = (frame[25] >> 1) & 0x07
 			//status_nicbaro = frame[25] & 0x01
 
 			// other status and capability bits are different between v1 and v2
@@ -493,8 +493,8 @@ func parseDownlinkReport(s string, signalLevel int) {
 				//opmode_rec_atc_serv = ((frame[26] >> 3) & 0x01) != 0
 			}
 
-			log.Printf("Additional UAT mode status for %06X: Version = %d; SIL = %d; SDA = %d; 978 In = %v; 1090 In = %v\n",icao_addr,uat_version,status_sil,status_sda,capability_uat_in,capability_1090_in)
-		*/
+			log.Printf("Supplemental UAT Mode Status for %06X: Version = %d; SIL = %d; SDA = %d; NACv = %d; 978 In = %v; 1090 In = %v\n", icao_addr, uat_version, status_sil, status_sda, status_nacv, capability_uat_in, capability_1090_in)
+		}
 	}
 
 	ti.NIC = int(frame[11] & 0x0F)
