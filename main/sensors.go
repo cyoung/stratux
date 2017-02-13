@@ -242,6 +242,7 @@ func sensorAttitudeSender() {
 					log.Printf("AHRS Gyro/Accel Error: failed to read %d times, restarting: %s\n", failnum, mpuError)
 					myIMUReader.Close()
 					globalStatus.IMUConnected = false
+					continue
 				}
 			}
 			if magError != nil {
