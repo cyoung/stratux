@@ -147,3 +147,7 @@ cp -f rc.local mnt/etc/rc.local
 
 #dhcpcd causes first boot hanging.
 chroot mnt/ systemctl disable dhcpcd
+
+#disable hciuart - interferes with ttyAMA0 as a serial port.
+chroot mnt/ systemctl disable hciuart
+
