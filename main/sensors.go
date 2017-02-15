@@ -183,7 +183,7 @@ func sensorAttitudeSender() {
 	}
 
 	// Need a 10Hz sampling freq
-	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
+	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
 		log.Println("AHRS Info: Initializing sensorAttitudeSender")
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
