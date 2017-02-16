@@ -1039,7 +1039,7 @@ type settings struct {
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
-	IMUMapping           [3]int // Map from aircraft axis to sensor axis: accelerometer
+	IMUMapping           [2]int // Map from aircraft axis to sensor axis: accelerometer
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
@@ -1108,7 +1108,7 @@ func defaultSettings() {
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
-	globalSettings.IMUMapping = [3]int{2, -1, 3} // RY83XAI orientation mapping
+	globalSettings.IMUMapping = [2]int{-1, -3} // OpenFlightBox AHRS normal mapping
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 }

@@ -286,8 +286,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							globalSettings.ReplayLog = v
 						}
 					case "IMUMapping":
-						if globalSettings.IMUMapping != val.([3]int) {
-							globalSettings.IMUMapping = val.([3]int)
+						if globalSettings.IMUMapping != val.([2]int) {
+							globalSettings.IMUMapping = val.([2]int)
 							globalStatus.IMUConnected = false // Force a restart of the IMU reader
 						}
 					case "PPM":
@@ -384,7 +384,7 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		var (
 			action []byte = make([]byte, 1)
-			u, l int
+			u int
 			err error
 		)
 
@@ -415,11 +415,10 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			l = 6 / f / u
-			globalSettings.IMUMapping = [3]int{f, l, u}
+			globalSettings.IMUMapping = [2]int{f, u}
 			saveSettings()
 			globalStatus.IMUConnected = false // restart the processes depending on the orientation
-			log.Printf("AHRS Info: sensor orientation success! forward: %d; left: %d; up: %d\n", f, l, u)
+			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
 		default: // Cancel the sensor calibration.
 			log.Println("AHRS Info: sensor orientation: canceled")
 		}

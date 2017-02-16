@@ -181,19 +181,26 @@ func sensorAttitudeSender() {
 	for {
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
-			globalSettings.IMUMapping[1] = +2 // -1
-			globalSettings.IMUMapping[2] = -3 // +3
+			globalSettings.IMUMapping[1] = -3 // +3
 			saveSettings()
 		}
 		f := globalSettings.IMUMapping
+
+		// Set up orientation matrix; a bit ugly for now
 		ff = new([3][3]float64)
-		for i := 0; i < 3; i++ {
-			if f[i] < 0 {
-				ff[i][-f[i] - 1] = -1
-			} else {
-				ff[i][f[i] - 1] = +1
-			}
+		if f[0] < 0 {
+			ff[0][-f[0] - 1] = -1
+		} else {
+			ff[0][+f[0] - 1] = +1
 		}
+		if f[1] < 0 {
+			ff[2][-f[1] - 1] = -1
+		} else {
+			ff[2][+f[1] - 1] = +1
+		}
+		ff[1][0] = ff[2][1] * ff[0][2] - ff[2][2] * ff[0][1]
+		ff[1][1] = ff[2][2] * ff[0][0] - ff[2][0] * ff[0][2]
+		ff[1][2] = ff[2][0] * ff[0][1] - ff[2][1] * ff[0][0]
 
 		failnum = 0
 		<-timer.C
