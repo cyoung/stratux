@@ -169,12 +169,6 @@ func sensorAttitudeSender() {
 	m = ahrs.NewMeasurement()
 	cage = make(chan(bool))
 
-	//TODO westphae: remove this logging when finished testing, or make it optional in settings
-	//logger := ahrs.NewSensorLogger(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")),
-	//	"T", "TS", "A1", "A2", "A3", "H1", "H2", "H3", "M1", "M2", "M3", "TW", "W1", "W2", "W3", "TA", "Alt",
-	//	"pitch", "roll", "heading", "mag_heading", "slip_skid", "turn_rate", "g_load", "T_Attitude")
-	//defer logger.Close()
-
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
 		log.Printf("AHRS Error: couldn't start ahrswebListener: %s\n", err.Error())
@@ -182,10 +176,9 @@ func sensorAttitudeSender() {
 		defer ahrswebListener.Close()
 	}
 
-	// Need a 10Hz sampling freq
+	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		log.Println("AHRS Info: Initializing sensorAttitudeSender")
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
 			globalSettings.IMUMapping[1] = +2 // -1
@@ -322,15 +315,7 @@ func sensorAttitudeSender() {
 
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
-			//logger.Log(
-			//	float64(t.UnixNano() / 1000)/1e6,
-			//	m.T, m.A1, m.A2, m.A3, m.B1, m.B2, m.B3, m.M1, m.M2, m.M3,
-			//	float64(mySituation.LastGroundTrackTime.UnixNano() / 1000)/1e6, m.W1, m.W2, m.W3,
-			//	float64(mySituation.LastTempPressTime.UnixNano() / 1000)/1e6, mySituation.Pressure_alt,
-			//	pitch/ahrs.Deg, roll/ahrs.Deg, heading/ahrs.Deg, headingMag, slipSkid, turnRate, gLoad,
-			//	float64(mySituation.LastAttitudeTime.UnixNano() / 1000)/1e6)
 		}
-		log.Println("AHRS Info: left sensorAttitudeSender loop")
 	}
 }
 
