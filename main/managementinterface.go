@@ -397,14 +397,14 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 		case 'f': // Set sensor "forward" direction (toward nose of airplane).
 			if f, err = getMinAccelDirection(); err != nil {
 				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
-				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusFailedDependency)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
 				return
 			}
 			log.Printf("AHRS Info: sensor orientation: received forward direction %d\n", f)
 		case 'u': // Set sensor "up" direction (toward top of airplane).
 			if u, err = getMinAccelDirection(); err != nil {
 				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
-				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusFailedDependency)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
 				return
 			}
 			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
