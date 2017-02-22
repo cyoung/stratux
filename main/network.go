@@ -61,12 +61,12 @@ type serialConnection struct {
 var messageQueue chan networkMessage
 var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
-var netMutex *sync.Mutex
+var netMutex *sync.RWMutex
 
 var totalNetworkMessagesSent uint32
 
 var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
-var pingResponseMutex sync.RWMutex // For versions of Go after 1.6 we need to protect this map from concurrent reads & writes
+var pingResponseMutex *sync.RWMutex // For versions of Go after 1.6 we need to protect this map from concurrent reads & writes
 
 const (
 	NETWORK_GDL90_STANDARD = 1
@@ -283,6 +283,8 @@ func getNetworkStats() {
 
 	var numNonSleepingClients uint
 
+	netMutex.RLock()
+	defer netMutex.RUnlock()
 	for k, netconn := range outSockets {
 		queueBytes := 0
 		for _, msg := range netconn.messageQueue {
@@ -466,10 +468,12 @@ func icmpEchoSender(c *icmp.PacketConn) {
 		<-timer.C
 		// Collect IPs.
 		ips := make(map[string]bool)
+		netMutex.RLock()
 		for k, _ := range outSockets {
 			ipAndPort := strings.Split(k, ":")
 			ips[ipAndPort[0]] = true
 		}
+		netMutex.RUnlock()
 		// Send to all IPs.
 		for ip, _ := range ips {
 			wm := icmp.Message{
@@ -637,7 +641,8 @@ func initNetwork() {
 	networkGDL90Chan = make(chan []byte, 1024)
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
-	netMutex = &sync.Mutex{}
+	netMutex = &sync.RWMutex{}
+	pingResponseMutex = &sync.RWMutex{}
 	refreshConnectedClients()
 	go monitorDHCPLeases()
 	go messageQueueSender()
