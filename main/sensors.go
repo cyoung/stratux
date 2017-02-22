@@ -80,7 +80,7 @@ func tempAndPressureSender() {
 	var (
 		temp     float64
 		press    float64
-		altLast  float64
+		altLast  float64 = -9999
 		altitude float64
 		err      error
 		dt       float64 = 0.1
@@ -89,13 +89,6 @@ func tempAndPressureSender() {
 
 	// Initialize variables for rate of climb calc
 	u := 5 / (5 + float64(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
-	time.Sleep(time.Second)
-	if press, err = myPressureReader.Pressure(); err != nil {
-		log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
-		myPressureReader.Close()
-		globalStatus.PressureSensorConnected = false // Try reconnecting a little later
-	}
-	altLast = CalcAltitude(press)
 
 	timer := time.NewTicker(time.Duration(1000*dt) * time.Millisecond)
 	for globalSettings.Sensors_Enabled && globalStatus.PressureSensorConnected {
@@ -124,6 +117,9 @@ func tempAndPressureSender() {
 		mySituation.Temp = temp
 		altitude = CalcAltitude(press)
 		mySituation.Pressure_alt = altitude
+		if altLast == -9999 {
+			altLast = altitude // Initialize
+		}
 		// Assuming timer is reasonably accurate, use a regular ewma
 		mySituation.RateOfClimb = u*mySituation.RateOfClimb + (1-u)*(altitude-altLast)/(float64(dt)/60)
 		mySituation.mu_Pressure.Unlock()
