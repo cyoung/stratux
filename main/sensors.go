@@ -200,11 +200,11 @@ func sensorAttitudeSender() {
 
 		failnum = 0
 		<-timer.C
-		for (globalSettings.Sensors_Enabled && globalStatus.IMUConnected) {
+		for globalSettings.Sensors_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 			select {
 			case <-cage:
-				s = nil
+				s.Reset()
 			default:
 			}
 
@@ -312,7 +312,7 @@ func sensorAttitudeSender() {
 
 				// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 			} else {
-				s = nil
+				s.Reset()
 				mySituation.LastAttitudeTime = time.Time{}
 			}
 
