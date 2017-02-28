@@ -157,16 +157,18 @@ func (m *MPU9250) ReadRaw() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64
 
 // Calibrate kicks off a calibration for specified duration (s) and retries.
 func (m *MPU9250) Calibrate(dur, retries int) (err error) {
-	for i := 0; i < retries; i++ {
-		m.mpu.CCal <- dur
-		log.Printf("AHRS Info: Waiting for calibration result try %d of %d\n", i, retries)
-		err = <-m.mpu.CCalResult
-		if err == nil {
-			log.Println("AHRS Info: MPU9250 calibrated")
-			break
+	if dur > 0 {
+		for i := 0; i < retries; i++ {
+			m.mpu.CCal <- dur
+			log.Printf("AHRS Info: Waiting for calibration result try %d of %d\n", i, retries)
+			err = <-m.mpu.CCalResult
+			if err == nil {
+				log.Println("AHRS Info: MPU9250 calibrated")
+				break
+			}
+			time.Sleep(time.Duration(50) * time.Millisecond)
+			log.Println("AHRS Info: MPU9250 wasn't inertial, retrying calibration")
 		}
-		time.Sleep(time.Duration(50) * time.Millisecond)
-		log.Println("AHRS Info: MPU9250 wasn't inertial, retrying calibration")
 	}
 	return
 }
