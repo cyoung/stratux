@@ -207,6 +207,11 @@ func sensorAttitudeSender() {
 			<-timer.C
 			select {
 			case <-cage:
+				if err := myIMUReader.Calibrate(1, 1); err == nil {
+					log.Println("AHRS Info: Successfully recalibrated MPU9250")
+				} else {
+					log.Println("AHRS Info: couldn't recalibrate MPU9250")
+				}
 				s.Reset()
 			default:
 			}
