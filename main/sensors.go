@@ -162,6 +162,8 @@ func sensorAttitudeSender() {
 		errHeadingMag, errSlipSkid, errTurnRate, errGLoad error
 		failnum						  uint8
 	)
+	log.Println("AHRS Info: initializing new simple AHRS")
+	s = ahrs.InitializeSimple(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
 	m = ahrs.NewMeasurement()
 	cage = make(chan(bool))
 
@@ -175,8 +177,6 @@ func sensorAttitudeSender() {
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		log.Println("AHRS Info: initializing new simple AHRS")
-		s = ahrs.InitializeSimple(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
 			globalSettings.IMUMapping[1] = -3 // +3
