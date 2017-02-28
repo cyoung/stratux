@@ -164,6 +164,7 @@ func sensorAttitudeSender() {
 	)
 	log.Println("AHRS Info: initializing new simple AHRS")
 	s = ahrs.InitializeSimple(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
+	defer s.Stop()
 	m = ahrs.NewMeasurement()
 	cage = make(chan(bool))
 
@@ -315,9 +316,7 @@ func sensorAttitudeSender() {
 			}
 
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
-
 		}
-		s.Stop()
 	}
 }
 
