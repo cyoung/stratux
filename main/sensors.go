@@ -134,7 +134,7 @@ func initIMU() (ok bool) {
 		myIMUReader = imu
 		time.Sleep(200 * time.Millisecond)
 		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
-		if err := myIMUReader.Calibrate(1, 5); err == nil {
+		if err := myIMUReader.Calibrate(1, 1); err == nil {
 			log.Println("AHRS Info: Successfully calibrated MPU9250")
 			return true
 		} else {
@@ -175,6 +175,8 @@ func sensorAttitudeSender() {
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
+		log.Println("AHRS Info: initializing new simple AHRS")
+		s = ahrs.InitializeSimple(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
 		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
 			globalSettings.IMUMapping[1] = -3 // +3
@@ -260,10 +262,6 @@ func sensorAttitudeSender() {
 			}
 
 			// Run the AHRS calcs
-			if s == nil { // s is nil if we should (re-)initialize the Kalman state
-				log.Println("AHRS Info: initializing new simple AHRS")
-				s = ahrs.InitializeSimple(m, fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
-			}
 			s.Compute(m)
 
 			// Debugging server:
@@ -319,6 +317,7 @@ func sensorAttitudeSender() {
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
 		}
+		s.Stop()
 	}
 }
 

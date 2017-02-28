@@ -160,7 +160,7 @@ func (m *MPU9250) Calibrate(dur, retries int) (err error) {
 	if dur > 0 {
 		for i := 0; i < retries; i++ {
 			m.mpu.CCal <- dur
-			log.Printf("AHRS Info: Waiting for calibration result try %d of %d\n", i, retries)
+			log.Printf("AHRS Info: Waiting for calibration result try %d of %d\n", i+1, retries)
 			err = <-m.mpu.CCalResult
 			if err == nil {
 				log.Println("AHRS Info: MPU9250 calibrated")
