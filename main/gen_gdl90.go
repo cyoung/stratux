@@ -1092,7 +1092,7 @@ type status struct {
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
 	Errors                                     []string
-	Logfile_Size							   int64
+	Logfile_Size                               int64
 }
 
 var globalSettings settings
@@ -1317,7 +1317,7 @@ func signalWatcher() {
 
 func clearDebugLogFile() {
 	if logFileHandle != nil {
-		_, err := logFileHandle.Seek(0,0)
+		_, err := logFileHandle.Seek(0, 0)
 		if err != nil {
 			log.Printf("Could not seek to the beginning of the logfile\n")
 			return
@@ -1421,7 +1421,7 @@ func main() {
 	// Override after reading in the settings.
 	if *replayFlag == true {
 		log.Printf("Replay file %s\n", *replayUATFilename)
-		globalSettings.ReplayLog = true
+		globalSettings.ReplayLog = false
 	}
 
 	if globalSettings.DeveloperMode == true {
