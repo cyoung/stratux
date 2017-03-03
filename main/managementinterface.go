@@ -403,7 +403,9 @@ func doRestartApp() {
 func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+	netMutex.Lock()
 	clientsJSON, _ := json.Marshal(&outSockets)
+	netMutex.Unlock()
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
 

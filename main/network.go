@@ -59,13 +59,14 @@ type serialConnection struct {
 }
 
 var messageQueue chan networkMessage
+
 var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
-var netMutex *sync.Mutex
+var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
+var netMutex *sync.Mutex // netMutex needs to be locked before accessing dhcpLeases, pingResponse, and outSockets and calling isSleeping() and isThrottled().
 
 var totalNetworkMessagesSent uint32
 
-var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
 
 const (
 	NETWORK_GDL90_STANDARD = 1
@@ -145,6 +146,11 @@ func getDHCPLeases() (map[string]string, error) {
 	return ret, nil
 }
 
+/*
+	isSleeping().
+	 Check if a client identifier 'ip:port' is in either a sleep or active state.
+	 ***WARNING***: netMutex must be locked before calling this function.
+*/
 func isSleeping(k string) bool {
 	ipAndPort := strings.Split(k, ":")
 	// No ping response. Assume disconnected/sleeping device.
@@ -157,8 +163,13 @@ func isSleeping(k string) bool {
 	return false
 }
 
-// Throttle mode for testing port open and giving some start-up time to the app.
-// Throttling is 0.1% data rate for first 15 seconds.
+/*
+	isThrottled().
+	 Checks if a client identifier 'ip:port' is throttled.
+	 Throttle mode is for testing port open and giving some start-up time to the app.
+	 Throttling is 0.1% data rate for first 15 seconds.
+	 ***WARNING***: netMutex must be locked before calling this function.
+*/
 func isThrottled(k string) bool {
 	return (rand.Int()%1000 != 0) && stratuxClock.Since(outSockets[k].LastUnreachable) < (15*time.Second)
 }
@@ -286,6 +297,9 @@ func serialOutWatcher() {
 // Returns the number of DHCP leases and prints queue lengths.
 func getNetworkStats() {
 
+	netMutex.Lock()
+	defer netMutex.Unlock()
+
 	var numNonSleepingClients uint
 
 	for k, netconn := range outSockets {
@@ -357,7 +371,7 @@ func refreshConnectedClients() {
 }
 
 func messageQueueSender() {
-	secondTimer := time.NewTicker(15 * time.Second)
+	secondTimer := time.NewTicker(15 * time.Second) // getNetworkStats().
 	queueTimer := time.NewTicker(100 * time.Millisecond)
 
 	var lastQueueTimeChange time.Time // Reevaluate	send frequency every 5 seconds.
@@ -467,6 +481,7 @@ func icmpEchoSender(c *icmp.PacketConn) {
 	timer := time.NewTicker(5 * time.Second)
 	for {
 		<-timer.C
+		netMutex.Lock()
 		// Collect IPs.
 		ips := make(map[string]bool)
 		for k, _ := range outSockets {
@@ -493,6 +508,7 @@ func icmpEchoSender(c *icmp.PacketConn) {
 			}
 			totalNetworkMessagesSent++
 		}
+		netMutex.Unlock()
 	}
 }
 
@@ -521,7 +537,9 @@ func sleepMonitor() {
 
 		// Look for echo replies, mark it as received.
 		if msg.Type == ipv4.ICMPTypeEchoReply {
+			netMutex.Lock()
 			pingResponse[ip] = stratuxClock.Time
+			netMutex.Unlock()
 			continue // No further processing needed.
 		}
 
