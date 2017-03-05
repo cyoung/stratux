@@ -163,10 +163,13 @@ func sensorAttitudeSender() {
 		failnum						  uint8
 	)
 	log.Println("AHRS Info: initializing new simple AHRS")
-	s = ahrs.InitializeSimple(fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405")))
-	defer s.Stop()
+	s = ahrs.InitializeSimple()
 	m = ahrs.NewMeasurement()
 	cage = make(chan(bool))
+
+	// Set up loggers for analysis
+	analysisFilename := fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405"))
+	analysisLogger := ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
 
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
@@ -270,6 +273,11 @@ func sensorAttitudeSender() {
 			// Run the AHRS calcs
 			s.Compute(m)
 
+			// Log it to csv for analysis
+			if analysisFilename != "" {
+				analysisLogger.Log()
+			}
+
 			// Debugging server:
 			if ahrswebListener != nil {
 				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
@@ -317,7 +325,6 @@ func sensorAttitudeSender() {
 				// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 			} else {
 				s.Reset()
-				mySituation.LastAttitudeTime = time.Time{}
 			}
 
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
