@@ -161,6 +161,7 @@ func sensorAttitudeSender() {
 		headingMag, slipSkid, turnRate, gLoad             float64
 		errHeadingMag, errSlipSkid, errTurnRate, errGLoad error
 		failnum						  uint8
+		analysisLogger                                    *ahrs.AHRSLogger
 	)
 	log.Println("AHRS Info: initializing new simple AHRS")
 	s = ahrs.InitializeSimple()
@@ -168,9 +169,6 @@ func sensorAttitudeSender() {
 	cage = make(chan(bool))
 
 	// Set up loggers for analysis
-	analysisFilename := fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405"))
-	analysisLogger := ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
-
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
 		log.Printf("AHRS Error: couldn't start ahrswebListener: %s\n", err.Error())
@@ -274,8 +272,17 @@ func sensorAttitudeSender() {
 			s.Compute(m)
 
 			// Log it to csv for analysis
-			if analysisFilename != "" {
-				analysisLogger.Log()
+			if globalSettings.AHRSLog {
+				if analysisLogger == nil {
+					analysisFilename := fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405"))
+					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
+				}
+
+				if analysisLogger != nil {
+					analysisLogger.Log()
+				}
+			} else {
+				analysisLogger = nil
 			}
 
 			// Debugging server:

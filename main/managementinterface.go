@@ -293,6 +293,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
 						}
+					case "AHRSLog":
+						globalSettings.AHRSLog = val.(bool)
 					case "IMUMapping":
 						if globalSettings.IMUMapping != val.([2]int) {
 							globalSettings.IMUMapping = val.([2]int)
