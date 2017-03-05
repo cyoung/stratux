@@ -13,6 +13,7 @@ import (
 	// "github.com/kidoman/embd/sensor/bmp180"
 	"github.com/westphae/goflying/ahrs"
 	"github.com/westphae/goflying/ahrsweb"
+	"path/filepath"
 )
 
 const numRetries uint8 = 5
@@ -274,7 +275,8 @@ func sensorAttitudeSender() {
 			// Log it to csv for analysis
 			if globalSettings.AHRSLog {
 				if analysisLogger == nil {
-					analysisFilename := fmt.Sprintf("/var/log/sensors_%s.csv", time.Now().Format("20060102_150405"))
+					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
+						time.Now().Format("20060102_150405")))
 					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
 				}
 

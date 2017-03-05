@@ -23,6 +23,7 @@ import (
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -38,17 +39,18 @@ import (
 // https://www.faa.gov/nextgen/programs/adsb/Archival/
 // https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
-var debugLogf string    // Set according to OS config.
+var logDirf      string // Directory for all logging
+var debugLogf    string // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
 
 const (
 	configLocation = "/etc/stratux.conf"
 	managementAddr = ":80"
-	debugLog       = "/var/log/stratux.log"
-	dataLogFile    = "/var/log/stratux.sqlite"
+	logDir         = "/var/log/"
+	debugLogFile   = "stratux.log"
+	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
-	debugLog_FB         = "/root/stratux.log"
-	dataLogFile_FB      = "/var/log/stratux.sqlite"
+	logDir_FB           = "/root/"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -1345,12 +1347,12 @@ func main() {
 	//FlightBox: detect via presence of /etc/FlightBox file.
 	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"
-		debugLogf = debugLog_FB
-		dataLogFilef = dataLogFile_FB
+		logDirf = logDir_FB
 	} else { // if not using the FlightBox config, use "normal" log file locations
-		debugLogf = debugLog
-		dataLogFilef = dataLogFile
+		logDirf = logDir
 	}
+	debugLogf = filepath.Join(logDirf, debugLogFile)
+	dataLogFilef = filepath.Join(logDirf, dataLogFile)
 	//FIXME: All of this should be removed by 08/01/2016.
 	// Check if Raspbian version is <8.0. Throw a warning if so.
 	vt, err := ioutil.ReadFile("/etc/debian_version")
@@ -1387,7 +1389,7 @@ func main() {
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 
-	// Duplicate log.* output to debugLog.
+	// Duplicate log.* output to debugLogFile.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
