@@ -117,7 +117,7 @@ func tempAndPressureSender() {
 		mySituation.Temp = temp
 		altitude = CalcAltitude(press)
 		mySituation.Pressure_alt = altitude
-		if altLast == -9999 {
+		if altLast < -2000 {
 			altLast = altitude // Initialize
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
@@ -278,7 +278,7 @@ func sensorAttitudeSender() {
 				}
 			}
 
-			// If we have valid AHRS info, then send
+			// If we have valid AHRS info, then update mySituation
 			if s.Valid() {
 				mySituation.mu_Attitude.Lock()
 
