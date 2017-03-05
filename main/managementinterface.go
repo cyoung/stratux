@@ -274,11 +274,15 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
-					case "Sensors_Enabled":
-						globalSettings.Sensors_Enabled = val.(bool)
-						if !globalSettings.Sensors_Enabled {
+					case "IMU_Sensor_Enabled":
+						globalSettings.IMU_Sensor_Enabled = val.(bool)
+						if !globalSettings.IMU_Sensor_Enabled {
 							globalStatus.IMUConnected = false
-							globalStatus.PressureSensorConnected = false
+						}
+					case "BMP_Sensor_Enabled":
+						globalSettings.BMP_Sensor_Enabled = val.(bool)
+						if !globalSettings.BMP_Sensor_Enabled {
+							globalStatus.BMPConnected = false
 						}
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)

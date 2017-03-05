@@ -29,9 +29,15 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="control-label col-xs-7">Sensors</label>
+					<label class="control-label col-xs-7">Attitude Sensor</label>
 					<div class="col-xs-5">
-						<ui-switch ng-model='Sensors_Enabled' settings-change></ui-switch>
+						<ui-switch ng-model='IMU_Sensor_Enabled' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Altitude Sensor</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
 					</div>
 				</div>
 			</div>

@@ -37,14 +37,14 @@ func pollSensors() {
 		<-timer.C
 
 		// If it's not currently connected, try connecting to pressure sensor
-		if globalSettings.Sensors_Enabled && !globalStatus.PressureSensorConnected {
+		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
 			log.Println("AHRS Info: attempting pressure sensor connection.")
-			globalStatus.PressureSensorConnected = initPressureSensor() // I2C temperature and pressure altitude.
+			globalStatus.BMPConnected = initPressureSensor() // I2C temperature and pressure altitude.
 			go tempAndPressureSender()
 		}
 
 		// If it's not currently connected, try connecting to IMU
-		if globalSettings.Sensors_Enabled && !globalStatus.IMUConnected {
+		if globalSettings.IMU_Sensor_Enabled && !globalStatus.IMUConnected {
 			log.Println("AHRS Info: attempting IMU connection.")
 			globalStatus.IMUConnected = initIMU() // I2C accel/gyro/mag.
 		}
@@ -66,7 +66,7 @@ func initPressureSensor() (ok bool) {
 	//	if err != nil {
 	//		time.Sleep(250 * time.Millisecond)
 	//	} else {
-	//		globalStatus.PressureSensorConnected = true
+	//		globalStatus.BMPConnected = true
 	//		log.Println("AHRS Info: Successfully initialized BMP180")
 	//		return nil
 	//	}
@@ -91,7 +91,7 @@ func tempAndPressureSender() {
 	u := 5 / (5 + float64(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
 
 	timer := time.NewTicker(time.Duration(1000*dt) * time.Millisecond)
-	for globalSettings.Sensors_Enabled && globalStatus.PressureSensorConnected {
+	for globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
 		<-timer.C
 
 		// Read temperature and pressure altitude.
@@ -106,7 +106,7 @@ func tempAndPressureSender() {
 			if failnum > numRetries {
 				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failnum, err)
 				myPressureReader.Close()
-				globalStatus.PressureSensorConnected = false // Try reconnecting a little later
+				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
 			}
 		}
@@ -206,7 +206,7 @@ func sensorAttitudeSender() {
 
 		failnum = 0
 		<-timer.C
-		for globalSettings.Sensors_Enabled && globalStatus.IMUConnected {
+		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 			select {
 			case <-cage:
@@ -263,7 +263,7 @@ func sensorAttitudeSender() {
 			if m.WValid {
 				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse) * ahrs.Deg)
 				m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse) * ahrs.Deg)
-				if globalStatus.PressureSensorConnected {
+				if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
 					m.W3 = mySituation.RateOfClimb * 60 / 6076.12
 				} else {
 					m.W3 = float64(mySituation.GPSVertVel) * 3600 / 6076.12

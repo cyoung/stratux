@@ -94,7 +94,13 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		/* not currently used 
 		$scope.ahrs_temp = status.Temp;
 		*/
-		$scope.ahrs_alt = Math.round(status.Pressure_alt);
+		$scope.press_time = Date.parse(status.LastTempPressTime);
+		$scope.gps_time = Date.parse(status.LastGPSTimeTime);
+		if ($scope.gps_time - $scope.press_time < 1000) {
+			$scope.ahrs_alt = Math.round(status.Pressure_alt);
+		} else {
+			$scope.ahrs_alt = "---";
+		}
 
 		$scope.ahrs_heading = Math.round(status.Gyro_heading);
 		// pitch and roll are in degrees

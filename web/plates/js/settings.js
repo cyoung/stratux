@@ -6,7 +6,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'Sensors_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog'];
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'IMU_Sensor_Enabled',
+		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog'];
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -26,7 +27,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
-		$scope.Sensors_Enabled = settings.Sensors_Enabled;
+		$scope.IMU_Sensor_Enabled = settings.IMU_Sensor_Enabled;
+		$scope.BMP_Sensor_Enabled = settings.BMP_Sensor_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;

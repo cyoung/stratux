@@ -468,7 +468,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	if globalSettings.Sensors_Enabled {
+	if globalSettings.IMU_Sensor_Enabled {
 		msg[12] = 1 << 0
 	}
 
@@ -1033,7 +1033,8 @@ type settings struct {
 	ES_Enabled           bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
-	Sensors_Enabled      bool
+	BMP_Sensor_Enabled   bool
+	IMU_Sensor_Enabled   bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
@@ -1086,7 +1087,7 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-	PressureSensorConnected                    bool
+	BMPConnected                               bool
 	IMUConnected                               bool
 
 	Errors []string
@@ -1099,7 +1100,8 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
 	globalSettings.GPS_Enabled = true
-	globalSettings.Sensors_Enabled = true
+	globalSettings.IMU_Sensor_Enabled = true
+	globalSettings.BMP_Sensor_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1211,8 +1213,11 @@ func printStats() {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
-		if globalSettings.Sensors_Enabled {
-			log.Printf(" - Last IMU read: %s, Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastAttitudeTime), stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
+		if globalSettings.IMU_Sensor_Enabled {
+			log.Printf(" - Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.LastAttitudeTime))
+		}
+		if globalSettings.BMP_Sensor_Enabled {
+			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
 		if !diskUsageWarning && usage.Usage() > 95.0 {
