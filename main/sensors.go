@@ -280,7 +280,7 @@ func sensorAttitudeSender() {
 					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
 				}
 
-				if analysisLogger != nil {
+				if analysisLogger != nil && usage.Usage() < 0.95 {
 					analysisLogger.Log()
 				}
 			} else {

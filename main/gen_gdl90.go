@@ -1224,7 +1224,7 @@ func printStats() {
 			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
-		if !diskUsageWarning && usage.Usage() > 95.0 {
+		if !diskUsageWarning && usage.Usage() > 0.95 {
 			err_p := fmt.Errorf("Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 			addSystemError(err_p)
 			diskUsageWarning = true
