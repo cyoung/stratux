@@ -82,7 +82,7 @@
 			<div class="panel-body">
 				<div class="col-xs-12">
 					<span style="position:relative; overflow: hidden;">
-						<button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">Calibrate AHRS Sensors</button>
+						<button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">Set AHRS Sensor Orientation</button>
 					</span>
 				</div>
 			</div>
@@ -247,7 +247,7 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<button class="close" ui-turn-off="modalCalibrateForward"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Forward Direction</h4>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Forward Direction</h4>
 					</div>
 					<div class="modal-body">
 						<p>Point the Stratux/sensor box so that the end that will be pointing toward the <strong>nose</strong> of the airplane is pointing toward the sky and press the <strong>Set Forward Direction</strong> button.</p>
@@ -267,7 +267,7 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<button class="close" ui-turn-off="modalCalibrateUp"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Up Direction</h4>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Up Direction</h4>
 					</div>
 					<div class="modal-body">
 						<p>Place the Stratux/sensor box in the orientation it will be in during flight and press the <strong>Set Up Direction</strong> button.</p>
@@ -287,7 +287,7 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<button class="close" ui-turn-off="modalCalibrateDone"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Finished</h4>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Finished</h4>
 					</div>
 					<div class="modal-body">
 						<p>The sensors are calibrated.  These settings will be saved for future flights.</p>
@@ -306,7 +306,7 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<button class="close" ui-turn-off="modalCalibrateFailed"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Failed!</h4>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Failed!</h4>
 					</div>
 					<div class="modal-body">
 						<p>There was an error: {{Orientation_Failure_Message}}</p>
@@ -327,7 +327,7 @@
 				<div class="modal-content">
 					<div class="modal-header">
 						<button class="close" ui-turn-off="modalCalibrateCanceled"></button>
-						<h4 class="modal-title">Calibrate AHRS Sensors: Canceled</h4>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Canceled</h4>
 					</div>
 					<div class="modal-body">
 						<p>Calibration canceled.</p>
