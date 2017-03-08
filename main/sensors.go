@@ -159,8 +159,6 @@ func sensorAttitudeSender() {
 		a1, a2, a3, b1, b2, b3, m1, m2, m3                float64 // IMU measurements
 		ff       					  *[3][3]float64 // Sensor orientation matrix
 		mpuError, magError                                error
-		headingMag, slipSkid, turnRate, gLoad             float64
-		errHeadingMag, errSlipSkid, errTurnRate, errGLoad error
 		failnum						  uint8
 		analysisLogger                                    *ahrs.AHRSLogger
 	)
@@ -221,7 +219,7 @@ func sensorAttitudeSender() {
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano() / 1000) / 1e6
 
-			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.ReadRaw()
+			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.Read()
 			// This is how the RY83XAI is wired up
 			//m.A1, m.A2, m.A3 = -a2, +a1, -a3
 			//m.B1, m.B2, m.B3 = +b2, -b1, +b3
@@ -248,8 +246,8 @@ func sensorAttitudeSender() {
 					log.Printf("AHRS Gyro/Accel Error: failed to read %d times, restarting: %s\n", failnum, mpuError)
 					myIMUReader.Close()
 					globalStatus.IMUConnected = false
-					continue
 				}
+				continue
 			}
 			if magError != nil {
 				log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
@@ -299,34 +297,15 @@ func sensorAttitudeSender() {
 			if s.Valid() {
 				mySituation.mu_Attitude.Lock()
 
-				roll, pitch, heading = s.CalcRollPitchHeading()
+				roll, pitch, heading = s.RollPitchHeading()
 				mySituation.Roll = roll / ahrs.Deg
 				mySituation.Pitch = pitch / ahrs.Deg
 				mySituation.Gyro_heading = heading / ahrs.Deg
 
-				if headingMag, errHeadingMag = myIMUReader.MagHeading(); errHeadingMag != nil {
-					log.Printf("AHRS MPU Error: %s\n", errHeadingMag.Error())
-				} else {
-					mySituation.Mag_heading = headingMag
-				}
-
-				if slipSkid, errSlipSkid = myIMUReader.SlipSkid(); errSlipSkid != nil {
-					log.Printf("AHRS MPU Error: %s\n", errSlipSkid.Error())
-				} else {
-					mySituation.SlipSkid = slipSkid
-				}
-
-				if turnRate, errTurnRate = myIMUReader.RateOfTurn(); errTurnRate != nil {
-					log.Printf("AHRS MPU Error: %s\n", errTurnRate.Error())
-				} else {
-					mySituation.RateOfTurn = turnRate
-				}
-
-				if gLoad, errGLoad = myIMUReader.GLoad(); errGLoad != nil {
-					log.Printf("AHRS MPU Error: %s\n", errGLoad.Error())
-				} else {
-					mySituation.GLoad = gLoad
-				}
+				mySituation.Mag_heading = s.MagHeading()
+				mySituation.SlipSkid = s.SlipSkid()
+				mySituation.RateOfTurn = s.RateOfTurn()
+				mySituation.GLoad = s.GLoad()
 
 				mySituation.LastAttitudeTime = t
 				mySituation.mu_Attitude.Unlock()
@@ -342,7 +321,7 @@ func sensorAttitudeSender() {
 }
 
 func getMinAccelDirection() (i int, err error) {
-	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.ReadRaw()
+	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.Read()
 	if err != nil {
 		return
 	}
