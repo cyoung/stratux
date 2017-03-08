@@ -106,6 +106,15 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		// pitch and roll are in degrees
 		$scope.ahrs_pitch = Math.round(status.Pitch*10)/10;
 		$scope.ahrs_roll = Math.round(status.Roll*10)/10;
+
+        $scope.ahrs_heading_mag = Math.round(status.Mag_heading);
+        $scope.ahrs_slip_skid = Math.round(status.SlipSkid*10)/10;
+        if (status.RateOfTurn > 0.001) {
+			$scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn);
+        } else {
+            $scope.ahrs_turn_rate = '--'
+		}
+        $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
 		// "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
 
 		setGeoReferenceMap(status.Lat, status.Lng);
@@ -118,7 +127,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_GPS_GET).
 		then(function (response) {
 			loadStatus(response.data);
-			ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading);
+			ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 			// $scope.$apply();
 		}, function (response) {
 			$scope.raw_data = "error getting gps / ahrs status";

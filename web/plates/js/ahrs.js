@@ -48,14 +48,15 @@ ahrsRenderer.prototype = {
 		}
 	},
 
-	orientation: function (pitch, roll, heading) {
+	orientation: function (pitch, roll, heading, slipSkid) {
 	    // Assume we receive valid pitch, roll, heading
 		this.pitch = pitch;
 		this.roll = roll;
 		this.heading = heading;
+		this.slipSkid = slipSkid;
 	},
 
-	animate: function (t, pitch, roll, heading) {
+	animate: function (t, pitch, roll, heading, slipSkid) {
 		var FPS = 40; // we assume we can maintain a certain frame rate
 		var x_inc = ((pitch - this.pitch) / (FPS * t));
 		var y_inc = ((roll - this.roll) / (FPS * t));
@@ -67,6 +68,7 @@ ahrsRenderer.prototype = {
 			this.heading += 360;
 		}
 		var z_inc = ((heading - this.heading) / (FPS * t));
+		var w_inc = ((slipSkid - this.slipSkid) / (FPS * t));
 		var _this = this;
 		//console.log(z_inc);
 		var frames = 0;
@@ -74,12 +76,13 @@ ahrsRenderer.prototype = {
 			_this.pitch += x_inc;
 			_this.roll += y_inc;
 			_this.heading += z_inc;
+			_this.slipSkid += w_inc;
 			if (frames < (FPS * t)) {
 				_this.draw();
 				frames++;
 				window.requestAnimationFrame(f); // recurse
 			} else {
-				_this.orientation(pitch, roll, heading);
+				_this.orientation(pitch, roll, heading, slipSkid);
 			}
 		};
 		f();
