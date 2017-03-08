@@ -277,11 +277,13 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "IMU_Sensor_Enabled":
 						globalSettings.IMU_Sensor_Enabled = val.(bool)
 						if !globalSettings.IMU_Sensor_Enabled {
+							myIMUReader.Close()
 							globalStatus.IMUConnected = false
 						}
 					case "BMP_Sensor_Enabled":
 						globalSettings.BMP_Sensor_Enabled = val.(bool)
 						if !globalSettings.BMP_Sensor_Enabled {
+							myPressureReader.Close()
 							globalStatus.BMPConnected = false
 						}
 					case "DEBUG":
@@ -298,6 +300,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "IMUMapping":
 						if globalSettings.IMUMapping != val.([2]int) {
 							globalSettings.IMUMapping = val.([2]int)
+							myIMUReader.Close()
 							globalStatus.IMUConnected = false // Force a restart of the IMU reader
 						}
 					case "PPM":
@@ -427,9 +430,11 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 
 			globalSettings.IMUMapping = [2]int{f, u}
 			saveSettings()
+			myIMUReader.Close()
 			globalStatus.IMUConnected = false // restart the processes depending on the orientation
 			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
 		default: // Cancel the sensor calibration.
+			f = 0
 			log.Println("AHRS Info: sensor orientation: canceled")
 		}
 
