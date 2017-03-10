@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"path/filepath"
 	"time"
 
 	"../sensors"
 
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
-	// "github.com/kidoman/embd/sensor/bmp180"
 	"github.com/westphae/goflying/ahrs"
 	"github.com/westphae/goflying/ahrsweb"
-	"path/filepath"
 )
 
 const numRetries uint8 = 5
@@ -330,11 +329,23 @@ func getMinAccelDirection() (i int, err error) {
 	log.Printf("AHRS Info: sensor orientation accels %1.3f %1.3f %1.3f\n", a1, a2, a3)
 	switch {
 	case math.Abs(a1) > math.Abs(a2) && math.Abs(a1) > math.Abs(a3):
-		i = int(a1 / math.Abs(a1))
+		if a1 > 0 {
+			i = 1
+		} else {
+			i = -1
+		}
 	case math.Abs(a2) > math.Abs(a3) && math.Abs(a2) > math.Abs(a1):
-		i = int(a2 / math.Abs(a2)) * 2
+		if a2 > 0 {
+			i = 2
+		} else {
+			i = -2
+		}
 	case math.Abs(a3) > math.Abs(a1) && math.Abs(a3) > math.Abs(a2):
-		i = int(a3 / math.Abs(a3)) * 3
+		if a3 > 0 {
+			i = 3
+		} else {
+			i = -3
+		}
 	default:
 		err = fmt.Errorf("couldn't determine biggest accel from %1.3f %1.3f %1.3f", a1, a2, a3)
 	}
