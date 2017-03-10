@@ -271,28 +271,7 @@ func sensorAttitudeSender() {
 			// Run the AHRS calcs
 			s.Compute(m)
 
-			// Log it to csv for analysis
-			if globalSettings.AHRSLog {
-				if analysisLogger == nil {
-					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
-						time.Now().Format("20060102_150405")))
-					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
-				}
-
-				if analysisLogger != nil && usage.Usage() < 0.95 {
-					analysisLogger.Log()
-				}
-			} else {
-				analysisLogger = nil
-			}
-
-			// Debugging server:
-			if ahrswebListener != nil {
-				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
-					log.Printf("Error writing to ahrsweb: %s\n", err)
-					ahrswebListener = nil
-				}
-			}
+			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 
 			// If we have valid AHRS info, then update mySituation
 			if s.Valid() {
@@ -316,7 +295,28 @@ func sensorAttitudeSender() {
 				s.Reset()
 			}
 
-			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
+			// Debugging server:
+			if ahrswebListener != nil {
+				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
+					log.Printf("Error writing to ahrsweb: %s\n", err)
+					ahrswebListener = nil
+				}
+			}
+
+			// Log it to csv for analysis
+			if globalSettings.AHRSLog  && usage.Usage() < 0.95 {
+				if analysisLogger == nil {
+					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
+						time.Now().Format("20060102_150405")))
+					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
+				}
+
+				if analysisLogger != nil {
+					analysisLogger.Log()
+				}
+			} else {
+				analysisLogger = nil
+			}
 		}
 	}
 }
