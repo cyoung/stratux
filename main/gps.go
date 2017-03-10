@@ -94,6 +94,7 @@ type SituationData struct {
 	RateOfTurn       float64
 	GLoad            float64
 	LastAttitudeTime time.Time
+	AHRSStatus       uint8
 }
 
 /*

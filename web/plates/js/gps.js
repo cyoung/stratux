@@ -10,6 +10,12 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	var status = {};
 	var display_area_size = -1;
 
+	var statusGPS = document.getElementById("status-gps"),
+        statusIMU = document.getElementById("status-imu"),
+        statusBMP = document.getElementById("status-bmp"),
+        statusLog = document.getElementById("status-logging"),
+		statusCal = document.getElementById("status-calibrating");
+
 	function sizeMap() {
 		var width = 0;
 		var el = document.getElementById("map_display").parentElement;
@@ -106,15 +112,53 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		// pitch and roll are in degrees
 		$scope.ahrs_pitch = Math.round(status.Pitch*10)/10;
 		$scope.ahrs_roll = Math.round(status.Roll*10)/10;
+        $scope.ahrs_slip_skid = Math.round(status.SlipSkid*10)/10;
+        ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 
         $scope.ahrs_heading_mag = Math.round(status.Mag_heading);
-        $scope.ahrs_slip_skid = Math.round(status.SlipSkid*10)/10;
-        if (status.RateOfTurn > 0.001) {
-			$scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn);
-        } else {
-            $scope.ahrs_turn_rate = '--'
-		}
         $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
+        if (status.RateOfTurn > 0.001) {
+			$scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn/60*10)/10; // minutes/turn
+        } else {
+            $scope.ahrs_turn_rate = '---'
+		}
+        if (status.AHRSStatus & 0x01) {
+            statusGPS.classList.remove("off");
+            statusGPS.classList.add("on");
+        } else {
+            statusGPS.classList.add("off");
+            statusGPS.classList.remove("on");
+        }
+        if (status.AHRSStatus & 0x02) {
+            statusIMU.classList.remove("off");
+            statusIMU.classList.add("on");
+        } else {
+            statusIMU.classList.add("off");
+            statusIMU.classList.remove("on");
+        }
+        if (status.AHRSStatus & 0x04) {
+            statusBMP.classList.remove("off");
+            statusBMP.classList.add("on");
+        } else {
+            statusBMP.classList.add("off");
+            statusBMP.classList.remove("on");
+        }
+		if (status.AHRSStatus & 0x10) {
+            statusLog.classList.remove("off");
+            statusLog.classList.add("on");
+		} else {
+            statusLog.classList.add("off");
+            statusLog.classList.remove("on");
+		}
+        if (status.AHRSStatus & 0x08) {
+            statusCal.classList.add("blink");
+            statusCal.classList.remove("on");
+            statusCal.innerText = "Caging";
+        } else {
+            statusCal.classList.remove("blink");
+            statusCal.classList.add("on");
+            statusCal.innerText = "Ready";
+        }
 		// "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
 
 		setGeoReferenceMap(status.Lat, status.Lng);
@@ -123,11 +167,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 
 	function getStatus() {
-		// Simple GET request example (note: responce is asynchronous)
+		// Simple GET request example (note: response is asynchronous)
 		$http.get(URL_GPS_GET).
 		then(function (response) {
 			loadStatus(response.data);
-			ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 			// $scope.$apply();
 		}, function (response) {
 			$scope.raw_data = "error getting gps / ahrs status";
@@ -207,11 +250,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	$scope.AHRSCage = function() {
-		$http.post(URL_AHRS_CAGE).
-		then(function (response) {
-			// do nothing
-		}, function (response) {
-			// do nothing
-		});
+	    if (!$scope.IsCaging()) {
+            $http.post(URL_AHRS_CAGE).then(function (response) {
+                // do nothing
+            }, function (response) {
+                // do nothing
+            });
+        }
 	};
+
+	$scope.IsCaging = function() {
+        return statusCal.innerText == "Caging";
+	}
 }

@@ -22,6 +22,8 @@ var (
 	myPressureReader sensors.PressureReader
 	myIMUReader      sensors.IMUReader
 	cage             chan(bool)
+	analysisLogger   *ahrs.AHRSLogger
+	ahrsCalibrating  bool
 )
 
 func initI2CSensors() {
@@ -29,6 +31,7 @@ func initI2CSensors() {
 
 	go pollSensors()
 	go sensorAttitudeSender()
+	go updateAHRSStatus()
 }
 
 func pollSensors() {
@@ -134,11 +137,14 @@ func initIMU() (ok bool) {
 		myIMUReader = imu
 		time.Sleep(200 * time.Millisecond)
 		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
+		ahrsCalibrating = true
 		if err := myIMUReader.Calibrate(1, 1); err == nil {
 			log.Println("AHRS Info: Successfully calibrated MPU9250")
+			ahrsCalibrating = false
 			return true
 		} else {
 			log.Println("AHRS Info: couldn't calibrate MPU9250")
+			ahrsCalibrating = false
 			return false
 		}
 	}
@@ -159,7 +165,6 @@ func sensorAttitudeSender() {
 		ff       					  *[3][3]float64 // Sensor orientation matrix
 		mpuError, magError                                error
 		failnum						  uint8
-		analysisLogger                                    *ahrs.AHRSLogger
 	)
 	log.Println("AHRS Info: initializing new simple AHRS")
 	s = ahrs.InitializeSimple()
@@ -206,11 +211,13 @@ func sensorAttitudeSender() {
 			<-timer.C
 			select {
 			case <-cage:
+				ahrsCalibrating = true
 				if err := myIMUReader.Calibrate(1, 1); err == nil {
 					log.Println("AHRS Info: Successfully recalibrated MPU9250")
 				} else {
 					log.Println("AHRS Info: couldn't recalibrate MPU9250")
 				}
+				ahrsCalibrating = false
 				s.Reset()
 			default:
 			}
@@ -353,6 +360,45 @@ func getMinAccelDirection() (i int, err error) {
 	return
 }
 
+// CageAHRS sends a signal to the AHRSProvider that it should be reset.
 func CageAHRS() {
 	cage<- true
+}
+
+func updateAHRSStatus() {
+	var (
+		msg    uint8
+		imu    bool
+		ticker *time.Ticker
+	)
+
+	ticker = time.NewTicker(250 * time.Millisecond)
+
+	for {
+		<-ticker.C
+		msg = 0
+
+		// GPS valid
+		if stratuxClock.Time.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond {
+			msg += 1
+		}
+		// IMU is being used
+		imu = globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected
+		if imu {
+			msg += 1 << 1
+		}
+		// BMP is being used
+		if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
+			msg += 1 << 2
+		}
+		// IMU is doing a calibration
+		if ahrsCalibrating {
+			msg += 1 << 3
+		}
+		// Logging to csv
+		if imu && analysisLogger != nil {
+			msg += 1 << 4
+		}
+		mySituation.AHRSStatus = msg
+	}
 }
