@@ -117,6 +117,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
         $scope.ahrs_heading_mag = Math.round(status.Mag_heading);
         $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
+        gMeter.update($scope.ahrs_gload);
+
         if (status.RateOfTurn > 0.001) {
 			$scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn/60*10)/10; // minutes/turn
         } else {
@@ -261,5 +263,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.IsCaging = function() {
         return statusCal.innerText == "Caging";
-	}
+	};
+
+	var gMeter = new gMeterRenderer("gMeter_display", 4.4, -1.76);
 }

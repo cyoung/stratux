@@ -10,7 +10,7 @@ CACHE MANIFEST
 /maui/css/mobile-angular-ui-hover.min.css
 /maui/css/mobile-angular-ui-desktop.min.css
 /maui/css/mobile-angular-ui-base.min.css
-/js/j3di-all.min.js
+/js/svg.min.js
 /js/addtohomescreen.min.js
 /js/main.js
 /plates/weather-help.html
@@ -51,6 +51,7 @@ CACHE MANIFEST
 /img/screen-640x920.png
 /css/addtohomescreen.css
 /css/main.css
+/css/ahrs.css
 
 NETWORK:
 *
