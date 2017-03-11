@@ -111,68 +111,82 @@ ahrsRenderer.prototype = {
 };
 
 function gMeterRenderer(locationId, plim, nlim) {
-        this.plim = plim;
-        this.nlim = nlim;
-        this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
+    this.plim = plim;
+    this.nlim = nlim;
+    this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
 
-        this.width = -1;
-        this.height = -1;
+    this.width = -1;
+    this.height = -1;
 
-        this.locationId = locationId;
-        this.canvas = document.getElementById(locationId);
-        this.resize();
+    this.locationId = locationId;
+    this.canvas = document.getElementById(locationId);
+    this.resize();
 
-        // State variables
-        this.g = 1;
-        this.min = 1;
-        this.max = 1;
+    // State variables
+    this.g = 1;
+    this.min = 1;
+    this.max = 1;
 
-        // Draw the G Meter using the svg.js library
-        var gMeter = SVG(locationId).viewbox(-200, -200, 400, 400).group().addClass('gMeter');
+    // Draw the G Meter using the svg.js library
+    var gMeter = SVG(locationId).viewbox(-200, -200, 400, 400).group().addClass('gMeter');
 
-        var el, card = gMeter.group().addClass('card');
-        card.circle(390).cx(0).cy(0);
-        card.line(-150, 0, -190, 0)
-            .addClass('marks one');
-        for (i=Math.floor(nlim); i<=Math.floor(plim+1); i++) {
-            if (i%2 == 0) {
-                el = card.line(-150, 0, -190, 0).addClass('big');
-                card.text(i.toString())
-                    .addClass('text')
-                    .cx(-105).cy(0)
-                    .transform({ rotation: (i-1)/this.nticks*360, cx: 0, cy: 0, relative: true })
-                    .transform({ rotation: -(i-1)/this.nticks*360, relative: true });
-            } else {
-                el = card.line(-165, 0, -190, 0);
+    var el, card = gMeter.group().addClass('card');
+    card.circle(390).cx(0).cy(0);
+    card.line(-150, 0, -190, 0)
+        .addClass('marks one');
+    for (i=Math.floor(nlim); i<=Math.floor(plim+1); i++) {
+        if (i%2 == 0) {
+            el = card.line(-150, 0, -190, 0).addClass('big');
+            card.text(i.toString())
+                .addClass('text')
+                .cx(-105).cy(0)
+                .transform({ rotation: (i-1)/this.nticks*360, cx: 0, cy: 0, relative: true })
+                .transform({ rotation: -(i-1)/this.nticks*360, relative: true });
+        } else {
+            el = card.line(-165, 0, -190, 0);
 
-            }
-            el.addClass('marks')
-                .rotate((i-1)/this.nticks*360, 0, 0);
         }
-        card.line(-140, 0, -190, 0).addClass('marks limit').rotate((plim-10)/this.nticks*360, 0, 0);
-        card.line(-140, 0, -190, 0).addClass('marks limit').rotate((nlim-10)/this.nticks*360, 0, 0);
-
-        this.pointer_el = gMeter.group().addClass('g');
-        this.pointer_el.polygon('0,0 -170,0 -150,-10 0,-10').addClass('pointer');
-        this.pointer_el.polygon('0,0 -170,0 -150,+10 0,+10').addClass('pointerBG');
-
-        this.max_el = gMeter.group().addClass('max');
-        this.max_el.polygon('0,0 -170,0 -150,-5 0,-5').addClass('pointer');
-        this.max_el.polygon('0,0 -170,0 -150,+5 0,+5').addClass('pointerBG');
-
-        this.min_el = gMeter.group().addClass('min');
-        this.min_el.polygon('0,0 -170,0 -160,-5 0,-5').addClass('pointer');
-        this.min_el.polygon('0,0 -170,0 -160,+5 0,+5').addClass('pointerBG');
-
-        gMeter.circle(40).cx(0).cy(0).addClass('center');
-
-        var reset = gMeter.group().cx(-165).cy(165).addClass('reset');
-        reset.circle(60).cx(0).cy(0).addClass('reset');
-        reset.text("RESET").cx(0).cy(0).addClass('text');
-        reset.on('click', function() {
-            this.reset();
-        }, this);
+        el.addClass('marks')
+            .rotate((i-1)/this.nticks*360, 0, 0);
     }
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((plim-1)/this.nticks*360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((nlim-1)/this.nticks*360, 0, 0);
+
+    var ax = -Math.cos(2*Math.PI/this.nticks),
+        ay = -Math.sin(2*Math.PI/this.nticks);
+    card.path('M -170 0, A 170 170 0 0 1 ' + 170*ax + ' ' + 170*ay)
+        .rotate(-Math.floor(plim)/this.nticks*360, 0, 0)
+        .addClass('marks')
+        .style('fill-opacity', '0');
+    card.path('M -175 0, A 175 175 0 0 1 ' + 175*ax + ' ' + 175*ay)
+        .rotate(-Math.floor(plim)/this.nticks*360, 0, 0)
+        .addClass('marks')
+        .style('fill-opacity', '0');
+
+
+    this.pointer_el = gMeter.group().addClass('g');
+    this.pointer_el.polygon('0,0 -170,0 -150,-10 0,-10').addClass('pointer');
+    this.pointer_el.polygon('0,0 -170,0 -150,+10 0,+10').addClass('pointerBG');
+
+    this.max_el = gMeter.group().addClass('max');
+    this.max_el.polygon('0,0 -170,0 -150,-5 0,-5').addClass('pointer');
+    this.max_el.polygon('0,0 -170,0 -150,+5 0,+5').addClass('pointerBG');
+
+    this.min_el = gMeter.group().addClass('min');
+    this.min_el.polygon('0,0 -170,0 -160,-5 0,-5').addClass('pointer');
+    this.min_el.polygon('0,0 -170,0 -160,+5 0,+5').addClass('pointerBG');
+
+    gMeter.circle(40).cx(0).cy(0).addClass('center');
+
+    var reset = gMeter.group().cx(-165).cy(165).addClass('reset');
+    reset.circle(60).cx(0).cy(0).addClass('reset');
+    reset.text("RESET").cx(0).cy(0).addClass('text');
+    reset.on('click', function() {
+        reset.animate(200).rotate(20, 0, 0);
+        this.reset();
+        reset.animate(200).rotate(0, 0, 0);
+    }, this);
+}
 
 gMeterRenderer.prototype = {
     constructor: gMeterRenderer,
