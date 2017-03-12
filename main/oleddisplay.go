@@ -383,10 +383,10 @@ func initDisplay(i2c *i2c.I2C) {
 }
 
 func displayLoop(i2c *i2c.I2C) {
-	timer := time.NewTicker(250 * time.Millisecond)
+	timer := time.NewTicker(500 * time.Millisecond)
 	timerLine1 := time.NewTicker(5 * time.Second)
 	timerLine2 := time.NewTicker(3 * time.Second)
-	for globalSettings.OLED_Enabled {
+	for {
 		select {
 		case <-timer.C:
 			displayInfo(textLine1Position, textLine2Position)
