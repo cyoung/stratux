@@ -163,6 +163,9 @@ function gMeterRenderer(locationId, plim, nlim) {
         .addClass('marks')
         .style('fill-opacity', '0');
 
+    this.min_el = gMeter.group().addClass('min');
+    this.min_el.polygon('0,0 -170,0 -160,-5 0,-5').addClass('pointer');
+    this.min_el.polygon('0,0 -170,0 -160,+5 0,+5').addClass('pointerBG');
 
     this.pointer_el = gMeter.group().addClass('g');
     this.pointer_el.polygon('0,0 -170,0 -150,-10 0,-10').addClass('pointer');
@@ -171,10 +174,6 @@ function gMeterRenderer(locationId, plim, nlim) {
     this.max_el = gMeter.group().addClass('max');
     this.max_el.polygon('0,0 -170,0 -150,-5 0,-5').addClass('pointer');
     this.max_el.polygon('0,0 -170,0 -150,+5 0,+5').addClass('pointerBG');
-
-    this.min_el = gMeter.group().addClass('min');
-    this.min_el.polygon('0,0 -170,0 -160,-5 0,-5').addClass('pointer');
-    this.min_el.polygon('0,0 -170,0 -160,+5 0,+5').addClass('pointerBG');
 
     gMeter.circle(40).cx(0).cy(0).addClass('center');
 
@@ -214,7 +213,8 @@ gMeterRenderer.prototype = {
     },
 
     reset: function() {
-        this.max = this.g;
-        this.min = this.g;
+        this.g   = 1;
+        this.max = 1;
+        this.min = 1;
     }
 };
