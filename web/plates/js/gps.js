@@ -113,7 +113,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.ahrs_pitch = Math.round(status.Pitch*10)/10;
 		$scope.ahrs_roll = Math.round(status.Roll*10)/10;
         $scope.ahrs_slip_skid = Math.round(status.SlipSkid*10)/10;
-        ahrs.animate(0.1, $scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
+        ahrs.update($scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 
         $scope.ahrs_heading_mag = Math.round(status.Mag_heading);
         $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
@@ -238,8 +238,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	// GPS/AHRS Controller tasks go here
 	var ahrs = new ahrsRenderer("ahrs_display");
-	ahrs.init();
-	ahrs.orientation(0, 0, 90);
 
 	$scope.hideClick = function() {
 		$scope.isHidden = !$scope.isHidden;

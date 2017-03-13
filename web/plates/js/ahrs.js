@@ -1,112 +1,115 @@
-function ahrsRenderer(location_id) {
+function ahrsRenderer(locationId) {
 	this.width = -1;
 	this.height = -1;
 
-	this.locationID = location_id;
-	this.canvas = document.getElementById(location_id);
-	this.canvas_container = document.getElementById(location_id).parentElement;
-	
-	var ai = document.getElementById("attitude_indicator"),
-	    _this = this;
+    this.locationId = locationId;
+	this.canvas = document.getElementById(locationId);
+    this.resize();
 
-	this.ps = [];
-	this.rs = [];
-	this.hs = [];
-	this.ss = [];
-	
-	ai.onload = function() {
-		_this.ps = ai.contentDocument.getElementsByClassName("pitch");
-		_this.rs = ai.contentDocument.getElementsByClassName("roll");
-		_this.hs = ai.contentDocument.getElementsByClassName("heading");
-		_this.ss = ai.contentDocument.getElementsByClassName("slipSkid");
-	};
+    // State variables
+    this.pitch = 0;
+    this.roll = 0;
+    this.heading = 0;
+    this.slipSkid = 0;
+    this.altitude = 0;
 
+    var ai = SVG(locationId).viewbox(-200, -200, 400, 400).group().addClass('ai'),
+        defs = ai.defs(),
+        earthClip = defs.rect(2400, 1200).x(-1200).y(0),
+        screenClip = defs.rect(400, 400).cx(0).cy(0);
+    this.pitchClip = defs.circle(320).cx(0).cy(0);
+    this.rollClip = defs.polygon('0,0 -200,-200 200,-200');
+
+    ai = ai.clipWith(screenClip).group();
+
+    // card is the earth+sky+pitch marks, moves with both pitch and roll.
+    this.card = ai.group();
+    this.card.circle(2400).cx(0).cy(0).addClass('sky'); // Sky
+    this.card.line(-1200, 0, 1200, 0).addClass('marks'); // Horizon line
+    this.card.circle(2400).cx(0).cy(0).addClass('earth').clipWith(earthClip); // Earth
+
+    var pitchMarks = this.card.group().addClass('marks').clipWith(this.pitchClip);
+    for (i = -1050; i <= 1050; i+=25) {
+        switch (i%100) {
+            case 0:
+                pitchMarks.line(-40, i, 40, i);
+                if (i!=0) {
+                    pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(i).addClass('markText');
+                    pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(i).addClass('markText');
+                }
+                break;
+            case 50:
+                pitchMarks.line(-20, i, 20, i);
+                break;
+            default:
+                pitchMarks.line(-10, i, 10, i);
+        }
+    }
+
+    this.rollMarks = ai.group().addClass('marks').clipWith(this.rollClip);
+    for (i=-180; i<180; i+=10) {
+        if (i == 0) {
+            this.rollMarks.polygon('-10,-189 0,-175 10,-189').style('stroke-width', 0);
+        }
+        else if (i % 30 == 0) {
+            this.rollMarks.line(0, -175, 0, -195).rotate(i, 0, 0);
+        } else {
+            this.rollMarks.line(0, -175, 0, -189).rotate(i, 0, 0);
+        }
+    }
+
+    var rollPointer = ai.group().addClass('marks');
+    rollPointer.polygon('-10,-160 0,-174 10,-160').style('stroke-width', 0);
+    rollPointer.polygon('-10,+160 0,+174 10,+160').style('stroke-width', 0);
+    this.skidBar = ai.rect(20, 6).cx(0).y(-158).style('stroke-width', 0).addClass('marks');
+
+    var pointer = ai.group().addClass('pointer');
+    pointer.polygon('-150,-3 -78,-3 -75,0 -78,3 -150,3');
+    pointer.polygon('+150,-3 +78,-3 +75,0 +78,3 +150,3');
+    pointer.polygon('-75,25 0,0 75,25 25,25 25,20 -25,20 -25,25').addClass('pointerBG');
+    pointer.polygon('-75,25 0,0 75,25 0,10');
+    pointer.line(0, 0, 0, 10);
+
+    this.headingMarks = ai.group().addClass('marks');
+    for (i=-200; i<=920; i+=20) {
+        if (i%60==0) {
+            this.headingMarks.line(i, 175, i, 178);
+            this.headingMarks.text((i<0 ? (i/2+360) : i/2).toString()).x(i).cy(185).addClass('markText');
+            this.headingMarks.line(i, 192, i, 195);
+        } else {
+            this.headingMarks.line(i, 175, i, 195).style('stroke-width', 1);
+        }
+    }
 }
 
 ahrsRenderer.prototype = {
 	constructor: ahrsRenderer,
 
-	init: function () {
+    resize: function () {
+        var canvasWidth = this.canvas.parentElement.offsetWidth - 12;
 
-		this.pitch = 0;
-		this.roll = 0;
-		this.heading = 0;
-		this.slipSkid = 0;
+        if (canvasWidth !== this.width) {
+            this.width = canvasWidth;
+            this.height = canvasWidth * 0.5;
 
-		this.resize();
-	},
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+    },
 
-	resize: function () {
-		var canvasWidth = this.canvas_container.offsetWidth - 12; // was (2*(this.canvas_container.offsetLeft)) // account for padding adjustments
-
-		if (canvasWidth !== this.width) {
-			this.width = canvasWidth;
-			this.height = canvasWidth *0.5;
-			
-			this.canvas.width = this.width;
-			this.canvas.height = this.height;
-		}
-	},
-
-	orientation: function (pitch, roll, heading, slipSkid) {
-	    // Assume we receive valid pitch, roll, heading
-		this.pitch = pitch;
-		this.roll = roll;
-		this.heading = heading;
+	update: function (pitch, roll, heading, slipSkid) {
+        this.pitch = pitch;
+        this.roll = roll;
+        this.heading = heading;
 		this.slipSkid = slipSkid;
-	},
 
-	animate: function (t, pitch, roll, heading, slipSkid) {
-		var FPS = 40; // we assume we can maintain a certain frame rate
-		var x_inc = ((pitch - this.pitch) / (FPS * t));
-		var y_inc = ((roll - this.roll) / (FPS * t));
-		if ((heading < this.heading) && (this.heading - heading) > 180) {
-			// let the animation wrap around gracefully clockwise
-			heading += 360;
-		} else if ((heading > this.heading) && (heading - this.heading) > 180) {
-			// let the animation wrap around gracefully counter clockwise
-			this.heading += 360;
-		}
-		var z_inc = ((heading - this.heading) / (FPS * t));
-		var w_inc = ((slipSkid - this.slipSkid) / (FPS * t));
-		var _this = this;
-		var frames = 0;
-		var f = function () {
-			_this.pitch += x_inc;
-			_this.roll += y_inc;
-			_this.heading += z_inc;
-			_this.slipSkid += w_inc;
-			if (frames < (FPS * t)) {
-				_this.draw();
-				frames++;
-				window.requestAnimationFrame(f); // recurse
-			} else {
-				_this.orientation(pitch, roll, heading, slipSkid);
-			}
-		};
-		f();
-	},
-
-	draw: function() {
-		for (i=0; i<this.ps.length; i++) {
-			this.ps[i].setAttribute("transform", "translate(0,"+this.pitch * 10+")")
-		}
-
-		for (i=0; i<this.rs.length; i++) {
-			this.rs[i].setAttribute("transform", "rotate("+(-this.roll)+")")
-		}
-
-		for (i=0; i<this.hs.length; i++) {
-		    var h = this.heading;
-		    while (h < 0) {
-		    	h += 360
-			}
-			this.hs[i].setAttribute("transform", "translate("+(-(this.heading % 360) * 2)+",0)")
-		}
-
-		for (i=0; i<this.ss.length; i++) {
-			this.ss[i].setAttribute("transform", "translate("+(-this.slipSkid * 2)+",0)")
-		}
+        this.pitchClip.translate(0, -10 * this.pitch);
+        this.rollClip.rotate(this.roll, 0, 0);
+        this.card.rotate(0, 0, 0).translate(0, 10 * this.pitch);
+        this.card.rotate(-this.roll, 0, -10 * this.pitch);
+        this.rollMarks.rotate(-this.roll, 0, 0);
+        this.headingMarks.translate(-2 * (this.heading % 360), 0);
+        this.skidBar.translate(-2 * this.slipSkid, 0);
 	}
 };
 
@@ -179,7 +182,7 @@ function gMeterRenderer(locationId, plim, nlim) {
 
     var reset = gMeter.group().cx(-165).cy(165).addClass('reset');
     reset.circle(60).cx(0).cy(0).addClass('reset');
-    reset.text("RESET").cx(0).cy(0).addClass('text');
+    reset.text('RESET').cx(0).cy(0).addClass('text');
     reset.on('click', function() {
         reset.animate(200).rotate(20, 0, 0);
         this.reset();
