@@ -74,7 +74,7 @@ function ahrsRenderer(locationId) {
     for (i=-200; i<=920; i+=20) {
         if (i%60==0) {
             this.headingMarks.line(i, 175, i, 178);
-            this.headingMarks.text((i<0 ? (i/2+360) : i/2).toString()).x(i).cy(185).addClass('markText');
+            this.headingMarks.text(((i<0 ? (i/2+360) : i/2)%360).toString()).x(i).cy(185).addClass('markText');
             this.headingMarks.line(i, 192, i, 195);
         } else {
             this.headingMarks.line(i, 175, i, 195).style('stroke-width', 1);
