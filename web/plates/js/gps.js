@@ -263,7 +263,13 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	$scope.IsCaging = function() {
-        return statusCal.innerText == "Caging";
+	    var caging = statusCal.innerText === "Caging";
+	    if (caging) {
+            ahrs.turn_off("Sensor is calibrating.\nFly level and do not move sensor.");
+		} else {
+            ahrs.turn_on();
+		}
+        return caging;
 	};
 
 	var gMeter = new gMeterRenderer("gMeter_display", 4.4, -1.76);

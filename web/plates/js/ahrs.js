@@ -13,17 +13,20 @@ function ahrsRenderer(locationId) {
     this.slipSkid = 0;
     this.altitude = 0;
 
-    var ai = SVG(locationId).viewbox(-200, -200, 400, 400).group().addClass('ai'),
-        defs = ai.defs(),
+    var display = SVG(locationId).viewbox(-200, -200, 400, 400).group();
+
+    this.ai = display.group().addClass('ai');
+
+    var defs = this.ai.defs(),
         earthClip = defs.rect(2400, 1200).x(-1200).y(0),
         screenClip = defs.rect(400, 400).cx(0).cy(0);
     this.pitchClip = defs.circle(320).cx(0).cy(0);
     this.rollClip = defs.polygon('0,0 -200,-200 200,-200');
 
-    ai = ai.clipWith(screenClip).group();
+    this.ai = this.ai.clipWith(screenClip).group();
 
     // card is the earth+sky+pitch marks, moves with both pitch and roll.
-    this.card = ai.group();
+    this.card = this.ai.group();
     this.card.circle(2400).cx(0).cy(0).addClass('sky'); // Sky
     this.card.line(-1200, 0, 1200, 0).addClass('marks'); // Horizon line
     this.card.circle(2400).cx(0).cy(0).addClass('earth').clipWith(earthClip); // Earth
@@ -33,7 +36,7 @@ function ahrsRenderer(locationId) {
         switch (i%100) {
             case 0:
                 pitchMarks.line(-40, i, 40, i);
-                if (i!=0) {
+                if (i !== 0) {
                     pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(i).addClass('markText');
                     pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(i).addClass('markText');
                 }
@@ -46,33 +49,33 @@ function ahrsRenderer(locationId) {
         }
     }
 
-    this.rollMarks = ai.group().addClass('marks').clipWith(this.rollClip);
+    this.rollMarks = this.ai.group().addClass('marks').clipWith(this.rollClip);
     for (i=-180; i<180; i+=10) {
-        if (i == 0) {
+        if (i === 0) {
             this.rollMarks.polygon('-10,-189 0,-175 10,-189').style('stroke-width', 0);
         }
-        else if (i % 30 == 0) {
+        else if (i % 30 === 0) {
             this.rollMarks.line(0, -175, 0, -195).rotate(i, 0, 0);
         } else {
             this.rollMarks.line(0, -175, 0, -189).rotate(i, 0, 0);
         }
     }
 
-    var rollPointer = ai.group().addClass('marks');
+    var rollPointer = this.ai.group().addClass('marks');
     rollPointer.polygon('-10,-160 0,-174 10,-160').style('stroke-width', 0);
     rollPointer.polygon('-10,+160 0,+174 10,+160').style('stroke-width', 0);
-    this.skidBar = ai.rect(20, 6).cx(0).y(-158).style('stroke-width', 0).addClass('marks');
+    this.skidBar = this.ai.rect(20, 6).cx(0).y(-158).style('stroke-width', 0).addClass('marks');
 
-    var pointer = ai.group().addClass('pointer');
+    var pointer = this.ai.group().addClass('pointer');
     pointer.polygon('-150,-3 -78,-3 -75,0 -78,3 -150,3');
     pointer.polygon('+150,-3 +78,-3 +75,0 +78,3 +150,3');
     pointer.polygon('-75,25 0,0 75,25 25,25 25,20 -25,20 -25,25').addClass('pointerBG');
     pointer.polygon('-75,25 0,0 75,25 0,10');
     pointer.line(0, 0, 0, 10);
 
-    this.headingMarks = ai.group().addClass('marks');
+    this.headingMarks = this.ai.group().addClass('marks');
     for (i=-200; i<=920; i+=20) {
-        if (i%60==0) {
+        if (i%60 === 0) {
             this.headingMarks.line(i, 175, i, 178);
             this.headingMarks.text(((i<0 ? (i/2+360) : i/2)%360).toString()).x(i).cy(185).addClass('markText');
             this.headingMarks.line(i, 192, i, 195);
@@ -80,6 +83,14 @@ function ahrsRenderer(locationId) {
             this.headingMarks.line(i, 175, i, 195).style('stroke-width', 1);
         }
     }
+
+    this.err = display.group().addClass('error').group();
+    this.err.rect(400, 400).cx(0).cy(0);
+    this.err.line(-200, -200, 200, +200);
+    this.err.line(-200, +200, 200, -200);
+    this.errText = this.err.text("").cx(0).cy(0).addClass('errText');
+    var tb = this.errText.bbox();
+    this.errTextBg = this.err.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.errText);
 }
 
 ahrsRenderer.prototype = {
@@ -110,7 +121,21 @@ ahrsRenderer.prototype = {
         this.rollMarks.rotate(-this.roll, 0, 0);
         this.headingMarks.translate(-2 * (this.heading % 360), 0);
         this.skidBar.translate(-2 * this.slipSkid, 0);
-	}
+	},
+
+	turn_on: function() {
+	    this.err.hide();
+	    this.ai.show();
+	    this.errText.clear();
+    },
+
+	turn_off: function(message) {
+        this.errText.text(message);
+        var tb = this.errText.bbox();
+        this.errTextBg.attr({'x': tb.x, 'y': tb.y, 'width': tb.w, 'height': tb.h});
+        this.ai.hide();
+        this.err.show();
+    }
 };
 
 function gMeterRenderer(locationId, plim, nlim) {
@@ -138,7 +163,7 @@ function gMeterRenderer(locationId, plim, nlim) {
     card.line(-150, 0, -190, 0)
         .addClass('marks one');
     for (i=Math.floor(nlim); i<=Math.floor(plim+1); i++) {
-        if (i%2 == 0) {
+        if (i%2 === 0) {
             el = card.line(-150, 0, -190, 0).addClass('big');
             card.text(i.toString())
                 .addClass('text')
