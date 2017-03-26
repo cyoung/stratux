@@ -119,7 +119,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
         gMeter.update($scope.ahrs_gload);
 
-        if (status.RateOfTurn > 0.001) {
+        if (status.RateOfTurn > 1) {
 			$scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn/60*10)/10; // minutes/turn
         } else {
             $scope.ahrs_turn_rate = '---'
@@ -179,6 +179,24 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 			// $scope.$apply();
 		}, function (response) {
 			$scope.raw_data = "error getting gps / ahrs status";
+			$scope.ahrs_heading = "---";
+            $scope.ahrs_pitch = "--";
+            $scope.ahrs_roll = "--";
+            $scope.ahrs_slip_skid = "--";
+            $scope.ahrs_heading_mag = "---";
+            $scope.ahrs_turn_rate = "--";
+            $scope.ahrs_gload = "--";
+            statusGPS.classList.add("off");
+            statusGPS.classList.remove("on");
+            statusIMU.classList.add("off");
+            statusIMU.classList.remove("on");
+            statusBMP.classList.add("off");
+            statusBMP.classList.remove("on");
+            statusLog.classList.add("off");
+            statusLog.classList.remove("on");
+            statusCal.classList.add("off");
+            statusCal.classList.remove("on");
+            statusCal.innerText = "Error";
 		});
 	}
 
@@ -231,6 +249,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	$state.get('gps').onExit = function () {
+		//TODO westphae: close socket
 		// stop polling for gps/ahrs status
 		$interval.cancel(updateStatus);
 	};
