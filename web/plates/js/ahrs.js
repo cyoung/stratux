@@ -130,7 +130,7 @@ ahrsRenderer.prototype = {
     },
 
 	turn_off: function(message) {
-        this.errText.text(message);
+        this.errText.text(message).center(0, 0);
         var tb = this.errText.bbox();
         this.errTextBg.attr({'x': tb.x, 'y': tb.y, 'width': tb.w, 'height': tb.h});
         this.ai.hide();

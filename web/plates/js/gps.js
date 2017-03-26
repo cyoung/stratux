@@ -265,7 +265,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.IsCaging = function() {
 	    var caging = statusCal.innerText === "Caging";
 	    if (caging) {
-            ahrs.turn_off("Sensor is calibrating.\nFly level and do not move sensor.");
+            ahrs.turn_off("Calibrating. Fly level and do not move sensor.");
 		} else {
             ahrs.turn_on();
 		}
