@@ -17,11 +17,12 @@ xgen_gdl90:
 
 xdump1090:
 	git submodule update --init
-	cd dump1090 && make
+	cd dump1090 && make lib
+	cp -f ./libdump1090.so /usr/lib/libdump1090.so
 
 xdump978:
 	cd dump978 && make lib
-	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
+	cp -f ./libdump978.so /usr/lib/libdump978.so
 
 .PHONY: test
 test:
@@ -47,6 +48,6 @@ install:
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so
+	rm -f gen_gdl90 libdump978.so libdump1090.so
 	cd dump1090 && make clean
 	cd dump978 && make clean
