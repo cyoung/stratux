@@ -110,7 +110,7 @@
 		<!-- Create Header Navbar with left Menu Button -->
 		<div class="navbar navbar-app navbar-absolute-top">
 			<div class="navbar-brand navbar-brand-center" ui-yield-to="title">
-				<a href="#/">
+				<a href="/?1" onClick="this.href=this.href.split('?')[0]+'?'+new Date().getTime()">
                     Stratux
             </a>
 			</div>
