@@ -276,22 +276,25 @@ func initGPSSerial() bool {
 		// gpsattitude too much --  without WAAS corrections, the algorithm could get jumpy at higher
 		// sampling rates.
 
-		cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
+		cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
 		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
 		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS (WAAS) with 2-3 tracking channels
 		beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
 		qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
 		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
+		galileo := []byte{0x02, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables Galileo
 
 		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
 			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS configuration.\n")
 			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+			galileo = []byte{0x02, 0x04, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-16 tracking channels
 		}
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
 		cfgGnss = append(cfgGnss, beidou...)
 		cfgGnss = append(cfgGnss, qzss...)
 		cfgGnss = append(cfgGnss, glonass...)
+		cfgGnss = append(cfgGnss, galileo...)
 		p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 
 		// SBAS configuration for ublox 6 and higher
