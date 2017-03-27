@@ -33,7 +33,7 @@ const (
 	SAT_TYPE_UNKNOWN = 0  // default type
 	SAT_TYPE_GPS     = 1  // GPxxx; NMEA IDs 1-32
 	SAT_TYPE_GLONASS = 2  // GLxxx; NMEA IDs 65-88
-	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs unknown
+	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs 301-332
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 )
@@ -1550,6 +1550,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		var svType uint8
 		var svSBAS bool    // used to indicate whether this GSA message contains a SBAS satellite
 		var svGLONASS bool // used to indicate whether this GSA message contains GLONASS satellites
+		var svGalileo bool // used to indicate whether this GSA message contains Galileo satellites
 		sat := 0
 
 		for _, svtxt := range x[3:15] {
@@ -1568,7 +1569,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
 					svGLONASS = true
-				} else { //TODO: Galileo
+				} else if sv < 300 { // Galileo
+					svType = SAT_TYPE_GALILEO
+					svStr = fmt.Sprintf("E%d", sv-300) // subtract 300 to convert from NMEA to PRN
+					svGalileo = true
+			        } else {
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1636,7 +1641,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	}
 
-	if (x[0] == "GPGSV") || (x[0] == "GLGSV") { // GPS + SBAS or GLONASS satellites in view message. Galileo is TBD.
+	if (x[0] == "GPGSV") || (x[0] == "GLGSV") || (x[0] == "GAGSV"){ // GPS + SBAS or GLONASS or Galileo satellites in view message.
 		if len(x) < 4 {
 			return false
 		}
@@ -1692,7 +1697,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv < 97 { // GLONASS
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-			} else { //TODO: Galileo
+			} else if sv < 300 { // Galileo
+				svType = SAT_TYPE_GALILEO
+				svStr = fmt.Sprintf("E%d", sv-300) // subtract 300 to convert from NMEA to PRN
+				svGalileo = true
+			} else { 
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
 			}
