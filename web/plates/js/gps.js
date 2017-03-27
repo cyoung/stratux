@@ -7,7 +7,44 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     $scope.data_list = [];
     $scope.isHidden = false;
 
-    var status = {};
+    function connect($scope) {
+        if (($scope === undefined) || ($scope === null))
+            return; // we are getting called once after clicking away from the gps page
+
+        if (($scope.socket === undefined) || ($scope.socket === null)) {
+            socket = new WebSocket(URL_GPS_WS);
+            $scope.socket = socket; // store socket in scope for enter/exit usage
+        }
+
+        $scope.ConnectState = "Disconnected";
+
+        socket.onopen = function (msg) {
+            // $scope.ConnectStyle = "label-success";
+            $scope.ConnectState = "Connected";
+        };
+
+        socket.onclose = function (msg) {
+            // $scope.ConnectStyle = "label-danger";
+            $scope.ConnectState = "Disconnected";
+            $scope.$apply();
+            delete $scope.socket;
+            setTimeout(function() {connect($scope);}, 1000);
+        };
+
+        socket.onerror = function (msg) {
+            // $scope.ConnectStyle = "label-danger";
+            $scope.ConnectState = "Error";
+            resetSituation();
+            $scope.$apply();
+        };
+
+        socket.onmessage = function (msg) {
+            loadSituation(msg.data);
+            $scope.$apply(); // trigger any needed refreshing of data
+        };
+    }
+
+    var situation = {};
     var display_area_size = -1;
 
     var statusGPS = document.getElementById("status-gps"),
@@ -59,28 +96,27 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.map_mark_y = Math.round((div_height - font_size) / 2);
     }
 
-
-    function loadStatus(data) { // mySituation
-        status = angular.fromJson(data);
+    function loadSituation(data) { // mySituation
+        situation = angular.fromJson(data);
         // consider using angular.extend()
         $scope.raw_data = angular.toJson(data, true); // makes it pretty
 
 		
-        $scope.Satellites = status.Satellites;
-        $scope.GPS_satellites_tracked = status.SatellitesTracked;
-        $scope.GPS_satellites_seen = status.SatellitesSeen;
-        $scope.Quality = status.Quality;
+        $scope.Satellites = situation.Satellites;
+        $scope.GPS_satellites_tracked = situation.SatellitesTracked;
+        $scope.GPS_satellites_seen = situation.SatellitesSeen;
+        $scope.Quality = situation.Quality;
 		
         var solutionText = "No Fix";
-        if (status.Quality === 2) {
+        if (situation.Quality === 2) {
             solutionText = "GPS + SBAS (WAAS / EGNOS)";
-        } else if (status.Quality === 1) {
+        } else if (situation.Quality === 1) {
             solutionText = "3D GPS"
         }
         $scope.SolutionText = solutionText;
 		
-        $scope.gps_accuracy = status.Accuracy.toFixed(1);
-        $scope.gps_vert_accuracy = (status.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
+        $scope.gps_accuracy = situation.Accuracy.toFixed(1);
+        $scope.gps_vert_accuracy = (situation.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
 
 
         // NACp should be an integer value in the range of 0 .. 11
@@ -88,50 +124,50 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         // $scope.gps_accuracy = accuracies[status.NACp];
         // "LastFixLocalTime":"2015-10-11T16:47:03.523085162Z"
 
-        $scope.gps_lat = status.Lat.toFixed(5); // result is string
-        $scope.gps_lon = status.Lng.toFixed(5); // result is string
-        $scope.gps_alt = status.Alt.toFixed(1);
-        $scope.gps_track = status.TrueCourse.toFixed(1);
-        $scope.gps_speed = status.GroundSpeed.toFixed(1);
-        $scope.gps_vert_speed = status.GPSVertVel.toFixed(1);
+        $scope.gps_lat = situation.Lat.toFixed(5); // result is string
+        $scope.gps_lon = situation.Lng.toFixed(5); // result is string
+        $scope.gps_alt = situation.Alt.toFixed(1);
+        $scope.gps_track = situation.TrueCourse.toFixed(1);
+        $scope.gps_speed = situation.GroundSpeed.toFixed(1);
+        $scope.gps_vert_speed = situation.GPSVertVel.toFixed(1);
 
         // "LastGroundTrackTime":"0001-01-01T00:00:00Z"
 
         /* not currently used
 		$scope.ahrs_temp = status.Temp;
 		*/
-        $scope.press_time = Date.parse(status.LastTempPressTime);
-        $scope.gps_time = Date.parse(status.LastGPSTimeTime);
+        $scope.press_time = Date.parse(situation.LastTempPressTime);
+        $scope.gps_time = Date.parse(situation.LastGPSTimeTime);
         if ($scope.gps_time - $scope.press_time < 1000) {
-            $scope.ahrs_alt = Math.round(status.Pressure_alt);
+            $scope.ahrs_alt = Math.round(situation.Pressure_alt);
         } else {
             $scope.ahrs_alt = "---";
         }
 
-        $scope.ahrs_heading = Math.round(status.Gyro_heading);
+        $scope.ahrs_heading = Math.round(situation.Gyro_heading);
         // pitch and roll are in degrees
-        $scope.ahrs_pitch = Math.round(status.Pitch*10)/10;
-        $scope.ahrs_roll = Math.round(status.Roll*10)/10;
-        $scope.ahrs_slip_skid = Math.round(status.SlipSkid*10)/10;
+        $scope.ahrs_pitch = Math.round(situation.Pitch*10)/10;
+        $scope.ahrs_roll = Math.round(situation.Roll*10)/10;
+        $scope.ahrs_slip_skid = Math.round(situation.SlipSkid*10)/10;
         ahrs.update($scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 
-        $scope.ahrs_heading_mag = Math.round(status.Mag_heading);
-        $scope.ahrs_gload = Math.round(status.GLoad*100)/100;
+        $scope.ahrs_heading_mag = Math.round(situation.Mag_heading);
+        $scope.ahrs_gload = Math.round(situation.GLoad*100)/100;
         gMeter.update($scope.ahrs_gload);
 
-        if (status.RateOfTurn > 1) {
-            $scope.ahrs_turn_rate = Math.round(360/status.RateOfTurn/60*10)/10; // minutes/turn
+        if (situation.RateOfTurn > 1) {
+            $scope.ahrs_turn_rate = Math.round(360/situation.RateOfTurn/60*10)/10; // minutes/turn
         } else {
             $scope.ahrs_turn_rate = '---'
         }
-        if (status.AHRSStatus & 0x01) {
+        if (situation.AHRSStatus & 0x01) {
             statusGPS.classList.remove("off");
             statusGPS.classList.add("on");
         } else {
             statusGPS.classList.add("off");
             statusGPS.classList.remove("on");
         }
-        if (status.AHRSStatus & 0x02) {
+        if (situation.AHRSStatus & 0x02) {
             if (statusIMU.classList.contains("off")) {
                 setTimeout(gMeter.reset(), 1000);
             }
@@ -141,21 +177,21 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusIMU.classList.add("off");
             statusIMU.classList.remove("on");
         }
-        if (status.AHRSStatus & 0x04) {
+        if (situation.AHRSStatus & 0x04) {
             statusBMP.classList.remove("off");
             statusBMP.classList.add("on");
         } else {
             statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
         }
-        if (status.AHRSStatus & 0x10) {
+        if (situation.AHRSStatus & 0x10) {
             statusLog.classList.remove("off");
             statusLog.classList.add("on");
         } else {
             statusLog.classList.add("off");
             statusLog.classList.remove("on");
         }
-        if (status.AHRSStatus & 0x08) {
+        if (situation.AHRSStatus & 0x08) {
             statusCal.classList.add("blink");
             statusCal.classList.remove("on");
             statusCal.innerText = "Caging";
@@ -166,38 +202,29 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         // "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
 
-        setGeoReferenceMap(status.Lat, status.Lng);
-
-        // $scope.$apply();
+        setGeoReferenceMap(situation.Lat, situation.Lng);
     }
 
-    function getStatus() {
-        // Simple GET request example (note: response is asynchronous)
-        $http.get(URL_GPS_GET).
-        then(function (response) {
-            loadStatus(response.data);
-            // $scope.$apply();
-        }, function (response) {
-            $scope.raw_data = "error getting gps / ahrs status";
-            $scope.ahrs_heading = "---";
-            $scope.ahrs_pitch = "--";
-            $scope.ahrs_roll = "--";
-            $scope.ahrs_slip_skid = "--";
-            $scope.ahrs_heading_mag = "---";
-            $scope.ahrs_turn_rate = "--";
-            $scope.ahrs_gload = "--";
-            statusGPS.classList.add("off");
-            statusGPS.classList.remove("on");
-            statusIMU.classList.add("off");
-            statusIMU.classList.remove("on");
-            statusBMP.classList.add("off");
-            statusBMP.classList.remove("on");
-            statusLog.classList.add("off");
-            statusLog.classList.remove("on");
-            statusCal.classList.add("off");
-            statusCal.classList.remove("on");
-            statusCal.innerText = "Error";
-        });
+    function resetSituation() { // mySituation
+        $scope.raw_data = "error getting gps / ahrs status";
+        $scope.ahrs_heading = "---";
+        $scope.ahrs_pitch = "--";
+        $scope.ahrs_roll = "--";
+        $scope.ahrs_slip_skid = "--";
+        $scope.ahrs_heading_mag = "---";
+        $scope.ahrs_turn_rate = "--";
+        $scope.ahrs_gload = "--";
+        statusGPS.classList.add("off");
+        statusGPS.classList.remove("on");
+        statusIMU.classList.add("off");
+        statusIMU.classList.remove("on");
+        statusBMP.classList.add("off");
+        statusBMP.classList.remove("on");
+        statusLog.classList.add("off");
+        statusLog.classList.remove("on");
+        statusCal.classList.add("off");
+        statusCal.classList.remove("on");
+        statusCal.innerText = "Error";
     }
 
     function getSatellites() {
@@ -238,22 +265,23 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         // $scope.$apply();
     }
 	
-    var updateStatus = $interval(function () {
-        // refresh GPS/AHRS status once each 100 milliseconds (aka polling)
-        getStatus();
+    var updateSatellites = $interval(function () {
+        // refresh satellite info once each second (aka polling)
         getSatellites();
-    }, 100, 0, false);
+    }, 1000, 0, false);
 
     $state.get('gps').onEnter = function () {
         // everything gets handled correctly by the controller
     };
 
     $state.get('gps').onExit = function () {
-        //TODO westphae: close socket
+        if (($scope.socket !== undefined) && ($scope.socket !== null)) {
+            $scope.socket.close();
+            $scope.socket = null;
+        }
         // stop polling for gps/ahrs status
-        $interval.cancel(updateStatus);
+        $interval.cancel(updateSatellites);
     };
-
 
     // GPS/AHRS Controller tasks go here
     var ahrs = new ahrsRenderer("ahrs_display");
@@ -284,7 +312,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     $scope.IsCaging = function() {
         var caging = statusCal.innerText === "Caging";
         if (caging) {
-            ahrs.turn_off("Calibrating. Fly level and do not move sensor.");
+            ahrs.turn_off("Calibrating. Fly straight and do not move sensor.");
         } else {
             ahrs.turn_on();
         }
@@ -292,4 +320,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     var gMeter = new gMeterRenderer("gMeter_display", 4.4, -1.76);
+
+    // GPS Controller tasks
+    connect($scope); // connect - opens a socket and listens for messages
 }

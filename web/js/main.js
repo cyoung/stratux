@@ -2,7 +2,7 @@
 var URL_HOST_BASE 		= window.location.hostname;
 var URL_SETTINGS_GET 	= "http://"	+ URL_HOST_BASE + "/getSettings";
 var URL_SETTINGS_SET 	= "http://"	+ URL_HOST_BASE + "/setSettings";
-var URL_GPS_GET 		= "http://"	+ URL_HOST_BASE + "/getSituation";
+var URL_GPS_WS			= "ws://"	+ URL_HOST_BASE + "/situation";
 var URL_TOWERS_GET 		= "http://"	+ URL_HOST_BASE + "/getTowers";
 var URL_STATUS_GET 		= "http://"	+ URL_HOST_BASE + "/getStatus";
 var URL_SATELLITES_GET	= "http://"	+ URL_HOST_BASE + "/getSatellites";
