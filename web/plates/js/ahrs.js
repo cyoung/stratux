@@ -1,4 +1,4 @@
-function ahrsRenderer(locationId) {
+function AHRSRenderer(locationId) {
 	this.width = -1;
 	this.height = -1;
 
@@ -93,8 +93,8 @@ function ahrsRenderer(locationId) {
     this.errTextBg = this.err.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.errText);
 }
 
-ahrsRenderer.prototype = {
-	constructor: ahrsRenderer,
+AHRSRenderer.prototype = {
+	constructor: AHRSRenderer,
 
     resize: function () {
         var canvasWidth = this.canvas.parentElement.offsetWidth - 12;
@@ -138,7 +138,7 @@ ahrsRenderer.prototype = {
     }
 };
 
-function gMeterRenderer(locationId, plim, nlim) {
+function GMeterRenderer(locationId, plim, nlim) {
     this.plim = plim;
     this.nlim = nlim;
     this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
@@ -215,8 +215,8 @@ function gMeterRenderer(locationId, plim, nlim) {
     }, this);
 }
 
-gMeterRenderer.prototype = {
-    constructor: gMeterRenderer,
+GMeterRenderer.prototype = {
+    constructor: GMeterRenderer,
 
     resize: function () {
         var canvasWidth = this.canvas.parentElement.offsetWidth - 12;

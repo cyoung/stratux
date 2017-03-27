@@ -284,7 +284,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     // GPS/AHRS Controller tasks go here
-    var ahrs = new ahrsRenderer("ahrs_display");
+    var ahrs = new AHRSRenderer("ahrs_display");
 
     $scope.hideClick = function() {
         $scope.isHidden = !$scope.isHidden;
@@ -319,7 +319,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         return caging;
     };
 
-    var gMeter = new gMeterRenderer("gMeter_display", 4.4, -1.76);
+    var gMeter = new GMeterRenderer("gMeter_display", 4.4, -1.76);
 
     // GPS Controller tasks
     connect($scope); // connect - opens a socket and listens for messages
