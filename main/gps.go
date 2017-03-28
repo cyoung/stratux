@@ -33,7 +33,7 @@ const (
 	SAT_TYPE_UNKNOWN = 0  // default type
 	SAT_TYPE_GPS     = 1  // GPxxx; NMEA IDs 1-32
 	SAT_TYPE_GLONASS = 2  // GLxxx; NMEA IDs 65-88
-	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs 301-332
+	SAT_TYPE_GALILEO = 3  // GAxxx; NMEA IDs 
 	SAT_TYPE_BEIDOU  = 4  // GBxxx; NMEA IDs 201-235
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 )
@@ -254,8 +254,8 @@ func initGPSSerial() bool {
 		// Byte order for UBX configuration is little endian.
 
 		// Set 10 Hz update to make gpsattitude more responsive for ublox7/8.
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
-		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
+		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00})) // 2 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
@@ -285,7 +285,7 @@ func initGPSSerial() bool {
 		galileo := []byte{0x02, 0x04, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables Galileo
 
 		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS configuration.\n")
+			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
 			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
 			galileo = []byte{0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-8 tracking channels
 		}
@@ -1101,7 +1101,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_SBAS
 					svStr = fmt.Sprintf("S%d", sv)
 					sv -= 87 // subtract 87 to convert to NMEA from PRN.
-				} else { //TODO: Galileo
+				} else if sv > 210 {
+					svType = SAT_TYPE_GALILEO
+					svStr = fmt.Sprintf("E%d", sv-210) 
+                                } else { //TODO: Galileo
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
 				}
@@ -1569,9 +1572,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
 					svGLONASS = true
-				} else if sv < 300 { // Galileo
+				} else if sv < 210 { // Galileo
 					svType = SAT_TYPE_GALILEO
-					svStr = fmt.Sprintf("E%d", sv-300) // subtract 300 to convert from NMEA to PRN
+					svStr = fmt.Sprintf("E%d", sv-210) // subtract 300 to convert from NMEA to PRN
 					svGalileo = true
 			        } else {
 					svType = SAT_TYPE_UNKNOWN
@@ -1607,7 +1610,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		if sat < 12 || tmpSituation.Satellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
 			tmpSituation.Satellites = uint16(sat)
-			if (tmpSituation.Quality == 2) && !svSBAS && !svGLONASS { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
+			if (tmpSituation.Quality == 2) && !svSBAS && !svGLONASS && !svGalileo { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
 				tmpSituation.Satellites++
 			}
 		}
@@ -1697,10 +1700,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv < 97 { // GLONASS
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-			} else if sv < 300 { // Galileo
+			} else if sv < 210 { // Galileo
 				svType = SAT_TYPE_GALILEO
-				svStr = fmt.Sprintf("E%d", sv-300) // subtract 300 to convert from NMEA to PRN
-				svGalileo = true
+				svStr = fmt.Sprintf("E%d", sv-210) // subtract 300 to convert from NMEA to PRN
 			} else { 
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
