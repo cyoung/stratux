@@ -66,7 +66,7 @@ var netMutex *sync.RWMutex
 var totalNetworkMessagesSent uint32
 
 var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
-var pingResponseMutex *sync.RWMutex // For versions of Go after 1.6 we need to protect this map from concurrent reads & writes
+var pingResponseMutex *sync.RWMutex   // For versions of Go after 1.6 we need to protect this map from concurrent reads & writes
 
 const (
 	NETWORK_GDL90_STANDARD = 1

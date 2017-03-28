@@ -21,7 +21,7 @@ var (
 	i2cbus           embd.I2CBus
 	myPressureReader sensors.PressureReader
 	myIMUReader      sensors.IMUReader
-	cage             chan(bool)
+	cage             chan (bool)
 	analysisLogger   *ahrs.AHRSLogger
 	ahrsCalibrating  bool
 )
@@ -157,19 +157,19 @@ func initIMU() (ok bool) {
 
 func sensorAttitudeSender() {
 	var (
-		roll, pitch, heading                              float64
-		t                                                 time.Time
-		s                                                 ahrs.AHRSProvider
-		m                                                 *ahrs.Measurement
-		a1, a2, a3, b1, b2, b3, m1, m2, m3                float64 // IMU measurements
-		ff       					  *[3][3]float64 // Sensor orientation matrix
-		mpuError, magError                                error
-		failnum						  uint8
+		roll, pitch, heading               float64
+		t                                  time.Time
+		s                                  ahrs.AHRSProvider
+		m                                  *ahrs.Measurement
+		a1, a2, a3, b1, b2, b3, m1, m2, m3 float64        // IMU measurements
+		ff                                 *[3][3]float64 // Sensor orientation matrix
+		mpuError, magError                 error
+		failnum                            uint8
 	)
 	log.Println("AHRS Info: initializing new simple AHRS")
 	s = ahrs.InitializeSimple()
 	m = ahrs.NewMeasurement()
-	cage = make(chan(bool))
+	cage = make(chan (bool))
 
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
@@ -182,7 +182,7 @@ func sensorAttitudeSender() {
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		if globalSettings.IMUMapping[0]==0 { // if unset, default to RY836AI
+		if globalSettings.IMUMapping[0] == 0 { // if unset, default to RY836AI
 			globalSettings.IMUMapping[0] = -1 // +2
 			globalSettings.IMUMapping[1] = -3 // +3
 			saveSettings()
@@ -192,18 +192,18 @@ func sensorAttitudeSender() {
 		// Set up orientation matrix; a bit ugly for now
 		ff = new([3][3]float64)
 		if f[0] < 0 {
-			ff[0][-f[0] - 1] = -1
+			ff[0][-f[0]-1] = -1
 		} else {
-			ff[0][+f[0] - 1] = +1
+			ff[0][+f[0]-1] = +1
 		}
 		if f[1] < 0 {
-			ff[2][-f[1] - 1] = -1
+			ff[2][-f[1]-1] = -1
 		} else {
-			ff[2][+f[1] - 1] = +1
+			ff[2][+f[1]-1] = +1
 		}
-		ff[1][0] = ff[2][1] * ff[0][2] - ff[2][2] * ff[0][1]
-		ff[1][1] = ff[2][2] * ff[0][0] - ff[2][0] * ff[0][2]
-		ff[1][2] = ff[2][0] * ff[0][1] - ff[2][1] * ff[0][0]
+		ff[1][0] = ff[2][1]*ff[0][2] - ff[2][2]*ff[0][1]
+		ff[1][1] = ff[2][2]*ff[0][0] - ff[2][0]*ff[0][2]
+		ff[1][2] = ff[2][0]*ff[0][1] - ff[2][1]*ff[0][0]
 
 		failnum = 0
 		<-timer.C
@@ -223,7 +223,7 @@ func sensorAttitudeSender() {
 			}
 
 			t = stratuxClock.Time
-			m.T = float64(t.UnixNano() / 1000) / 1e6
+			m.T = float64(t.UnixNano()/1000) / 1e6
 
 			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.Read()
 			// This is how the RY83XAI is wired up
@@ -237,12 +237,12 @@ func sensorAttitudeSender() {
 			m.A1 = -(ff[0][0]*a1 + ff[0][1]*a2 + ff[0][2]*a3)
 			m.A2 = -(ff[1][0]*a1 + ff[1][1]*a2 + ff[1][2]*a3)
 			m.A3 = -(ff[2][0]*a1 + ff[2][1]*a2 + ff[2][2]*a3)
-			m.B1 =   ff[0][0]*b1 + ff[0][1]*b2 + ff[0][2]*b3
-			m.B2 =   ff[1][0]*b1 + ff[1][1]*b2 + ff[1][2]*b3
-			m.B3 =   ff[2][0]*b1 + ff[2][1]*b2 + ff[2][2]*b3
-			m.M1 =   ff[0][0]*m1 + ff[0][1]*m2 + ff[0][2]*m3
-			m.M2 =   ff[1][0]*m1 + ff[1][1]*m2 + ff[1][2]*m3
-			m.M3 =   ff[2][0]*m1 + ff[2][1]*m2 + ff[2][2]*m3
+			m.B1 = ff[0][0]*b1 + ff[0][1]*b2 + ff[0][2]*b3
+			m.B2 = ff[1][0]*b1 + ff[1][1]*b2 + ff[1][2]*b3
+			m.B3 = ff[2][0]*b1 + ff[2][1]*b2 + ff[2][2]*b3
+			m.M1 = ff[0][0]*m1 + ff[0][1]*m2 + ff[0][2]*m3
+			m.M2 = ff[1][0]*m1 + ff[1][1]*m2 + ff[1][2]*m3
+			m.M3 = ff[2][0]*m1 + ff[2][1]*m2 + ff[2][2]*m3
 			m.SValid = mpuError == nil
 			m.MValid = magError == nil
 			if mpuError != nil {
@@ -263,11 +263,11 @@ func sensorAttitudeSender() {
 				// Don't necessarily disconnect here, unless AHRSProvider deeply depends on magnetometer
 			}
 
-			m.TW = float64(mySituation.LastGroundTrackTime.UnixNano() / 1000) / 1e6
+			m.TW = float64(mySituation.LastGroundTrackTime.UnixNano()/1000) / 1e6
 			m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond
 			if m.WValid {
-				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse) * ahrs.Deg)
-				m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse) * ahrs.Deg)
+				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse)*ahrs.Deg)
+				m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse)*ahrs.Deg)
 				if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
 					m.W3 = mySituation.RateOfClimb * 60 / 6076.12
 				} else {
@@ -311,7 +311,7 @@ func sensorAttitudeSender() {
 			}
 
 			// Log it to csv for analysis
-			if globalSettings.AHRSLog  && usage.Usage() < 0.95 {
+			if globalSettings.AHRSLog && usage.Usage() < 0.95 {
 				if analysisLogger == nil {
 					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
 						time.Now().Format("20060102_150405")))
@@ -362,7 +362,7 @@ func getMinAccelDirection() (i int, err error) {
 
 // CageAHRS sends a signal to the AHRSProvider that it should be reset.
 func CageAHRS() {
-	cage<- true
+	cage <- true
 }
 
 func updateAHRSStatus() {
