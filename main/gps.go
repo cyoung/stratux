@@ -20,9 +20,6 @@ import (
 
 	"bufio"
 
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/all"
-	"github.com/kidoman/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
 	"os"
@@ -52,9 +49,10 @@ type SatelliteInfo struct {
 }
 
 type SituationData struct {
-	mu_GPS     *sync.Mutex
-	mu_GPSPerf *sync.Mutex
 	// From GPS.
+	mu_GPS                   *sync.Mutex
+	mu_GPSPerf               *sync.Mutex
+	mu_Satellite             *sync.Mutex
 	LastFixSinceMidnightUTC  float32
 	Lat                      float32
 	Lng                      float32
@@ -72,23 +70,31 @@ type SituationData struct {
 	LastFixLocalTime         time.Time
 	TrueCourse               float32
 	GPSTurnRate              float64 // calculated GPS rate of turn, degrees per second
-	GroundSpeed              uint16
+	GroundSpeed              float64
 	LastGroundTrackTime      time.Time
 	GPSTime                  time.Time
 	LastGPSTimeTime          time.Time // stratuxClock time since last GPS time received.
 	LastValidNMEAMessageTime time.Time // time valid NMEA message last seen
 	LastValidNMEAMessage     string    // last NMEA message processed.
 
-	// From BMP180 pressure sensor.
+	// From pressure sensor.
+	mu_Pressure       *sync.Mutex
 	Temp              float64
 	Pressure_alt      float64
+	RateOfClimb       float64
 	LastTempPressTime time.Time
 
 	// From AHRS source.
+	mu_Attitude      *sync.Mutex
 	Pitch            float64
 	Roll             float64
 	Gyro_heading     float64
+	Mag_heading      float64
+	SlipSkid         float64
+	RateOfTurn       float64
+	GLoad            float64
 	LastAttitudeTime time.Time
+	AHRSStatus       uint8
 }
 
 /*
@@ -116,7 +122,6 @@ var serialPort *serial.Port
 
 var readyToInitGPS bool //TODO: replace with channel control to terminate goroutine when complete
 
-var satelliteMutex *sync.Mutex
 var Satellites map[string]SatelliteInfo
 
 /*
@@ -245,9 +250,9 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else {
-		// Set 5 Hz update. Little endian order.
-		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
+		// Set 10 Hz update. Little endian order.
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
+		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
@@ -967,7 +972,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				return false
 			}
 			groundspeed = groundspeed * 0.540003 // convert to knots
-			tmpSituation.GroundSpeed = uint16(groundspeed)
+			tmpSituation.GroundSpeed = groundspeed
 			thisGpsPerf.gsf = float32(groundspeed)
 
 			// field 12 = track, deg
@@ -1091,7 +1096,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				var thisSatellite SatelliteInfo
 
 				// START OF PROTECTED BLOCK
-				satelliteMutex.Lock()
+				mySituation.mu_Satellite.Lock()
 
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1151,7 +1156,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 				updateConstellation()
-				satelliteMutex.Unlock()
+				mySituation.mu_Satellite.Unlock()
 				// END OF PROTECTED BLOCK
 
 				// end of satellite iteration loop
@@ -1222,7 +1227,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		tmpSituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = groundspeed
 
 		trueCourse := float32(0)
 		tc, err := strconv.ParseFloat(x[1], 32)
@@ -1454,7 +1459,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err != nil {
 			return false
 		}
-		tmpSituation.GroundSpeed = uint16(groundspeed)
+		tmpSituation.GroundSpeed = groundspeed
 		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
 			thisGpsPerf.gsf = float32(groundspeed)
 		}
@@ -1558,7 +1563,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				var thisSatellite SatelliteInfo
 
 				// START OF PROTECTED BLOCK
-				satelliteMutex.Lock()
+				mySituation.mu_Satellite.Lock()
 
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1577,7 +1582,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 				updateConstellation()
-				satelliteMutex.Unlock()
+				mySituation.mu_Satellite.Unlock()
 				// END OF PROTECTED BLOCK
 
 			}
@@ -1682,7 +1687,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			var thisSatellite SatelliteInfo
 
 			// START OF PROTECTED BLOCK
-			satelliteMutex.Lock()
+			mySituation.mu_Satellite.Lock()
 
 			// Retrieve previous information on this satellite code.
 			if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
@@ -1745,7 +1750,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 			updateConstellation()
-			satelliteMutex.Unlock()
+			mySituation.mu_Satellite.Unlock()
 			// END OF PROTECTED BLOCK
 		}
 
@@ -1788,51 +1793,6 @@ func gpsSerialReader() {
 	return
 }
 
-var i2cbus embd.I2CBus
-var myBMP180 *bmp180.BMP180
-
-func readBMP180() (float64, float64, error) { // ºCelsius, Meters
-	temp, err := myBMP180.Temperature()
-	if err != nil {
-		return temp, 0.0, err
-	}
-	altitude, err := myBMP180.Altitude()
-	altitude = float64(1/0.3048) * altitude // Convert meters to feet.
-	if err != nil {
-		return temp, altitude, err
-	}
-	return temp, altitude, nil
-}
-
-func initBMP180() error {
-	myBMP180 = bmp180.New(i2cbus) //TODO: error checking.
-	return nil
-}
-
-func initI2C() error {
-	i2cbus = embd.NewI2CBus(1) //TODO: error checking.
-	return nil
-}
-
-// Unused at the moment. 5 second update, since read functions in bmp180 are slow.
-func tempAndPressureReader() {
-	timer := time.NewTicker(5 * time.Second)
-	for {
-		<-timer.C
-		// Read temperature and pressure altitude.
-		temp, alt, err_bmp180 := readBMP180()
-		// Process.
-		if err_bmp180 != nil {
-			log.Printf("readBMP180(): %s\n", err_bmp180.Error())
-			return
-		} else {
-			mySituation.Temp = temp
-			mySituation.Pressure_alt = alt
-			mySituation.LastTempPressTime = stratuxClock.Time
-		}
-	}
-}
-
 func makeFFAHRSSimReport() {
 	s := fmt.Sprintf("XATTStratux,%f,%f,%f", mySituation.Gyro_heading, mySituation.Pitch, mySituation.Roll)
 
@@ -1840,18 +1800,34 @@ func makeFFAHRSSimReport() {
 }
 
 func makeAHRSGDL90Report() {
-	msg := make([]byte, 16)
+	msg := make([]byte, 24)
 	msg[0] = 0x4c
 	msg[1] = 0x45
 	msg[2] = 0x01
-	msg[3] = 0x00
+	msg[3] = 0x01
 
-	pitch := int16(float64(mySituation.Pitch) * float64(10.0))
-	roll := int16(float64(mySituation.Roll) * float64(10.0))
-	hdg := uint16(float64(mySituation.Gyro_heading) * float64(10.0))
-	slip_skid := int16(float64(0) * float64(10.0))
-	yaw_rate := int16(float64(0) * float64(10.0))
-	g := int16(float64(1.0) * float64(10.0))
+	// Values if invalid
+	pitch := int16(0x7FFF)
+	roll := int16(0x7FFF)
+	hdg := int16(0x7FFF)
+	slip_skid := int16(0x7FFF)
+	yaw_rate := int16(0x7FFF)
+	g := int16(0x7FFF)
+	airspeed := int16(0x7FFF) // Can add this once we can read airspeed
+	palt := uint16(0xFFFF)
+	vs := int16(0x7FFF)
+	if isAHRSValid() {
+		pitch = roundToInt16(mySituation.Pitch * 10)
+		roll = roundToInt16(mySituation.Roll * 10)
+		hdg = roundToInt16(mySituation.Gyro_heading * 10) // TODO westphae: switch to Mag_heading?
+		slip_skid = roundToInt16(mySituation.SlipSkid * 10)
+		yaw_rate = roundToInt16(mySituation.RateOfTurn * 10)
+		g = roundToInt16(mySituation.GLoad * 10)
+	}
+	if isTempPressValid() {
+		palt = uint16(mySituation.Pressure_alt + 5000.5)
+		vs = roundToInt16(mySituation.RateOfClimb)
+	}
 
 	// Roll.
 	msg[4] = byte((roll >> 8) & 0xFF)
@@ -1877,6 +1853,22 @@ func makeAHRSGDL90Report() {
 	msg[14] = byte((g >> 8) & 0xFF)
 	msg[15] = byte(g & 0xFF)
 
+	// Indicated Airspeed
+	msg[16] = byte((airspeed >> 8) & 0xFF)
+	msg[17] = byte(airspeed & 0xFF)
+
+	// Pressure Altitude
+	msg[18] = byte((palt >> 8) & 0xFF)
+	msg[19] = byte(palt & 0xFF)
+
+	// Vertical Speed
+	msg[20] = byte((vs >> 8) & 0xFF)
+	msg[21] = byte(vs & 0xFF)
+
+	// Reserved
+	msg[22] = 0x7F
+	msg[23] = 0xFF
+
 	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
 }
 
@@ -1885,7 +1877,7 @@ func gpsAttitudeSender() {
 	for {
 		<-timer.C
 		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
-		for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
+		for !(globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {
 			<-timer.C
 
 			if mySituation.Quality == 0 || !calcGPSAttitude() {
@@ -1911,7 +1903,7 @@ func gpsAttitudeSender() {
 
 /*
 	updateConstellation(): Periodic cleanup and statistics calculation for 'Satellites'
-		data structure. Calling functions must protect this in a satelliteMutex.
+		data structure. Calling functions must protect this in a mySituation.mu_Satellite.
 
 */
 
@@ -1979,20 +1971,6 @@ func isTempPressValid() bool {
 	return stratuxClock.Since(mySituation.LastTempPressTime) < 15*time.Second
 }
 
-func initI2CSensors() error {
-	if err := initI2C(); err != nil { // I2C bus.
-		return err
-	}
-
-	if err := initBMP180(); err == nil { // I2C temperature and pressure altitude.
-		go tempAndPressureReader()
-	} else {
-		return err
-	}
-
-	return nil
-}
-
 func pollGPS() {
 	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
@@ -2010,12 +1988,7 @@ func pollGPS() {
 }
 
 func initGPS() {
-	mySituation.mu_GPS = &sync.Mutex{}
-	mySituation.mu_GPSPerf = &sync.Mutex{}
-	satelliteMutex = &sync.Mutex{}
 	Satellites = make(map[string]SatelliteInfo)
-
-	initI2CSensors()
 
 	go pollGPS()
 }

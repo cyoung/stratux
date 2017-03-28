@@ -28,6 +28,18 @@
 						<ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
 					</div>
 				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Attitude Sensor</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='IMU_Sensor_Enabled' settings-change></ui-switch>
+					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Altitude Sensor</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -53,6 +65,25 @@
 					<div class="col-xs-5">
 						<ui-switch ng-model='ReplayLog' settings-change></ui-switch>
 					</div>
+				</div>
+				<div class="form-group">
+					<label class="control-label col-xs-7">Record AHRS Logs</label>
+					<div class="col-xs-5">
+						<ui-switch ng-model='AHRSLog' settings-change></ui-switch>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel-group col-sm-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">AHRS</div>
+			<div class="panel-body">
+				<div class="col-xs-12">
+					<span style="position:relative; overflow: hidden;">
+						<button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">Set AHRS Sensor Orientation</button>
+					</span>
 				</div>
 			</div>
 		</div>
@@ -207,6 +238,107 @@
       </div>
     	  </div>
     </div>
-  </div> 
+  </div>
+
+	<div class="modal" ui-if="modalCalibrateForward" ui-state="modalCalibrateForward">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateForward"></button>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Forward Direction</h4>
+					</div>
+					<div class="modal-body">
+						<p>Point the Stratux/sensor box so that the end that will be pointing toward the <strong>nose</strong> of the airplane is pointing toward the sky and press the <strong>Set Forward Direction</strong> button.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
+						<a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateUp" class="btn btn-default btn-primary">Set Forward Direction</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateUp" ui-state="modalCalibrateUp">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateUp"></button>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Up Direction</h4>
+					</div>
+					<div class="modal-body">
+						<p>Place the Stratux/sensor box in the orientation it will be in during flight and press the <strong>Set Up Direction</strong> button.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
+						<a ng-click="setOrientation('up')" ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Up Direction</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateDone" ui-state="modalCalibrateDone">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateDone"></button>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Finished</h4>
+					</div>
+					<div class="modal-body">
+						<p>The sensors are calibrated.  These settings will be saved for future flights.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateDone" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateFailed" ui-state="modalCalibrateFailed">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateFailed"></button>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Failed!</h4>
+					</div>
+					<div class="modal-body">
+						<p>There was an error: {{Orientation_Failure_Message}}</p>
+						<p><div id="orientationFailureMessage"></div></p>
+						<p>The calibration failed.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal" ui-if="modalCalibrateCanceled" ui-state="modalCalibrateCanceled">
+		<div class="modal-overlay "></div>
+		<div class="vertical-alignment-helper center-block">
+			<div class="modal-dialog vertical-align-center">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button class="close" ui-turn-off="modalCalibrateCanceled"></button>
+						<h4 class="modal-title">Set AHRS Sensor Orientation: Canceled</h4>
+					</div>
+					<div class="modal-body">
+						<p>Calibration canceled.</p>
+					</div>
+					<div class="modal-footer">
+						<a ui-turn-off="modalCalibrateCanceled" class="btn btn-default btn-primary">OK</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 </div>
 

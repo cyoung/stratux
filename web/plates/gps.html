@@ -1,5 +1,5 @@
 <div class="col-sm-12">
-	<div class="col-sm-6">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading"><span class="panel_label">GPS</span></div>
 			<div class="panel-body">
@@ -18,7 +18,7 @@
 				<div class="row">
 					<strong class="col-xs-6 text-center">Location:</strong>
 					<strong class="col-xs-6 text-center">Track:</strong>
-                </div>
+				</div>
 				<div class="row">
 					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_accuracy}} m <br> {{gps_alt}} &plusmn; {{gps_vert_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
 					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
@@ -28,34 +28,60 @@
 	</div>
 	<div class="col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">AHRS</span></div>
+			<div class="panel-heading"><span ng-click="hideClick()" class="panel_label">AHRS</span></div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
-					    <canvas id="ahrs_display">
-        					your web browser doesn't support the &lt;canvas>&gt; element.
-    					</canvas>
+						<div id="ahrs_display"></div>
 					</span>
 				</div>
-				<div class="separator"></div>
-				<div class="row">
-					<strong class="col-xs-3 text-center">Heading:</strong>
-					<strong class="col-xs-3 text-center">Pitch:</strong>
-					<strong class="col-xs-3 text-center">Roll:</strong>
-					<strong class="col-xs-3 text-center">P-Alt:</strong>
+				<div class="col-xs-12">
+					<div class="row" style="margin-bottom: 4px;">
+						<div class="col-xs-3 text-center indicator off" id="status-calibrating">Ready</div>
+						<div class="col-xs-2 text-center indicator off" id="status-gps">GPS</div>
+						<div class="col-xs-2 text-center indicator off" id="status-imu">ATT</div>
+						<div class="col-xs-2 text-center indicator off" id="status-bmp">ALT</div>
+						<div class="col-xs-3 text-center indicator off" id="status-logging">Logging</div>
+					</div>
 				</div>
-				<div class="row">
-					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
+				<div class="col-xs-12">
+					<div class="separator"></div>
+					<div class="col-xs-3">
+						<a ng-click="AHRSCage()" class="btn btn-primary" ng-disabled="IsCaging()">Reset<br>AHRS</a>
+					</div>
+					<div class="col-xs-9">
+						<div class="row">
+							<strong class="col-xs-3 text-center">Track</strong>
+							<strong class="col-xs-3 text-center">Pitch</strong>
+							<strong class="col-xs-3 text-center">Roll</strong>
+							<strong class="col-xs-3 text-center">P-Alt</strong>
+						</div>
+						<div class="row">
+							<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
+						</div>
+						<div class="row">
+							<strong class="col-xs-3 text-center">Mag Hdg</strong>
+							<strong class="col-xs-3 text-center" >Slip/<wbr>Skid</strong>
+							<strong class="col-xs-3 text-center">Turn Rate</strong>
+							<strong class="col-xs-3 text-center">G Load</strong>
+						</div>
+						<div class="row">
+							<span class="col-xs-3 text-center">{{ahrs_heading_mag}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_slip_skid}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_turn_rate}} min</span>
+							<span class="col-xs-3 text-center">{{ahrs_gload}}G</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
 <div class="col-sm-12">
-	<div class="col-sm-6">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<span class="panel_label">Satellites</span>
@@ -91,16 +117,19 @@
 				</div>
 			</div>
 		</div>
-	</div>	
-</div>
-
-<!--
-<div class="col-sm-12">
-	<div class="panel panel-default">
-		<div class="panel-heading">Raw GPS / AHRS Data</div>
-		<div class="panel-body">
-			<pre>{{raw_data}}</pre>
+	</div>
+	<div class="col-sm-6 hider">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="panel_label">G-Meter</span>
+			</div>
+			<div class="panel-body">
+				<div class="row">
+					<span class="col-xs-12">
+						<div id="gMeter_display"></div>
+					</span>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
--->

@@ -23,6 +23,7 @@ import (
 	"math"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -38,17 +39,18 @@ import (
 // https://www.faa.gov/nextgen/programs/adsb/Archival/
 // https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
-var debugLogf string    // Set according to OS config.
+var logDirf      string // Directory for all logging
+var debugLogf    string // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
 
 const (
 	configLocation = "/etc/stratux.conf"
 	managementAddr = ":80"
-	debugLog       = "/var/log/stratux.log"
-	dataLogFile    = "/var/log/stratux.sqlite"
+	logDir         = "/var/log/"
+	debugLogFile   = "stratux.log"
+	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
-	debugLog_FB         = "/root/stratux.log"
-	dataLogFile_FB      = "/var/log/stratux.sqlite"
+	logDir_FB           = "/root/"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -286,7 +288,7 @@ func makeOwnshipReport() bool {
 	if selfOwnshipValid && curOwnship.Speed_valid {
 		gdSpeed = curOwnship.Speed
 	} else if isGPSGroundTrackValid() {
-		gdSpeed = mySituation.GroundSpeed
+		gdSpeed = uint16(mySituation.GroundSpeed + 0.5)
 	}
 
 	// gdSpeed should fit in 12 bits.
@@ -468,14 +470,19 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: AHRS Enabled portion.
-	// msg[12] = 1 << 0
+	if globalSettings.IMU_Sensor_Enabled {
+		msg[12] = 1 << 0
+	}
 
 	// Valid/Enabled: last bit unused.
 
 	// Connected hardware: number of radios.
 	msg[15] = msg[15] | (byte(globalStatus.Devices) & 0x3)
-	// Connected hardware.
-	//	RY835AI: msg[15] = msg[15] | (1 << 2)
+
+	// Connected hardware: IMU (spec really says just RY835AI, could revise for other IMUs
+	if globalStatus.IMUConnected {
+		msg[15] = msg[15] | (1 << 2)
+	}
 
 	// Number of GPS satellites locked.
 	msg[16] = byte(globalStatus.GPS_satellites_locked)
@@ -712,11 +719,11 @@ func isCPUTempValid() bool {
 }
 
 /*
-	cpuTempMonitor() reads the RPi board temperature every second and updates it in globalStatus.
+	cpuMonitor() reads the RPi board temperature every second and updates it in globalStatus.
 	This is broken out into its own function (run as its own goroutine) because the RPi temperature
 	 monitor code is buggy, and often times reading this file hangs quite some time.
 */
-func cpuTempMonitor() {
+func cpuMonitor() {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		<-timer.C
@@ -739,6 +746,9 @@ func cpuTempMonitor() {
 			globalStatus.CPUTemp = t
 		}
 
+		// Update CPULoad.
+		data, err := ioutil.ReadFile("/proc/loadavg")
+		globalStatus.CPULoad = string(data[0:14])
 	}
 }
 
@@ -757,9 +767,9 @@ func updateStatus() {
 
 	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
 
-		satelliteMutex.Lock()
+		mySituation.mu_Satellite.Lock()
 		Satellites = make(map[string]SatelliteInfo)
-		satelliteMutex.Unlock()
+		mySituation.mu_Satellite.Unlock()
 
 		mySituation.Satellites = 0
 		mySituation.SatellitesSeen = 0
@@ -1025,11 +1035,15 @@ type settings struct {
 	ES_Enabled           bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
+	BMP_Sensor_Enabled   bool
+	IMU_Sensor_Enabled   bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
+	AHRSLog              bool
+	IMUMapping           [2]int // Map from aircraft axis to sensor axis: accelerometer
 	PPM                  int
 	OwnshipModeS         string
 	WatchList            string
@@ -1060,6 +1074,7 @@ type status struct {
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
+	CPULoad                                    string
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
@@ -1075,6 +1090,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
+	BMPConnected                               bool
+	IMUConnected                               bool
 
 	Errors []string
 }
@@ -1086,6 +1103,8 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
 	globalSettings.GPS_Enabled = true
+	globalSettings.IMU_Sensor_Enabled = true
+	globalSettings.BMP_Sensor_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
@@ -1094,6 +1113,8 @@ func defaultSettings() {
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
+	globalSettings.AHRSLog = false
+	globalSettings.IMUMapping = [2]int{-1, -3} // OpenFlightBox AHRS normal mapping
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 }
@@ -1189,14 +1210,21 @@ func printStats() {
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
+		log.Printf(" - CPU load %s\n", globalStatus.CPULoad)
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
 		}
+		if globalSettings.IMU_Sensor_Enabled {
+			log.Printf(" - Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.LastAttitudeTime))
+		}
+		if globalSettings.BMP_Sensor_Enabled {
+			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
+		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
-		if !diskUsageWarning && usage.Usage() > 95.0 {
+		if !diskUsageWarning && usage.Usage() > 0.95 {
 			err_p := fmt.Errorf("Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 			addSystemError(err_p)
 			diskUsageWarning = true
@@ -1305,6 +1333,13 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
+	// Set up mySituation, do it here so logging JSON doesn't panic
+	mySituation.mu_GPS = &sync.Mutex{}
+	mySituation.mu_GPSPerf = &sync.Mutex{}
+	mySituation.mu_Attitude = &sync.Mutex{}
+	mySituation.mu_Pressure = &sync.Mutex{}
+	mySituation.mu_Satellite = &sync.Mutex{}
+
 	// Set up status.
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
@@ -1312,12 +1347,12 @@ func main() {
 	//FlightBox: detect via presence of /etc/FlightBox file.
 	if _, err := os.Stat("/etc/FlightBox"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "FlightBox"
-		debugLogf = debugLog_FB
-		dataLogFilef = dataLogFile_FB
+		logDirf = logDir_FB
 	} else { // if not using the FlightBox config, use "normal" log file locations
-		debugLogf = debugLog
-		dataLogFilef = dataLogFile
+		logDirf = logDir
 	}
+	debugLogf = filepath.Join(logDirf, debugLogFile)
+	dataLogFilef = filepath.Join(logDirf, dataLogFile)
 	//FIXME: All of this should be removed by 08/01/2016.
 	// Check if Raspbian version is <8.0. Throw a warning if so.
 	vt, err := ioutil.ReadFile("/etc/debian_version")
@@ -1354,7 +1389,7 @@ func main() {
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
 
-	// Duplicate log.* output to debugLog.
+	// Duplicate log.* output to debugLogFile.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
@@ -1371,6 +1406,9 @@ func main() {
 	ADSBTowers = make(map[string]ADSBTower)
 	ADSBTowerMutex = &sync.Mutex{}
 	MsgLog = make([]msg, 0)
+
+	// Start the management interface.
+	go managementInterface()
 
 	crcInit() // Initialize CRC16 table.
 
@@ -1395,13 +1433,14 @@ func main() {
 	//FIXME: Only do this if data logging is enabled.
 	initDataLog()
 
+	// Start the AHRS sensor monitoring.
+	initI2CSensors()
+
 	// Start the GPS external sensor monitoring.
 	initGPS()
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
-	// Start the management interface.
-	go managementInterface()
 
 	// Initialize the (out) network handler.
 	initNetwork()
@@ -1410,7 +1449,7 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
-	go cpuTempMonitor()
+	go cpuMonitor()
 
 	reader := bufio.NewReader(os.Stdin)
 

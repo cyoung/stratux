@@ -62,6 +62,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.UAT_PIREP_total = status.UAT_PIREP_total;
 			$scope.UAT_NOTAM_total = status.UAT_NOTAM_total;
 			$scope.UAT_OTHER_total = status.UAT_OTHER_total;
+			$scope.CPULoad = status.CPULoad;
 			// Errors array.
 			if (status.Errors.length > 0) {
 				$scope.visible_errors = true;
@@ -94,7 +95,6 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.visible_uat = true;
 		$scope.visible_es = true;
 		$scope.visible_gps = true;
-		$scope.visible_ahrs = true;
 
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_SETTINGS_GET).

@@ -222,13 +222,13 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	satelliteMutex.Lock()
+	mySituation.mu_Satellite.Lock()
 	satellitesJSON, err := json.Marshal(&Satellites)
 	if err != nil {
 		log.Printf("Error sending GNSS satellite JSON data: %s\n", err.Error())
 	}
 	fmt.Fprintf(w, "%s\n", satellitesJSON)
-	satelliteMutex.Unlock()
+	mySituation.mu_Satellite.Unlock()
 }
 
 // AJAX call - /getSettings. Responds with all stratux.conf data.
@@ -274,6 +274,18 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
+					case "IMU_Sensor_Enabled":
+						globalSettings.IMU_Sensor_Enabled = val.(bool)
+						if !globalSettings.IMU_Sensor_Enabled {
+							myIMUReader.Close()
+							globalStatus.IMUConnected = false
+						}
+					case "BMP_Sensor_Enabled":
+						globalSettings.BMP_Sensor_Enabled = val.(bool)
+						if !globalSettings.BMP_Sensor_Enabled {
+							myPressureReader.Close()
+							globalStatus.BMPConnected = false
+						}
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "DisplayTrafficSource":
@@ -282,6 +294,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
+						}
+					case "AHRSLog":
+						globalSettings.AHRSLog = val.(bool)
+					case "IMUMapping":
+						if globalSettings.IMUMapping != val.([2]int) {
+							globalSettings.IMUMapping = val.([2]int)
+							myIMUReader.Close()
+							globalStatus.IMUConnected = false // Force a restart of the IMU reader
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
@@ -360,6 +380,80 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	go delayReboot()
+}
+
+var f int // We need this to be global to handle successive calls to handleOrientAHRS.
+
+func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		var (
+			action []byte = make([]byte, 1)
+			u int
+			err error
+		)
+
+		if _, err = r.Body.Read(action); err != nil {
+			log.Println("AHRS Error: handleOrientAHRS received invalid request")
+			http.Error(w, "orientation received invalid request", http.StatusBadRequest)
+		}
+
+		switch action[0] {
+		case 'f': // Set sensor "forward" direction (toward nose of airplane).
+			if f, err = getMinAccelDirection(); err != nil {
+				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
+				return
+			}
+			log.Printf("AHRS Info: sensor orientation: received forward direction %d\n", f)
+		case 'u': // Set sensor "up" direction (toward top of airplane).
+			if u, err = getMinAccelDirection(); err != nil {
+				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
+				return
+			}
+			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
+
+			if f==u || f==-u {
+				log.Println("AHRS Error: sensor orientation: up and forward axes cannot be the same")
+				http.Error(w, "up and forward axes cannot be the same", http.StatusBadRequest)
+				return
+			}
+
+			globalSettings.IMUMapping = [2]int{f, u}
+			saveSettings()
+			myIMUReader.Close()
+			globalStatus.IMUConnected = false // restart the processes depending on the orientation
+			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
+		default: // Cancel the sensor calibration.
+			f = 0
+			log.Println("AHRS Info: sensor orientation: canceled")
+		}
+
+	}
+}
+
+func handleCageAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CageAHRS()
+	}
 }
 
 func doRestartApp() {
@@ -594,6 +688,8 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
+	http.HandleFunc("/orientAHRS", handleOrientAHRS)
+	http.HandleFunc("/cageAHRS", handleCageAHRS)
 
 	err := http.ListenAndServe(managementAddr, nil)
 

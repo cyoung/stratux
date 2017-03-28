@@ -1,6 +1,6 @@
 <div class="col-sm-12">
 	<div class="text-center">
-            <a ng-click="VersionClick()" class="btn btn-hidden"<strong>Version: <span>{{Version}} ({{Build}})</span></strong></a>
+            <a ng-click="VersionClick()" class="btn btn-hidden"><strong>Version: <span>{{Version}} ({{Build}})</span></strong></a>
     </div>
 	<div class="panel panel-default">
 		<div class="panel-heading">
@@ -57,7 +57,7 @@
                     <div>{{product_rows}}</div>
                 </div>
 -->
-				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
+				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
@@ -122,6 +122,10 @@
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-5"><strong>CPU Temp:</strong></span>
 						<span class="col-xs-7">{{CPUTemp}}</span>
+					</div>
+					<div class="col-sm-4 label_adj">
+						<span class="col-xs-5"><strong>CPU Load:</strong></span>
+						<span class="col-xs-7">{{CPULoad}}</span>
 					</div>
 				</div>
 			</div>
