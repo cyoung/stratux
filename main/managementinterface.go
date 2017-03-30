@@ -276,13 +276,13 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.GPS_Enabled = val.(bool)
 					case "IMU_Sensor_Enabled":
 						globalSettings.IMU_Sensor_Enabled = val.(bool)
-						if !globalSettings.IMU_Sensor_Enabled {
+						if !globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 							myIMUReader.Close()
 							globalStatus.IMUConnected = false
 						}
 					case "BMP_Sensor_Enabled":
 						globalSettings.BMP_Sensor_Enabled = val.(bool)
-						if !globalSettings.BMP_Sensor_Enabled {
+						if !globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
 							myPressureReader.Close()
 							globalStatus.BMPConnected = false
 						}
@@ -397,8 +397,8 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		var (
 			action []byte = make([]byte, 1)
-			u int
-			err error
+			u      int
+			err    error
 		)
 
 		if _, err = r.Body.Read(action); err != nil {
@@ -422,7 +422,7 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
 
-			if f==u || f==-u {
+			if f == u || f == -u {
 				log.Println("AHRS Error: sensor orientation: up and forward axes cannot be the same")
 				http.Error(w, "up and forward axes cannot be the same", http.StatusBadRequest)
 				return

@@ -39,8 +39,8 @@ import (
 // https://www.faa.gov/nextgen/programs/adsb/Archival/
 // https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
-var logDirf      string // Directory for all logging
-var debugLogf    string // Set according to OS config.
+var logDirf string      // Directory for all logging
+var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
 
 const (
