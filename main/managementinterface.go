@@ -222,13 +222,13 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	mySituation.mu_Satellite.Lock()
+	mySituation.muSatellite.Lock()
 	satellitesJSON, err := json.Marshal(&Satellites)
 	if err != nil {
 		log.Printf("Error sending GNSS satellite JSON data: %s\n", err.Error())
 	}
 	fmt.Fprintf(w, "%s\n", satellitesJSON)
-	mySituation.mu_Satellite.Unlock()
+	mySituation.muSatellite.Unlock()
 }
 
 // AJAX call - /getSettings. Responds with all stratux.conf data.

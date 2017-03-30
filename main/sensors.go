@@ -115,17 +115,17 @@ func tempAndPressureSender() {
 		}
 
 		// Update the Situation data.
-		mySituation.mu_Pressure.Lock()
-		mySituation.LastTempPressTime = stratuxClock.Time
-		mySituation.Temp = temp
+		mySituation.muBaro.Lock()
+		mySituation.BaroLastMeasurementTime = stratuxClock.Time
+		mySituation.BaroTemperature = temp
 		altitude = CalcAltitude(press)
-		mySituation.Pressure_alt = altitude
+		mySituation.BaroPressureAltitude = altitude
 		if altLast < -2000 {
 			altLast = altitude // Initialize
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
-		mySituation.RateOfClimb = u*mySituation.RateOfClimb + (1-u)*(altitude-altLast)/(float64(dt)/60)
-		mySituation.mu_Pressure.Unlock()
+		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*(altitude-altLast)/(float64(dt)/60)
+		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}
 }
@@ -263,15 +263,15 @@ func sensorAttitudeSender() {
 				// Don't necessarily disconnect here, unless AHRSProvider deeply depends on magnetometer
 			}
 
-			m.TW = float64(mySituation.LastGroundTrackTime.UnixNano()/1000) / 1e6
-			m.WValid = t.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond
+			m.TW = float64(mySituation.GPSLastGroundTrackTime.UnixNano()/1000) / 1e6
+			m.WValid = t.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond
 			if m.WValid {
-				m.W1 = mySituation.GroundSpeed * math.Sin(float64(mySituation.TrueCourse)*ahrs.Deg)
-				m.W2 = mySituation.GroundSpeed * math.Cos(float64(mySituation.TrueCourse)*ahrs.Deg)
+				m.W1 = mySituation.GPSGroundSpeed * math.Sin(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
+				m.W2 = mySituation.GPSGroundSpeed * math.Cos(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
 				if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
-					m.W3 = mySituation.RateOfClimb * 60 / 6076.12
+					m.W3 = mySituation.BaroVerticalSpeed * 60 / 6076.12
 				} else {
-					m.W3 = float64(mySituation.GPSVertVel) * 3600 / 6076.12
+					m.W3 = float64(mySituation.GPSVerticalSpeed) * 3600 / 6076.12
 				}
 			}
 
@@ -282,20 +282,20 @@ func sensorAttitudeSender() {
 
 			// If we have valid AHRS info, then update mySituation
 			if s.Valid() {
-				mySituation.mu_Attitude.Lock()
+				mySituation.muAttitude.Lock()
 
 				roll, pitch, heading = s.RollPitchHeading()
-				mySituation.Roll = roll / ahrs.Deg
-				mySituation.Pitch = pitch / ahrs.Deg
-				mySituation.Gyro_heading = heading / ahrs.Deg
+				mySituation.AHRSRoll = roll / ahrs.Deg
+				mySituation.AHRSPitch = pitch / ahrs.Deg
+				mySituation.AHRSGyroHeading = heading / ahrs.Deg
 
-				mySituation.Mag_heading = s.MagHeading()
-				mySituation.SlipSkid = s.SlipSkid()
-				mySituation.RateOfTurn = s.RateOfTurn()
-				mySituation.GLoad = s.GLoad()
+				mySituation.AHRSMagHeading = s.MagHeading()
+				mySituation.AHRSSlipSkid = s.SlipSkid()
+				mySituation.AHRSTurnRate = s.RateOfTurn()
+				mySituation.AHRSGLoad = s.GLoad()
 
-				mySituation.LastAttitudeTime = t
-				mySituation.mu_Attitude.Unlock()
+				mySituation.AHRSLastAttitudeTime = t
+				mySituation.muAttitude.Unlock()
 
 				// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 			} else {
@@ -379,7 +379,7 @@ func updateAHRSStatus() {
 		msg = 0
 
 		// GPS valid
-		if stratuxClock.Time.Sub(mySituation.LastGroundTrackTime) < 3000*time.Millisecond {
+		if stratuxClock.Time.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond {
 			msg += 1
 		}
 		// IMU is being used
