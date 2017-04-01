@@ -62,18 +62,7 @@ func initPressureSensor() (ok bool) {
 		return true
 	}
 
-	// TODO westphae: make bmp180.go to fit bmp interface
-	//for i := 0; i < 5; i++ {
-	//	myBMPX80 = bmp180.New(i2cbus)
-	//	_, err := myBMPX80.Temperature() // Test to see if it works, since bmp180.New doesn't return err
-	//	if err != nil {
-	//		time.Sleep(250 * time.Millisecond)
-	//	} else {
-	//		globalStatus.BMPConnected = true
-	//		log.Println("AHRS Info: Successfully initialized BMP180")
-	//		return nil
-	//	}
-	//}
+	//TODO westphae: make bmp180.go to fit bmp interface
 
 	log.Println("AHRS Info: couldn't initialize BMP280 or BMP180")
 	return false
@@ -206,14 +195,6 @@ func sensorAttitudeSender() {
 			m.T = float64(t.UnixNano()/1000) / 1e6
 
 			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.Read()
-			// This is how the RY83XAI is wired up
-			//m.A1, m.A2, m.A3 = -a2, +a1, -a3
-			//m.B1, m.B2, m.B3 = +b2, -b1, +b3
-			//m.M1, m.M2, m.M3 = +m1, +m2, +m3
-			// This is how the OpenFlightBox board is wired up
-			//m.A1, m.A2, m.A3 = +a1, -a2, +a3
-			//m.B1, m.B2, m.B3 = -b1, +b2, -b3
-			//m.M1, m.M2, m.M3 = +m2, +m1, +m3
 			m.A1 = -(ff[0][0]*a1 + ff[0][1]*a2 + ff[0][2]*a3)
 			m.A2 = -(ff[1][0]*a1 + ff[1][1]*a2 + ff[1][2]*a3)
 			m.A3 = -(ff[2][0]*a1 + ff[2][1]*a2 + ff[2][2]*a3)
