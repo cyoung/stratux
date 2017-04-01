@@ -308,31 +308,49 @@ func sensorAttitudeSender() {
 	}
 }
 
-func makeSensorRotationMatrix(mCal *ahrs.Measurement) (ff *[3][3]float64) {
-	if globalSettings.IMUMapping[0] == 0 { // if unset, default to RY836AI in standard orientation
-		globalSettings.IMUMapping[0] = -1 // +2
-		globalSettings.IMUMapping[1] = -3 // +3
+func makeSensorRotationMatrix(mCal *ahrs.Measurement) *[3][3]float64 {
+	f := globalSettings.IMUMapping
+	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
+		globalSettings.IMUMapping[0] = -1 // +2 for RY836AI
+		globalSettings.IMUMapping[1] = -3 // +3 for RY836AI
 		saveSettings()
 	}
-	f := globalSettings.IMUMapping
-	ff = new([3][3]float64)
-	// TODO westphae: remove the projection on the measured gravity vector so it's orthogonal.
-	if f[0] < 0 { // This is the "forward direction" chosen for the sensor.
-		ff[0][-f[0]-1] = -1
+
+	var x, y, z [3]float64
+
+	// This is the "forward direction" chosen during the orientation process.
+	if f[0] < 0 {
+		x[-f[0]-1] = -1
 	} else {
-		ff[0][+f[0]-1] = +1
+		x[+f[0]-1] = +1
 	}
-	//TODO westphae: replace "up direction" with opposite of measured gravity.
-	if f[1] < 0 { // This is the "up direction" chosen for the sensor.
-		ff[2][-f[1]-1] = -1
+
+	// This is the "up direction" chosen during the orientation process.
+	if f[1] < 0 {
+		z[-f[1]-1] = -1
 	} else {
-		ff[2][+f[1]-1] = +1
+		z[+f[1]-1] = +1
 	}
-	// This specifies the "left wing" direction for a right-handed coordinate system.
-	ff[1][0] = ff[2][1]*ff[0][2] - ff[2][2]*ff[0][1]
-	ff[1][1] = ff[2][2]*ff[0][0] - ff[2][0]*ff[0][2]
-	ff[1][2] = ff[2][0]*ff[0][1] - ff[2][1]*ff[0][0]
-	return ff
+	//TODO westphae: replace "up direction" with measured gravity.
+
+	// Normalize the gravity vector to be 1 G.
+	gg := z[0]*z[0] + z[1]*z[1] + z[2]*z[2]
+	z[0] /= gg
+	z[1] /= gg
+	z[2] /= gg
+
+	// Remove the projection on the measured gravity vector from x so it's orthogonal to z.
+	dp := x[0]*z[0] + x[1]*z[1] + x[2]*z[2]
+	x[0] = x[0] - dp * z[0]
+	x[1] = x[1] - dp * z[1]
+	x[2] = x[2] - dp * z[2]
+
+	// Specify the "left wing" direction for a right-handed coordinate system using the cross product.
+	y[0] = z[1]*x[2] - z[2]*x[1]
+	y[1] = z[2]*x[0] - z[0]*x[2]
+	y[2] = z[0]*x[1] - z[1]*x[0]
+
+	return &[3][3]float64 {x, y, z}
 }
 
 // This is used in the orientation process where the user specifies the forward and up directions.
