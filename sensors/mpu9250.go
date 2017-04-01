@@ -50,19 +50,28 @@ func NewMPU9250() (*MPU9250, error) {
 // Read returns the average (since last reading) time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z,
 // error reading Gyro/Accel, and error reading Mag.
 func (m *MPU9250) Read() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MAGError error) {
-	data := <-m.mpu.CAvg
-	T = data.T.UnixNano()
-	G1 = data.G1
-	G2 = data.G2
-	G3 = data.G3
-	A1 = data.A1
-	A2 = data.A2
-	A3 = data.A3
-	M1 = data.M1
-	M2 = data.M2
-	M3 = data.M3
-	GAError = data.GAError
-	MAGError = data.MagError
+	var (
+		data *mpu9250.MPUData
+		i int8
+	)
+	data = new(mpu9250.MPUData)
+
+	for data.N==0 && i < 5 {
+		data = <-m.mpu.CAvg
+		T = data.T.UnixNano()
+		G1 = data.G1
+		G2 = data.G2
+		G3 = data.G3
+		A1 = data.A1
+		A2 = data.A2
+		A3 = data.A3
+		M1 = data.M1
+		M2 = data.M2
+		M3 = data.M3
+		GAError = data.GAError
+		MAGError = data.MagError
+		i++
+	}
 	return
 }
 
