@@ -101,62 +101,61 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         // consider using angular.extend()
         $scope.raw_data = angular.toJson(data, true); // makes it pretty
 
-		
-        $scope.Satellites = situation.Satellites;
-        $scope.GPS_satellites_tracked = situation.SatellitesTracked;
-        $scope.GPS_satellites_seen = situation.SatellitesSeen;
-        $scope.Quality = situation.Quality;
-		
+        $scope.Satellites = situation.GPSSatellites;
+        $scope.GPS_satellites_tracked = situation.GPSSatellitesTracked;
+        $scope.GPS_satellites_seen = situation.GPSSatellitesSeen;
+        $scope.Quality = situation.GPSFixQuality;
+
         var solutionText = "No Fix";
-        if (situation.Quality === 2) {
+        if (situation.GPSFixQuality === 2) {
             solutionText = "GPS + SBAS (WAAS / EGNOS)";
-        } else if (situation.Quality === 1) {
+        } else if (situation.GPSFixQuality === 1) {
             solutionText = "3D GPS"
         }
         $scope.SolutionText = solutionText;
-		
-        $scope.gps_accuracy = situation.Accuracy.toFixed(1);
-        $scope.gps_vert_accuracy = (situation.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
+
+        $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
+        $scope.gps_vertical_accuracy = (situation.GPSVerticalAccuracy*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
 
 
         // NACp should be an integer value in the range of 0 .. 11
         // var accuracies = ["≥ 10 NM", "< 10 NM", "< 4 NM", "< 2 NM", "< 1 NM", "< 0.5 NM", "< 0.3 NM", "< 0.1 NM", "< 100 m", "< 30 m", "< 10 m", "< 3 m"];
-        // $scope.gps_accuracy = accuracies[status.NACp];
+        // $scope.gps_horizontal_accuracy = accuracies[status.NACp];
         // "LastFixLocalTime":"2015-10-11T16:47:03.523085162Z"
 
-        $scope.gps_lat = situation.Lat.toFixed(5); // result is string
-        $scope.gps_lon = situation.Lng.toFixed(5); // result is string
-        $scope.gps_alt = situation.Alt.toFixed(1);
-        $scope.gps_track = situation.TrueCourse.toFixed(1);
-        $scope.gps_speed = situation.GroundSpeed.toFixed(1);
-        $scope.gps_vert_speed = situation.GPSVertVel.toFixed(1);
+        $scope.gps_lat = situation.GPSLatitude.toFixed(5); // result is string
+        $scope.gps_lon = situation.GPSLongitude.toFixed(5); // result is string
+        $scope.gps_alt = situation.GPSAltitudeMSL.toFixed(1);
+        $scope.gps_track = situation.GPSTrueCourse.toFixed(1);
+        $scope.gps_speed = situation.GPSGroundSpeed.toFixed(1);
+        $scope.gps_vert_speed = situation.GPSVerticalSpeed.toFixed(1);
 
         // "LastGroundTrackTime":"0001-01-01T00:00:00Z"
 
         /* not currently used
-		$scope.ahrs_temp = status.Temp;
-		*/
-        $scope.press_time = Date.parse(situation.LastTempPressTime);
-        $scope.gps_time = Date.parse(situation.LastGPSTimeTime);
+            $scope.ahrs_temp = status.Temp;
+        */
+        $scope.press_time = Date.parse(situation.BaroLastMeasurementTime);
+        $scope.gps_time = Date.parse(situation.GPSLastGPSTimeStratuxTime);
         if ($scope.gps_time - $scope.press_time < 1000) {
-            $scope.ahrs_alt = Math.round(situation.Pressure_alt);
+            $scope.ahrs_alt = Math.round(situation.BaroPressureAltitude);
         } else {
             $scope.ahrs_alt = "---";
         }
 
-        $scope.ahrs_heading = Math.round(situation.Gyro_heading);
+        $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading);
         // pitch and roll are in degrees
-        $scope.ahrs_pitch = Math.round(situation.Pitch*10)/10;
-        $scope.ahrs_roll = Math.round(situation.Roll*10)/10;
-        $scope.ahrs_slip_skid = Math.round(situation.SlipSkid*10)/10;
+        $scope.ahrs_pitch = Math.round(situation.AHRSPitch*10)/10;
+        $scope.ahrs_roll = Math.round(situation.AHRSRoll*10)/10;
+        $scope.ahrs_slip_skid = Math.round(situation.AHRSSlipSkid*10)/10;
         ahrs.update($scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
 
-        $scope.ahrs_heading_mag = Math.round(situation.Mag_heading);
-        $scope.ahrs_gload = Math.round(situation.GLoad*100)/100;
+        $scope.ahrs_heading_mag = Math.round(situation.AHRSMagHeading);
+        $scope.ahrs_gload = Math.round(situation.AHRSGLoad*100)/100;
         gMeter.update($scope.ahrs_gload);
 
-        if (situation.RateOfTurn > 1) {
-            $scope.ahrs_turn_rate = Math.round(360/situation.RateOfTurn/60*10)/10; // minutes/turn
+        if (situation.AHRSTurnRate> 0.25) {
+            $scope.ahrs_turn_rate = Math.round(360/situation.AHRSTurnRate/60*10)/10; // minutes/turn
         } else {
             $scope.ahrs_turn_rate = '---'
         }
@@ -202,7 +201,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         // "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
 
-        setGeoReferenceMap(situation.Lat, situation.Lng);
+        setGeoReferenceMap(situation.GPSLatitude, situation.GPSLongitude);
     }
 
     function resetSituation() { // mySituation
@@ -246,12 +245,11 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         new_satellite.InSolution = obj.InSolution;   // is this satellite in the position solution
     }
 
-    function loadSatellites(data) {
+    function loadSatellites(satellites) {
         if (($scope === undefined) || ($scope === null))
             return; // we are getting called once after clicking away from the status page
 
-        var satellites = data; // it seems the json was already converted to an object list by the http request
-        $scope.raw_data = angular.toJson(data, true);
+        $scope.raw_data = angular.toJson(satellites, true);
 
         $scope.data_list.length = 0; // clear array
         // we need to use an array so AngularJS can perform sorting; it also means we need to loop to find a tower in the towers set
@@ -264,11 +262,9 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         // $scope.$apply();
     }
-	
-    var updateSatellites = $interval(function () {
-        // refresh satellite info once each second (aka polling)
-        getSatellites();
-    }, 1000, 0, false);
+
+    // refresh satellite info once each second (aka polling)
+    var updateSatellites = $interval(getSatellites, 1000, 0, false);
 
     $state.get('gps').onEnter = function () {
         // everything gets handled correctly by the controller

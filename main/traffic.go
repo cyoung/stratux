@@ -187,7 +187,7 @@ func sendTrafficUpdates() {
 	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
-			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
 			ti.Bearing = bearing
 		}
@@ -489,7 +489,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Lat = lat
 		ti.Lng = lng
 		if isGPSValid() {
-			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
@@ -772,7 +772,7 @@ func esListen() {
 					ti.Lat = lat
 					ti.Lng = lng
 					if isGPSValid() {
-						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+						ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 					}
 					ti.Position_valid = true
 					ti.ExtrapolatedPosition = false
@@ -976,8 +976,8 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	lat := 43.99
 	lng := -88.56
 	if isGPSValid() {
-		lat = float64(mySituation.Lat)
-		lng = float64(mySituation.Lng)
+		lat = float64(mySituation.GPSLatitude)
+		lng = float64(mySituation.GPSLongitude)
 	}
 	traffRelLat := y / 60
 	traffRelLng := -x / (60 * math.Cos(lat*math.Pi/180.0))
@@ -1010,7 +1010,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
-	ti.Alt = int32(mySituation.Alt + relAlt)
+	ti.Alt = int32(mySituation.GPSAltitudeMSL + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
 	if hdg >= 240 && hdg < 270 {

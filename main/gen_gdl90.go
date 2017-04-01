@@ -247,11 +247,11 @@ func makeOwnshipReport() bool {
 		msg[9] = tmp[1]  // Longitude.
 		msg[10] = tmp[2] // Longitude.
 	} else {
-		tmp = makeLatLng(mySituation.Lat)
+		tmp = makeLatLng(mySituation.GPSLatitude)
 		msg[5] = tmp[0] // Latitude.
 		msg[6] = tmp[1] // Latitude.
 		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(mySituation.Lng)
+		tmp = makeLatLng(mySituation.GPSLongitude)
 		msg[8] = tmp[0]  // Longitude.
 		msg[9] = tmp[1]  // Longitude.
 		msg[10] = tmp[2] // Longitude.
@@ -267,9 +267,9 @@ func makeOwnshipReport() bool {
 	if selfOwnshipValid {
 		altf = float64(curOwnship.Alt)
 	} else if isTempPressValid() {
-		altf = float64(mySituation.Pressure_alt)
+		altf = float64(mySituation.BaroPressureAltitude)
 	} else {
-		altf = float64(mySituation.Alt) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
+		altf = float64(mySituation.GPSAltitudeMSL) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
 
 	altf = (altf + 1000) / 25
@@ -282,13 +282,13 @@ func makeOwnshipReport() bool {
 		msg[12] = msg[12] | 0x09 // "Airborne" + "True Track"
 	}
 
-	msg[13] = byte(0x80 | (mySituation.NACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
+	msg[13] = byte(0x80 | (mySituation.GPSNACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
 	if selfOwnshipValid && curOwnship.Speed_valid {
 		gdSpeed = curOwnship.Speed
 	} else if isGPSGroundTrackValid() {
-		gdSpeed = uint16(mySituation.GroundSpeed + 0.5)
+		gdSpeed = uint16(mySituation.GPSGroundSpeed + 0.5)
 	}
 
 	// gdSpeed should fit in 12 bits.
@@ -306,7 +306,7 @@ func makeOwnshipReport() bool {
 	if selfOwnshipValid {
 		groundTrack = float32(curOwnship.Track)
 	} else if isGPSGroundTrackValid() {
-		groundTrack = mySituation.TrueCourse
+		groundTrack = mySituation.GPSTrueCourse
 	}
 
 	tempTrack := groundTrack + TRACK_RESOLUTION/2 // offset by half the 8-bit resolution to minimize binning error
@@ -356,10 +356,10 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B                     // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.Alt / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
-	msg[1] = byte(alt >> 8)           // Altitude.
-	msg[2] = byte(alt & 0x00FF)       // Altitude.
+	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
+	alt := int16(mySituation.GPSAltitudeMSL / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(alt >> 8)                      // Altitude.
+	msg[2] = byte(alt & 0x00FF)                  // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
@@ -425,7 +425,7 @@ func makeStratuxStatus() []byte {
 	// Valid and enabled flags.
 	// Valid/Enabled: GPS portion.
 	if isGPSValid() {
-		switch mySituation.Quality {
+		switch mySituation.GPSFixQuality {
 		case 1: // 1 = 3D GPS.
 			msg[13] = 1
 		case 2: // 2 = DGPS (SBAS /WAAS).
@@ -753,13 +753,13 @@ func cpuMonitor() {
 }
 
 func updateStatus() {
-	if mySituation.Quality == 2 {
+	if mySituation.GPSFixQuality == 2 {
 		globalStatus.GPS_solution = "GPS + SBAS (WAAS)"
-	} else if mySituation.Quality == 1 {
+	} else if mySituation.GPSFixQuality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
-	} else if mySituation.Quality == 6 {
+	} else if mySituation.GPSFixQuality == 6 {
 		globalStatus.GPS_solution = "Dead Reckoning"
-	} else if mySituation.Quality == 0 {
+	} else if mySituation.GPSFixQuality == 0 {
 		globalStatus.GPS_solution = "No Fix"
 	} else {
 		globalStatus.GPS_solution = "Unknown"
@@ -767,22 +767,22 @@ func updateStatus() {
 
 	if !(globalStatus.GPS_connected) || !(isGPSConnected()) { // isGPSConnected looks for valid NMEA messages. GPS_connected is set by gpsSerialReader and will immediately fail on disconnected USB devices, or in a few seconds after "blocked" comms on ttyAMA0.
 
-		mySituation.mu_Satellite.Lock()
+		mySituation.muSatellite.Lock()
 		Satellites = make(map[string]SatelliteInfo)
-		mySituation.mu_Satellite.Unlock()
+		mySituation.muSatellite.Unlock()
 
-		mySituation.Satellites = 0
-		mySituation.SatellitesSeen = 0
-		mySituation.SatellitesTracked = 0
-		mySituation.Quality = 0
+		mySituation.GPSSatellites = 0
+		mySituation.GPSSatellitesSeen = 0
+		mySituation.GPSSatellitesTracked = 0
+		mySituation.GPSFixQuality = 0
 		globalStatus.GPS_solution = "Disconnected"
 		globalStatus.GPS_connected = false
 	}
 
-	globalStatus.GPS_satellites_locked = mySituation.Satellites
-	globalStatus.GPS_satellites_seen = mySituation.SatellitesSeen
-	globalStatus.GPS_satellites_tracked = mySituation.SatellitesTracked
-	globalStatus.GPS_position_accuracy = mySituation.Accuracy
+	globalStatus.GPS_satellites_locked = mySituation.GPSSatellites
+	globalStatus.GPS_satellites_seen = mySituation.GPSSatellitesSeen
+	globalStatus.GPS_satellites_tracked = mySituation.GPSSatellitesTracked
+	globalStatus.GPS_position_accuracy = mySituation.GPSHorizontalAccuracy
 
 	// Update Uptime value
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
@@ -1214,14 +1214,14 @@ func printStats() {
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
-			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.LastFixLocalTime), mySituation.Quality, mySituation.Satellites, mySituation.SatellitesSeen, mySituation.SatellitesTracked, mySituation.NACp, mySituation.Accuracy)
-			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVertVel, mySituation.AccuracyVert)
+			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.GPSLastFixLocalTime), mySituation.GPSFixQuality, mySituation.GPSSatellites, mySituation.GPSSatellitesSeen, mySituation.GPSSatellitesTracked, mySituation.GPSNACp, mySituation.GPSHorizontalAccuracy)
+			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVerticalSpeed, mySituation.GPSVerticalAccuracy)
 		}
 		if globalSettings.IMU_Sensor_Enabled {
-			log.Printf(" - Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.LastAttitudeTime))
+			log.Printf(" - Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime))
 		}
 		if globalSettings.BMP_Sensor_Enabled {
-			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.LastTempPressTime))
+			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime))
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
 		if !diskUsageWarning && usage.Usage() > 0.95 {
@@ -1334,11 +1334,11 @@ func main() {
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
 	// Set up mySituation, do it here so logging JSON doesn't panic
-	mySituation.mu_GPS = &sync.Mutex{}
-	mySituation.mu_GPSPerf = &sync.Mutex{}
-	mySituation.mu_Attitude = &sync.Mutex{}
-	mySituation.mu_Pressure = &sync.Mutex{}
-	mySituation.mu_Satellite = &sync.Mutex{}
+	mySituation.muGPS = &sync.Mutex{}
+	mySituation.muGPSPerformance = &sync.Mutex{}
+	mySituation.muAttitude = &sync.Mutex{}
+	mySituation.muBaro = &sync.Mutex{}
+	mySituation.muSatellite = &sync.Mutex{}
 
 	// Set up status.
 	globalStatus.Version = stratuxVersion
