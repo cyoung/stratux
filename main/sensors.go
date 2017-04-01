@@ -141,8 +141,7 @@ func sensorAttitudeSender() {
 		t                                  time.Time
 		s                                  ahrs.AHRSProvider
 		m                                  *ahrs.Measurement
-		a1, a2, a3, b1, b2, b3, m1, m2, m3 float64       // IMU measurements
-		c, d                               [3]float64    // IMU calibration measurements
+		a, b, c, d, mm                     [3]float64    // IMU measurements: accel, gyro, accel bias, gyro bias, magnetometer
 		ff                                 [3][3]float64 // Sensor orientation matrix
 		cc                                 float64
 		mpuError, magError                 error
@@ -194,22 +193,22 @@ func sensorAttitudeSender() {
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano()/1000) / 1e6
 
-			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.Read()
-			a1 /= cc
-			a2 /= cc
-			a3 /= cc
-			b1 -= d[0]
-			b2 -= d[1]
-			b3 -= d[2]
-			m.A1 = -(ff[0][0]*a1 + ff[0][1]*a2 + ff[0][2]*a3)
-			m.A2 = -(ff[1][0]*a1 + ff[1][1]*a2 + ff[1][2]*a3)
-			m.A3 = -(ff[2][0]*a1 + ff[2][1]*a2 + ff[2][2]*a3)
-			m.B1 = ff[0][0]*b1 + ff[0][1]*b2 + ff[0][2]*b3
-			m.B2 = ff[1][0]*b1 + ff[1][1]*b2 + ff[1][2]*b3
-			m.B3 = ff[2][0]*b1 + ff[2][1]*b2 + ff[2][2]*b3
-			m.M1 = ff[0][0]*m1 + ff[0][1]*m2 + ff[0][2]*m3
-			m.M2 = ff[1][0]*m1 + ff[1][1]*m2 + ff[1][2]*m3
-			m.M3 = ff[2][0]*m1 + ff[2][1]*m2 + ff[2][2]*m3
+			_, b[0], b[1], b[2], a[0], a[1], a[2], mm[0], mm[1], mm[2], mpuError, magError = myIMUReader.Read()
+			a[0] /= cc
+			a[1] /= cc
+			a[2] /= cc
+			b[0] -= d[0]
+			b[1] -= d[1]
+			b[2] -= d[2]
+			m.A1 = -(ff[0][0]*a[0] + ff[0][1]*a[1] + ff[0][2]*a[2])
+			m.A2 = -(ff[1][0]*a[0] + ff[1][1]*a[1] + ff[1][2]*a[2])
+			m.A3 = -(ff[2][0]*a[0] + ff[2][1]*a[1] + ff[2][2]*a[2])
+			m.B1 = ff[0][0]*b[0] + ff[0][1]*b[1] + ff[0][2]*b[2]
+			m.B2 = ff[1][0]*b[0] + ff[1][1]*b[1] + ff[1][2]*b[2]
+			m.B3 = ff[2][0]*b[0] + ff[2][1]*b[1] + ff[2][2]*b[2]
+			m.M1 = ff[0][0]*mm[0] + ff[0][1]*mm[1] + ff[0][2]*mm[2]
+			m.M2 = ff[1][0]*mm[0] + ff[1][1]*mm[1] + ff[1][2]*mm[2]
+			m.M3 = ff[2][0]*mm[0] + ff[2][1]*mm[1] + ff[2][2]*mm[2]
 			m.SValid = mpuError == nil
 			m.MValid = magError == nil
 			if mpuError != nil {
