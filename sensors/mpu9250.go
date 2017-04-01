@@ -47,7 +47,8 @@ func NewMPU9250() (*MPU9250, error) {
 	return &m, nil
 }
 
-// Read returns the average (since last reading) time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z, error reading Gyro/Accel, and error reading Mag.
+// Read returns the average (since last reading) time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z,
+// error reading Gyro/Accel, and error reading Mag.
 func (m *MPU9250) Read() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MAGError error) {
 	data := <-m.mpu.CAvg
 	T = data.T.UnixNano()
@@ -62,24 +63,6 @@ func (m *MPU9250) Read() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, G
 	M3 = data.M3
 	GAError = data.GAError
 	MAGError = data.MagError
-	return
-}
-
-// Calibrate kicks off a calibration for specified duration (s) and retries.
-func (m *MPU9250) Calibrate(dur, retries int) (err error) {
-	if dur > 0 {
-		for i := 0; i < retries; i++ {
-			m.mpu.CCal <- dur
-			log.Printf("AHRS Info: Waiting for calibration result try %d of %d\n", i+1, retries)
-			err = <-m.mpu.CCalResult
-			if err == nil {
-				log.Println("AHRS Info: MPU9250 calibrated")
-				break
-			}
-			time.Sleep(time.Duration(50) * time.Millisecond)
-			log.Println("AHRS Info: MPU9250 wasn't inertial, retrying calibration")
-		}
-	}
 	return
 }
 

@@ -72,10 +72,10 @@ func tempAndPressureSender() {
 	var (
 		temp     float64
 		press    float64
-		altLast  float64 = -9999
+		altLast  = -9999.9
 		altitude float64
 		err      error
-		dt       float64 = 0.1
+		dt       = 0.1
 		failnum  uint8
 	)
 
@@ -125,21 +125,13 @@ func initIMU() (ok bool) {
 	if err == nil {
 		myIMUReader = imu
 		time.Sleep(200 * time.Millisecond)
-		log.Println("AHRS Info: Successfully connected MPU9250, running calibration")
-		ahrsCalibrating = true
-		if err := myIMUReader.Calibrate(1, 1); err == nil {
-			log.Println("AHRS Info: Successfully calibrated MPU9250")
-			ahrsCalibrating = false
-			return true
-		}
-		log.Println("AHRS Info: couldn't calibrate MPU9250")
-		ahrsCalibrating = false
-		return false
+		log.Println("AHRS Info: Successfully connected MPU9250")
+		return true
 	}
 
-	// TODO westphae: try to connect to MPU9150
+	// TODO westphae: try to connect to MPU9150 or other IMUs.
 
-	log.Println("AHRS Error: couldn't initialize MPU9250 or MPU9150")
+	log.Println("AHRS Error: couldn't initialize MPU9250")
 	return false
 }
 
@@ -149,28 +141,34 @@ func sensorAttitudeSender() {
 		t                                  time.Time
 		s                                  ahrs.AHRSProvider
 		m                                  *ahrs.Measurement
-		a1, a2, a3, b1, b2, b3, m1, m2, m3 float64        // IMU measurements
-		ff                                 *[3][3]float64 // Sensor orientation matrix
+		a1, a2, a3, b1, b2, b3, m1, m2, m3 float64       // IMU measurements
+		c, d                               [3]float64    // IMU calibration measurements
+		ff                                 [3][3]float64 // Sensor orientation matrix
+		cc                                 float64
 		mpuError, magError                 error
 		failnum                            uint8
 	)
-	log.Println("AHRS Info: initializing new simple AHRS")
+	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
 	m = ahrs.NewMeasurement()
-	cage = make(chan (bool))
+	cage = make(chan (bool), 1)
 
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
-		log.Printf("AHRS Error: couldn't start ahrswebListener: %s\n", err.Error())
+		log.Printf("AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
 	} else {
+		log.Println("AHRS Info: ahrswebListener started on port 8000")
 		defer ahrswebListener.Close()
 	}
 
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		ff = makeSensorRotationMatrix(m)
+		select { // Don't block if cage isn't receiving: only need one cage in the queue at a time.
+		case cage <- true:
+		default:
+		}
 
 		failnum = 0
 		<-timer.C
@@ -178,15 +176,17 @@ func sensorAttitudeSender() {
 			<-timer.C
 			select {
 			case <-cage:
+				log.Println("AHRS Info: Calibrating IMU")
 				ahrsCalibrating = true
-				if err := myIMUReader.Calibrate(1, 1); err == nil {
-					log.Println("AHRS Info: Successfully recalibrated MPU9250")
-					ff = makeSensorRotationMatrix(m)
-
-				} else {
-					log.Println("AHRS Info: couldn't recalibrate MPU9250")
-				}
+				//TODO westphae: check for errors when reading IMU
+				myIMUReader.Read() // Clear out the averages
+				time.Sleep(1 * time.Second)
+				_, d[0], d[1], d[2], c[0], c[1], c[2], _, _, _, _, _ = myIMUReader.Read()
+				ff = *makeSensorRotationMatrix([3]float64{c[0], c[1], c[2]})
+				log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
+					c[0], c[1], c[2], d[0], d[1], d[2])
 				ahrsCalibrating = false
+				cc = math.Sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2])
 				s.Reset()
 			default:
 			}
@@ -195,6 +195,12 @@ func sensorAttitudeSender() {
 			m.T = float64(t.UnixNano()/1000) / 1e6
 
 			_, b1, b2, b3, a1, a2, a3, m1, m2, m3, mpuError, magError = myIMUReader.Read()
+			a1 /= cc
+			a2 /= cc
+			a3 /= cc
+			b1 -= d[0]
+			b2 -= d[1]
+			b3 -= d[2]
 			m.A1 = -(ff[0][0]*a1 + ff[0][1]*a2 + ff[0][2]*a3)
 			m.A2 = -(ff[1][0]*a1 + ff[1][1]*a2 + ff[1][2]*a3)
 			m.A3 = -(ff[2][0]*a1 + ff[2][1]*a2 + ff[2][2]*a3)
@@ -263,7 +269,7 @@ func sensorAttitudeSender() {
 				s.Reset()
 			}
 
-			// Debugging server:
+			// Send to AHRS debugging server:
 			if ahrswebListener != nil {
 				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
 					log.Printf("Error writing to ahrsweb: %s\n", err)
@@ -289,7 +295,7 @@ func sensorAttitudeSender() {
 	}
 }
 
-func makeSensorRotationMatrix(mCal *ahrs.Measurement) *[3][3]float64 {
+func makeSensorRotationMatrix(g [3]float64) *[3][3]float64 {
 	f := globalSettings.IMUMapping
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
 		globalSettings.IMUMapping[0] = -1 // +2 for RY836AI
@@ -312,26 +318,29 @@ func makeSensorRotationMatrix(mCal *ahrs.Measurement) *[3][3]float64 {
 	} else {
 		z[+f[1]-1] = +1
 	}
-	//TODO westphae: replace "up direction" with measured gravity.
+	if math.Abs(z[0]*g[0]+z[1]*g[1]+z[2]*g[2]-1) > 0.1 {
+		log.Println("AHRS Warning: sensor is not nearly level with chosen up direction")
+	}
+	z = g
 
 	// Normalize the gravity vector to be 1 G.
-	gg := z[0]*z[0] + z[1]*z[1] + z[2]*z[2]
+	gg := math.Sqrt(z[0]*z[0] + z[1]*z[1] + z[2]*z[2])
 	z[0] /= gg
 	z[1] /= gg
 	z[2] /= gg
 
 	// Remove the projection on the measured gravity vector from x so it's orthogonal to z.
 	dp := x[0]*z[0] + x[1]*z[1] + x[2]*z[2]
-	x[0] = x[0] - dp * z[0]
-	x[1] = x[1] - dp * z[1]
-	x[2] = x[2] - dp * z[2]
+	x[0] = x[0] - dp*z[0]
+	x[1] = x[1] - dp*z[1]
+	x[2] = x[2] - dp*z[2]
 
 	// Specify the "left wing" direction for a right-handed coordinate system using the cross product.
 	y[0] = z[1]*x[2] - z[2]*x[1]
 	y[1] = z[2]*x[0] - z[0]*x[2]
 	y[2] = z[0]*x[1] - z[1]*x[0]
 
-	return &[3][3]float64 {x, y, z}
+	return &[3][3]float64{x, y, z}
 }
 
 // This is used in the orientation process where the user specifies the forward and up directions.
