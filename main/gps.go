@@ -1820,7 +1820,7 @@ func makeAHRSGDL90Report() {
 		pitch = roundToInt16(mySituation.AHRSPitch * 10)
 		roll = roundToInt16(mySituation.AHRSRoll * 10)
 		hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
-		slip_skid = roundToInt16(mySituation.AHRSSlipSkid * 10)
+		slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
 		yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
 		g = roundToInt16(mySituation.AHRSGLoad * 10)
 	}

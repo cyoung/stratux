@@ -113,6 +113,11 @@ AHRSRenderer.prototype = {
         this.roll = roll;
         this.heading = heading;
 		this.slipSkid = slipSkid;
+		if (this.slipSkid < -10) {
+		    this.slipSkid = -10;
+        } else if (this.slipSkid > 10) {
+		    this.slipSkid = +10;
+        }
 
         this.pitchClip.translate(0, -10 * this.pitch);
         this.rollClip.rotate(this.roll, 0, 0);
