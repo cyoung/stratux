@@ -43,7 +43,11 @@ class StratuxScreen():
             response = urllib2.urlopen('http://localhost/getTowers')
             getTowersHTML = response.read()
             getTowersData = json.loads(getTowersHTML)
-            NumTowers = len(getTowersData)
+            NumTowers = 0
+            for towerLatLng in getTowersData:
+                print getTowersData[towerLatLng]["Messages_last_minute"]
+                if (getTowersData[towerLatLng]["Messages_last_minute"] > 0):
+                    NumTowers += 1
 
             with canvas(oled) as draw:
                 pad = 2 # Two pixels on the left and right.

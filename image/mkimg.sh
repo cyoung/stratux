@@ -134,7 +134,12 @@ apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev pyth
 pip install wiringpi
 cd /root
 git clone https://github.com/rm-hull/ssd1306
-cd ssd1306 && python setup.py install
+cd ssd1306
+# Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
+git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
+python setup.py install
+
+
 cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
 mkdir -p /etc/stratux-screen/
 cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
