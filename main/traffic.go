@@ -111,9 +111,9 @@ type TrafficInfo struct {
 	Last_speed           time.Time // Time of last velocity and track update (stratuxClock).
 	Last_source          uint8     // Last frequency on which this target was received.
 	ExtrapolatedPosition bool      //TODO: True if Stratux is "coasting" the target from last known position.
+    BearingDist_valid    bool      // set when bearing and distance information is valid  
 	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated.
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated.
-	//FIXME: Some indicator that Bearing and Distance are valid, since they aren't always available.
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
@@ -191,6 +191,7 @@ func sendTrafficUpdates() {
 			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
 			ti.Bearing = bearing
+            ti.BearingDist_valid = true
 		}
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
@@ -251,13 +252,31 @@ func registerTrafficUpdate(ti TrafficInfo) {
 	trafficUpdate.SendJSON(ti)
 }
 
+func isTrafficAlertable(ti TrafficInfo) bool {
+	// Set alert bit if possible and traffic is within some threshold
+	// TODO: Could be more intelligent, taking into account headings etc.
+	if ti.BearingDist_valid &&
+	   ti.Distance < 3704 { // TODO: Maybe make configurable?
+	   return true
+	}
+	
+	return false
+}
+
 func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	msg := make([]byte, 28)
 	// See p.16.
 	msg[0] = 0x14 // Message type "Traffic Report".
 
-	msg[1] = 0x10 | ti.Addr_type // Alert status, address type.
-
+    // Address type
+	msg[1] = ti.Addr_type
+	
+	// Set alert if needed
+	if isTrafficAlertable(ti) {
+	    // Set the alert bit.  See pg. 18 of GDL90 ICD
+	    msg[1] |= 0x10
+	}
+	
 	// ICAO Address.
 	msg[2] = byte((ti.Icao_addr & 0x00FF0000) >> 16)
 	msg[3] = byte((ti.Icao_addr & 0x0000FF00) >> 8)
@@ -568,6 +587,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Lng = lng
 		if isGPSValid() {
 			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			ti.BearingDist_valid = true
 		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
@@ -849,6 +869,7 @@ func esListen() {
 					ti.Lng = lng
 					if isGPSValid() {
 						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+						ti.BearingDist_valid = true
 					}
 					ti.Position_valid = true
 					ti.ExtrapolatedPosition = false
@@ -1083,6 +1104,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Lng = float32(lng + traffRelLng)
 
 	ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+	ti.BearingDist_valid = true
 
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
