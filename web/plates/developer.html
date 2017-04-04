@@ -1,19 +1,59 @@
-<div class="col-sm-12">
-    <div class="panel panel-default">
+  <div class="col-sm-12">
+    <div class="panel-group col-sm-6">
+      <div class="panel panel-default">
         <div class="panel-heading">
-            <span class="panel_label">Developer Mode Tools</span>
+          Restart Stratux application
         </div>
+
         <div class="panel-body">
-            <div class="form-group reset-flow">
-                <div class="col-xs-12">
-                    <a ng-click="postRestart()" ui-turn-off="modalRestartApp" class="btn btn-primary">Restart Stratux Application</a>
-                </div>
+          <div class="form-group reset-flow" align="center">
+            <div class="col-xs-12">
+              <a ng-click="postRestart()" class=
+              "btn btn-primary btn-block" style=
+              "margin-bottom:1em;">Restart Application</a>
             </div>
-            <div class="form-group reset-flow">
-                <div class="col-xs-12">
-                    <a ng-click="webUIRefresh()" class="btn btn-primary">Refresh Web UI</a>
-                </div>
-            </div>
+          </div>
         </div>
+      </div>
     </div>
-</div>
+
+    <div class="panel-group col-sm-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Logfile (Size: {{Logfile_Size}} bytes)
+        </div>
+
+        <div class="panel-body">
+          <div class="col-xs-12">
+            <a href="./downloadlog" ng-click="postDownloadLog()"
+            class="btn btn-primary btn-block" style=
+            "margin-bottom:0.5em;">Download Logfile</a>
+          </div>
+
+          <div class="col-xs-12">
+            <a ng-click="postDeleteLog()" class=
+            "btn btn-primary btn-block" style=
+            "margin-bottom:0.5em;">Delete Logfile</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-group col-sm-6" style="float:right;">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Database
+        </div>
+
+        <div class="panel-body">
+          <div class="col-xs-12">
+            
+              <a href="./downloaddb" ng-click="postDownloadDB()"
+              class="btn btn-primary btn-block" style=
+              "margin-bottom:0.5em;">Download Database</a>
+           
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

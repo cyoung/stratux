@@ -12,3 +12,8 @@ dtoverlay=pi3-miniuart-bt
 # disable default (mmc0) behavior on the ACT LED.
 dtparam=act_led_trigger=none
 dtparam=act_led_activelow=off
+
+# The below has been added as a proposed EMI reduction measure. Issue #573.
+sdram_freq=450
+core_freq=450
+arm_freq=900

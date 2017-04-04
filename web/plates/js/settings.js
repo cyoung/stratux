@@ -27,12 +27,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
+
 		$scope.IMU_Sensor_Enabled = settings.IMU_Sensor_Enabled;
 		$scope.BMP_Sensor_Enabled = settings.BMP_Sensor_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.AHRSLog = settings.AHRSLog;
+
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
@@ -137,6 +139,17 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
+	$scope.updatestaticips = function () {
+		if ($scope.StaticIps !== settings.StaticIps) {
+			newsettings = {
+				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+
+
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
 		$location.path('/home');
@@ -204,14 +217,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.setOrientation = function(action) {
-        console.log("sending " + action + " message.");
+		console.log("sending " + action + " message.");
 		$http.post(URL_AHRS_ORIENT, action).
 		then(function (response) {
 			console.log("sent " + action + " message.");
 		}, function(response) {
 			// failure: cancel the calibration
-            console.log(response.data);
-            $scope.Orientation_Failure_Message = response.data;
+			console.log(response.data);
+			$scope.Orientation_Failure_Message = response.data;
 			switch (action) {
 				case "forward":
 					$scope.Ui.turnOff("modalCalibrateUp");
@@ -219,7 +232,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 				case "up":
 					$scope.Ui.turnOff('modalCalibrateDone');
 			}
-            $scope.Ui.turnOn("modalCalibrateFailed");
+			$scope.Ui.turnOn("modalCalibrateFailed");
 		});
 	};
 }

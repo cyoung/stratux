@@ -79,16 +79,27 @@ const (
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 
-	GPS_TYPE_NMEA     = 0x01
-	GPS_TYPE_UBX      = 0x02
-	GPS_TYPE_SIRF     = 0x03
-	GPS_TYPE_MEDIATEK = 0x04
-	GPS_TYPE_FLARM    = 0x05
-	GPS_TYPE_GARMIN   = 0x06
+	/*
+		GPS_TYPE_NMEA     = 0x01
+		GPS_TYPE_UBX      = 0x02
+		GPS_TYPE_SIRF     = 0x03
+		GPS_TYPE_MEDIATEK = 0x04
+		GPS_TYPE_FLARM    = 0x05
+		GPS_TYPE_GARMIN   = 0x06
+	*/
+
+	GPS_TYPE_UBX8     = 0x08
+	GPS_TYPE_UBX7     = 0x07
+	GPS_TYPE_UBX6     = 0x06
+	GPS_TYPE_PROLIFIC = 0x02
+	GPS_TYPE_UART     = 0x01
+	GPS_PROTOCOL_NMEA = 0x10
+	GPS_PROTOCOL_UBX  = 0x30
 	// other GPS types to be defined as needed
 
 )
 
+var logFileHandle *os.File
 var usage *du.DiskUsage
 
 var maxSignalStrength int
@@ -790,6 +801,10 @@ func updateStatus() {
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
+	fileInfo, err := logFileHandle.Stat()
+	if err == nil {
+		globalStatus.Logfile_Size = fileInfo.Size()
+	}
 }
 
 type WeatherMessage struct {
@@ -1048,6 +1063,7 @@ type settings struct {
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
+	StaticIps            []string
 }
 
 type status struct {
@@ -1090,10 +1106,11 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-	BMPConnected                               bool
-	IMUConnected                               bool
+	Errors                                     []string
+	Logfile_Size                               int64
 
-	Errors []string
+	BMPConnected bool
+	IMUConnected bool
 }
 
 var globalSettings settings
@@ -1117,6 +1134,7 @@ func defaultSettings() {
 	globalSettings.IMUMapping = [2]int{-1, -3} // OpenFlightBox AHRS normal mapping
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
+	globalSettings.StaticIps = make([]string, 0)
 }
 
 func readSettings() {
@@ -1326,6 +1344,23 @@ func signalWatcher() {
 	gracefulShutdown()
 }
 
+func clearDebugLogFile() {
+	if logFileHandle != nil {
+		_, err := logFileHandle.Seek(0, 0)
+		if err != nil {
+			log.Printf("Could not seek to the beginning of the logfile\n")
+			return
+		} else {
+			err2 := logFileHandle.Truncate(0)
+			if err2 != nil {
+				log.Printf("Could not truncate the logfile\n")
+				return
+			}
+			log.Printf("Logfile truncated\n")
+		}
+	}
+}
+
 func main() {
 	// Catch signals for graceful shutdown.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -1397,6 +1432,8 @@ func main() {
 		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
+		// Keep the logfile handle for later use
+		logFileHandle = fp
 		mfp := io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}
@@ -1423,7 +1460,7 @@ func main() {
 	// Override after reading in the settings.
 	if *replayFlag == true {
 		log.Printf("Replay file %s\n", *replayUATFilename)
-		globalSettings.ReplayLog = true
+		globalSettings.ReplayLog = false
 	}
 
 	if globalSettings.DeveloperMode == true {

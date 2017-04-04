@@ -57,19 +57,19 @@ type SituationData struct {
 	GPSLatitude                 float32
 	GPSLongitude                float32
 	GPSFixQuality               uint8
-	GPSHeightAboveEllipsoid     float32   // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
-	GPSGeoidSep                 float32   // geoid separation, ft, MSL minus HAE (used in altitude calculation)
-	GPSSatellites               uint16    // satellites used in solution
-	GPSSatellitesTracked        uint16    // satellites tracked (almanac data received)
-	GPSSatellitesSeen           uint16    // satellites seen (signal received)
-	GPSHorizontalAccuracy       float32   // 95% confidence for horizontal position, meters.
-	GPSNACp                     uint8     // NACp categories are defined in AC 20-165A
-	GPSAltitudeMSL              float32   // Feet MSL
-	GPSVerticalAccuracy         float32   // 95% confidence for vertical position, meters
-	GPSVerticalSpeed            float32   // GPS vertical velocity, feet per second
+	GPSHeightAboveEllipsoid     float32 // GPS height above WGS84 ellipsoid, ft. This is specified by the GDL90 protocol, but most EFBs use MSL altitude instead. HAE is about 70-100 ft below GPS MSL altitude over most of the US.
+	GPSGeoidSep                 float32 // geoid separation, ft, MSL minus HAE (used in altitude calculation)
+	GPSSatellites               uint16  // satellites used in solution
+	GPSSatellitesTracked        uint16  // satellites tracked (almanac data received)
+	GPSSatellitesSeen           uint16  // satellites seen (signal received)
+	GPSHorizontalAccuracy       float32 // 95% confidence for horizontal position, meters.
+	GPSNACp                     uint8   // NACp categories are defined in AC 20-165A
+	GPSAltitudeMSL              float32 // Feet MSL
+	GPSVerticalAccuracy         float32 // 95% confidence for vertical position, meters
+	GPSVerticalSpeed            float32 // GPS vertical velocity, feet per second
 	GPSLastFixLocalTime         time.Time
 	GPSTrueCourse               float32
-	GPSTurnRate                 float64   // calculated GPS rate of turn, degrees per second
+	GPSTurnRate                 float64 // calculated GPS rate of turn, degrees per second
 	GPSGroundSpeed              float64
 	GPSLastGroundTrackTime      time.Time
 	GPSTime                     time.Time
@@ -193,17 +193,22 @@ func initGPSSerial() bool {
 
 	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI over USB).
 		device = "/dev/ublox8"
-	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, RY725AI over USB).
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
+	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, RY725AI over USB).
 		device = "/dev/ublox7"
-	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162).
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX7
+	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162 Rev 1).
 		device = "/dev/ublox6"
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX6
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
 		baudrate = 4800
 		device = "/dev/prolific0"
+		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
+		globalStatus.GPS_detected_type = GPS_TYPE_UART
 	} else {
 		log.Printf("No suitable device found.\n")
 		return false
@@ -250,7 +255,9 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else {
-		// Set 10 Hz update. Little endian order.
+		// Byte order for UBX configuration is little endian.
+
+		// Set 10 Hz update to make gpsattitude more responsive for ublox7/8.
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
 		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xc8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 5 Hz
 
@@ -265,20 +272,25 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
 		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
-		// NOTE: Max position rate = 5 Hz if GPS+GLONASS used.
 
-		// TESTING: 5Hz unified GPS + GLONASS
-
-		// Disable GLONASS to enable 10 Hz solution rate. GLONASS is not used
-		// for SBAS (WAAS), so little real-world impact.
+		// Notes: ublox8 is multi-GNSS capable (simultaneous decoding of GPS and GLONASS, or
+		// GPS and Galileo) if SBAS (e.g. WAAS) is unavailable. This may provide robustness
+		// against jamming / interference on one set of frequencies. However, this will drop the
+		// position reporting rate to 5 Hz during times multi-GNSS is in use. This shouldn't affect
+		// gpsattitude too much --  without WAAS corrections, the algorithm could get jumpy at higher
+		// sampling rates.
 
 		cfgGnss := []byte{0x00, 0x20, 0x20, 0x05}
 		gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
 		sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS (WAAS) with 2-3 tracking channels
 		beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}
 		qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}
-		//glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
-		glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
+
+		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS configuration.\n")
+			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+		}
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
 		cfgGnss = append(cfgGnss, beidou...)
@@ -296,9 +308,7 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GGA enabled every 5th message
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GLL disabled
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSA disabled
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSA enabled disabled every 5th position (used for testing only)
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // GSV disabled
-		//p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x01})) // GSV enabled for every 5th position (used for testing only)
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // RMC
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})) // VGT
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS
@@ -309,9 +319,9 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00})) // Ublox,0
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x05, 0x05, 0x05, 0x05, 0x05, 0x00})) // Ublox,3
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x00})) // Ublox,4
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // Ublox,0
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // Ublox,3
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox,4
 
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
@@ -432,7 +442,7 @@ Method uses stored performance statistics from myGPSPerfStats[]. Ideally, calcul
 assuming 10 Hz sampling frequency. Lower frequency sample rates will increase calculation window for smoother response, at the
 cost of slightly increased lag.
 
-(c) 2016 AvSquirrel (https://github.com/AvSquirrel) . All rights reserved.
+(c) 2016 Keith Tschohl. All rights reserved.
 Distributable under the terms of the "BSD-New" License that can be found in
 the LICENSE file, herein included as part of this header.
 */
@@ -522,9 +532,9 @@ func calcGPSAttitude() bool {
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
 	var lengthHeading, lengthSpeed int
+	var halfwidth float64 // width of regression evaluation window. Minimum of 1.5 seconds and maximum of 3.5 seconds.
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
-	halfwidth := float64(1.4)                         // width of regression evaluation window. Default of 1.4 seconds for 5 Hz sampling; can increase to 3.5 sec @ 1 Hz
 
 	// frequency detection
 	tempSpeedTime = make([]float64, 0)
@@ -540,19 +550,23 @@ func calcGPSAttitude() bool {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
 		}
-		halfwidth = 7 * dt_avg
+		halfwidth = 9 * dt_avg
+		mySituation.PositionSampleRate = 1 / dt_avg
 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
 		}
 		halfwidth = 3.5
+		mySituation.PositionSampleRate = 0
 	}
 
 	if halfwidth > 3.5 {
 		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
+	} else if halfwidth < 1.5 {
+		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
 	}
 
-	if globalStatus.GPS_detected_type == GPS_TYPE_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
+	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
 		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
 		tempSpeedTime = make([]float64, length, length) // all are length of original slice
 		tempSpeed = make([]float64, length, length)
@@ -855,8 +869,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			// set the global GPS type to UBX as soon as we see our first (valid length)
 			// PUBX,01 position message, even if we don't have a fix
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
-				globalStatus.GPS_detected_type = GPS_TYPE_UBX
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
+				globalStatus.GPS_detected_type |= GPS_PROTOCOL_UBX
 				log.Printf("GPS detected: u-blox NMEA position message seen.\n")
 			}
 
@@ -1256,8 +1270,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		// use RMC / GGA message detection to sense "NMEA" type.
-		if globalStatus.GPS_detected_type == 0 {
-			globalStatus.GPS_detected_type = GPS_TYPE_NMEA
+		if (globalStatus.GPS_detected_type & 0xf0) == 0 {
+			globalStatus.GPS_detected_type |= GPS_PROTOCOL_NMEA
 		}
 
 		// GPSFixQuality indicator.
@@ -1337,7 +1351,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// Timestamp.
 		tmpSituation.GPSLastFixLocalTime = stratuxClock.Time
 
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			updateGPSPerf = true
 			thisGpsPerf.msgType = x[0]
 		}
@@ -1381,8 +1395,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		// use RMC / GGA message detection to sense "NMEA" type.
-		if globalStatus.GPS_detected_type == 0 {
-			globalStatus.GPS_detected_type = GPS_TYPE_NMEA
+		if (globalStatus.GPS_detected_type & 0xf0) == 0 {
+			globalStatus.GPS_detected_type |= GPS_PROTOCOL_NMEA
 		}
 
 		if x[2] != "A" { // invalid fix
@@ -1478,13 +1492,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				thisGpsPerf.coursef = float32(tc)
 			}
 		} else {
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 				thisGpsPerf.coursef = -999.9
 			}
 			// Negligible movement. Don't update course, but do use the slow speed.
 			//TODO: use average course over last n seconds?
 		}
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			updateGPSPerf = true
 			thisGpsPerf.msgType = x[0]
 		}
@@ -1951,6 +1965,9 @@ func isGPSValid() bool {
 	} else {
 		mySituation.GPSFixQuality = 0
 		mySituation.GPSSatellites = 0
+		mySituation.GPSHorizontalAccuracy = 999999
+		mySituation.GPSVerticalAccuracy = 999999
+		mySituation.GPSNACp = 0
 	}
 	return isValid
 }
