@@ -76,6 +76,7 @@ type SituationData struct {
 	GPSLastGPSTimeStratuxTime   time.Time // stratuxClock time since last GPS time received.
 	GPSLastValidNMEAMessageTime time.Time // time valid NMEA message last seen
 	GPSLastValidNMEAMessage     string    // last NMEA message processed.
+	GPSPositionSampleRate       float64   // calculated sample rate of GPS positions
 
 	// From pressure sensor.
 	muBaro                  *sync.Mutex
@@ -551,13 +552,13 @@ func calcGPSAttitude() bool {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
 		}
 		halfwidth = 9 * dt_avg
-		mySituation.PositionSampleRate = 1 / dt_avg
+		mySituation.GPSPositionSampleRate = 1 / dt_avg
 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
 		}
 		halfwidth = 3.5
-		mySituation.PositionSampleRate = 0
+		mySituation.GPSPositionSampleRate = 0
 	}
 
 	if halfwidth > 3.5 {
@@ -1293,7 +1294,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		tmpSituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
 		}
 
@@ -1334,7 +1335,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSAltitudeMSL = float32(alt * 3.28084) // Convert to feet.
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.alt = float32(tmpSituation.GPSAltitudeMSL)
 		}
 
@@ -1415,7 +1416,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
 		}
 
@@ -1474,7 +1475,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSGroundSpeed = groundspeed
-		if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 			thisGpsPerf.gsf = float32(groundspeed)
 		}
 
@@ -1488,7 +1489,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.GPSTrueCourse = trueCourse
-			if globalStatus.GPS_detected_type != GPS_TYPE_UBX {
+			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
 				thisGpsPerf.coursef = float32(tc)
 			}
 		} else {
