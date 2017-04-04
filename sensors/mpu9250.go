@@ -11,7 +11,7 @@ import (
 const (
 	gyroRange  = 250 // gyroRange is the default range to use for the Gyro.
 	accelRange = 4 // accelRange is the default range to use for the Accel.
-	updateFreq = 1000 // updateFreq is the rate at which to update the sensor values.
+	updateFreq = 50 // updateFreq is the rate at which to update the sensor values.
 )
 
 // MPU9250 represents an InvenSense MPU9250 attached to the I2C bus and satisfies
