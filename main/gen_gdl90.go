@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"sync"
@@ -1302,6 +1303,8 @@ func gracefulShutdown() {
 		closeDataLog()
 	}
 
+	pprof.StopCPUProfile()
+
 	//TODO: Any other graceful shutdown functions.
 
 	// Turn off green ACT LED on the Pi.
@@ -1383,10 +1386,21 @@ func main() {
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
 
+	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
+
 	flag.Parse()
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
+
+	// Start CPU profile, if requested.
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+	}
 
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
