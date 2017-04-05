@@ -1399,6 +1399,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Printf("Writing CPU profile to: %s\n", *cpuprofile)
 		pprof.StartCPUProfile(f)
 	}
 
