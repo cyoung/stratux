@@ -192,6 +192,10 @@ func sendTrafficUpdates() {
 			ti.Distance = dist
 			ti.Bearing = bearing
 			ti.BearingDist_valid = true
+		} else {
+			ti.Distance = 0
+			ti.Bearing = 0
+			ti.BearingDist_valid = false
 		}
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
