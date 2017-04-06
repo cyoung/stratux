@@ -111,7 +111,7 @@ type TrafficInfo struct {
 	Last_speed           time.Time // Time of last velocity and track update (stratuxClock).
 	Last_source          uint8     // Last frequency on which this target was received.
 	ExtrapolatedPosition bool      //TODO: True if Stratux is "coasting" the target from last known position.
-    BearingDist_valid    bool      // set when bearing and distance information is valid  
+	BearingDist_valid    bool      // set when bearing and distance information is valid
 	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated.
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated.
 	//FIXME: Rename variables for consistency, especially "Last_".
@@ -191,7 +191,7 @@ func sendTrafficUpdates() {
 			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
 			ti.Bearing = bearing
-            ti.BearingDist_valid = true
+			ti.BearingDist_valid = true
 		}
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
@@ -256,10 +256,10 @@ func isTrafficAlertable(ti TrafficInfo) bool {
 	// Set alert bit if possible and traffic is within some threshold
 	// TODO: Could be more intelligent, taking into account headings etc.
 	if ti.BearingDist_valid &&
-	   ti.Distance < 3704 { // TODO: Maybe make configurable?
-	   return true
+		ti.Distance < 3704 { // TODO: Maybe make configurable?
+		return true
 	}
-	
+
 	return false
 }
 
@@ -268,15 +268,15 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// See p.16.
 	msg[0] = 0x14 // Message type "Traffic Report".
 
-    // Address type
+	// Address type
 	msg[1] = ti.Addr_type
-	
+
 	// Set alert if needed
 	if isTrafficAlertable(ti) {
-	    // Set the alert bit.  See pg. 18 of GDL90 ICD
-	    msg[1] |= 0x10
+		// Set the alert bit.  See pg. 18 of GDL90 ICD
+		msg[1] |= 0x10
 	}
-	
+
 	// ICAO Address.
 	msg[2] = byte((ti.Icao_addr & 0x00FF0000) >> 16)
 	msg[3] = byte((ti.Icao_addr & 0x0000FF00) >> 8)
