@@ -80,7 +80,7 @@ func tempAndPressureSender() {
 	)
 
 	// Initialize variables for rate of climb calc
-	u := 5 / (5 + float64(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
+	u := 5 / (5 + float32(dt)) // Use 5 sec decay time for rate of climb, slightly faster than typical VSI
 
 	timer := time.NewTicker(time.Duration(1000*dt) * time.Millisecond)
 	for globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
@@ -106,14 +106,14 @@ func tempAndPressureSender() {
 		// Update the Situation data.
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
-		mySituation.BaroTemperature = temp
+		mySituation.BaroTemperature = float32(temp)
 		altitude = CalcAltitude(press)
-		mySituation.BaroPressureAltitude = altitude
+		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
 			altLast = altitude // Initialize
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
-		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*(altitude-altLast)/(float64(dt)/60)
+		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*float32(altitude-altLast)/(float32(dt)/60)
 		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}
@@ -235,7 +235,7 @@ func sensorAttitudeSender() {
 				m.W1 = mySituation.GPSGroundSpeed * math.Sin(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
 				m.W2 = mySituation.GPSGroundSpeed * math.Cos(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
 				if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
-					m.W3 = mySituation.BaroVerticalSpeed * 60 / 6076.12
+					m.W3 = float64(mySituation.BaroVerticalSpeed * 60 / 6076.12)
 				} else {
 					m.W3 = float64(mySituation.GPSVerticalSpeed) * 3600 / 6076.12
 				}
@@ -251,14 +251,14 @@ func sensorAttitudeSender() {
 				mySituation.muAttitude.Lock()
 
 				roll, pitch, heading = s.RollPitchHeading()
-				mySituation.AHRSRoll = roll / ahrs.Deg
-				mySituation.AHRSPitch = pitch / ahrs.Deg
-				mySituation.AHRSGyroHeading = heading / ahrs.Deg
+				mySituation.AHRSRoll = float32(roll / ahrs.Deg)
+				mySituation.AHRSPitch = float32(pitch / ahrs.Deg)
+				mySituation.AHRSGyroHeading = float32(heading / ahrs.Deg)
 
-				mySituation.AHRSMagHeading = s.MagHeading()
-				mySituation.AHRSSlipSkid = s.SlipSkid()
-				mySituation.AHRSTurnRate = s.RateOfTurn()
-				mySituation.AHRSGLoad = s.GLoad()
+				mySituation.AHRSMagHeading = float32(s.MagHeading())
+				mySituation.AHRSSlipSkid = float32(s.SlipSkid())
+				mySituation.AHRSTurnRate = float32(s.RateOfTurn())
+				mySituation.AHRSGLoad = float32(s.GLoad())
 
 				mySituation.AHRSLastAttitudeTime = t
 				mySituation.muAttitude.Unlock()

@@ -80,20 +80,20 @@ type SituationData struct {
 
 	// From pressure sensor.
 	muBaro                  *sync.Mutex
-	BaroTemperature         float64
-	BaroPressureAltitude    float64
-	BaroVerticalSpeed       float64
+	BaroTemperature         float32
+	BaroPressureAltitude    float32
+	BaroVerticalSpeed       float32
 	BaroLastMeasurementTime time.Time
 
 	// From AHRS source.
 	muAttitude           *sync.Mutex
-	AHRSPitch            float64
-	AHRSRoll             float64
-	AHRSGyroHeading      float64
-	AHRSMagHeading       float64
-	AHRSSlipSkid         float64
-	AHRSTurnRate         float64
-	AHRSGLoad            float64
+	AHRSPitch            float32
+	AHRSRoll             float32
+	AHRSGyroHeading      float32
+	AHRSMagHeading       float32
+	AHRSSlipSkid         float32
+	AHRSTurnRate         float32
+	AHRSGLoad            float32
 	AHRSLastAttitudeTime time.Time
 	AHRSStatus           uint8
 }
@@ -1903,9 +1903,9 @@ func gpsAttitudeSender() {
 				mySituation.muGPSPerformance.Lock()
 				index := len(myGPSPerfStats) - 1
 				if index > 1 {
-					mySituation.AHRSPitch = myGPSPerfStats[index].gpsPitch
-					mySituation.AHRSRoll = myGPSPerfStats[index].gpsRoll
-					mySituation.AHRSGyroHeading = float64(mySituation.GPSTrueCourse)
+					mySituation.AHRSPitch = float32(myGPSPerfStats[index].gpsPitch)
+					mySituation.AHRSRoll = float32(myGPSPerfStats[index].gpsRoll)
+					mySituation.AHRSGyroHeading = mySituation.GPSTrueCourse
 					mySituation.AHRSLastAttitudeTime = stratuxClock.Time
 
 					makeAHRSGDL90Report()

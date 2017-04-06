@@ -250,7 +250,7 @@ func degreesHdg(angle float64) float64 {
 }
 
 // roundToInt16 cheaply rounds a float64 to an int16, rather than truncating
-func roundToInt16(in float64) (out int16) {
+func roundToInt16(in float32) (out int16) {
 	if in >= 0 {
 		out = int16(in + 0.5)
 	} else {
