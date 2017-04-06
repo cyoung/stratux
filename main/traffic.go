@@ -589,10 +589,6 @@ func parseDownlinkReport(s string, signalLevel int) {
 	if ti.Position_valid {
 		ti.Lat = lat
 		ti.Lng = lng
-		if isGPSValid() {
-			ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
-			ti.BearingDist_valid = true
-		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
 	}
