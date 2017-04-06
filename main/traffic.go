@@ -112,8 +112,8 @@ type TrafficInfo struct {
 	Last_source          uint8     // Last frequency on which this target was received.
 	ExtrapolatedPosition bool      //TODO: True if Stratux is "coasting" the target from last known position.
 	BearingDist_valid    bool      // set when bearing and distance information is valid
-	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated.
-	Distance             float64   // Distance to traffic from ownship, if it can be calculated.
+	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated. Units: degrees.
+	Distance             float64   // Distance to traffic from ownship, if it can be calculated. Units: meters.
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
@@ -260,7 +260,7 @@ func isTrafficAlertable(ti TrafficInfo) bool {
 	// Set alert bit if possible and traffic is within some threshold
 	// TODO: Could be more intelligent, taking into account headings etc.
 	if ti.BearingDist_valid &&
-		ti.Distance < 3704 { // TODO: Maybe make configurable?
+		ti.Distance < 3704 { // 3704 meters, 2 nm.
 		return true
 	}
 
