@@ -574,6 +574,11 @@ func makeHeartbeat() []byte {
 	}
 	msg[1] = msg[1] | 0x10 //FIXME: Addr talkback.
 
+	// "Maintenance Req'd". Add flag if there are any current critical system errors.
+	if len(globalStatus.Errors) > 0 {
+		msg[1] = msg[1] | 0x40
+	}
+
 	nowUTC := time.Now().UTC()
 	// Seconds since 0000Z.
 	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
