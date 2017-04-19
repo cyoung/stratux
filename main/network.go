@@ -1,6 +1,6 @@
 /*
 	Copyright (c) 2015-2016 Christopher Young
-	Distributable under the terms of The "BSD New"" License
+	Distributable under the terms of The "BSD New" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
@@ -63,10 +63,9 @@ var messageQueue chan networkMessage
 var outSockets map[string]networkConnection
 var dhcpLeases map[string]string
 var pingResponse map[string]time.Time // Last time an IP responded to an "echo" response.
-var netMutex *sync.Mutex // netMutex needs to be locked before accessing dhcpLeases, pingResponse, and outSockets and calling isSleeping() and isThrottled().
+var netMutex *sync.Mutex              // netMutex needs to be locked before accessing dhcpLeases, pingResponse, and outSockets and calling isSleeping() and isThrottled().
 
 var totalNetworkMessagesSent uint32
-
 
 const (
 	NETWORK_GDL90_STANDARD = 1
@@ -116,13 +115,12 @@ func getDHCPLeases() (map[string]string, error) {
 		}
 	}
 
-        // Add IP's set through the settings page
+	// Add IP's set through the settings page
 	if globalSettings.StaticIps != nil {
 		for _, ip := range globalSettings.StaticIps {
 			ret[ip] = ""
 		}
 	}
-
 
 	// Added the ability to have static IP hosts stored in /etc/stratux-static-hosts.conf
 
