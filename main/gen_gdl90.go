@@ -610,14 +610,37 @@ func relayMessage(msgtype uint16, msg []byte) {
 	sendGDL90(prepareMessage(ret), true)
 }
 
+func blinkStatusLED() {
+	timer := time.NewTicker(100 * time.Millisecond)
+	ledON := false
+	for {
+		<-timer.C
+		if ledON {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
+		} else {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+		}
+		ledON = !ledON
+	}
+}
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
+	ledBlinking := false
 	for {
 		select {
 		case <-timer.C:
-			// Turn on green ACT LED on the Pi.
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			// Green LED - always on during normal operation.
+			//  Blinking when there is a critical system error (and Stratux is still running).
+
+			if len(globalStatus.Errors) == 0 { // Any system errors?
+				// Turn on green ACT LED on the Pi.
+				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			} else if !ledBlinking {
+				// This assumes that system errors do not disappear until restart.
+				go blinkStatusLED()
+				ledBlinking = true
+			}
 
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
