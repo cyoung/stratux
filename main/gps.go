@@ -107,6 +107,7 @@ type gpsPerfStats struct {
 	gpsPitch      float64 // estimated pitch angle, deg. Calculated from gps ground speed and VV. Equal to flight path angle.
 	gpsRoll       float64 // estimated roll angle from turn rate and groundspeed, deg. Assumes airplane in coordinated turns.
 	gpsLoadFactor float64 // estimated load factor from turn rate and groundspeed, "gee". Assumes airplane in coordinated turns.
+	//TODO: valid/invalid flag.
 }
 
 var gpsPerf gpsPerfStats
@@ -318,6 +319,50 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // Ublox,0
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // Ublox,3
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox,4
+
+		// Power save mode.
+
+		// UBX-CFG-PM2.
+		pm2 := make([]byte, 44)
+		pm2[0] = 1 // Version.
+
+		// flags.
+		pm2[4] = 0
+		pm2[5] = 0          // ON/OFF mode.
+		pm2[6] = 4 + 8 + 16 // WaitTimeFix+updateRTC+updateEPH.
+		pm2[7] = 32         // extintWake.
+
+		// updatePeriod.
+		pm2[8] = 0
+		pm2[9] = 0
+		pm2[10] = 0x3A // 15000ms.
+		pm2[11] = 0x98
+
+		// searchPeriod.
+		pm2[12] = 0
+		pm2[13] = 0
+		pm2[14] = 0x3A // 15000ms.
+		pm2[15] = 0x98
+
+		// gridOffset.
+		pm2[16] = 0
+		pm2[17] = 0
+		pm2[18] = 0
+		pm2[19] = 0
+
+		// onTime.
+		pm2[20] = 0
+		pm2[21] = 15 // 15s.
+
+		// minAcqTime.
+		pm2[22] = 0
+		pm2[23] = 15 // 15s.
+
+		p.Write(makeUBXCFG(0x06, 0x3B, 44, pm2))
+
+		// UBX-CFG-RXM.
+
+		p.Write(makeUBXCFG(0x06, 0x11, 2, []byte{8, 1})) // Enable.
 
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
@@ -692,7 +737,7 @@ func calcGPSAttitude() bool {
 	//log.Printf("\n")
 	//log.Printf("tempHdg: %v\n", tempHdg)
 
-	// Next, unwrap the heading so we don't mess up the regression by fitting a line across the 0/360 deg discontinutiy
+	// Next, unwrap the heading so we don't mess up the regression by fitting a line across the 0/360 deg discontinuity.
 	lengthHeading = len(tempHdg)
 	tempHdgUnwrapped = make([]float64, lengthHeading, lengthHeading)
 	tempRegWeights = make([]float64, lengthHeading, lengthHeading)
@@ -770,7 +815,7 @@ func calcGPSAttitude() bool {
 
 		*/
 
-		g := 32.174                                        // ft-s^-2
+		g := 32.174                                        // ft/(s^2)
 		omega = radians(myGPSPerfStats[index].gpsTurnRate) // need radians/sec
 		a_c = v_x * omega
 		myGPSPerfStats[index].gpsRoll = math.Atan2(a_c, g) * 180 / math.Pi // output is degrees
@@ -781,11 +826,12 @@ func calcGPSAttitude() bool {
 		myGPSPerfStats[index].gpsLoadFactor = 1
 	}
 
-	// Output format:GPSAtttiude,seconds,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
-	buf := fmt.Sprintf("GPSAttitude,%.1f,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", float64(stratuxClock.Milliseconds)/1000, myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
 	if globalSettings.DEBUG {
+		// Output format:GPSAtttiude,seconds,nmeaTime,msg_type,GS,Course,Alt,VV,filtered_GS,filtered_course,turn rate,filtered_vv,pitch, roll,load_factor
+		buf := fmt.Sprintf("GPSAttitude,%.1f,%.2f,%s,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n", float64(stratuxClock.Milliseconds)/1000, myGPSPerfStats[index].nmeaTime, myGPSPerfStats[index].msgType, myGPSPerfStats[index].gsf, myGPSPerfStats[index].coursef, myGPSPerfStats[index].alt, myGPSPerfStats[index].vv, v_x/1.687810, headingAvg, myGPSPerfStats[index].gpsTurnRate, v_z, myGPSPerfStats[index].gpsPitch, myGPSPerfStats[index].gpsRoll, myGPSPerfStats[index].gpsLoadFactor)
 		log.Printf("%s", buf) // FIXME. Send to sqlite log or other file?
 	}
+
 	logGPSAttitude(myGPSPerfStats[index])
 	//replayLog(buf, MSGCLASS_AHRS)
 	return true
