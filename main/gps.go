@@ -1949,7 +1949,7 @@ func gpsAttitudeSender() {
 		for globalSettings.GPS_Enabled && globalStatus.GPS_connected {
 			<-timer.C
 
-			if mySituation.Quality == 0 || !calcGPSAttitude() {
+			if !isGPSValid() || !calcGPSAttitude() {
 				if globalSettings.DEBUG {
 					log.Printf("Couldn't calculate GPS-based attitude statistics\n")
 				}
