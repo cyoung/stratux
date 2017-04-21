@@ -254,7 +254,7 @@ func initGPSSerial() bool {
 		// Byte order for UBX configuration is little endian.
 
 		// Set 10 Hz update to make gpsattitude more responsive for ublox7/8.
-		updatespeed = []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00} // 10 Hz
+		updatespeed := []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00} // 10 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
