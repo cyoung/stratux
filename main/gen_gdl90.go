@@ -1491,6 +1491,8 @@ func main() {
 	// Monitor RPi CPU temp.
 	go cpuTempMonitor()
 
+	go oled_display()
+	
 	reader := bufio.NewReader(os.Stdin)
 
 	if *replayFlag == true {
