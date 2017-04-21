@@ -254,8 +254,7 @@ func initGPSSerial() bool {
 		// Byte order for UBX configuration is little endian.
 
 		// Set 10 Hz update to make gpsattitude more responsive for ublox7/8.
-		//p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 10 Hz
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00})) // 2 Hz
+		updatespeed = []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00} // 10 Hz
 
 		// Set navigation settings.
 		nav := make([]byte, 36)
@@ -288,6 +287,7 @@ func initGPSSerial() bool {
 			//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
 			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
 			galileo = []byte{0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-8 tracking channels
+			updatespeed = []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00} // Nav speed 2Hz
 		}
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
@@ -299,6 +299,8 @@ func initGPSSerial() bool {
 
 		// SBAS configuration for ublox 6 and higher
 		p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
+		//Navigation Rate 10Hz for <= UBX7 2Hz for UBX8
+		p.Write(makeUBXCFG(0x06, 0x08, 6, upatespeed))
 
 		// Message output configuration: UBX,00 (position) on each calculated fix; UBX,03 (satellite info) every 5th fix,
 		//  UBX,04 (timing) every 10th, GGA (NMEA position) every 5th. All other NMEA messages disabled.
