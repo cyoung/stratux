@@ -138,26 +138,26 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.press_time = Date.parse(situation.BaroLastMeasurementTime);
         $scope.gps_time = Date.parse(situation.GPSLastGPSTimeStratuxTime);
         if ($scope.gps_time - $scope.press_time < 1000) {
-            $scope.ahrs_alt = Math.round(situation.BaroPressureAltitude);
+            $scope.ahrs_alt = Math.round(situation.BaroPressureAltitude.toFixed(0));
         } else {
             $scope.ahrs_alt = "---";
         }
 
-        $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading);
+        $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading.toFixed(0));
         // pitch and roll are in degrees
-        $scope.ahrs_pitch = Math.round(situation.AHRSPitch*10)/10;
-        $scope.ahrs_roll = Math.round(situation.AHRSRoll*10)/10;
-        $scope.ahrs_slip_skid = Math.round(situation.AHRSSlipSkid*10)/10;
-        ahrs.update($scope.ahrs_pitch, $scope.ahrs_roll, $scope.ahrs_heading, $scope.ahrs_slip_skid);
+        $scope.ahrs_pitch = situation.AHRSPitch.toFixed(1);
+        $scope.ahrs_roll = situation.AHRSRoll.toFixed(1);
+        $scope.ahrs_slip_skid = situation.AHRSSlipSkid.toFixed(1);
+        ahrs.update(situation.AHRSPitch, situation.AHRSRoll, situation.AHRSGyroHeading, situation.AHRSSlipSkid);
 
-        $scope.ahrs_heading_mag = Math.round(situation.AHRSMagHeading);
-        $scope.ahrs_gload = Math.round(situation.AHRSGLoad*100)/100;
-        gMeter.update($scope.ahrs_gload);
+        $scope.ahrs_heading_mag = situation.AHRSMagHeading.toFixed(0);
+        $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
+        gMeter.update(situation.AHRSGLoad);
 
         if (situation.AHRSTurnRate> 0.25) {
-            $scope.ahrs_turn_rate = Math.round(360/situation.AHRSTurnRate/60*10)/10; // minutes/turn
+            $scope.ahrs_turn_rate = (60/situation.AHRSTurnRate).toFixed(1); // minutes/turn
         } else {
-            $scope.ahrs_turn_rate = '---'
+            $scope.ahrs_turn_rate = '\u221e';
         }
         if (situation.AHRSStatus & 0x01) {
             statusGPS.classList.remove("off");
