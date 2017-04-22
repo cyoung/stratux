@@ -154,8 +154,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
         gMeter.update(situation.AHRSGLoad);
 
-        if (situation.AHRSTurnRate> 0.25) {
-            $scope.ahrs_turn_rate = (60/situation.AHRSTurnRate).toFixed(1); // minutes/turn
+        if (situation.AHRSTurnRate> 0.6031) {
+            $scope.ahrs_turn_rate = (6/situation.AHRSTurnRate).toFixed(1); // minutes/turn
         } else {
             $scope.ahrs_turn_rate = '\u221e';
         }
