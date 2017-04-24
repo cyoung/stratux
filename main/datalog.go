@@ -433,56 +433,64 @@ func dataLog() {
 	dataLogTimestamps = append(dataLogTimestamps, ts)
 	dataLogCurTimestamp = 0
 
+	var db *sql.DB
+
 	// Check if we need to create a new database.
 	createDatabase := false
 
 	if _, err := os.Stat(dataLogFilef); os.IsNotExist(err) {
+		// File doesn't exist currently, create the tables.
 		createDatabase = true
-		log.Printf("creating new database '%s'.\n", dataLogFilef)
 	}
 
-	db, err := sql.Open("sqlite3", dataLogFilef)
-	if err != nil {
-		log.Printf("sql.Open(): %s\n", err.Error())
-	}
+	if len(dataLogFilef) != 0 {
+		// Datalogging is enabled, open the file and initialize.
+		db, err = sql.Open("sqlite3", dataLogFilef)
+		if err != nil {
+			log.Printf("sql.Open(): %s\n", err.Error())
+		}
 
-	defer func() {
-		db.Close()
-		dataLogStarted = false
-		//close(dataLogChan)
-		log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFilef)
-	}()
+		defer func() {
+			db.Close()
+			dataLogStarted = false
+			//close(dataLogChan)
+			log.Printf("datalog.go: dataLog() has closed DB in %s\n", dataLogFilef)
+		}()
 
-	_, err = db.Exec("PRAGMA journal_mode=WAL")
-	if err != nil {
-		log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
-	}
-	_, err = db.Exec("PRAGMA synchronous=OFF")
-	if err != nil {
-		log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
+		_, err = db.Exec("PRAGMA journal_mode=WAL")
+		if err != nil {
+			log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
+		}
+		_, err = db.Exec("PRAGMA synchronous=OFF")
+		if err != nil {
+			log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
+		}
+	} else {
+		log.Printf("dataLog(): Datalogging is diabled. Not writing to an sqlite file.\n")
 	}
 
 	//log.Printf("Starting dataLogWriter\n") // REMOVE -- DEBUG
-	go dataLogWriter(db)
-
-	// Do we need to create the database?
-	if createDatabase {
-		makeTable(StratuxTimestamp{}, "timestamp", db)
-		makeTable(mySituation, "mySituation", db)
-		makeTable(globalStatus, "status", db)
-		makeTable(globalSettings, "settings", db)
-		makeTable(TrafficInfo{}, "traffic", db)
-		makeTable(msg{}, "messages", db)
-		makeTable(esmsg{}, "es_messages", db)
-		makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
-		makeTable(gpsPerfStats{}, "gps_attitude", db)
-		makeTable(StratuxStartup{}, "startup", db)
+	if db != nil {
+		go dataLogWriter(db)
+		// Do we need to create the database?
+		if createDatabase {
+			log.Printf("creating new database '%s'.\n", dataLogFilef)
+			makeTable(StratuxTimestamp{}, "timestamp", db)
+			makeTable(mySituation, "mySituation", db)
+			makeTable(globalStatus, "status", db)
+			makeTable(globalSettings, "settings", db)
+			makeTable(TrafficInfo{}, "traffic", db)
+			makeTable(msg{}, "messages", db)
+			makeTable(esmsg{}, "es_messages", db)
+			makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
+			makeTable(gpsPerfStats{}, "gps_attitude", db)
+			makeTable(StratuxStartup{}, "startup", db)
+		}
+		// The first entry to be created is the "startup" entry.
+		stratuxStartupID = insertData(StratuxStartup{}, "startup", db, 0)
+		dataLogReadyToWrite = true
 	}
 
-	// The first entry to be created is the "startup" entry.
-	stratuxStartupID = insertData(StratuxStartup{}, "startup", db, 0)
-
-	dataLogReadyToWrite = true
 	//log.Printf("Entering dataLog read loop\n") //REMOVE -- DEBUG
 	for {
 		select {
@@ -492,8 +500,10 @@ func dataLog() {
 			checkTimestamp()
 			// Mark the row with the current timestamp ID, in case it gets entered later.
 			r.ts_num = dataLogCurTimestamp
-			// Queue it for the scheduled write.
-			dataLogWriteChan <- r
+			if db != nil {
+				// Queue it for the scheduled write.
+				dataLogWriteChan <- r
+			}
 		case <-shutdownDataLog: // Received a message on the channel to complete a graceful shutdown (see the 'defer func()...' statement above).
 			log.Printf("datalog.go: dataLog() received shutdown message\n")
 			return

@@ -49,7 +49,7 @@ const (
 	dataLogFile    = "/var/log/stratux.sqlite"
 	//FlightBox: log to /root.
 	debugLog_FB    = "/root/stratux.log"
-	dataLogFile_FB = "/var/log/stratux.sqlite"
+	dataLogFile_FB = "" // Datalogging disabled by default on FlightBox.
 	//FlightBox: log to external drive at /media/logdrive, if available.
 	debugLog_FB_external    = "/media/logdrive/stratux.log"
 	dataLogFile_FB_external = "/media/logdrive/stratux.sqlite"
