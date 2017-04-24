@@ -25,6 +25,7 @@ import (
 
 const (
 	LOG_TIMESTAMP_RESOLUTION = 250 * time.Millisecond
+	LOG_WRITE_INTERVAL       = 10 * time.Second
 )
 
 type StratuxTimestamp struct {
@@ -362,7 +363,7 @@ func dataLogWriter(db *sql.DB) {
 	shutdownDataLogWriter = make(chan bool)
 	// The write queue. As data comes in via dataLogChan, it is timestamped and stored.
 	//  When writeTicker comes up, the queue is emptied.
-	writeTicker := time.NewTicker(10 * time.Second)
+	writeTicker := time.NewTicker(LOG_WRITE_INTERVAL)
 	rowsQueuedForWrite := make([]DataLogRow, 0)
 	for {
 		select {
