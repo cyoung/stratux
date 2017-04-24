@@ -48,10 +48,13 @@ const (
 	debugLog       = "/var/log/stratux.log"
 	dataLogFile    = "/var/log/stratux.sqlite"
 	//FlightBox: log to /root.
-	debugLog_FB         = "/root/stratux.log"
-	dataLogFile_FB      = "/var/log/stratux.sqlite"
-	maxDatagramSize     = 8192
-	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
+	debugLog_FB    = "/root/stratux.log"
+	dataLogFile_FB = "/var/log/stratux.sqlite"
+	//FlightBox: log to external drive at /media/logdrive, if available.
+	debugLog_FB_external    = "/media/logdrive/stratux.log"
+	dataLogFile_FB_external = "/media/logdrive/stratux.sqlite"
+	maxDatagramSize         = 8192
+	maxUserMsgQueueSize     = 25000 // About 10MB per port per connected client.
 
 	UPLINK_BLOCK_DATA_BITS  = 576
 	UPLINK_BLOCK_BITS       = (UPLINK_BLOCK_DATA_BITS + 160)
@@ -1379,6 +1382,13 @@ func main() {
 		globalStatus.HardwareBuild = "FlightBox"
 		debugLogf = debugLog_FB
 		dataLogFilef = dataLogFile_FB
+		err = os.Stat("/media/logdrive")
+		err2 := os.Stat("/dev/sda1")
+		// /media/logdrive and /dev/sda1 need to exist to set the external logfile paths.
+		if !os.IsNotExist(err) && !os.IsNotExist(err2) {
+			debugLogf = debugLog_FB_external
+			dataLogFilef = dataLogFile_FB_external
+		}
 	} else { // if not using the FlightBox config, use "normal" log file locations
 		debugLogf = debugLog
 		dataLogFilef = dataLogFile
