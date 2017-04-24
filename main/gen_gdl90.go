@@ -1382,8 +1382,8 @@ func main() {
 		globalStatus.HardwareBuild = "FlightBox"
 		debugLogf = debugLog_FB
 		dataLogFilef = dataLogFile_FB
-		err = os.Stat("/media/logdrive")
-		err2 := os.Stat("/dev/sda1")
+		_, err = os.Stat("/media/logdrive")
+		_, err2 := os.Stat("/dev/sda1")
 		// /media/logdrive and /dev/sda1 need to exist to set the external logfile paths.
 		if !os.IsNotExist(err) && !os.IsNotExist(err2) {
 			debugLogf = debugLog_FB_external
