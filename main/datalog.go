@@ -433,7 +433,7 @@ func dataLog() {
 	dataLogTimestamps = append(dataLogTimestamps, ts)
 	dataLogCurTimestamp = 0
 
-	var db *sql.DB
+	var myDB *sql.DB
 
 	// Check if we need to create a new database.
 	createDatabase := false
@@ -445,7 +445,7 @@ func dataLog() {
 
 	if len(dataLogFilef) != 0 {
 		// Datalogging is enabled, open the file and initialize.
-		db, err = sql.Open("sqlite3", dataLogFilef)
+		db, err := sql.Open("sqlite3", dataLogFilef)
 		if err != nil {
 			log.Printf("sql.Open(): %s\n", err.Error())
 		}
@@ -465,29 +465,30 @@ func dataLog() {
 		if err != nil {
 			log.Printf("db.Exec('PRAGMA journal_mode=WAL') err: %s\n", err.Error())
 		}
+		myDB = db
 	} else {
 		log.Printf("dataLog(): Datalogging is diabled. Not writing to an sqlite file.\n")
 	}
 
 	//log.Printf("Starting dataLogWriter\n") // REMOVE -- DEBUG
-	if db != nil {
-		go dataLogWriter(db)
+	if myDB != nil {
+		go dataLogWriter(myDB)
 		// Do we need to create the database?
 		if createDatabase {
 			log.Printf("creating new database '%s'.\n", dataLogFilef)
-			makeTable(StratuxTimestamp{}, "timestamp", db)
-			makeTable(mySituation, "mySituation", db)
-			makeTable(globalStatus, "status", db)
-			makeTable(globalSettings, "settings", db)
-			makeTable(TrafficInfo{}, "traffic", db)
-			makeTable(msg{}, "messages", db)
-			makeTable(esmsg{}, "es_messages", db)
-			makeTable(Dump1090TermMessage{}, "dump1090_terminal", db)
-			makeTable(gpsPerfStats{}, "gps_attitude", db)
-			makeTable(StratuxStartup{}, "startup", db)
+			makeTable(StratuxTimestamp{}, "timestamp", myDB)
+			makeTable(mySituation, "mySituation", myDB)
+			makeTable(globalStatus, "status", myDB)
+			makeTable(globalSettings, "settings", myDB)
+			makeTable(TrafficInfo{}, "traffic", myDB)
+			makeTable(msg{}, "messages", myDB)
+			makeTable(esmsg{}, "es_messages", myDB)
+			makeTable(Dump1090TermMessage{}, "dump1090_terminal", myDB)
+			makeTable(gpsPerfStats{}, "gps_attitude", myDB)
+			makeTable(StratuxStartup{}, "startup", myDB)
 		}
 		// The first entry to be created is the "startup" entry.
-		stratuxStartupID = insertData(StratuxStartup{}, "startup", db, 0)
+		stratuxStartupID = insertData(StratuxStartup{}, "startup", myDB, 0)
 		dataLogReadyToWrite = true
 	}
 
@@ -500,7 +501,7 @@ func dataLog() {
 			checkTimestamp()
 			// Mark the row with the current timestamp ID, in case it gets entered later.
 			r.ts_num = dataLogCurTimestamp
-			if db != nil {
+			if myDB != nil {
 				// Queue it for the scheduled write.
 				dataLogWriteChan <- r
 			}
