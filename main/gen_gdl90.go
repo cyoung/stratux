@@ -17,6 +17,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/cyoung/uatsynth"
+	"github.com/stratux/goRFM95W/goRFM95W"
 	"io"
 	"io/ioutil"
 	"log"
@@ -41,6 +43,8 @@ import (
 
 var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
+
+var rfm95w *goRFM95W.RFM95W // LoRa module control.
 
 const (
 	configLocation = "/etc/stratux.conf"
@@ -667,6 +671,42 @@ func heartBeatSender() {
 
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
+
+			// Get pending LoRa packets, uatsynth them, parse, and relay.
+			msgs := rfm95w.FlushRXBuffer()
+			if len(msgs) > 0 {
+				log.Printf("Processing %d LoRa messages.\n", len(msgs))
+				var msgEncoder uatsynth.UATMsg
+				msgEncoder.Lat = 42.984923   //FIXME.
+				msgEncoder.Lon = -81.245277  //FIXME.
+				msgEncoder.UTCCoupled = true //FIXME: GPS lock.
+				for i := 0; i < len(msgs); i++ {
+					t := "METAR " + string(msgs[i].Buf) //FIXME.
+					f := new(uatsynth.UATFrame)
+					f.Text_data = []string{t}                    //FIXME.
+					f.FISB_hours = uint32(time.Now().Hour())     //FIXME.
+					f.FISB_minutes = uint32(time.Now().Minute()) //FIXME.
+					f.Product_id = 413
+					f.Frame_type = 0
+					msgEncoder.Frames = append(msgEncoder.Frames, f)
+				}
+				// uatsynth takes care of overflows and creates new messages.
+				encodedMessages, err := msgEncoder.EncodeUplink()
+				if err != nil {
+					log.Printf("uatsynth error encoding: %s\n", err.Error())
+				} else {
+					// Send the uatsynth'd message to the normal parser for relaying.
+					for _, m := range encodedMessages {
+						s := "+" + string(m) + ";rs=0;" //"ss=0;" //FIXME.
+						o, msgtype := parseInput(s)
+						if o != nil && msgtype != 0 {
+							relayMessage(msgtype, o)
+						}
+					}
+				}
+
+			}
+
 			updateStatus()
 		case <-timerMessageStats.C:
 			// Save a bit of CPU by not pruning the message log every 1 second.
@@ -1406,6 +1446,19 @@ func main() {
 				os.Remove("/etc/rc6.d/K01stratux")
 			}
 		}
+	}
+
+	// Initialize LoRa module.
+	rfm95w_h, err := goRFM95W.New()
+	if err != nil {
+		log.Printf("LoRa: error: %s\n", err.Error())
+	} else {
+		rfm95w = rfm95w_h
+		// Settings.
+		rfm95w.SetSpreadingFactor(11)
+		// Start capturing.
+		rfm95w.Start()
+		log.Printf("LoRa module listening.\n")
 	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
