@@ -697,7 +697,10 @@ func heartBeatSender() {
 				} else {
 					// Send the uatsynth'd message to the normal parser for relaying.
 					for _, m := range encodedMessages {
-						s := "+" + string(m) + ";rs=0;" //"ss=0;" //FIXME.
+						hexEncodedMsg := make([]byte, hex.EncodedLen(len(m)))
+						hex.Encode(hexEncodedMsg, m)
+
+						s := "+" + string(hexEncodedMsg) + ";rs=0;" //"ss=0;" //FIXME.
 						o, msgtype := parseInput(s)
 						if o != nil && msgtype != 0 {
 							relayMessage(msgtype, o)
