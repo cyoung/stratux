@@ -17,3 +17,4 @@ dtparam=act_led_activelow=off
 sdram_freq=450
 core_freq=450
 arm_freq=900
+dtparam=spi=on
