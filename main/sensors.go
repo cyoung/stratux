@@ -294,7 +294,7 @@ func sensorAttitudeSender() {
 	}
 }
 
-func makeSensorRotationMatrix(g [3]float64) *[3][3]float64 {
+func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 	f := globalSettings.IMUMapping
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
 		globalSettings.IMUMapping[0] = -1 // +2 for RY836AI
@@ -302,44 +302,19 @@ func makeSensorRotationMatrix(g [3]float64) *[3][3]float64 {
 		saveSettings()
 	}
 
-	var x, y, z [3]float64
-
 	// This is the "forward direction" chosen during the orientation process.
+	var x *[3]float64 = new([3]float64)
 	if f[0] < 0 {
 		x[-f[0]-1] = -1
 	} else {
 		x[+f[0]-1] = +1
 	}
 
-	// This is the "up direction" chosen during the orientation process.
-	if f[1] < 0 {
-		z[-f[1]-1] = -1
-	} else {
-		z[+f[1]-1] = +1
-	}
-	if math.Abs(z[0]*g[0]+z[1]*g[1]+z[2]*g[2]-1) > 0.1 {
-		log.Println("AHRS Warning: sensor is not nearly level with chosen up direction")
-	}
-	z = g
-
 	// Normalize the gravity vector to be 1 G.
-	gg := math.Sqrt(z[0]*z[0] + z[1]*z[1] + z[2]*z[2])
-	z[0] /= gg
-	z[1] /= gg
-	z[2] /= gg
+	z, _ := ahrs.MakeUnitVector(g)
 
-	// Remove the projection on the measured gravity vector from x so it's orthogonal to z.
-	dp := x[0]*z[0] + x[1]*z[1] + x[2]*z[2]
-	x[0] = x[0] - dp*z[0]
-	x[1] = x[1] - dp*z[1]
-	x[2] = x[2] - dp*z[2]
-
-	// Specify the "left wing" direction for a right-handed coordinate system using the cross product.
-	y[0] = z[1]*x[2] - z[2]*x[1]
-	y[1] = z[2]*x[0] - z[0]*x[2]
-	y[2] = z[0]*x[1] - z[1]*x[0]
-
-	return &[3][3]float64{x, y, z}
+	rotmat, _ = ahrs.MakeHardSoftRotationMatrix(*z, *x, [3]float64{0, 0, 1}, [3]float64{1, 0, 0})
+	return rotmat
 }
 
 // This is used in the orientation process where the user specifies the forward and up directions.
