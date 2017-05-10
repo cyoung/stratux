@@ -13,6 +13,8 @@ all:
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./godump978 ./uatparse ./sensors
+	go get -u github.com/westphae/goflying/ahrs
+	go get -u github.com/westphae/goflying/ahrsweb
 	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go
 
 xdump1090:
