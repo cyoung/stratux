@@ -1663,7 +1663,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		if sat < 12 || tmpSituation.GPSSatellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
 			tmpSituation.GPSSatellites = uint16(sat)
-			if (tmpSituation.GPSFixQuality == 2) && !svSBAS && !svGLONASS { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
+			if (tmpSituation.GPSFixQuality == 2) && !svSBAS && !svGLONASS && !svGalileo { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
 				tmpSituation.GPSSatellites++
 			}
 		}
