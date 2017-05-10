@@ -1,6 +1,6 @@
 /*
 	Copyright (c) 2015-2016 Christopher Young
-	Distributable under the terms of The "BSD New"" License
+	Distributable under the terms of The "BSD New" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
@@ -581,6 +581,11 @@ func makeHeartbeat() []byte {
 	}
 	msg[1] = msg[1] | 0x10 //FIXME: Addr talkback.
 
+	// "Maintenance Req'd". Add flag if there are any current critical system errors.
+	if len(globalStatus.Errors) > 0 {
+		msg[1] = msg[1] | 0x40
+	}
+
 	nowUTC := time.Now().UTC()
 	// Seconds since 0000Z.
 	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
@@ -612,14 +617,37 @@ func relayMessage(msgtype uint16, msg []byte) {
 	sendGDL90(prepareMessage(ret), true)
 }
 
+func blinkStatusLED() {
+	timer := time.NewTicker(100 * time.Millisecond)
+	ledON := false
+	for {
+		<-timer.C
+		if ledON {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
+		} else {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+		}
+		ledON = !ledON
+	}
+}
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
+	ledBlinking := false
 	for {
 		select {
 		case <-timer.C:
-			// Turn on green ACT LED on the Pi.
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			// Green LED - always on during normal operation.
+			//  Blinking when there is a critical system error (and Stratux is still running).
+
+			if len(globalStatus.Errors) == 0 { // Any system errors?
+				// Turn on green ACT LED on the Pi.
+				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			} else if !ledBlinking {
+				// This assumes that system errors do not disappear until restart.
+				go blinkStatusLED()
+				ledBlinking = true
+			}
 
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
