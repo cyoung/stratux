@@ -21,22 +21,22 @@ const (
 	defaultTempTarget = 65.
 	hysteresis        = float32(1.)
 
-	/* This puts our PWM frequency at 19.2 MHz / 2048 =
-	/* 9.4kHz. Higher frequencies will reduce audible switching
+	/* This puts our PWM frequency at 19.2 MHz / 128 =
+	/* 150kHz. Higher frequencies will reduce audible switching
 	/* noise but will be less efficient */
-	pwmClockDivisor = 2048
+	pwmClockDivisor = 128
 
 	/* Minimum duty cycle is the point below which the fan does
 	/* not spin. This depends on both your fan and the switching
 	/* transistor used. */
-	defaultPwmDutyMin = 80
+	defaultPwmDutyMin = 20
 	pwmDutyMax        = 256
 
 	// how often to update
 	delaySeconds = 2
 
-	// GPIO-12 on a Raspberry PI 3
-	defaultPin = 26
+	// GPIO-1/BCM "18"/Pin 12 on a Raspberry PI 3
+	defaultPin = 1
 
 	// name of the service
 	name        = "fancontrol"
