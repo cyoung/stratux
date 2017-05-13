@@ -18,7 +18,7 @@ import "C"
 
 const (
 	// CPU temperature target, degrees C
-	defaultTempTarget = 65.
+	defaultTempTarget = 50.
 	hysteresis        = float32(1.)
 
 	/* This puts our PWM frequency at 19.2 MHz / 128 =
