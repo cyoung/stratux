@@ -1,16 +1,15 @@
 
 ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
+	PLATFORMDEPENDENT=
 else
 	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
 $(if $(GOROOT),,$(error GOROOT is not set!))
+	PLATFORMDEPENDENT=fancontrol
 endif
 
 all:
-	make xdump978
-	make xdump1090
-	make xgen_gdl90
-	make fancontrol
+	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./godump978 ./uatparse
