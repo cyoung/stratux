@@ -89,13 +89,12 @@ func hwControl(args hwControlArgs) {
 				pwmDuty = 0
 			}
 		}
-		stdlog.Println(temp, " ", pwmDuty)
+		// stdlog.Println(temp, " ", pwmDuty)
 		C.pwmWrite(cFanPin, C.int(pwmDuty))
 		time.Sleep(delaySeconds * time.Second)
 
 		if C.digitalRead(cShutdownPin) == 0 {
 			shutdownLowCount += 1
-			stdlog.Println("Shutdown low count has become ", shutdownLowCount)
 		} else {
 			shutdownLowCount = 0
 		}
