@@ -17,9 +17,6 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
-
-/usr/bin/fancontrol.py start
 /usr/bin/stratux-screen.py start
-
 
 exit 0
