@@ -39,7 +39,7 @@ install:
 	chmod 755 /usr/bin/gen_gdl90
 	cp -f fancontrol /usr/bin/fancontrol
 	chmod 755 /usr/bin/fancontrol
-	/usr/bin/fancontrol remove
+	-/usr/bin/fancontrol remove
 	/usr/bin/fancontrol install
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
 	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
