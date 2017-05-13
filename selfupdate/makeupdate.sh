@@ -16,7 +16,7 @@ make
 rm -rf work
 mkdir -p work/bin
 cp gen_gdl90 work/bin/
-cp fancontrol work/bin/
+cp hwcontrol work/bin/
 cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
 cp __lib__systemd__system__stratux.service work/bin/
