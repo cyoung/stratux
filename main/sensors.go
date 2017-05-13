@@ -149,6 +149,7 @@ func sensorAttitudeSender() {
 	)
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
+	SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
 	m = ahrs.NewMeasurement()
 	cage = make(chan (bool), 1)
 
@@ -353,6 +354,11 @@ func getMinAccelDirection() (i int, err error) {
 // CageAHRS sends a signal to the AHRSProvider that it should be reset.
 func CageAHRS() {
 	cage <- true
+}
+
+// SetAHRSConfig TODO westphae remove after debugging
+func SetAHRSConfig(smoothConst, weight float64) {
+	ahrs.SetConfig(smoothConst, weight)
 }
 
 func updateAHRSStatus() {

@@ -1092,6 +1092,8 @@ type settings struct {
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
+	AHRSSmoothingConstant float64
+	AHRSGPSWeight        float64
 	StaticIps            []string
 }
 
