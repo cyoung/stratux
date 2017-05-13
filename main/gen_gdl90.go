@@ -1453,7 +1453,7 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
-	go cpuTempMonitor(func(cpuTemp float32)(){
+	go cpuTempMonitor(func(cpuTemp float32) {
 		globalStatus.CPUTemp = cpuTemp
 	})
 
