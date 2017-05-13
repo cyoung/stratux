@@ -325,50 +325,6 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // Ublox,3
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox,4
 
-		// Power save mode.
-
-		// UBX-CFG-PM2.
-		pm2 := make([]byte, 44)
-		pm2[0] = 1 // Version.
-
-		// flags.
-		pm2[4] = 0
-		pm2[5] = 0          // ON/OFF mode.
-		pm2[6] = 4 + 8 + 16 // WaitTimeFix+updateRTC+updateEPH.
-		pm2[7] = 32         // extintWake.
-
-		// updatePeriod.
-		pm2[8] = 0
-		pm2[9] = 0
-		pm2[10] = 0x3A // 15000ms.
-		pm2[11] = 0x98
-
-		// searchPeriod.
-		pm2[12] = 0
-		pm2[13] = 0
-		pm2[14] = 0x3A // 15000ms.
-		pm2[15] = 0x98
-
-		// gridOffset.
-		pm2[16] = 0
-		pm2[17] = 0
-		pm2[18] = 0
-		pm2[19] = 0
-
-		// onTime.
-		pm2[20] = 0
-		pm2[21] = 15 // 15s.
-
-		// minAcqTime.
-		pm2[22] = 0
-		pm2[23] = 15 // 15s.
-
-		p.Write(makeUBXCFG(0x06, 0x3B, 44, pm2))
-
-		// UBX-CFG-RXM.
-
-		p.Write(makeUBXCFG(0x06, 0x11, 2, []byte{8, 1})) // Enable.
-
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
 		cfg[0] = 0x01 // portID.
