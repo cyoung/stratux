@@ -64,12 +64,16 @@ cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 #fan/temp control script
 #remove old script
 rm -rf mnt/usr/bin/fancontrol.py
+if [ -e "mnt/usr/bin/fancontrol" ]
+then
+    chroot mnt/ /usr/bin/fancontrol remove
+    rm -rf mnt/usr/bin/fancontrol
+fi
 #install new program
-cp ../fancontrol mnt/usr/bin
-chmod 755 mnt/usr/bin/fancontrol
-chroot mnt/ /usr/bin/fancontrol remove
-chroot mnt/ /usr/bin/fancontrol install
-
+cp ../hwcontrol mnt/usr/bin
+chmod 755 mnt/usr/bin/hwcontrol
+chroot mnt/ /usr/bin/hwcontrol remove
+chroot mnt/ /usr/bin/hwcontrol install
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
@@ -136,15 +140,12 @@ cp -f config.txt mnt/boot/
 
 #external OLED screen
 apt-get install -y libjpeg-dev i2c-tools python-smbus python-pip python-dev python-pil python-daemon screen
-#for fancontrol.py:
-pip install wiringpi
 cd /root
 git clone https://github.com/rm-hull/ssd1306
 cd ssd1306
 # Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
 git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
 python setup.py install
-
 
 cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
 mkdir -p /etc/stratux-screen/

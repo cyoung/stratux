@@ -5,7 +5,7 @@ ifeq "$(CIRCLECI)" "true"
 else
 	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
 $(if $(GOROOT),,$(error GOROOT is not set!))
-	PLATFORMDEPENDENT=fancontrol
+	PLATFORMDEPENDENT=hwcontrol
 endif
 
 all:
@@ -15,9 +15,9 @@ xgen_gdl90:
 	go get -t -d -v ./main ./test ./godump978 ./uatparse
 	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/cputemp.go
 
-fancontrol:
+hwcontrol:
 	go get -t -d -v ./main
-	go build $(BUILDINFO) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
+	go build $(BUILDINFO) -p 4 main/hwcontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
 	git submodule update --init
@@ -37,10 +37,10 @@ www:
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
-	cp -f fancontrol /usr/bin/fancontrol
-	chmod 755 /usr/bin/fancontrol
-	-/usr/bin/fancontrol remove
-	/usr/bin/fancontrol install
+	cp -f hwcontrol /usr/bin/hwcontrol
+	chmod 755 /usr/bin/hwcontrol
+	-/usr/bin/hwcontrol remove
+	/usr/bin/hwcontrol install
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
 	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
 	rm -f /etc/init.d/stratux
@@ -56,6 +56,6 @@ install:
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so fancontrol
+	rm -f gen_gdl90 libdump978.so hwcontrol
 	cd dump1090 && make clean
 	cd dump978 && make clean

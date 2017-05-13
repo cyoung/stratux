@@ -61,11 +61,23 @@ cp -f motd /etc/motd
 #fan control utility
 #remove old script
 rm -f /usr/bin/fancontrol.py
+if [ -e "/usr/bin/fancontrol" ]
+then
+    /usr/bin/fancontrol remove
+    rm -rf mnt/usr/bin/fancontrol
+fi
 #install new program
-cp -f fancontrol /usr/bin/
-chmod 755 /usr/bin/fancontrol
-/usr/bin/fancontrol remove
-/usr/bin/fancontrol install
+if [ -e "/usr/bin/hwcontrol" ]
+then
+    # if the program already exists then don't reinstall in systemd as
+    # to not overwrite settings
+    cp hwcontrol /usr/bin
+    chmod 755 mnt/usr/bin/hwcontrol
+else
+    cp hwcontrol /usr/bin
+    chmod 755 /usr/bin/hwcontrol
+    /usr/bin/hwcontrol install
+fi
 
 cp -f dump1090 /usr/bin/
 

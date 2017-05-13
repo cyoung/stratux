@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/takama/daemon"
 	"log"
-	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -24,7 +24,7 @@ const (
 	/* This puts our PWM frequency at 19.2 MHz / 128 =
 	/* 150kHz. Higher frequencies will reduce audible switching
 	/* noise but will be less efficient */
-	pwmClockDivisor = 128
+	defaultPwmClockDiv = 128
 
 	/* Minimum duty cycle is the point below which the fan does
 	/* not spin. This depends on both your fan and the switching
@@ -35,27 +35,43 @@ const (
 	// how often to update
 	delaySeconds = 2
 
-	// GPIO-1/BCM "18"/Pin 12 on a Raspberry PI 3
-	defaultPin = 1
+	// GPIO-1/BCM "18"/Pin 12 on a Raspberry Pi 3
+	defaultFanPin = 1
+	// GPIO-29/BCM "21"/Pin 40 on a Raspberry Pi 3
+	defaultShutdownPin = 29
 
 	// name of the service
-	name        = "fancontrol"
-	description = "cooling fan speed control based on CPU temperature"
-
-	// port which daemon should be listen
-	port = ":9977"
+	name        = "hwcontrol"
+	description = "control for cooling fan and shutdown"
 )
 
 var stdlog, errlog *log.Logger
 
-func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
-	cPin := C.int(pin)
+type hwControlArgs struct {
+	pwmDutyMin  int
+	pwmClockDiv int
+	fanPin      int
+	shutdownPin int
+	tempTarget  float32
+}
+
+func hwControl(args hwControlArgs) {
+	stdlog.Printf("Starting up with %+v", args)
 	C.wiringPiSetup()
+
+	// fan PWM settup
+	cFanPin := C.int(args.fanPin)
 	C.pwmSetMode(C.PWM_MODE_BAL)
-	C.pinMode(cPin, C.PWM_OUTPUT)
+	C.pinMode(cFanPin, C.PWM_OUTPUT)
 	C.pwmSetRange(pwmDutyMax)
-	C.pwmSetClock(pwmClockDivisor)
-	C.pwmWrite(cPin, C.int(pwmDutyMin))
+	C.pwmSetClock(C.int(args.pwmClockDiv))
+	C.pwmWrite(cFanPin, C.int(args.pwmDutyMin))
+
+	// low power shutdown setup
+	cShutdownPin := C.int(args.shutdownPin)
+	C.pinMode(cShutdownPin, C.INPUT)
+	C.pullUpDnControl(cShutdownPin, C.PUD_UP)
+
 	temp := float32(0.)
 	go cpuTempMonitor(func(cpuTemp float32) {
 		if isCPUTempValid(cpuTemp) {
@@ -63,18 +79,38 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 		}
 	})
 	pwmDuty := 0
+	shutdownLowCount := 0
 	for {
-		if temp > (tempTarget + hysteresis) {
-			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), pwmDutyMin)
-		} else if temp < (tempTarget - hysteresis) {
+		if temp > (args.tempTarget + hysteresis) {
+			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), args.pwmDutyMin)
+		} else if temp < (args.tempTarget - hysteresis) {
 			pwmDuty = iMax(pwmDuty-1, 0)
-			if pwmDuty < pwmDutyMin {
+			if pwmDuty < args.pwmDutyMin {
 				pwmDuty = 0
 			}
 		}
-		//log.Println(temp, " ", pwmDuty)
-		C.pwmWrite(cPin, C.int(pwmDuty))
+		stdlog.Println(temp, " ", pwmDuty)
+		C.pwmWrite(cFanPin, C.int(pwmDuty))
 		time.Sleep(delaySeconds * time.Second)
+
+		if C.digitalRead(cShutdownPin) == 0 {
+			shutdownLowCount += 1
+			stdlog.Println("Shutdown low count has become ", shutdownLowCount)
+		} else {
+			shutdownLowCount = 0
+		}
+		/* we debounce the shutdown input because, when used
+		/* with the "low battery" output of a boost converter,
+		/* we may see flickering when the battery is nearly
+		/* dead but still has a bit left */
+		if shutdownLowCount == 10 {
+			stdlog.Println("Shutting down the system")
+			cmd := exec.Command("systemctl", "poweroff")
+			err := cmd.Run()
+			if err != nil {
+				errlog.Fatal(err)
+			}
+		}
 	}
 }
 
@@ -88,7 +124,9 @@ func (service *Service) Manage() (string, error) {
 
 	tempTarget := flag.Float64("temp", defaultTempTarget, "Target CPU Temperature, degrees C")
 	pwmDutyMin := flag.Int("minduty", defaultPwmDutyMin, "Minimum PWM duty cycle")
-	pin := flag.Int("pin", defaultPin, "PWM pin (wiringPi numbering)")
+	fanPin := flag.Int("fanpin", defaultFanPin, "Fan PWM pin (wiringPi numbering)")
+	shutdownPin := flag.Int("shutdownpin", defaultShutdownPin, "Shutdown pin (wiringPi numbering)")
+	pwmClockDiv := flag.Int("pwmclockdiv", defaultPwmClockDiv, "PWM Clock Divisor")
 	flag.Parse()
 
 	usage := "Usage: " + name + " install | remove | start | stop | status"
@@ -111,7 +149,12 @@ func (service *Service) Manage() (string, error) {
 		}
 	}
 
-	go fanControl(*pwmDutyMin, *pin, float32(*tempTarget))
+	go hwControl(hwControlArgs{
+		pwmDutyMin:  *pwmDutyMin,
+		fanPin:      *fanPin,
+		shutdownPin: *shutdownPin,
+		tempTarget:  float32(*tempTarget),
+		pwmClockDiv: *pwmClockDiv})
 
 	// Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
@@ -119,53 +162,17 @@ func (service *Service) Manage() (string, error) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 
-	// Set up listener for defined host and port
-	listener, err := net.Listen("tcp", port)
-	if err != nil {
-		return "Possibly was a problem with the port binding", err
-	}
-
-	// set up channel on which to send accepted connections
-	listen := make(chan net.Conn, 100)
-	go acceptConnection(listener, listen)
-
 	// loop work cycle with accept connections or interrupt
 	// by system signal
 	for {
 		select {
-		case conn := <-listen:
-			go handleClient(conn)
 		case killSignal := <-interrupt:
 			stdlog.Println("Got signal:", killSignal)
-			stdlog.Println("Stoping listening on ", listener.Addr())
-			listener.Close()
 			if killSignal == os.Interrupt {
 				return "Daemon was interrupted by system signal", nil
 			}
 			return "Daemon was killed", nil
 		}
-	}
-}
-
-// Accept a client connection and collect it in a channel
-func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
-		}
-		listen <- conn
-	}
-}
-
-func handleClient(client net.Conn) {
-	for {
-		buf := make([]byte, 4096)
-		numbytes, err := client.Read(buf)
-		if numbytes == 0 || err != nil {
-			return
-		}
-		client.Write(buf[:numbytes])
 	}
 }
 
