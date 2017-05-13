@@ -62,8 +62,14 @@ chmod 755 mnt/usr/sbin/sdr-tool.sh
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 
 #fan/temp control script
-cp fancontrol.py mnt/usr/bin/
-chmod 755 mnt/usr/bin/fancontrol.py
+#remove old script
+rm -rf mnt/usr/bin/fancontrol.py
+#install new program
+cp ../fancontrol mnt/usr/bin
+chmod 755 mnt/usr/bin/fancontrol
+chroot mnt/ /usr/bin/fancontrol remove
+chroot mnt/ /usr/bin/fancontrol install
+
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server mnt/etc/default/isc-dhcp-server
@@ -156,3 +162,5 @@ chroot mnt/ systemctl disable dhcpcd
 #disable hciuart - interferes with ttyAMA0 as a serial port.
 chroot mnt/ systemctl disable hciuart
 
+#clean up for release images.
+rm -rf mnt/root/stratux mnt/root/go

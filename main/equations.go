@@ -338,3 +338,18 @@ func CalcAltitude(press float64) (altitude float64) {
 	altitude = 145366.45 * (1.0 - math.Pow(press/1013.25, 0.190284))
 	return
 }
+
+// golang only defines min/max for float64. Really.
+func iMin(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func iMax(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
+}

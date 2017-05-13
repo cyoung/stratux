@@ -16,6 +16,7 @@ make
 rm -rf work
 mkdir -p work/bin
 cp gen_gdl90 work/bin/
+cp fancontrol work/bin/
 cp libdump978.so work/bin/
 cp linux-mpu9150/libimu.so work/bin/
 cp __lib__systemd__system__stratux.service work/bin/
@@ -34,8 +35,8 @@ cp image/sdr-tool.sh work/bin/
 cp image/10-stratux.rules work/bin/
 cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
-cp image/fancontrol.py work/bin/
 cp image/stratux-wifi.sh work/bin/
+cp image/rc.local work/bin/
 
 #TODO: librtlsdr.
 cd work/
