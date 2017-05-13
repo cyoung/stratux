@@ -15,7 +15,10 @@ import (
 	"github.com/westphae/goflying/ahrsweb"
 )
 
-const numRetries uint8 = 5
+const (
+	numRetries uint8 = 5
+	invalid float32  = float32(ahrs.Invalid)
+)
 
 var (
 	i2cbus           embd.I2CBus
@@ -117,6 +120,8 @@ func tempAndPressureSender() {
 		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}
+	mySituation.BaroPressureAltitude = 99999
+	mySituation.BaroVerticalSpeed = 99999
 }
 
 func initIMU() (ok bool) {
@@ -244,29 +249,36 @@ func sensorAttitudeSender() {
 			// Run the AHRS calcs
 			s.Compute(m)
 
-			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
-
 			// If we have valid AHRS info, then update mySituation
+			mySituation.muAttitude.Lock()
 			if s.Valid() {
-				mySituation.muAttitude.Lock()
-
 				roll, pitch, heading = s.RollPitchHeading()
 				mySituation.AHRSRoll = float32(roll / ahrs.Deg)
 				mySituation.AHRSPitch = float32(pitch / ahrs.Deg)
 				mySituation.AHRSGyroHeading = float32(heading / ahrs.Deg)
 
-				mySituation.AHRSMagHeading = float32(s.MagHeading())
+				// TODO westphae: until magnetometer calibration is performed, no mag heading
+				mySituation.AHRSMagHeading = invalid
 				mySituation.AHRSSlipSkid = float32(s.SlipSkid())
 				mySituation.AHRSTurnRate = float32(s.RateOfTurn())
 				mySituation.AHRSGLoad = float32(s.GLoad())
 
 				mySituation.AHRSLastAttitudeTime = t
-				mySituation.muAttitude.Unlock()
-
-				// makeFFAHRSSimReport() // simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 			} else {
 				s.Reset()
+				mySituation.AHRSRoll = invalid
+				mySituation.AHRSPitch = invalid
+				mySituation.AHRSGyroHeading = invalid
+				mySituation.AHRSMagHeading = invalid
+				mySituation.AHRSSlipSkid = invalid
+				mySituation.AHRSTurnRate = invalid
+				mySituation.AHRSGLoad = invalid
+				mySituation.AHRSLastAttitudeTime = time.Time{}
 			}
+			mySituation.muAttitude.Unlock()
+
+			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
+			// makeFFAHRSSimReport() // Simultaneous use of GDL90 and FFSIM not supported in FF 7.5.1 or later. Function definition will be kept for AHRS debugging and future workarounds.
 
 			// Send to AHRS debugging server:
 			if ahrswebListener != nil {

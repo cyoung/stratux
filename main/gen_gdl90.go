@@ -1137,9 +1137,8 @@ type status struct {
 	UAT_OTHER_total                            uint32
 	Errors                                     []string
 	Logfile_Size                               int64
-
-	BMPConnected bool
-	IMUConnected bool
+	BMPConnected                               bool
+	IMUConnected                               bool
 }
 
 var globalSettings settings
