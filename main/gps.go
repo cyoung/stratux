@@ -1894,12 +1894,25 @@ func makeAHRSGDL90Report() {
 	palt := uint16(0xFFFF)
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
-		pitch = roundToInt16(mySituation.AHRSPitch * 10)
-		roll = roundToInt16(mySituation.AHRSRoll * 10)
-		hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
-		slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
-		yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
-		g = roundToInt16(mySituation.AHRSGLoad * 10)
+		// AHRS code uses 36727/10 for an invalid value.
+		if mySituation.AHRSPitch < 360 {
+			pitch = roundToInt16(mySituation.AHRSPitch * 10)
+	}
+		if mySituation.AHRSRoll < 360 {
+			roll = roundToInt16(mySituation.AHRSRoll * 10)
+	}
+		if mySituation.AHRSGyroHeading < 360 {
+			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
+		}
+		if mySituation.AHRSSlipSkid < 360 {
+			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
+	}
+		if mySituation.AHRSTurnRate < 360 {
+			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
+	}
+		if mySituation.AHRSTurnRate < 360 {
+			g = roundToInt16(mySituation.AHRSGLoad * 10)
+		}
 	}
 	if isTempPressValid() {
 		palt = uint16(mySituation.BaroPressureAltitude + 5000.5)
