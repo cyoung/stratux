@@ -1054,10 +1054,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				mySituation.muGPSPerformance.Unlock()
 			}
 
-			if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
-				calculateNavRate()
-			}
-
 			return true
 		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message for UBX firmware older than v3.0. Order seems to be GPS, then SBAS, then GLONASS.
 
@@ -1392,10 +1388,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			mySituation.muGPSPerformance.Unlock()
 		}
 
-		if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
-			calculateNavRate()
-		}
-
 		return true
 
 	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") { // Recommended Minimum data.
@@ -1542,10 +1534,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):] // remove the first n entries if more than 300 in the slice
 			}
 			mySituation.muGPSPerformance.Unlock()
-		}
-
-		if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
-			calculateNavRate()
 		}
 
 		setDataLogTimeWithGPS(mySituation)
@@ -1930,6 +1918,8 @@ func gpsAttitudeSender() {
 		<-timer.C
 		if !(globalStatus.GPS_connected || globalStatus.IMUConnected) {
 			myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
+		} else {
+			calculateNavRate()
 		}
 
 		for !(globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {
