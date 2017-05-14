@@ -143,22 +143,55 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.ahrs_alt = "---";
         }
 
-        $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading.toFixed(0));
-        // pitch and roll are in degrees
-        $scope.ahrs_pitch = situation.AHRSPitch.toFixed(1);
-        $scope.ahrs_roll = situation.AHRSRoll.toFixed(1);
-        $scope.ahrs_slip_skid = situation.AHRSSlipSkid.toFixed(1);
-        ahrs.update(situation.AHRSPitch, situation.AHRSRoll, situation.AHRSGyroHeading, situation.AHRSSlipSkid);
+        $scope.ahrs_time = Date.parse(situation.AHRSLastAttitudeTime);
+        if ($scope.gps_time - $scope.ahrs_time < 1000) {
+            // pitch, roll and heading are in degrees
+            $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading.toFixed(0));
+            if ($scope.ahrs_heading > 360) {
+                $scope.ahrs_heading = "---";
+            }
+            $scope.ahrs_pitch = situation.AHRSPitch.toFixed(1);
+            if ($scope.ahrs_pitch > 360) {
+                $scope.ahrs_pitch = "--";
+            }
+            $scope.ahrs_roll = situation.AHRSRoll.toFixed(1);
+            if ($scope.ahrs_roll > 360) {
+                $scope.ahrs_roll = "--";
+            }
+            $scope.ahrs_slip_skid = situation.AHRSSlipSkid.toFixed(1);
+            if ($scope.ahrs_slip_skid > 360) {
+                $scope.ahrs_slip_skid = "--";
+            }
+            ahrs.update(situation.AHRSPitch, situation.AHRSRoll, situation.AHRSGyroHeading, situation.AHRSSlipSkid);
 
-        $scope.ahrs_heading_mag = situation.AHRSMagHeading.toFixed(0);
-        $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
-        gMeter.update(situation.AHRSGLoad);
+            $scope.ahrs_heading_mag = situation.AHRSMagHeading.toFixed(0);
+            if ($scope.ahrs_heading_mag > 360) {
+                $scope.ahrs_heading_mag = "---";
+            }
+            $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
+            if ($scope.ahrs_gload > 360) {
+                $scope.ahrs_gload = "--";
+            } else {
+                gMeter.update(situation.AHRSGLoad);
+            }
 
-        if (situation.AHRSTurnRate> 0.6031) {
-            $scope.ahrs_turn_rate = (6/situation.AHRSTurnRate).toFixed(1); // minutes/turn
+            if (situation.AHRSTurnRate > 360) {
+                $scope.ahrs_turn_rate = "--";
+            } else if (situation.AHRSTurnRate > 0.6031) {
+                $scope.ahrs_turn_rate = (6/situation.AHRSTurnRate).toFixed(1); // minutes/turn
+            } else {
+                $scope.ahrs_turn_rate = '\u221e';
+            }
         } else {
-            $scope.ahrs_turn_rate = '\u221e';
+            $scope.ahrs_heading = "---";
+            $scope.ahrs_pitch = "---";
+            $scope.ahrs_roll = "--";
+            $scope.ahrs_slip_skid = "--";
+            $scope.ahrs_heading_mag = "---";
+            $scope.ahrs_gload = "--";
+            $scope.ahrs_turn_rate = "--";
         }
+
         if (situation.AHRSStatus & 0x01) {
             statusGPS.classList.remove("off");
             statusGPS.classList.add("on");
