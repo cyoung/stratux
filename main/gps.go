@@ -542,35 +542,7 @@ func calcGPSAttitude() bool {
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
 
-	// frequency detection
-	tempSpeedTime = make([]float64, 0)
-	for i := 1; i < length; i++ {
-		dt = myGPSPerfStats[i].nmeaTime - myGPSPerfStats[i-1].nmeaTime
-		if dt > 0.05 { // avoid double counting messages with same / similar timestamps
-			tempSpeedTime = append(tempSpeedTime, float64(dt))
-		}
-	}
-	//log.Printf("Delta time array is %v.\n",tempSpeedTime)
-	dt_avg, valid = mean(tempSpeedTime)
-	if valid && dt_avg > 0 {
-		if globalSettings.DEBUG {
-			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
-		}
-		halfwidth = 9 * dt_avg
-		mySituation.GPSPositionSampleRate = 1 / dt_avg
-	} else {
-		if globalSettings.DEBUG {
-			log.Printf("GPS attitude: Couldn't determine sample rate\n")
-		}
-		halfwidth = 3.5
-		mySituation.GPSPositionSampleRate = 0
-	}
-
-	if halfwidth > 3.5 {
-		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
-	} else if halfwidth < 1.5 {
-		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
-	}
+	halfwidth = calculateNavRate()
 
 	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
 		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
@@ -831,6 +803,41 @@ func registerSituationUpdate() {
 	situationUpdate.SendJSON(mySituation)
 }
 
+func calculateNavRate() float64 {
+	length := len(myGPSPerfStats)
+	tempSpeedTime := make([]float64, 0)
+
+	for i := 1; i < length; i++ {
+		dt := myGPSPerfStats[i].nmeaTime - myGPSPerfStats[i-1].nmeaTime
+		if dt > 0.05 { // avoid double counting messages with same / similar timestamps
+			tempSpeedTime = append(tempSpeedTime, float64(dt))
+		}
+	}
+
+	dt_avg, valid = mean(tempSpeedTime)
+	if valid && dt_avg > 0 {
+		if globalSettings.DEBUG {
+			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
+		}
+		halfwidth = 9 * dt_avg
+		mySituation.GPSPositionSampleRate = 1 / dt_avg
+	} else {
+		if globalSettings.DEBUG {
+			log.Printf("GPS attitude: Couldn't determine sample rate\n")
+		}
+		halfwidth = 3.5
+		mySituation.GPSPositionSampleRate = 0
+	}
+
+	if halfwidth > 3.5 {
+		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
+	} else if halfwidth < 1.5 {
+		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
+	}
+
+	return halfwidth
+}
+
 /*
 processNMEALine parses NMEA-0183 formatted strings against several message types.
 
@@ -1044,6 +1051,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				}
 
 				mySituation.muGPSPerformance.Unlock()
+			}
+
+			if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
+				calculateNavRate()
 			}
 
 			return true
@@ -1380,6 +1391,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			mySituation.muGPSPerformance.Unlock()
 		}
 
+		if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
+			calculateNavRate()
+		}
+
 		return true
 
 	} else if (x[0] == "GNRMC") || (x[0] == "GPRMC") { // Recommended Minimum data.
@@ -1526,6 +1541,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):] // remove the first n entries if more than 300 in the slice
 			}
 			mySituation.muGPSPerformance.Unlock()
+		}
+
+		if globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
+			calculateNavRate()
 		}
 
 		setDataLogTimeWithGPS(mySituation)
