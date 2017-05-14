@@ -534,7 +534,7 @@ func calcGPSAttitude() bool {
 	// If all of the bounds checks pass, begin processing the GPS data.
 
 	// local variables
-	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept, dt_avg float64
+	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept float64
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
 	var lengthHeading, lengthSpeed int
@@ -814,7 +814,8 @@ func calculateNavRate() float64 {
 		}
 	}
 
-	dt_avg, valid = mean(tempSpeedTime)
+	var halfwidth float64
+	dt_avg, valid := mean(tempSpeedTime)
 	if valid && dt_avg > 0 {
 		if globalSettings.DEBUG {
 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
