@@ -1928,7 +1928,10 @@ func gpsAttitudeSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
 		<-timer.C
-		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
+		if !(globalStatus.GPS_connected || globalStatus.IMUConnected) {
+			myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
+		}
+
 		for !(globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {
 			<-timer.C
 
