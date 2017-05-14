@@ -457,7 +457,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: CPU temperature portion.
-	if isCPUTempValid() {
+	if isCPUTempValid(globalStatus.CPUTemp) {
 		msg[13] = msg[13] | (1 << 4)
 	}
 
@@ -751,45 +751,6 @@ func updateMessageStats() {
 		ADSBTowers[t] = tinf
 	}
 
-}
-
-// Check if CPU temperature is valid. Assume <= 0 is invalid.
-func isCPUTempValid() bool {
-	return globalStatus.CPUTemp > 0
-}
-
-/*
-	cpuMonitor() reads the RPi board temperature every second and updates it in globalStatus.
-	This is broken out into its own function (run as its own goroutine) because the RPi temperature
-	 monitor code is buggy, and often times reading this file hangs quite some time.
-*/
-func cpuMonitor() {
-	timer := time.NewTicker(1 * time.Second)
-	for {
-		<-timer.C
-
-		// Update CPUTemp.
-		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
-		tempStr := strings.Trim(string(temp), "\n")
-		t := float32(-99.0)
-		if err == nil {
-			tInt, err := strconv.Atoi(tempStr)
-			if err == nil {
-				if tInt > 1000 {
-					t = float32(tInt) / float32(1000.0)
-				} else {
-					t = float32(tInt) // case where Temp is returned as simple integer
-				}
-			}
-		}
-		if t >= -99.0 { // Only update if valid value was obtained.
-			globalStatus.CPUTemp = t
-		}
-
-		// Update CPULoad.
-		data, err := ioutil.ReadFile("/proc/loadavg")
-		globalStatus.CPULoad = string(data[0:14])
-	}
 }
 
 func updateStatus() {
@@ -1528,7 +1489,9 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
-	go cpuMonitor()
+	go cpuTempMonitor(func(cpuTemp float32) {
+		globalStatus.CPUTemp = cpuTemp
+	})
 
 	reader := bufio.NewReader(os.Stdin)
 
