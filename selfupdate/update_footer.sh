@@ -35,6 +35,9 @@ cp -f sdr-tool.sh /usr/sbin/
 #boot config
 cp -f config.txt /boot/config.txt
 
+#rc.local
+cp -f rc.local /etc/
+
 #disable serial console
 sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
@@ -56,8 +59,13 @@ cp -f modules.txt /etc/modules
 cp -f motd /etc/motd
 
 #fan control utility
-cp -f fancontrol.py /usr/bin/
-chmod 755 /usr/bin/fancontrol.py
+#remove old script
+rm -f /usr/bin/fancontrol.py
+#install new program
+cp -f fancontrol /usr/bin/
+chmod 755 /usr/bin/fancontrol
+/usr/bin/fancontrol remove
+/usr/bin/fancontrol install
 
 cp -f dump1090 /usr/bin/
 
