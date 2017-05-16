@@ -3,9 +3,7 @@ ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 	PLATFORMDEPENDENT=
 else
-	LDFLAGS_VERSION=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`
-	BUILDINFO=-ldflags "$(LDFLAGS_VERSION)"
-	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LDFLAGS_VERSION)"
+	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
 $(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
@@ -21,7 +19,7 @@ xgen_gdl90:
 
 fancontrol:
 	go get -t -d -v ./main
-	go build $(BUILDINFO_STATIC) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
+	go build $(BUILDINFO) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
 	git submodule update --init
