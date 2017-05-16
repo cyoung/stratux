@@ -6,6 +6,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     $scope.$parent.helppage = 'plates/gps-help.html';
     $scope.data_list = [];
     $scope.isHidden = false;
+    $scope.noSleep = new NoSleep();
 
     function connect($scope) {
         if (($scope === undefined) || ($scope === null))
@@ -306,6 +307,9 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     $state.get('gps').onExit = function () {
+        $scope.noSleep.disable();
+        delete $scope.noSleep;
+
         if (($scope.socket !== undefined) && ($scope.socket !== null)) {
             $scope.socket.close();
             $scope.socket = null;
@@ -316,16 +320,15 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
     // GPS/AHRS Controller tasks go here
     var ahrs = new AHRSRenderer("ahrs_display");
-    var noSleep = new NoSleep();
 
     $scope.hideClick = function() {
         $scope.isHidden = !$scope.isHidden;
         var disp = "block";
         if ($scope.isHidden) {
             disp = "none";
-            noSleep.enable();
+            $scope.noSleep.enable();
         } else {
-            noSleep.disable();
+            $scope.noSleep.disable();
         }
         var hiders = document.querySelectorAll(".hider");
 
