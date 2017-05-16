@@ -149,6 +149,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.ahrs_heading = Math.round(situation.AHRSGyroHeading.toFixed(0));
             if ($scope.ahrs_heading > 360) {
                 $scope.ahrs_heading = "---";
+            } else if ($scope.ahrs_heading < 0.5) {
+                $scope.ahrs_heading = 360;
             }
             $scope.ahrs_pitch = situation.AHRSPitch.toFixed(1);
             if ($scope.ahrs_pitch > 360) {
@@ -314,12 +316,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
     // GPS/AHRS Controller tasks go here
     var ahrs = new AHRSRenderer("ahrs_display");
+    var noSleep = new NoSleep();
 
     $scope.hideClick = function() {
         $scope.isHidden = !$scope.isHidden;
         var disp = "block";
         if ($scope.isHidden) {
             disp = "none";
+            noSleep.enable();
+        } else {
+            noSleep.disable();
         }
         var hiders = document.querySelectorAll(".hider");
 
