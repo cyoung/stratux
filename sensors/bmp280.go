@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"../goflying/bmp280"
 	"github.com/kidoman/embd"
-	"github.com/westphae/goflying/bmp280"
 )
 
 const (
