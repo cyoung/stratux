@@ -9,15 +9,15 @@ import (
 
 	"../sensors"
 
+	"../goflying/ahrs"
+	"../goflying/ahrsweb"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
-	"github.com/westphae/goflying/ahrs"
-	"github.com/westphae/goflying/ahrsweb"
 )
 
 const (
-	numRetries uint8 = 5
-	invalid float32  = float32(ahrs.Invalid)
+	numRetries uint8   = 5
+	invalid    float32 = float32(ahrs.Invalid)
 )
 
 var (
@@ -142,15 +142,15 @@ func initIMU() (ok bool) {
 
 func sensorAttitudeSender() {
 	var (
-		roll, pitch, heading               float64
-		t                                  time.Time
-		s                                  ahrs.AHRSProvider
-		m                                  *ahrs.Measurement
-		a, b, c, d, mm                     [3]float64    // IMU measurements: accel, gyro, accel bias, gyro bias, magnetometer
-		ff                                 [3][3]float64 // Sensor orientation matrix
-		cc                                 float64
-		mpuError, magError                 error
-		failnum                            uint8
+		roll, pitch, heading float64
+		t                    time.Time
+		s                    ahrs.AHRSProvider
+		m                    *ahrs.Measurement
+		a, b, c, d, mm       [3]float64    // IMU measurements: accel, gyro, accel bias, gyro bias, magnetometer
+		ff                   [3][3]float64 // Sensor orientation matrix
+		cc                   float64
+		mpuError, magError   error
+		failnum              uint8
 	)
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
