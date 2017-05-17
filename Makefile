@@ -3,7 +3,9 @@ ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 	PLATFORMDEPENDENT=
 else
-	BUILDINFO=-ldflags "-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`"
+	LDFLAGS_VERSION=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`
+	BUILDINFO=-ldflags "$(LDFLAGS_VERSION)"
+	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LDFLAGS_VERSION)"
 $(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
@@ -12,12 +14,12 @@ all:
 	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
-	go get -t -d -v ./main ./test ./godump978 ./uatparse ./sensors
-	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go
+	go get -t -d -v ./main ./test ./godump978 ./uatparse
+	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/cputemp.go
 
 fancontrol:
 	go get -t -d -v ./main
-	go build $(BUILDINFO) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
+	go build $(BUILDINFO_STATIC) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
 	git submodule update --init
@@ -59,3 +61,4 @@ clean:
 	rm -f gen_gdl90 libdump978.so fancontrol
 	cd dump1090 && make clean
 	cd dump978 && make clean
+
