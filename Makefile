@@ -27,7 +27,6 @@ xdump1090:
 
 xdump978:
 	cd dump978 && make lib
-	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 .PHONY: test
 test:
