@@ -175,10 +175,10 @@
 						</form>
 					</div>
 					<div class="form-group reset-flow">
-						<label class="control-label col-xs-5">AHRS Smoothing Constant</label>
+						<label class="control-label col-xs-5">AHRS Responsiveness</label>
 						<form name="watchForm" ng-submit="updateAHRSSmoothingConst()" novalidate>
 							<input class="col-xs-7" type="string" required ng-model="AHRSSmoothingConstant"
-								   placeholder="0-1, lower is smoother" ng-blur="updateAHRSSmoothingConst()" />
+								   placeholder="0 is smoother, 1 is faster" ng-blur="updateAHRSSmoothingConst()" />
 						</form>
 					</div>
 					<div class="form-group reset-flow">
