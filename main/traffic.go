@@ -223,7 +223,7 @@ func sendTrafficUpdates() {
 				if globalSettings.DEBUG {
 					log.Printf("Ownship target detected for code %X\n", code)
 				}
-				OwnshipTrafficInfo = ti
+				//				OwnshipTrafficInfo = ti
 			} else {
 				cur_n := len(msgs) - 1
 				if len(msgs[cur_n]) >= 35 {
@@ -259,6 +259,10 @@ func registerTrafficUpdate(ti TrafficInfo) {
 func isTrafficAlertable(ti TrafficInfo) bool {
 	// Set alert bit if possible and traffic is within some threshold
 	// TODO: Could be more intelligent, taking into account headings etc.
+	if !ti.BearingDist_valid {
+		// If not able to calculate the distance to the target, let the alert bit be set always.
+		return true
+	}
 	if ti.BearingDist_valid &&
 		ti.Distance < 3704 { // 3704 meters, 2 nm.
 		return true
