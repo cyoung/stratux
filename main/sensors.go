@@ -263,6 +263,12 @@ func sensorAttitudeSender() {
 				mySituation.AHRSSlipSkid = float32(s.SlipSkid())
 				mySituation.AHRSTurnRate = float32(s.RateOfTurn())
 				mySituation.AHRSGLoad = float32(s.GLoad())
+				if mySituation.AHRSGLoad < mySituation.AHRSGLoadMin || mySituation.AHRSGLoadMin == 0 {
+					mySituation.AHRSGLoadMin = mySituation.AHRSGLoad
+				}
+				if mySituation.AHRSGLoad > mySituation.AHRSGLoadMax {
+					mySituation.AHRSGLoadMax = mySituation.AHRSGLoad
+				}
 
 				mySituation.AHRSLastAttitudeTime = t
 			} else {
@@ -274,6 +280,8 @@ func sensorAttitudeSender() {
 				mySituation.AHRSSlipSkid = invalid
 				mySituation.AHRSTurnRate = invalid
 				mySituation.AHRSGLoad = invalid
+				mySituation.AHRSGLoadMin = invalid
+				mySituation.AHRSGLoadMax = 0
 				mySituation.AHRSLastAttitudeTime = time.Time{}
 			}
 			mySituation.muAttitude.Unlock()
@@ -371,6 +379,12 @@ func CageAHRS() {
 // SetAHRSConfig TODO westphae remove after debugging
 func SetAHRSConfig(smoothConst, weight float64) {
 	ahrs.SetConfig(smoothConst, weight)
+}
+
+// ResetAHRSGLoad resets the min and max to the current G load value.
+func ResetAHRSGLoad() {
+	mySituation.AHRSGLoadMax = mySituation.AHRSGLoad
+	mySituation.AHRSGLoadMin = mySituation.AHRSGLoad
 }
 
 func updateAHRSStatus() {

@@ -17,6 +17,7 @@ var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
 var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
 var URL_AHRS_ORIENT     = "http://" + URL_HOST_BASE + "/orientAHRS";
 var URL_AHRS_CAGE       = "http://" + URL_HOST_BASE + "/cageAHRS";
+var URL_GMETER_RESET    = "http://" + URL_HOST_BASE + "/resetGMeter";
 var URL_DELETELOGFILE   = "http://" + URL_HOST_BASE + "/deletelogfile";
 var URL_DOWNLOADLOGFILE = "http://" + URL_HOST_BASE + "/downloadlog";
 var URL_DOWNLOADDB      = "http://" + URL_HOST_BASE + "/downloaddb";

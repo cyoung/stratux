@@ -94,6 +94,8 @@ type SituationData struct {
 	AHRSSlipSkid         float32
 	AHRSTurnRate         float32
 	AHRSGLoad            float32
+	AHRSGLoadMin         float32
+	AHRSGLoadMax         float32
 	AHRSLastAttitudeTime time.Time
 	AHRSStatus           uint8
 }
