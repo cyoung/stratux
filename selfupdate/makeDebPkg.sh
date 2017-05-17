@@ -1,16 +1,12 @@
 #!/bin/bash
-set -x # echo on
+#set -x # echo on
 
 #apt-get install -y dh-make
 
 stratuxVersion=`git describe --tags --abbrev=0 | sed -e "s/^v//"`
 stratuxBuild=`git log -n 1 --pretty=%H`
 
-echo
-echo
 echo "Packaging ${stratuxVersion} (${stratuxBuild})."
-echo
-echo
 
 cd ..
 make
@@ -156,3 +152,9 @@ ln -fs /lib/systemd/system/stratux.service work/etc/systemd/system/multi-user.ta
   # Mark the manifest with the git hash.
   echo "# build time: " ${buildtime} >>work/var/www/stratux.appcache
   echo "# Stratux build: " ${stratuxBuild} >>work/var/www/stratux.appcache
+
+# Create Debian package
+dpkg -b work
+mv work.deb stratux-${stratuxVersion}.deb
+
+rm -rf work
