@@ -143,7 +143,7 @@ AHRSRenderer.prototype = {
     }
 };
 
-function GMeterRenderer(locationId, plim, nlim) {
+function GMeterRenderer(locationId, plim, nlim, resetCallback) {
     this.plim = plim;
     this.nlim = nlim;
     this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
@@ -215,7 +215,7 @@ function GMeterRenderer(locationId, plim, nlim) {
     reset.text('RESET').cx(0).cy(0).addClass('text');
     reset.on('click', function() {
         reset.animate(200).rotate(20, 0, 0);
-        this.reset();
+        resetCallback();
         reset.animate(200).rotate(0, 0, 0);
     }, this);
 }
@@ -235,19 +235,13 @@ GMeterRenderer.prototype = {
         }
     },
 
-    update: function (g) {
+    update: function (g, gmin, gmax) {
         this.g = g;
-        this.max = g > this.max ? g : this.max;
-        this.min = g < this.min ? g : this.min;
+        this.min = gmin;
+        this.max = gmax;
 
         this.pointer_el.animate(50).rotate((g-1)/this.nticks*360, 0, 0);
         this.max_el.animate(50).rotate((this.max-1)/this.nticks*360, 0, 0);
         this.min_el.animate(50).rotate((this.min-1)/this.nticks*360, 0, 0);
-    },
-
-    reset: function() {
-        this.g   = 1;
-        this.max = 1;
-        this.min = 1;
     }
 };
