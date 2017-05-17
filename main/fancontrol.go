@@ -63,19 +63,37 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 		}
 	})
 	pwmDuty := 0
+
+	tempWhenRampStarted := float32(0.)
 	for {
 		if temp > (tempTarget + hysteresis) {
+			if tempWhenRampStarted < 1. {
+				tempWhenRampStarted = temp
+			}
 			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), pwmDutyMin)
+			if pwmDuty == pwmDutyMax {
+				// At the maximum duty cycle currently.
+				// Has the temperature increased "substantially" since the ramp-up started?
+				if temp > (tempWhenRampStarted + hysteresis) {
+					// Give up. The fan does not like the PWM control.
+					break
+				}
+			}
 		} else if temp < (tempTarget - hysteresis) {
 			pwmDuty = iMax(pwmDuty-1, 0)
 			if pwmDuty < pwmDutyMin {
 				pwmDuty = 0
+				tempWhenRampStarted = 0.
 			}
 		}
 		//log.Println(temp, " ", pwmDuty)
 		C.pwmWrite(cPin, C.int(pwmDuty))
 		time.Sleep(delaySeconds * time.Second)
 	}
+
+	// Default to "ON".
+	C.pinMode(cPin, C.OUTPUT)
+	C.digitalWrite(cPin, C.HIGH)
 }
 
 // Service has embedded daemon
