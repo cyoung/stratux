@@ -223,7 +223,7 @@ func sendTrafficUpdates() {
 				if globalSettings.DEBUG {
 					log.Printf("Ownship target detected for code %X\n", code)
 				}
-				OwnshipTrafficInfo = ti
+				//				OwnshipTrafficInfo = ti
 			} else {
 				cur_n := len(msgs) - 1
 				if len(msgs[cur_n]) >= 35 {
