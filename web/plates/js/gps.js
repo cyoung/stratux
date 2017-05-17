@@ -203,9 +203,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusGPS.classList.remove("on");
         }
         if (situation.AHRSStatus & 0x02) {
-            if (statusIMU.classList.contains("off")) {
-                setTimeout($scope.GMeterReset, 1000);
-            }
             statusIMU.classList.remove("off");
             statusIMU.classList.add("on");
         } else {
