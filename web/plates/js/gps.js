@@ -175,7 +175,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             if ($scope.ahrs_gload > 360) {
                 $scope.ahrs_gload = "--";
             } else {
-                gMeter.update(situation.AHRSGLoad);
+                gMeter.update(situation.AHRSGLoad, situation.AHRSGLoadMin, situation.AHRSGLoadMax);
             }
 
             if (situation.AHRSTurnRate > 360) {
@@ -204,7 +204,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         if (situation.AHRSStatus & 0x02) {
             if (statusIMU.classList.contains("off")) {
-                setTimeout(gMeter.reset(), 1000);
+                setTimeout($scope.GMeterReset, 1000);
             }
             statusIMU.classList.remove("off");
             statusIMU.classList.add("on");
@@ -357,7 +357,15 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         return caging;
     };
 
-    var gMeter = new GMeterRenderer("gMeter_display", 4.4, -1.76);
+    $scope.GMeterReset = function() {
+        $http.post(URL_GMETER_RESET).then(function (response) {
+            // do nothing
+        }, function (response) {
+            // do nothing
+        });
+    };
+
+    var gMeter = new GMeterRenderer("gMeter_display", 4.4, -1.76, $scope.GMeterReset);
 
     // GPS Controller tasks
     connect($scope); // connect - opens a socket and listens for messages
