@@ -7,10 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"../sensors"
-
 	"../goflying/ahrs"
 	"../goflying/ahrsweb"
+	"../sensors"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
 )
@@ -24,6 +23,7 @@ var (
 	i2cbus           embd.I2CBus
 	myPressureReader sensors.PressureReader
 	myIMUReader      sensors.IMUReader
+	s                ahrs.AHRSProvider
 	cage             chan (bool)
 	analysisLogger   *ahrs.AHRSLogger
 	ahrsCalibrating  bool
@@ -144,7 +144,6 @@ func sensorAttitudeSender() {
 	var (
 		roll, pitch, heading float64
 		t                    time.Time
-		s                    ahrs.AHRSProvider
 		m                    *ahrs.Measurement
 		a, b, c, d, mm       [3]float64    // IMU measurements: accel, gyro, accel bias, gyro bias, magnetometer
 		ff                   [3][3]float64 // Sensor orientation matrix
@@ -154,6 +153,7 @@ func sensorAttitudeSender() {
 	)
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
+	SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
 	m = ahrs.NewMeasurement()
 	cage = make(chan (bool), 1)
 
@@ -373,6 +373,11 @@ func getMinAccelDirection() (i int, err error) {
 // CageAHRS sends a signal to the AHRSProvider that it should be reset.
 func CageAHRS() {
 	cage <- true
+}
+
+// SetAHRSConfig changes some AHRS parameters, intended for developers.
+func SetAHRSConfig(smoothConst, weight float64) {
+	s.SetConfig(map[string]float64{"uiSmoothConst": smoothConst, "gpsWeight": weight})
 }
 
 // ResetAHRSGLoad resets the min and max to the current G load value.

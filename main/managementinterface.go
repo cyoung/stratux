@@ -324,6 +324,16 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
+					case "AHRSSmoothingConstant":
+						log.Printf("AHRS Info: received %s for Smoothing Const\n", val)
+						globalSettings.AHRSSmoothingConstant = val.(float64)
+						SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
+						log.Printf("AHRS Info: Smoothing Constant set to %6f\n", globalSettings.AHRSSmoothingConstant)
+					case "AHRSGPSWeight":
+						log.Printf("AHRS Info: received %s for GPS Weight\n", val)
+						globalSettings.AHRSGPSWeight = val.(float64)
+						SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
+						log.Printf("AHRS Info: GPS Weight set to %6f\n", globalSettings.AHRSGPSWeight)
 					case "OwnshipModeS":
 						// Expecting a hex string less than 6 characters (24 bits) long.
 						if len(val.(string)) > 6 { // Too long.

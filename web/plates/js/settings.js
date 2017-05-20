@@ -37,6 +37,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
+        $scope.AHRSSmoothingConstant = settings.AHRSSmoothingConstant;
+        $scope.AHRSGPSWeight = settings.AHRSGPSWeight;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
 	}
@@ -114,14 +116,42 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
-	$scope.updatewatchlist = function () {
-		if ($scope.WatchList !== settings["WatchList"]) {
-			settings["WatchList"] = "";
-			if ($scope.WatchList !== undefined) {
-				settings["WatchList"] = $scope.WatchList.toUpperCase();
+    $scope.updatewatchlist = function () {
+        if ($scope.WatchList !== settings["WatchList"]) {
+            settings["WatchList"] = "";
+            if ($scope.WatchList !== undefined) {
+                settings["WatchList"] = $scope.WatchList.toUpperCase();
+            }
+            newsettings = {
+                "WatchList": settings["WatchList"]
+            };
+            // console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
+
+    $scope.updateAHRSSmoothingConst = function () {
+        if ($scope.AHRSSmoothingConstant !== settings["AHRSSmoothingConstant"]) {
+            settings["AHRSSmoothingConstant"] = "0.8";
+            if ($scope.AHRSSmoothingConstant!== undefined) {
+                settings["AHRSSmoothingConstant"] = parseFloat($scope.AHRSSmoothingConstant);
+            }
+            newsettings = {
+                "AHRSSmoothingConstant": settings["AHRSSmoothingConstant"]
+            };
+            // console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
+
+	$scope.updateAHRSGPSWeight = function () {
+		if ($scope.AHRSGPSWeight !== settings["AHRSGPSWeight"]) {
+			settings["AHRSGPSWeight"] = "0.05";
+			if ($scope.AHRSGPSWeight!== undefined) {
+				settings["AHRSGPSWeight"] = parseFloat($scope.AHRSGPSWeight);
 			}
 			newsettings = {
-				"WatchList": settings["WatchList"]
+				"AHRSGPSWeight": settings["AHRSGPSWeight"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));

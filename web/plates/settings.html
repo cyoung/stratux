@@ -82,7 +82,9 @@
 			<div class="panel-body">
 				<div class="col-xs-12">
 					<span style="position:relative; overflow: hidden;">
-						<button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">Set AHRS Sensor Orientation</button>
+						<button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">
+							Set AHRS Sensor Orientation
+						</button>
 					</span>
 				</div>
 			</div>
@@ -170,6 +172,20 @@
 						<label class="control-label col-xs-5">Static IPs</label>
 						<form name="staticipForm" ng-submit="updatestaticips()" novalidate>
 							<input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+						</form>
+					</div>
+					<div class="form-group reset-flow">
+						<label class="control-label col-xs-5">AHRS Responsiveness</label>
+						<form name="watchForm" ng-submit="updateAHRSSmoothingConst()" novalidate>
+							<input class="col-xs-7" type="string" required ng-model="AHRSSmoothingConstant"
+								   placeholder="0 is smoother, 1 is faster" ng-blur="updateAHRSSmoothingConst()" />
+						</form>
+					</div>
+					<div class="form-group reset-flow">
+						<label class="control-label col-xs-5">AHRS GPS Weight</label>
+						<form name="watchForm" ng-submit="updateAHRSGPSWeight()" novalidate>
+							<input class="col-xs-7" type="string" required ng-model="AHRSGPSWeight"
+								   placeholder="0-1, lower uses more gyro" ng-blur="updateAHRSGPSWeight()" />
 						</form>
 					</div>
 				</div>
