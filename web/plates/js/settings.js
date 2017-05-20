@@ -41,6 +41,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.AHRSGPSWeight = settings.AHRSGPSWeight;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
+        $scope.GLimits = settings.GLimits;
 	}
 
 	function getSettings() {
@@ -172,13 +173,23 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.updatestaticips = function () {
 		if ($scope.StaticIps !== settings.StaticIps) {
 			newsettings = {
-				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
+				"StaticIps": $scope.StaticIps === undefined ? "" : $scope.StaticIps.join(' ')
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
 		}
 	};
 
+	$scope.updateGLimits = function () {
+        if ($scope.GLimits !== settings["GLimits"]) {
+            settings["GLimits"] = $scope.GLimits;
+            newsettings = {
+                "GLimits": settings["GLimits"]
+            };
+            console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";

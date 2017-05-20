@@ -324,6 +324,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
+					case "GLimits":
+						globalSettings.GLimits = val.(string)
 					case "AHRSSmoothingConstant":
 						log.Printf("AHRS Info: received %s for Smoothing Const\n", val)
 						globalSettings.AHRSSmoothingConstant = val.(float64)

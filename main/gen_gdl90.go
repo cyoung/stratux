@@ -1036,26 +1036,27 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
-	UAT_Enabled          bool
-	ES_Enabled           bool
-	Ping_Enabled         bool
-	GPS_Enabled          bool
-	BMP_Sensor_Enabled   bool
-	IMU_Sensor_Enabled   bool
-	NetworkOutputs       []networkConnection
-	SerialOutputs        map[string]serialConnection
-	DisplayTrafficSource bool
-	DEBUG                bool
-	ReplayLog            bool
-	AHRSLog              bool
-	IMUMapping           [2]int // Map from aircraft axis to sensor axis: accelerometer
-	PPM                  int
-	OwnshipModeS         string
-	WatchList            string
-	DeveloperMode        bool
+	UAT_Enabled           bool
+	ES_Enabled            bool
+	Ping_Enabled          bool
+	GPS_Enabled           bool
+	BMP_Sensor_Enabled    bool
+	IMU_Sensor_Enabled    bool
+	NetworkOutputs        []networkConnection
+	SerialOutputs         map[string]serialConnection
+	DisplayTrafficSource  bool
+	DEBUG                 bool
+	ReplayLog             bool
+	AHRSLog               bool
+	IMUMapping            [2]int // Map from aircraft axis to sensor axis: accelerometer
+	PPM                   int
+	OwnshipModeS          string
+	WatchList             string
+	DeveloperMode         bool
 	AHRSSmoothingConstant float64
-	AHRSGPSWeight        float64
-	StaticIps            []string
+	AHRSGPSWeight         float64
+	GLimits               string
+	StaticIps             []string
 }
 
 type status struct {

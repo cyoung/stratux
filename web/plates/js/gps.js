@@ -362,7 +362,23 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         });
     };
 
-    var gMeter = new GMeterRenderer("gMeter_display", 4.4, -1.76, $scope.GMeterReset);
+    function getAHRSSettings() {
+        // Simple GET request example (note: response is asynchronous)
+        $http.get(URL_SETTINGS_GET).
+        then(function (response) {
+            settings = angular.fromJson(response.data);
+            if (settings.GLimits === "" || settings.GLimits === undefined) {
+                settings.GLimits = "-1.76 4.4";
+            }
+            var glims = settings.GLimits.split(" ");
+            $scope.gLimNegative = parseFloat(glims[0]);
+            $scope.gLimPositive = parseFloat(glims[1]);
+            gMeter = new GMeterRenderer("gMeter_display", $scope.gLimNegative, $scope.gLimPositive, $scope.GMeterReset);
+        }, function (response) {});
+    }
+
+    var gMeter;
+    getAHRSSettings();
 
     // GPS Controller tasks
     connect($scope); // connect - opens a socket and listens for messages

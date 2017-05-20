@@ -143,9 +143,9 @@ AHRSRenderer.prototype = {
     }
 };
 
-function GMeterRenderer(locationId, plim, nlim, resetCallback) {
-    this.plim = plim;
+function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     this.nlim = nlim;
+    this.plim = plim;
     this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
 
     this.width = -1;

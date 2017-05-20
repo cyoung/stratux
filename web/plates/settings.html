@@ -86,6 +86,12 @@
 							Set AHRS Sensor Orientation
 						</button>
 					</span>
+					<div class="form-group reset-flow">
+						<label class="control-label col-xs-5">G Limits</label>
+						<form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
+							<input class="col-xs-7" type="string" required ng-model="GLimits" placeholder="Space-separated negative and positive G meter limits" ng-blur="updateGLimits()" />
+						</form>
+					</div>
 				</div>
 			</div>
 		</div>
