@@ -144,9 +144,14 @@ AHRSRenderer.prototype = {
 };
 
 function GMeterRenderer(locationId, nlim, plim, resetCallback) {
-    this.nlim = nlim;
-    this.plim = plim;
-    this.nticks = Math.floor(plim+1) - Math.floor(nlim) + 1;
+    if (nlim > plim) {
+        this.nlim = plim;
+        this.plim = nlim;
+    } else {
+        this.nlim = nlim;
+        this.plim = plim;
+    }
+    this.nticks = Math.floor(this.plim+1) - Math.ceil(this.nlim-1) + 1;
 
     this.width = -1;
     this.height = -1;
@@ -167,7 +172,7 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     card.circle(390).cx(0).cy(0);
     card.line(-150, 0, -190, 0)
         .addClass('marks one');
-    for (i=Math.floor(nlim); i<=Math.floor(plim+1); i++) {
+    for (var i=Math.ceil(this.nlim-1); i<=Math.floor(this.plim+1); i++) {
         if (i%2 === 0) {
             el = card.line(-150, 0, -190, 0).addClass('big');
             card.text(i.toString())
@@ -182,17 +187,17 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
         el.addClass('marks')
             .rotate((i-1)/this.nticks*360, 0, 0);
     }
-    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((plim-1)/this.nticks*360, 0, 0);
-    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((nlim-1)/this.nticks*360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.plim-1)/this.nticks*360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.nlim-1)/this.nticks*360, 0, 0);
 
     var ax = -Math.cos(2*Math.PI/this.nticks),
         ay = -Math.sin(2*Math.PI/this.nticks);
-    card.path('M -170 0, A 170 170 0 0 1 ' + 170*ax + ' ' + 170*ay)
-        .rotate(-Math.floor(plim)/this.nticks*360, 0, 0)
+    card.path('M -175 0, A 175 175 0 0 1 ' + 175*ax + ' ' + 175*ay)
+        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
         .addClass('marks')
         .style('fill-opacity', '0');
-    card.path('M -175 0, A 175 175 0 0 1 ' + 175*ax + ' ' + 175*ay)
-        .rotate(-Math.floor(plim)/this.nticks*360, 0, 0)
+    card.path('M -180 0, A 180 180 0 0 1 ' + 180*ax + ' ' + 180*ay)
+        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
         .addClass('marks')
         .style('fill-opacity', '0');
 
