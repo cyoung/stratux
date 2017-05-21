@@ -212,9 +212,21 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         if (situation.AHRSStatus & 0x01) {
             statusGPS.classList.remove("off");
             statusGPS.classList.add("on");
+            $scope.map_opacity = 1;
+            $scope.map_mark_opacity = 1;
         } else {
             statusGPS.classList.add("off");
             statusGPS.classList.remove("on");
+            $scope.gps_lat = "--";
+            $scope.gps_lon = "--";
+            $scope.gps_alt = "--";
+            $scope.gps_track = "--";
+            $scope.gps_speed = "--";
+            $scope.gps_vert_speed = "--";
+            $scope.gps_horizontal_accuracy = "\u221e";
+            $scope.gps_vertical_accuracy = "\u221e";
+            $scope.map_opacity = 0.2;
+            $scope.map_mark_opacity = 0;
         }
         if (situation.AHRSStatus & 0x02) {
             statusIMU.classList.remove("off");
