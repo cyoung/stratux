@@ -1124,6 +1124,8 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.AHRSLog = false
 	globalSettings.IMUMapping = [2]int{-1, -3} // OpenFlightBox AHRS normal mapping
+	globalSettings.AHRSSmoothingConstant = 0.9
+	globalSettings.AHRSGPSWeight = 0.05
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
