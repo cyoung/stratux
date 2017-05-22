@@ -116,7 +116,13 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.SolutionText = solutionText;
 
         $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
+        if ($scope.gps_horizontal_accuracy > 99999) {
+            $scope.gps_horizontal_accuracy = "\u221e";
+        }
         $scope.gps_vertical_accuracy = (situation.GPSVerticalAccuracy*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
+        if ($scope.gps_vertical_accuracy > 99999) {
+            $scope.gps_vertical_accuracy = "\u221e";
+        }
 
 
         // NACp should be an integer value in the range of 0 .. 11
@@ -130,6 +136,14 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.gps_track = situation.GPSTrueCourse.toFixed(1);
         $scope.gps_speed = situation.GPSGroundSpeed.toFixed(1);
         $scope.gps_vert_speed = situation.GPSVerticalSpeed.toFixed(1);
+        if ($scope.gps_lat == 0 && $scope.gps_lon == 0) {
+            $scope.gps_lat = "--";
+            $scope.gps_lon = "--";
+            $scope.gps_alt = "--";
+            $scope.gps_track = "--";
+            $scope.gps_speed = "--";
+            $scope.gps_vert_speed = "--";
+        }
 
         // "LastGroundTrackTime":"0001-01-01T00:00:00Z"
 
@@ -198,9 +212,21 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         if (situation.AHRSStatus & 0x01) {
             statusGPS.classList.remove("off");
             statusGPS.classList.add("on");
+            $scope.map_opacity = 1;
+            $scope.map_mark_opacity = 1;
         } else {
             statusGPS.classList.add("off");
             statusGPS.classList.remove("on");
+            $scope.gps_lat = "--";
+            $scope.gps_lon = "--";
+            $scope.gps_alt = "--";
+            $scope.gps_track = "--";
+            $scope.gps_speed = "--";
+            $scope.gps_vert_speed = "--";
+            $scope.gps_horizontal_accuracy = "\u221e";
+            $scope.gps_vertical_accuracy = "\u221e";
+            $scope.map_opacity = 0.2;
+            $scope.map_mark_opacity = 0;
         }
         if (situation.AHRSStatus & 0x02) {
             statusIMU.classList.remove("off");
