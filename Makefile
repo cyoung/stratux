@@ -30,7 +30,7 @@ xdump978:
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
 
 ahrs_approx:
-	go build $(BUILDINFO) -p 4 test-data/ahrs/ahrs_approx
+	go build $(BUILDINFO) -p 4 test-data/ahrs/ahrs_approx.go
 
 .PHONY: test
 test:

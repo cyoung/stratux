@@ -90,7 +90,7 @@ func main() {
 
 	ahrsTable := make([]AHRSData, 0)
 
-	f, err := os.Open("ahrs_table.log")
+	f, err := os.Open("/root/ahrs_table.log")
 	if err != nil {
 		fmt.Printf("error: %s\n", err.Error())
 		return
