@@ -69,6 +69,17 @@ chmod 755 /usr/bin/fancontrol
 
 cp -f dump1090 /usr/bin/
 
+# AHRS approx data.
+cp -f ahrs_table.log /root/
+cp -f ahrs_approx /usr/bin/
+chmod 755 /usr/bin/ahrs_approx
+
+# DHCPD Config.
+cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+
+# Interfaces file.
+cp -f interfaces /etc/network/interfaces
+
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
 
@@ -76,7 +87,3 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
 
-# AHRS approx data.
-cp -f ahrs_table.log /root/
-cp -f ahrs_approx /usr/bin/
-chmod 755 /usr/bin/ahrs_approx
