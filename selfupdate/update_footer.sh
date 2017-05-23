@@ -75,3 +75,8 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 # Remove old Wi-Fi watcher script.
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
+
+# AHRS approx data.
+cp -f ahrs_table.log /root/
+cp -f ahrs_approx /usr/bin/
+chmod 755 /usr/bin/ahrs_approx
