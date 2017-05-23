@@ -61,6 +61,6 @@ install:
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so fancontrol
+	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean
 	cd dump978 && make clean
