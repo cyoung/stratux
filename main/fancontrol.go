@@ -56,7 +56,7 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 	time.Sleep(5 * time.Second)
 	C.digitalWrite(cPin, C.LOW)
 
-	C.pwmSetMode(C.PWM_MODE_BAL)
+	C.pwmSetMode(C.PWM_MODE_MS)
 	C.pinMode(cPin, C.PWM_OUTPUT)
 	C.pwmSetRange(pwmDutyMax)
 	C.pwmSetClock(pwmClockDivisor)
