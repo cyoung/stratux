@@ -8,6 +8,7 @@ stratuxVersion=`git describe --tags --abbrev=0 | sed -e "s/^v//"`
 stratuxBuild=`git log -n 1 --pretty=%H`
 
 echo "Packaging ${stratuxVersion} (${stratuxBuild})."
+startTime=`date +%s`
 
 export GOROOT=/usr/local/go
 export PATH="$PATH:$GOROOT/bin"
@@ -193,5 +194,7 @@ dpkg -b work
 mv work.deb stratux-${stratuxVersion}.deb
 
 rm -rf work
+
+echo "Package build took $(($(date +%s)-startTime)) seconds"
 
 sudo service stratux start
