@@ -21,15 +21,16 @@ const (
 	defaultTempTarget = 50.
 	hysteresis        = float32(1.)
 
-	// In Mark-Sweep mode:
-	// PWM clock = 19.2 MHz / divisor / range
-	defaultPwmClockDiv = 7
+	/* This puts our PWM frequency at 19.2 MHz / 128 =
+	/* 150kHz. Higher frequencies will reduce audible switching
+	/* noise but will be less efficient */
+	defaultPwmClockDiv = 128
 
-	// Minimum duty cycle is the point below which the fan does
-	// not spin. This depends on both your fan and the switching
-	// transistor used.
-	defaultPwmDutyMin = 30
-	pwmDutyMax        = 100
+	/* Minimum duty cycle is the point below which the fan does
+	/* not spin. This depends on both your fan and the switching
+	/* transistor used. */
+	defaultPwmDutyMin = 20
+	pwmDutyMax        = 256
 
 	// how often to update
 	delaySeconds = 2
@@ -56,24 +57,14 @@ type hwControlArgs struct {
 
 func hwControl(args hwControlArgs) {
 	stdlog.Printf("Starting up with %+v", args)
-
-	wiringPiVersionMajor := C.int(0)
-	wiringPiVersionMinor := C.int(0)
-	C.wiringPiVersion(&wiringPiVersionMajor, &wiringPiVersionMinor)
-	stdlog.Printf("Using wiringPi %d.%d", wiringPiVersionMajor, wiringPiVersionMinor)
 	C.wiringPiSetup()
 
-	// Fan PWM setup. The order of these commands appears to
-	// matter so be sure to test after a reboot when making
-	// changes.
+	// fan PWM settup
 	cFanPin := C.int(args.fanPin)
+	C.pwmSetMode(C.PWM_MODE_BAL)
 	C.pinMode(cFanPin, C.PWM_OUTPUT)
-	C.pwmSetClock(C.int(args.pwmClockDiv))
 	C.pwmSetRange(pwmDutyMax)
-	// MS means "mark-sweep" a.k.a. normal PWM. The other mode is
-	// "balanced" which tries to reinterpret clock frequency and
-	// should not be used for motor control.
-	C.pwmSetMode(C.PWM_MODE_MS)
+	C.pwmSetClock(C.int(args.pwmClockDiv))
 	C.pwmWrite(cFanPin, C.int(args.pwmDutyMin))
 
 	// low power shutdown setup
@@ -91,20 +82,14 @@ func hwControl(args hwControlArgs) {
 	shutdownLowCount := 0
 	for {
 		if temp > (args.tempTarget + hysteresis) {
-			if pwmDuty == 0 {
-				stdlog.Println("Starting fan at temperature", temp)
-			} else if pwmDuty+1 == pwmDutyMax {
-				stdlog.Println("Fan is at maximum with temperature", temp)
-			}
 			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), args.pwmDutyMin)
-
 		} else if temp < (args.tempTarget - hysteresis) {
 			pwmDuty = iMax(pwmDuty-1, 0)
-			if pwmDuty == args.pwmDutyMin-1 {
+			if pwmDuty < args.pwmDutyMin {
 				pwmDuty = 0
-				stdlog.Println("Stopping fan at temperature", temp)
 			}
 		}
+		// stdlog.Println(temp, " ", pwmDuty)
 		C.pwmWrite(cFanPin, C.int(pwmDuty))
 		time.Sleep(delaySeconds * time.Second)
 
@@ -113,10 +98,10 @@ func hwControl(args hwControlArgs) {
 		} else {
 			shutdownLowCount = 0
 		}
-		// We debounce the shutdown input because, when used
-		// with the "low battery" output of a boost converter,
-		// we may see flickering when the battery is nearly
-		// dead but still has a bit left
+		/* we debounce the shutdown input because, when used
+		/* with the "low battery" output of a boost converter,
+		/* we may see flickering when the battery is nearly
+		/* dead but still has a bit left */
 		if shutdownLowCount == 10 {
 			stdlog.Println("Shutting down the system")
 			cmd := exec.Command("systemctl", "poweroff")
