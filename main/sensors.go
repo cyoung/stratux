@@ -27,6 +27,7 @@ var (
 	cage             chan (bool)
 	analysisLogger   *ahrs.AHRSLogger
 	ahrsCalibrating  bool
+	logMap           map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -301,10 +302,13 @@ func sensorAttitudeSender() {
 				if analysisLogger == nil {
 					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
 						time.Now().Format("20060102_150405")))
-					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
+					logMap = s.GetLogMap()
+					updateExtraLogging()
+					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, logMap)
 				}
 
 				if analysisLogger != nil {
+					updateExtraLogging()
 					analysisLogger.Log()
 				}
 			} else {
@@ -314,6 +318,14 @@ func sensorAttitudeSender() {
 	}
 }
 
+func updateExtraLogging() {
+	logMap["GPSNACp"] = float64(mySituation.GPSNACp)
+	logMap["GPSTrueCourse"] = mySituation.GPSTrueCourse
+	logMap["GPSVerticalAccuracy"] = mySituation.GPSVerticalAccuracy
+	logMap["GPSHorizontalAccuracy"] = mySituation.GPSHorizontalAccuracy
+	logMap["GPSAltitudeMSL"] = mySituation.GPSAltitudeMSL
+	logMap["GPSFixQuality"] = float64(mySituation.GPSFixQuality)
+}
 func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 	f := globalSettings.IMUMapping
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
