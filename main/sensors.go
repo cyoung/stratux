@@ -236,7 +236,7 @@ func sensorAttitudeSender() {
 			}
 
 			m.TW = float64(mySituation.GPSLastGroundTrackTime.UnixNano()/1000) / 1e6
-			m.WValid = t.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond
+			m.WValid = calcGPSValidity()
 			if m.WValid {
 				m.W1 = mySituation.GPSGroundSpeed * math.Sin(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
 				m.W2 = mySituation.GPSGroundSpeed * math.Cos(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
@@ -326,6 +326,12 @@ func updateExtraLogging() {
 	logMap["GPSAltitudeMSL"] = mySituation.GPSAltitudeMSL
 	logMap["GPSFixQuality"] = float64(mySituation.GPSFixQuality)
 }
+
+func calcGPSValidity() bool {
+	return (stratuxClock.Time.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond) &&
+		(mySituation.GPSNACp >= 9)
+}
+
 func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 	f := globalSettings.IMUMapping
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
@@ -412,7 +418,7 @@ func updateAHRSStatus() {
 		msg = 0
 
 		// GPS valid
-		if stratuxClock.Time.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond {
+		if calcGPSValidity() {
 			msg++
 		}
 		// IMU is being used
