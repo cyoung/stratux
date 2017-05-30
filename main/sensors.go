@@ -325,6 +325,8 @@ func updateExtraLogging() {
 	logMap["GPSHorizontalAccuracy"] = mySituation.GPSHorizontalAccuracy
 	logMap["GPSAltitudeMSL"] = mySituation.GPSAltitudeMSL
 	logMap["GPSFixQuality"] = float64(mySituation.GPSFixQuality)
+	logMap["BaroPressureAltitude"] = float64(mySituation.BaroPressureAltitude)
+	logMap["BaroVerticalSpeed"] = float64(mySituation.BaroVerticalSpeed)
 }
 
 func calcGPSValidity() bool {
