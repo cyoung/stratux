@@ -1855,19 +1855,19 @@ func makeAHRSGDL90Report() {
 		// AHRS code uses 36727/10 for an invalid value.
 		if mySituation.AHRSPitch < 360 {
 			pitch = roundToInt16(mySituation.AHRSPitch * 10)
-	}
+		}
 		if mySituation.AHRSRoll < 360 {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
-	}
+		}
 		if mySituation.AHRSGyroHeading < 360 {
 			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
 		}
 		if mySituation.AHRSSlipSkid < 360 {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
-	}
+		}
 		if mySituation.AHRSTurnRate < 360 {
 			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
-	}
+		}
 		if mySituation.AHRSTurnRate < 360 {
 			g = roundToInt16(mySituation.AHRSGLoad * 10)
 		}
@@ -1994,7 +1994,7 @@ If false, 'GPSFixQuality` is set to 0 ("No fix"), as is the number of satellites
 
 func isGPSValid() bool {
 	isValid := false
-	if (stratuxClock.Since(mySituation.GPSLastFixLocalTime) < 15*time.Second) && globalStatus.GPS_connected && mySituation.GPSFixQuality > 0 {
+	if (stratuxClock.Since(mySituation.GPSLastFixLocalTime) < 3*time.Second) && globalStatus.GPS_connected && mySituation.GPSFixQuality > 0 {
 		isValid = true
 	} else {
 		mySituation.GPSFixQuality = 0
@@ -2006,8 +2006,14 @@ func isGPSValid() bool {
 	return isValid
 }
 
+/*
+isGPSGroundTrackValid returns true only if a valid ground track was obtained in the last 3 seconds,
+and if NACp >= 9.
+*/
+
 func isGPSGroundTrackValid() bool {
-	return stratuxClock.Since(mySituation.GPSLastGroundTrackTime) < 15*time.Second
+	return isGPSValid() &&
+		(mySituation.GPSHorizontalAccuracy >= 30)
 }
 
 func isGPSClockValid() bool {
