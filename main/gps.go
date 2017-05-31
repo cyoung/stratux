@@ -2013,7 +2013,7 @@ and if NACp >= 9.
 
 func isGPSGroundTrackValid() bool {
 	return isGPSValid() &&
-		(mySituation.GPSHorizontalAccuracy >= 30)
+		(mySituation.GPSHorizontalAccuracy < 30)
 }
 
 func isGPSClockValid() bool {
