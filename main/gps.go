@@ -1986,7 +1986,7 @@ func isGPSConnected() bool {
 }
 
 /*
-isGPSValid returns true only if a valid position fix has been seen in the last 15 seconds,
+isGPSValid returns true only if a valid position fix has been seen in the last 3 seconds,
 and if the GPS subsystem has recently detected a GPS device.
 
 If false, 'GPSFixQuality` is set to 0 ("No fix"), as is the number of satellites in solution.
