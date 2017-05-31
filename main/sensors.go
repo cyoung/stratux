@@ -27,6 +27,7 @@ var (
 	cage             chan (bool)
 	analysisLogger   *ahrs.AHRSLogger
 	ahrsCalibrating  bool
+	logMap           map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -235,7 +236,7 @@ func sensorAttitudeSender() {
 			}
 
 			m.TW = float64(mySituation.GPSLastGroundTrackTime.UnixNano()/1000) / 1e6
-			m.WValid = t.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond
+			m.WValid = isGPSGroundTrackValid()
 			if m.WValid {
 				m.W1 = mySituation.GPSGroundSpeed * math.Sin(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
 				m.W2 = mySituation.GPSGroundSpeed * math.Cos(float64(mySituation.GPSTrueCourse)*ahrs.Deg)
@@ -301,10 +302,13 @@ func sensorAttitudeSender() {
 				if analysisLogger == nil {
 					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
 						time.Now().Format("20060102_150405")))
-					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, s.GetLogMap())
+					logMap = s.GetLogMap()
+					updateExtraLogging()
+					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, logMap)
 				}
 
 				if analysisLogger != nil {
+					updateExtraLogging()
 					analysisLogger.Log()
 				}
 			} else {
@@ -312,6 +316,17 @@ func sensorAttitudeSender() {
 			}
 		}
 	}
+}
+
+func updateExtraLogging() {
+	logMap["GPSNACp"] = float64(mySituation.GPSNACp)
+	logMap["GPSTrueCourse"] = mySituation.GPSTrueCourse
+	logMap["GPSVerticalAccuracy"] = mySituation.GPSVerticalAccuracy
+	logMap["GPSHorizontalAccuracy"] = mySituation.GPSHorizontalAccuracy
+	logMap["GPSAltitudeMSL"] = mySituation.GPSAltitudeMSL
+	logMap["GPSFixQuality"] = float64(mySituation.GPSFixQuality)
+	logMap["BaroPressureAltitude"] = float64(mySituation.BaroPressureAltitude)
+	logMap["BaroVerticalSpeed"] = float64(mySituation.BaroVerticalSpeed)
 }
 
 func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
@@ -399,8 +414,8 @@ func updateAHRSStatus() {
 		<-ticker.C
 		msg = 0
 
-		// GPS valid
-		if stratuxClock.Time.Sub(mySituation.GPSLastGroundTrackTime) < 3000*time.Millisecond {
+		// GPS ground track valid?
+		if isGPSGroundTrackValid() {
 			msg++
 		}
 		// IMU is being used

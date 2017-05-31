@@ -76,7 +76,6 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 			pwmDuty = iMax(pwmDuty-1, 0)
 			if pwmDuty < pwmDutyMin {
 				pwmDuty = 0
-				tempWhenRampStarted = 0.
 			}
 		}
 		//log.Println(temp, " ", pwmDuty)
