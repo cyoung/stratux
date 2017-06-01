@@ -13,7 +13,7 @@ OPT_E=false
 OPT_O=false
 OPT_P=false
 OPT_Q=false
-defaultPass="SquawkDirty!"
+defaultPass="SquawkDirtyToMe!"
 
 parm="*"
 err="####"
