@@ -13,7 +13,7 @@ OPT_E=false
 OPT_O=false
 OPT_P=false
 OPT_Q=false
-defaultPass="Squawk1200!"
+defaultPass="SquawkDirty!"
 
 parm="*"
 err="####"
@@ -35,16 +35,16 @@ NORMAL=$(tput sgr0)
 #Help function
 function HELP {
   echo -e \\n"Help documentation for ${BOLD}${SCRIPT}.${NORM}"\\n
-  echo -e "${REV}Basic usage:${NORM} ${BOLD}$SCRIPT -s ssid -c chan -e -p pass ${NORM}"\\n
-  echo "Command line switches are optional. The following switches are recognized."
+  echo -e "${REV}Basic usage:${NORM} ${BOLD}$SCRIPT -s ssid -c chan -p pass ${NORM}"\\n
+  echo "The following command line switches are recognized."
   echo "${REV}-s${NORM}  --Sets the SSID to ${BOLD}ssid${NORM}. \"-s stratux\""
   echo "${REV}-c${NORM}  --Sets the channel to ${BOLD}chan${NORM}. \"-c 1\""
   echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e or -p."
-  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}Squawk1200!{NORM}. Cannot be used with -o or -p"
+  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}$defaultPass{NORM}. Cannot be used with -o or -p"
   echo "${REV}-p${NORM}  --Turns on encryption with your chosen passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o or -e. \"-p password!\""
-  echo "${REV}-q${NORM}  --Run silently."
+  echo "${REV}-q${NORM}  --Run silently. Still a work in progress, but quieter."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
-  echo -e "Example: ${BOLD}$SCRIPT -s Stratux-N3558D -c 5${NORM}"\\n
+  echo -e "Example: ${BOLD}$SCRIPT -s Stratux-N3558D -c 5 -p SquawkDirty!${NORM}"\\n
   exit 1
 }
 
