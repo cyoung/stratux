@@ -20,14 +20,14 @@ const (
 )
 
 var (
-	i2cbus           embd.I2CBus
-	myPressureReader sensors.PressureReader
-	myIMUReader      sensors.IMUReader
-	s                ahrs.AHRSProvider
-	cage             chan (bool)
-	analysisLogger   *ahrs.AHRSLogger
-	ahrsCalibrating  bool
-	logMap           map[string]interface{}
+	i2cbus                            embd.I2CBus
+	myPressureReader                  sensors.PressureReader
+	myIMUReader                       sensors.IMUReader
+	s                                 ahrs.AHRSProvider
+	cal                               chan (bool)
+	analysisLogger                    *ahrs.AHRSLogger
+	ahrsCalibrating, needsCage        bool          // Does the sensor orientation matrix need to be recalculated?
+	logMap                            map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -147,16 +147,19 @@ func sensorAttitudeSender() {
 		t                    time.Time
 		m                    *ahrs.Measurement
 		a, b, c, d, mm       [3]float64    // IMU measurements: accel, gyro, accel bias, gyro bias, magnetometer
+		f                    [4]float64    // Sensor orientation quaternion
 		ff                   [3][3]float64 // Sensor orientation matrix
 		cc                   float64
 		mpuError, magError   error
 		failnum              uint8
 	)
+
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
 	SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
 	m = ahrs.NewMeasurement()
-	cage = make(chan (bool), 1)
+	cal = make(chan (bool), 1)
+	needsCage = true
 
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
@@ -170,9 +173,21 @@ func sensorAttitudeSender() {
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		select { // Don't block if cage isn't receiving: only need one cage in the queue at a time.
-		case cage <- true:
+		// Do an initial calibration
+		select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
+		case cal <- true:
 		default:
+		}
+
+		// Set sensor rotation matrix / quaternion
+		f[0] = globalSettings.SensorQuaternion[0]
+		f[1] = globalSettings.SensorQuaternion[1]
+		f[2] = globalSettings.SensorQuaternion[2]
+		f[3] = globalSettings.SensorQuaternion[3]
+		if f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0.5 {
+			// Use the sensor rotation quaternion from config.
+			ff = *ahrs.QuaternionToRotationMatrix(f[0], f[1], f[2], f[3])
+			needsCage = false
 		}
 
 		failnum = 0
@@ -180,20 +195,30 @@ func sensorAttitudeSender() {
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 			select {
-			case <-cage:
+			case <-cal:
 				log.Println("AHRS Info: Calibrating IMU")
 				ahrsCalibrating = true
 				//TODO westphae: check for errors when reading IMU
 				myIMUReader.Read() // Clear out the averages
 				time.Sleep(1 * time.Second)
 				_, d[0], d[1], d[2], c[0], c[1], c[2], _, _, _, _, _ = myIMUReader.Read()
-				ff = *makeSensorRotationMatrix([3]float64{c[0], c[1], c[2]})
 				log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
 					c[0], c[1], c[2], d[0], d[1], d[2])
 				ahrsCalibrating = false
 				cc = math.Sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2])
 				s.Reset()
 			default:
+			}
+
+			if needsCage {
+				ff = *makeSensorRotationMatrix([3]float64{c[0], c[1], c[2]})
+				f[0], f[1], f[2], f[3] = ahrs.RotationMatrixToQuaternion(ff)
+				globalSettings.SensorQuaternion[0] = f[0]
+				globalSettings.SensorQuaternion[1] = f[1]
+				globalSettings.SensorQuaternion[2] = f[2]
+				globalSettings.SensorQuaternion[3] = f[3]
+				saveSettings()
+				needsCage = false
 			}
 
 			t = stratuxClock.Time
@@ -330,19 +355,17 @@ func updateExtraLogging() {
 }
 
 func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
-	f := globalSettings.IMUMapping
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
 		globalSettings.IMUMapping[0] = -1 // +2 for RY836AI
 		globalSettings.IMUMapping[1] = -3 // +3 for RY836AI
-		saveSettings()
 	}
 
 	// This is the "forward direction" chosen during the orientation process.
 	var x *[3]float64 = new([3]float64)
-	if f[0] < 0 {
-		x[-f[0]-1] = -1
+	if globalSettings.IMUMapping[0] < 0 {
+		x[-globalSettings.IMUMapping[0]-1] = -1
 	} else {
-		x[+f[0]-1] = +1
+		x[+globalSettings.IMUMapping[0]-1] = +1
 	}
 
 	// Normalize the gravity vector to be 1 G.
@@ -387,7 +410,8 @@ func getMinAccelDirection() (i int, err error) {
 
 // CageAHRS sends a signal to the AHRSProvider that it should be reset.
 func CageAHRS() {
-	cage <- true
+	needsCage = true
+	cal <- true
 }
 
 // SetAHRSConfig changes some AHRS parameters, intended for developers.
