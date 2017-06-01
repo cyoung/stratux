@@ -13,7 +13,7 @@ OPT_C=false
 OPT_E=false
 OPT_O=false
 
-defaultPass="Squawk1200"
+#defaultPass="Squawk1200"
 
 parm="*"
 err="####"
@@ -39,11 +39,11 @@ function HELP {
   echo "Command line switches are optional. The following switches are recognized."
   echo "${REV}-s${NORM}  --Sets the SSID to ${BOLD}ssid${NORM}. \"-s stratux\""
   echo "${REV}-c${NORM}  --Sets the channel to ${BOLD}chan${NORM}. \"-c 1\""
-  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o. \"-e password!\""
-  echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e."
+ # echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o. \"-e password!\""
+ # echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e."
  # echo "${REV}-q${NORM}  --Run silently."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
-  echo -e "Example: ${BOLD}$SCRIPT -s stratux -c 1 -e N3558D${NORM}"\\n
+  echo -e "Example: ${BOLD}$SCRIPT -s Stratux-N3558D -c 5${NORM}"\\n
   exit 1
 }
 clear
@@ -69,7 +69,8 @@ fi
 #If an option should be followed by an argument, it should be followed by a ":".
 #Notice there is no ":" after "oqh". The leading ":" suppresses error messages from
 #getopts. This is required to get my unrecognized option code to work.
-options=':s:c:eoqh'
+#options=':s:c:e:oqh'
+options=':s:c:h'
 while getopts $options option; do
   case $option in
     s)  #set option "s"
@@ -97,21 +98,21 @@ while getopts $options option; do
           fi
       fi
       ;;
-    e)  #set option "e"
-      if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
-          echo "${BOLD}${RED}$err Encryption option(-e) used without passphrase, Passphrase will be set to ${BOLD}$defaultPass${NORMAL}...${WHITE}${NORMAL}"
-          OPT_E=$defaultPass
-      else
-        OPT_E=$OPTARG
-        echo "$parm Encryption option -e used:"
-        if [ -z `echo $OPT_E | tr -d "[:print:]"` ] && [ ${#OPT_E} -ge 8 ]  && [ ${#OPT_E} -le 63 ]; then
-          echo "${GREEN}    Passphrase will now be ${BOLD}${UNDR}$OPT_E${NORMAL}.${WHITE}${NORMAL}"
-		else
-    	  echo  "${BOLD}${RED}$err Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
-          exit
-        fi   
-      fi
-      ;;
+#    e)  #set option "e"
+#      if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
+#          echo "${BOLD}${RED}$err Encryption option(-e) used without passphrase!${WHITE}${NORMAL}"
+#          OPT_E=$defaultPass
+#      else
+#        OPT_E=$OPTARG
+#        echo "$parm Encryption option -e used:"
+#        if [ -z `echo $OPT_E | tr -d "[:print:]"` ] && [ ${#OPT_E} -ge 8 ]  && [ ${#OPT_E} -le 63 ]; then
+#          echo "${GREEN}    Passphrase will now be ${BOLD}${UNDR}$OPT_E${NORMAL}.${WHITE}${NORMAL}"
+#		else
+#    	  echo  "${BOLD}${RED}$err Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
+#          exit
+#        fi   
+#      fi
+#      ;;
     o)  #set option "o"
       if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
           echo "$parm Open WiFI Option -o used."
@@ -188,66 +189,66 @@ do
         fi
     fi
     
-    if [ $OPT_E != false ]; then
-    	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$OPT_E ${MAGENTA}to $i...${WHITE}"
-        if grep -q "^#auth_algs=" ${i}; then
-        	#echo "uncomenting wpa"
-            sed -i "s/^#auth_algs=.*/auth_algs=1/" ${i}
-            sed -i "s/^#wpa=.*/wpa=3/" ${i}
-            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
-            sed -i "s/^#wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^#wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^#rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
-       elif grep -q "^auth_algs=" ${i}; then
-        	#echo "rewriting existing wpa"
-            sed -i "s/^auth_algs=.*/auth_algs=1/" ${i}
-            sed -i "s/^wpa=.*/wpa=3/" ${i}
-            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
-            sed -i "s/^wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
-       else
-       		#echo "adding wpa"
-       		echo "" >> ${i}
-            echo "auth_algs=1" >> ${i}
-			echo "wpa=3" >> ${i}
-			echo "wpa_passphrase=$OPT_E" >> ${i}
-			echo "wpa_key_mgmt=WPA-PSK" >> ${i}
-            echo "wpa_pairwise=TKIP" >> ${i}
-			echo "rsn_pairwise=CCMP" >> ${i}
-        fi
-    fi
-    if [ $OPT_O != false ]; then
-       	echo "${MAGENTA}Removing WPA encryption in $i...${WHITE}"
-        if grep -q "^auth_algs=" ${i}; then
-        	#echo "comenting out wpa"
-            sed -i "s/^auth_algs=.*/#auth_algs=1/" ${i}
-            sed -i "s/^wpa=.*/#wpa=3/" ${i}
-            sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
-            sed -i "s/^wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
-        elif grep -q "^#auth_algs=" ${i}; then
-        	#echo "rewriting comentied out wpa"
-            sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${i}
-            sed -i "s/^#wpa=.*/#wpa=3/" ${i}
-            sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
-            sed -i "s/^#wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
-        else
-        	#echo "adding commented out WPA"
-        	echo "" >> ${i}
-        	echo "#auth_algs=1" >> ${i}
-			echo "#wpa=3" >> ${i}
-			echo "#wpa_passphrase=$defaultPass" >> ${i}
-			echo "#wpa_key_mgmt=WPA-PSK" >> ${i}
-            echo "#wpa_pairwise=TKIP" >> ${i}
-			echo "#rsn_pairwise=CCMP" >> ${i}
-        fi
-        
-    fi
-   	echo "${GREEN}Modified ${i}...done${WHITE}"
+#    if [ $OPT_E != false ]; then
+#    	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$OPT_E ${MAGENTA}to $i...${WHITE}"
+#        if grep -q "^#auth_algs=" ${i}; then
+#        	#echo "uncomenting wpa"
+#            sed -i "s/^#auth_algs=.*/auth_algs=1/" ${i}
+#            sed -i "s/^#wpa=.*/wpa=3/" ${i}
+#            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
+#            sed -i "s/^#wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
+#            sed -i "s/^#wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
+#            sed -i "s/^#rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
+#       elif grep -q "^auth_algs=" ${i}; then
+#        	#echo "rewriting existing wpa"
+#            sed -i "s/^auth_algs=.*/auth_algs=1/" ${i}
+#            sed -i "s/^wpa=.*/wpa=3/" ${i}
+#            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
+#            sed -i "s/^wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
+#            sed -i "s/^wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
+#            sed -i "s/^rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
+#       else
+#       		#echo "adding wpa"
+#       		echo "" >> ${i}
+#            echo "auth_algs=1" >> ${i}
+#			echo "wpa=3" >> ${i}
+#			echo "wpa_passphrase=$OPT_E" >> ${i}
+#			echo "wpa_key_mgmt=WPA-PSK" >> ${i}
+#            echo "wpa_pairwise=TKIP" >> ${i}
+#			echo "rsn_pairwise=CCMP" >> ${i}
+#        fi
+#    fi
+#    if [ $OPT_O != false ]; then
+#       	echo "${MAGENTA}Removing WPA encryption in $i...${WHITE}"
+#        if grep -q "^auth_algs=" ${i}; then
+#        	#echo "comenting out wpa"
+#            sed -i "s/^auth_algs=.*/#auth_algs=1/" ${i}
+#            sed -i "s/^wpa=.*/#wpa=3/" ${i}
+#            sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
+#            sed -i "s/^wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
+#            sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
+#            sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
+#        elif grep -q "^#auth_algs=" ${i}; then
+#        	#echo "rewriting comentied out wpa"
+#            sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${i}
+#            sed -i "s/^#wpa=.*/#wpa=3/" ${i}
+#            sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
+#            sed -i "s/^#wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
+#            sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
+#            sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
+#        else
+#        	#echo "adding commented out WPA"
+#        	echo "" >> ${i}
+#        	echo "#auth_algs=1" >> ${i}
+#			echo "#wpa=3" >> ${i}
+#			echo "#wpa_passphrase=$defaultPass" >> ${i}
+#			echo "#wpa_key_mgmt=WPA-PSK" >> ${i}
+#            echo "#wpa_pairwise=TKIP" >> ${i}
+#			echo "#rsn_pairwise=CCMP" >> ${i}
+#        fi
+#    fi
+
+	echo "${GREEN}Modified ${i}...done${WHITE}"
     echo ""
   else
    	echo "${MAGENTA}No ${i} file found...${WHITE}${NORMAL}"

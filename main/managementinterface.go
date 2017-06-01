@@ -1,6 +1,6 @@
 /*
 	Copyright (c) 2015-2016 Christopher Young
-	Distributable under the terms of The "BSD New"" License
+	Distributable under the terms of The "BSD New" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
@@ -319,6 +320,26 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+					case "StaticIps":
+						ipsStr := val.(string)
+						ips := strings.Split(ipsStr, " ")
+						if ipsStr == "" {
+							ips = make([]string, 0)
+						}
+
+						re, _ := regexp.Compile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
+						err := ""
+						for _, ip := range ips {
+							// Verify IP format
+							if !re.MatchString(ip) {
+								err = err + "Invalid IP: " + ip + ". "
+							}
+						}
+						if err != "" {
+							log.Printf("handleSettingsSetRequest:StaticIps: %s\n", err)
+							continue
+						}
+						globalSettings.StaticIps = ips
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
@@ -341,6 +362,11 @@ func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 func doReboot() {
 	syscall.Sync()
 	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+}
+
+func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleDeleteLogFile called!!!\n")
+	clearDebugLogFile()
 }
 
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
@@ -377,13 +403,27 @@ func doRestartApp() {
 func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+	netMutex.Lock()
 	clientsJSON, _ := json.Marshal(&outSockets)
+	netMutex.Unlock()
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }
 
 func delayReboot() {
 	time.Sleep(1 * time.Second)
 	doReboot()
+}
+
+func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
+	http.ServeFile(w, r, "/var/log/stratux.log")
+}
+
+func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
+	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
 
 // Upload an update file.
@@ -594,7 +634,9 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
-
+	http.HandleFunc("/deletelogfile", handleDeleteLogFile)
+	http.HandleFunc("/downloadlog", handleDownloadLogRequest)
+	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
 	err := http.ListenAndServe(managementAddr, nil)
 
 	if err != nil {

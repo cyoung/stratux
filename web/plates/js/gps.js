@@ -72,6 +72,9 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		$scope.SolutionText = solutionText;
 		
+		$scope.PositionSampleRate = (status.Quality ? status.PositionSampleRate.toFixed(1) : "N/A");
+		
+		
 		$scope.gps_accuracy = status.Accuracy.toFixed(1);
                 $scope.gps_vert_accuracy = (status.AccuracyVert*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
 

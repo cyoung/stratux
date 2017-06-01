@@ -322,3 +322,18 @@ func distance(lat1, lon1, lat2, lon2 float64) (dist, bearing float64) {
 
 	return
 }
+
+// golang only defines min/max for float64. Really.
+func iMin(x, y int) int {
+    if x < y {
+        return x
+    }
+    return y
+}
+
+func iMax(x, y int) int {
+    if x > y {
+        return x
+    }
+    return y
+}

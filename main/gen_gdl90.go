@@ -1,6 +1,6 @@
 /*
 	Copyright (c) 2015-2016 Christopher Young
-	Distributable under the terms of The "BSD New"" License
+	Distributable under the terms of The "BSD New" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"sync"
@@ -77,16 +78,27 @@ const (
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
 
-	GPS_TYPE_NMEA     = 0x01
-	GPS_TYPE_UBX      = 0x02
-	GPS_TYPE_SIRF     = 0x03
-	GPS_TYPE_MEDIATEK = 0x04
-	GPS_TYPE_FLARM    = 0x05
-	GPS_TYPE_GARMIN   = 0x06
+	/*
+		GPS_TYPE_NMEA     = 0x01
+		GPS_TYPE_UBX      = 0x02
+		GPS_TYPE_SIRF     = 0x03
+		GPS_TYPE_MEDIATEK = 0x04
+		GPS_TYPE_FLARM    = 0x05
+		GPS_TYPE_GARMIN   = 0x06
+	*/
+
+	GPS_TYPE_UBX8     = 0x08
+	GPS_TYPE_UBX7     = 0x07
+	GPS_TYPE_UBX6     = 0x06
+	GPS_TYPE_PROLIFIC = 0x02
+	GPS_TYPE_UART     = 0x01
+	GPS_PROTOCOL_NMEA = 0x10
+	GPS_PROTOCOL_UBX  = 0x30
 	// other GPS types to be defined as needed
 
 )
 
+var logFileHandle *os.File
 var usage *du.DiskUsage
 
 var maxSignalStrength int
@@ -443,7 +455,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: CPU temperature portion.
-	if isCPUTempValid() {
+	if isCPUTempValid(globalStatus.CPUTemp) {
 		msg[13] = msg[13] | (1 << 4)
 	}
 
@@ -562,6 +574,11 @@ func makeHeartbeat() []byte {
 	}
 	msg[1] = msg[1] | 0x10 //FIXME: Addr talkback.
 
+	// "Maintenance Req'd". Add flag if there are any current critical system errors.
+	if len(globalStatus.Errors) > 0 {
+		msg[1] = msg[1] | 0x40
+	}
+
 	nowUTC := time.Now().UTC()
 	// Seconds since 0000Z.
 	midnightUTC := time.Date(nowUTC.Year(), nowUTC.Month(), nowUTC.Day(), 0, 0, 0, 0, time.UTC)
@@ -593,14 +610,37 @@ func relayMessage(msgtype uint16, msg []byte) {
 	sendGDL90(prepareMessage(ret), true)
 }
 
+func blinkStatusLED() {
+	timer := time.NewTicker(100 * time.Millisecond)
+	ledON := false
+	for {
+		<-timer.C
+		if ledON {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
+		} else {
+			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+		}
+		ledON = !ledON
+	}
+}
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
+	ledBlinking := false
 	for {
 		select {
 		case <-timer.C:
-			// Turn on green ACT LED on the Pi.
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			// Green LED - always on during normal operation.
+			//  Blinking when there is a critical system error (and Stratux is still running).
+
+			if len(globalStatus.Errors) == 0 { // Any system errors?
+				// Turn on green ACT LED on the Pi.
+				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+			} else if !ledBlinking {
+				// This assumes that system errors do not disappear until restart.
+				go blinkStatusLED()
+				ledBlinking = true
+			}
 
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
@@ -706,42 +746,6 @@ func updateMessageStats() {
 
 }
 
-// Check if CPU temperature is valid. Assume <= 0 is invalid.
-func isCPUTempValid() bool {
-	return globalStatus.CPUTemp > 0
-}
-
-/*
-	cpuTempMonitor() reads the RPi board temperature every second and updates it in globalStatus.
-	This is broken out into its own function (run as its own goroutine) because the RPi temperature
-	 monitor code is buggy, and often times reading this file hangs quite some time.
-*/
-func cpuTempMonitor() {
-	timer := time.NewTicker(1 * time.Second)
-	for {
-		<-timer.C
-
-		// Update CPUTemp.
-		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
-		tempStr := strings.Trim(string(temp), "\n")
-		t := float32(-99.0)
-		if err == nil {
-			tInt, err := strconv.Atoi(tempStr)
-			if err == nil {
-				if tInt > 1000 {
-					t = float32(tInt) / float32(1000.0)
-				} else {
-					t = float32(tInt) // case where Temp is returned as simple integer
-				}
-			}
-		}
-		if t >= -99.0 { // Only update if valid value was obtained.
-			globalStatus.CPUTemp = t
-		}
-
-	}
-}
-
 func updateStatus() {
 	if mySituation.Quality == 2 {
 		globalStatus.GPS_solution = "GPS + SBAS (WAAS)"
@@ -780,6 +784,10 @@ func updateStatus() {
 
 	usage = du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
+	fileInfo, err := logFileHandle.Stat()
+	if err == nil {
+		globalStatus.Logfile_Size = fileInfo.Size()
+	}
 }
 
 type WeatherMessage struct {
@@ -1034,6 +1042,7 @@ type settings struct {
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
+	StaticIps            []string
 }
 
 type status struct {
@@ -1075,8 +1084,8 @@ type status struct {
 	UAT_PIREP_total                            uint32
 	UAT_NOTAM_total                            uint32
 	UAT_OTHER_total                            uint32
-
-	Errors []string
+	Errors                                     []string
+	Logfile_Size                               int64
 }
 
 var globalSettings settings
@@ -1096,6 +1105,7 @@ func defaultSettings() {
 	globalSettings.ReplayLog = false //TODO: 'true' for debug builds.
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
+	globalSettings.StaticIps = make([]string, 0)
 }
 
 func readSettings() {
@@ -1285,6 +1295,8 @@ func gracefulShutdown() {
 		closeDataLog()
 	}
 
+	pprof.StopCPUProfile()
+
 	//TODO: Any other graceful shutdown functions.
 
 	// Turn off green ACT LED on the Pi.
@@ -1296,6 +1308,23 @@ func signalWatcher() {
 	sig := <-sigs
 	log.Printf("signal caught: %s - shutting down.\n", sig.String())
 	gracefulShutdown()
+}
+
+func clearDebugLogFile() {
+	if logFileHandle != nil {
+		_, err := logFileHandle.Seek(0, 0)
+		if err != nil {
+			log.Printf("Could not seek to the beginning of the logfile\n")
+			return
+		} else {
+			err2 := logFileHandle.Truncate(0)
+			if err2 != nil {
+				log.Printf("Could not truncate the logfile\n")
+				return
+			}
+			log.Printf("Logfile truncated\n")
+		}
+	}
 }
 
 func main() {
@@ -1349,10 +1378,22 @@ func main() {
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
 
+	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
+
 	flag.Parse()
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
+
+	// Start CPU profile, if requested.
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Writing CPU profile to: %s\n", *cpuprofile)
+		pprof.StartCPUProfile(f)
+	}
 
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -1362,6 +1403,8 @@ func main() {
 		log.Printf("%s\n", err_log.Error())
 	} else {
 		defer fp.Close()
+		// Keep the logfile handle for later use
+		logFileHandle = fp
 		mfp := io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}
@@ -1385,7 +1428,7 @@ func main() {
 	// Override after reading in the settings.
 	if *replayFlag == true {
 		log.Printf("Replay file %s\n", *replayUATFilename)
-		globalSettings.ReplayLog = true
+		globalSettings.ReplayLog = false
 	}
 
 	if globalSettings.DeveloperMode == true {
@@ -1410,7 +1453,9 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
-	go cpuTempMonitor()
+	go cpuTempMonitor(func(cpuTemp float32) {
+		globalStatus.CPUTemp = cpuTemp
+	})
 
 	reader := bufio.NewReader(os.Stdin)
 
