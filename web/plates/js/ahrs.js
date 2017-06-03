@@ -245,8 +245,8 @@ GMeterRenderer.prototype = {
         this.min = gmin;
         this.max = gmax;
 
-        this.pointer_el.animate(50).rotate((g-1)/this.nticks*360, 0, 0);
-        this.max_el.animate(50).rotate((this.max-1)/this.nticks*360, 0, 0);
-        this.min_el.animate(50).rotate((this.min-1)/this.nticks*360, 0, 0);
+        this.pointer_el.rotate((g-1)/this.nticks*360, 0, 0);
+        this.max_el.rotate((this.max-1)/this.nticks*360, 0, 0);
+        this.min_el.rotate((this.min-1)/this.nticks*360, 0, 0);
     }
 };
