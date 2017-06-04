@@ -54,6 +54,19 @@ function STOPSTRATUX {
 	sleep 3
 }
 
+function STARTSTRATUX {
+	HEAD
+	echo "Give me a few seconds to get STRATUX running again..."
+	SDRs=`systemctl start stratux.service`
+	sleep 3
+	if [ "`systemctl is-active $SERVICE`" = "active" ] 
+	then
+	    echo "$SERVICE is now running"
+	else 
+		echo "$SERVICE did not restart. Try 'reboot' to restart your RaspberryPI"
+	fi
+}
+
 #Function to set the serial function
 function SETSDRSERIAL {
 	HEAD
@@ -91,6 +104,7 @@ function SETSDRSERIAL {
                 	SDRs=`reboot`
     	  	;;
     		exit)
+			STARTSTRATUX
     	  		echo "Exiting. "
     	  	exit 0
   		esac
@@ -123,6 +137,7 @@ function SDRInfo {
     	  		echo " "
     	  	;;
     		exit)
+			STARTSTRATUX
     	  		echo "Exiting. "
     	  	exit 0
   		esac
@@ -162,6 +177,7 @@ function PICKFALLBACK {
 				echo " "
     	  	;;
     		exit)
+			STARTSTRATUX
     	  		echo "Exiting. "
     	  	exit 0
   		esac
@@ -195,7 +211,8 @@ function PICKFREQ {
     	  		SDRInfo
     	  	;;
     		exit)
-    	  		echo "Exiting. "
+    	  		STARTSTRATUX
+			echo "Exiting. "
     	  	exit 0
   		esac
     break
@@ -207,9 +224,10 @@ function MAINMENU {
 	echo "Loading SDR info..."
     	sleep 2
 	HEAD
-	echo "-----------------------------------------------------------"
+	echo "#                CONFIRM ONLY ONE SDR INSTALLED                      #"
+	echo "----------------------------------------------------------------------"
 	SDRs=`rtl_eeprom`
-    echo "-----------------------------------------------------------"
+    echo "----------------------------------------------------------------------"
 	echo " "
 	echo "${BOLD}${RED}Read the lines above.${NORM}"
 	echo "${BOLD}How many SDRs were found?${NORM}"
@@ -231,14 +249,17 @@ function MAINMENU {
 		      PICKFREQ
       		;;
 		    '2 or more')
-		      echo "#####################################################################################"
-		      echo "#      ${RED}Too Many SDRs Plugged in. Unplug all SDRs except one and try again!!${NORM}         #"
-		      echo "#####################################################################################"
+				echo "#####################################################################################"
+				echo "#      ${RED}Too Many SDRs Plugged in. Unplug all SDRs except one and try again!!${NORM}         #"
+				echo "#####################################################################################"
+				STARTSTRATUX
+				echo "Exiting. "
 		      exit 0
 		      ;;
 		    exit)
-		      echo "Exiting. "
-		      exit 0
+		    	STARTSTRATUX
+		    	echo "Exiting... "
+		    	exit 0
 		  esac
  	# Getting here means that a valid choice was made,
   	# so break out of the select statement and continue below,
@@ -284,6 +305,7 @@ function START {
     	    	MAINMENU
     	    ;;
     		exit)
+			STARTSTRATUX
     	  		echo "Exiting. "
     	  	exit 0
   		esac
