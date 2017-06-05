@@ -11,7 +11,7 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
-	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
+	make ahrs_approx xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
 	go get -t -d -v ./main ./test ./godump978 ./uatparse ./sensors
@@ -28,6 +28,9 @@ xdump1090:
 xdump978:
 	cd dump978 && make lib
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
+
+ahrs_approx:
+	go build $(BUILDINFO) -p 4 test-data/ahrs/ahrs_approx.go
 
 .PHONY: test
 test:
@@ -58,6 +61,6 @@ install:
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so fancontrol
+	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean
 	cd dump978 && make clean
