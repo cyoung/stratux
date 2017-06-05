@@ -15,19 +15,18 @@ import (
 )
 
 const (
-	numRetries uint8   = 5
-	invalid    float32 = float32(ahrs.Invalid)
+	numRetries uint8 = 5
 )
 
 var (
-	i2cbus                            embd.I2CBus
-	myPressureReader                  sensors.PressureReader
-	myIMUReader                       sensors.IMUReader
-	s                                 ahrs.AHRSProvider
-	cal                               chan (bool)
-	analysisLogger                    *ahrs.AHRSLogger
-	ahrsCalibrating, needsCage        bool          // Does the sensor orientation matrix need to be recalculated?
-	logMap                            map[string]interface{}
+	i2cbus                     embd.I2CBus
+	myPressureReader           sensors.PressureReader
+	myIMUReader                sensors.IMUReader
+	s                          ahrs.AHRSProvider
+	cal                        chan (bool)
+	analysisLogger             *ahrs.AHRSLogger
+	ahrsCalibrating, needsCage bool // Does the sensor orientation matrix need to be recalculated?
+	logMap                     map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -184,7 +183,7 @@ func sensorAttitudeSender() {
 		f[1] = globalSettings.SensorQuaternion[1]
 		f[2] = globalSettings.SensorQuaternion[2]
 		f[3] = globalSettings.SensorQuaternion[3]
-		if f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0.5 {
+		if f[0]*f[0]+f[1]*f[1]+f[2]*f[2]+f[3]*f[3] > 0.5 {
 			// Use the sensor rotation quaternion from config.
 			ff = *ahrs.QuaternionToRotationMatrix(f[0], f[1], f[2], f[3])
 			needsCage = false
@@ -284,7 +283,7 @@ func sensorAttitudeSender() {
 				mySituation.AHRSGyroHeading = float32(heading / ahrs.Deg)
 
 				// TODO westphae: until magnetometer calibration is performed, no mag heading
-				mySituation.AHRSMagHeading = invalid
+				mySituation.AHRSMagHeading = ahrs.Invalid
 				mySituation.AHRSSlipSkid = float32(s.SlipSkid())
 				mySituation.AHRSTurnRate = float32(s.RateOfTurn())
 				mySituation.AHRSGLoad = float32(s.GLoad())
@@ -298,14 +297,14 @@ func sensorAttitudeSender() {
 				mySituation.AHRSLastAttitudeTime = t
 			} else {
 				s.Reset()
-				mySituation.AHRSRoll = invalid
-				mySituation.AHRSPitch = invalid
-				mySituation.AHRSGyroHeading = invalid
-				mySituation.AHRSMagHeading = invalid
-				mySituation.AHRSSlipSkid = invalid
-				mySituation.AHRSTurnRate = invalid
-				mySituation.AHRSGLoad = invalid
-				mySituation.AHRSGLoadMin = invalid
+				mySituation.AHRSRoll = ahrs.Invalid
+				mySituation.AHRSPitch = ahrs.Invalid
+				mySituation.AHRSGyroHeading = ahrs.Invalid
+				mySituation.AHRSMagHeading = ahrs.Invalid
+				mySituation.AHRSSlipSkid = ahrs.Invalid
+				mySituation.AHRSTurnRate = ahrs.Invalid
+				mySituation.AHRSGLoad = ahrs.Invalid
+				mySituation.AHRSGLoadMin = ahrs.Invalid
 				mySituation.AHRSGLoadMax = 0
 				mySituation.AHRSLastAttitudeTime = time.Time{}
 			}

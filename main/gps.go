@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"../goflying/ahrs"
+
 	"bufio"
 
 	"github.com/tarm/serial"
@@ -1852,23 +1854,23 @@ func makeAHRSGDL90Report() {
 	palt := uint16(0xFFFF)
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
-		// AHRS code uses 36727/10 for an invalid value.
-		if mySituation.AHRSPitch < 360 {
+		// AHRS invalid magic number is ahrs.Invalid.
+		if mySituation.AHRSPitch != ahrs.Invalid {
 			pitch = roundToInt16(mySituation.AHRSPitch * 10)
 		}
-		if mySituation.AHRSRoll < 360 {
+		if mySituation.AHRSRoll != ahrs.Invalid {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
 		}
-		if mySituation.AHRSGyroHeading < 360 {
+		if mySituation.AHRSGyroHeading != ahrs.Invalid {
 			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
 		}
-		if mySituation.AHRSSlipSkid < 360 {
+		if mySituation.AHRSSlipSkid != ahrs.Invalid {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
 		}
-		if mySituation.AHRSTurnRate < 360 {
+		if mySituation.AHRSTurnRate != ahrs.Invalid {
 			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
 		}
-		if mySituation.AHRSGLoad < 360 {
+		if mySituation.AHRSGLoad != ahrs.Invalid {
 			g = roundToInt16(mySituation.AHRSGLoad * 10)
 		}
 	}
