@@ -278,15 +278,15 @@ func sensorAttitudeSender() {
 			mySituation.muAttitude.Lock()
 			if s.Valid() {
 				roll, pitch, heading = s.RollPitchHeading()
-				mySituation.AHRSRoll = float32(roll / ahrs.Deg)
-				mySituation.AHRSPitch = float32(pitch / ahrs.Deg)
-				mySituation.AHRSGyroHeading = float32(heading / ahrs.Deg)
+				mySituation.AHRSRoll = roll / ahrs.Deg
+				mySituation.AHRSPitch = pitch / ahrs.Deg
+				mySituation.AHRSGyroHeading = heading / ahrs.Deg
 
 				// TODO westphae: until magnetometer calibration is performed, no mag heading
 				mySituation.AHRSMagHeading = ahrs.Invalid
-				mySituation.AHRSSlipSkid = float32(s.SlipSkid())
-				mySituation.AHRSTurnRate = float32(s.RateOfTurn())
-				mySituation.AHRSGLoad = float32(s.GLoad())
+				mySituation.AHRSSlipSkid = s.SlipSkid()
+				mySituation.AHRSTurnRate = s.RateOfTurn()
+				mySituation.AHRSGLoad = s.GLoad()
 				if mySituation.AHRSGLoad < mySituation.AHRSGLoadMin || mySituation.AHRSGLoadMin == 0 {
 					mySituation.AHRSGLoadMin = mySituation.AHRSGLoad
 				}
@@ -462,6 +462,6 @@ func updateAHRSStatus() {
 	}
 }
 
-func isAHRSInvalidValue(val float32) bool {
-	return math.Abs(float64(val)-float64(ahrs.Invalid)) < 0.01
+func isAHRSInvalidValue(val float64) bool {
+	return math.Abs(val-ahrs.Invalid) < 0.01
 }
