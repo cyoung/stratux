@@ -1868,7 +1868,7 @@ func makeAHRSGDL90Report() {
 		if mySituation.AHRSTurnRate < 360 {
 			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
 		}
-		if mySituation.AHRSTurnRate < 360 {
+		if mySituation.AHRSGLoad < 360 {
 			g = roundToInt16(mySituation.AHRSGLoad * 10)
 		}
 	}
