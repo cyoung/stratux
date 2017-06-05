@@ -461,3 +461,7 @@ func updateAHRSStatus() {
 		mySituation.AHRSStatus = msg
 	}
 }
+
+func isAHRSInvalidValue(val float32) bool {
+	return math.Abs(float64(val)-float64(ahrs.Invalid)) < 0.01
+}
