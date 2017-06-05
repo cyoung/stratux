@@ -87,15 +87,15 @@ type SituationData struct {
 
 	// From AHRS source.
 	muAttitude           *sync.Mutex
-	AHRSPitch            float32
-	AHRSRoll             float32
-	AHRSGyroHeading      float32
-	AHRSMagHeading       float32
-	AHRSSlipSkid         float32
-	AHRSTurnRate         float32
-	AHRSGLoad            float32
-	AHRSGLoadMin         float32
-	AHRSGLoadMax         float32
+	AHRSPitch            float64
+	AHRSRoll             float64
+	AHRSGyroHeading      float64
+	AHRSMagHeading       float64
+	AHRSSlipSkid         float64
+	AHRSTurnRate         float64
+	AHRSGLoad            float64
+	AHRSGLoadMin         float64
+	AHRSGLoadMax         float64
 	AHRSLastAttitudeTime time.Time
 	AHRSStatus           uint8
 }
@@ -1852,29 +1852,31 @@ func makeAHRSGDL90Report() {
 	palt := uint16(0xFFFF)
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
-		// AHRS code uses 36727/10 for an invalid value.
-		if mySituation.AHRSPitch < 360 {
+		// AHRS invalid magic number is ahrs.Invalid.
+		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
 			pitch = roundToInt16(mySituation.AHRSPitch * 10)
 		}
-		if mySituation.AHRSRoll < 360 {
+		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
 		}
-		if mySituation.AHRSGyroHeading < 360 {
+		if isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
 			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
+		} else {
+			hdg = rountToInt16(mySituation.GPSTrueCourse)
 		}
-		if mySituation.AHRSSlipSkid < 360 {
+		if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
 		}
-		if mySituation.AHRSTurnRate < 360 {
+		if !isAHRSInvalidValue(mySituation.AHRSTurnRate) {
 			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
 		}
-		if mySituation.AHRSTurnRate < 360 {
+		if !isAHRSInvalidValue(mySituation.AHRSGLoad) {
 			g = roundToInt16(mySituation.AHRSGLoad * 10)
 		}
 	}
 	if isTempPressValid() {
 		palt = uint16(mySituation.BaroPressureAltitude + 5000.5)
-		vs = roundToInt16(mySituation.BaroVerticalSpeed)
+		vs = roundToInt16(float64(mySituation.BaroVerticalSpeed))
 	}
 
 	// Roll.
@@ -1936,9 +1938,9 @@ func gpsAttitudeSender() {
 				mySituation.muGPSPerformance.Lock()
 				index := len(myGPSPerfStats) - 1
 				if index > 1 {
-					mySituation.AHRSPitch = float32(myGPSPerfStats[index].gpsPitch)
-					mySituation.AHRSRoll = float32(myGPSPerfStats[index].gpsRoll)
-					mySituation.AHRSGyroHeading = mySituation.GPSTrueCourse
+					mySituation.AHRSPitch = myGPSPerfStats[index].gpsPitch
+					mySituation.AHRSRoll = myGPSPerfStats[index].gpsRoll
+					mySituation.AHRSGyroHeading = float64(mySituation.GPSTrueCourse)
 					mySituation.AHRSLastAttitudeTime = stratuxClock.Time
 
 					makeAHRSGDL90Report()

@@ -1049,6 +1049,7 @@ type settings struct {
 	ReplayLog             bool
 	AHRSLog               bool
 	IMUMapping            [2]int // Map from aircraft axis to sensor axis: accelerometer
+	SensorQuaternion      [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	PPM                   int
 	OwnshipModeS          string
 	WatchList             string
