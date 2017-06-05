@@ -1853,22 +1853,22 @@ func makeAHRSGDL90Report() {
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
 		// AHRS invalid magic number is ahrs.Invalid.
-		if isAHRSInvalidValue(mySituation.AHRSPitch) {
+		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
 			pitch = roundToInt16(mySituation.AHRSPitch * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSRoll) {
+		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
+		if !isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
 			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
 		}
-		if isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
+		if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSTurnRate) {
+		if !isAHRSInvalidValue(mySituation.AHRSTurnRate) {
 			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSGLoad) {
+		if !isAHRSInvalidValue(mySituation.AHRSGLoad) {
 			g = roundToInt16(mySituation.AHRSGLoad * 10)
 		}
 	}
