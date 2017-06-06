@@ -62,9 +62,10 @@ cp -f motd /etc/motd
 #remove old script
 rm -f /usr/bin/fancontrol.py
 #install new program
+/usr/bin/fancontrol stop
+/usr/bin/fancontrol remove
 cp -f fancontrol /usr/bin/
 chmod 755 /usr/bin/fancontrol
-/usr/bin/fancontrol remove
 /usr/bin/fancontrol install
 
 cp -f dump1090 /usr/bin/
