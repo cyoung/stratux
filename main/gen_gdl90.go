@@ -1043,6 +1043,7 @@ type settings struct {
 	WatchList            string
 	DeveloperMode        bool
 	StaticIps            []string
+	Galileo_Enabled      bool
 }
 
 type status struct {
@@ -1106,6 +1107,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
+	globalSettings.Galileo_Enabled = false
 }
 
 func readSettings() {
