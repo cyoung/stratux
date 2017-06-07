@@ -20,9 +20,10 @@ import (
 
 	"bufio"
 
-	"github.com/kidoman/embd"
-	_ "github.com/kidoman/embd/host/all"
-	"github.com/kidoman/embd/sensor/bmp180"
+	// use fork of embd to support RPi3B until kidoman merges long-oustanding PRs.
+	"github.com/lukepalmer/embd"
+	_ "github.com/lukepalmer/embd/host/all"
+	"github.com/lukepalmer/embd/sensor/bmp180"
 	"github.com/tarm/serial"
 
 	"os"
