@@ -23,12 +23,15 @@ const (
 
 	// In Mark-Sweep mode:
 	// PWM clock = 19.2 MHz / divisor / range
-	defaultPwmClockDiv = 7
+	defaultPwmClockDiv = 8
 
 	// Minimum duty cycle is the point below which the fan does
 	// not spin. This depends on both your fan and the switching
 	// transistor used.
-	defaultPwmDutyMin = 30
+	//
+	// BEST: SunOn MagLev fan, AO3400A switching transistor, default settings
+	// ALTERNATE: Pi-Fan, use configuration flags '-pwmclockdiv 16 -minduty 50'
+	defaultPwmDutyMin = 5
 	pwmDutyMax        = 100
 
 	// how often to update
