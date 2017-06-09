@@ -270,23 +270,22 @@ func makeOwnshipReport() bool {
 	}
 
 	// This is **PRESSURE ALTITUDE**
-	//FIXME: Temporarily removing "invalid altitude" when pressure altitude not available - using GPS altitude instead.
-	//	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
+	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
+	validAltf := false
 
-	var alt uint16
 	var altf float64
 
 	if selfOwnshipValid {
 		altf = float64(curOwnship.Alt)
+		validAltf = true
 	} else if isTempPressValid() {
 		altf = float64(mySituation.BaroPressureAltitude)
-	} else {
-		altf = float64(mySituation.GPSAltitudeMSL) //FIXME: Pass GPS altitude if PA not available. **WORKAROUND FOR FF**
 	}
 
-	altf = (altf + 1000) / 25
-
-	alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
+	if validAltf {
+		altf = (altf + 1000) / 25
+		alt = uint16(altf) & 0xFFF // Should fit in 12 bits.
+	}
 
 	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
 	msg[12] = byte((alt & 0x00F) << 4)
@@ -1048,7 +1047,7 @@ type settings struct {
 	DEBUG                 bool
 	ReplayLog             bool
 	AHRSLog               bool
-	IMUMapping            [2]int // Map from aircraft axis to sensor axis: accelerometer
+	IMUMapping            [2]int     // Map from aircraft axis to sensor axis: accelerometer
 	SensorQuaternion      [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	PPM                   int
 	OwnshipModeS          string
