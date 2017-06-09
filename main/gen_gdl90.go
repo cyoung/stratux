@@ -280,6 +280,7 @@ func makeOwnshipReport() bool {
 		validAltf = true
 	} else if isTempPressValid() {
 		altf = float64(mySituation.BaroPressureAltitude)
+		validAltf = true
 	}
 
 	if validAltf {
