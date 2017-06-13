@@ -376,6 +376,8 @@ func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 
 // This is used in the orientation process where the user specifies the forward and up directions.
 func getMinAccelDirection() (i int, err error) {
+	myIMUReader.Read() // Clear out the averages
+	time.Sleep(500 * time.Millisecond) // Ensure we have enough values
 	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.Read()
 	if err != nil {
 		return

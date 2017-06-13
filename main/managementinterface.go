@@ -459,8 +459,9 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
 
 			if f == u || f == -u {
-				log.Println("AHRS Error: sensor orientation: up and forward axes cannot be the same")
-				http.Error(w, "up and forward axes cannot be the same", http.StatusBadRequest)
+				log.Printf("AHRS Error: sensor orientation: up (%d) and forward (%d) axes cannot be the same\n", u, f)
+				http.Error(w, fmt.Sprintf("up (%d) and forward (%d) axes cannot be the same", u, f),
+					http.StatusBadRequest)
 				return
 			}
 
