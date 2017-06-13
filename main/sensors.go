@@ -155,7 +155,6 @@ func sensorAttitudeSender() {
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
-	SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
 	m = ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
 	needsCage = true
@@ -413,11 +412,6 @@ func getMinAccelDirection() (i int, err error) {
 func CageAHRS() {
 	needsCage = true
 	cal <- true
-}
-
-// SetAHRSConfig changes some AHRS parameters, intended for developers.
-func SetAHRSConfig(smoothConst, weight float64) {
-	s.SetConfig(map[string]float64{"uiSmoothConst": smoothConst, "gpsWeight": weight})
 }
 
 // ResetAHRSGLoad resets the min and max to the current G load value.
