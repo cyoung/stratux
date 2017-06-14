@@ -106,6 +106,128 @@ var maxSignalStrength int
 var stratuxBuild string
 var stratuxVersion string
 
+var product_name_map = map[int]string{
+	0:   "METAR",
+	1:   "TAF",
+	2:   "SIGMET",
+	3:   "Conv SIGMET",
+	4:   "AIRMET",
+	5:   "PIREP",
+	6:   "Severe Wx",
+	7:   "Winds Aloft",
+	8:   "NOTAM",           //"NOTAM (Including TFRs) and Service Status";
+	9:   "D-ATIS",          //"Aerodrome and Airspace – D-ATIS";
+	10:  "Terminal Wx",     //"Aerodrome and Airspace - TWIP";
+	11:  "AIRMET",          //"Aerodrome and Airspace - AIRMET";
+	12:  "SIGMET",          //"Aerodrome and Airspace - SIGMET/Convective SIGMET";
+	13:  "SUA",             //"Aerodrome and Airspace - SUA Status";
+	20:  "METAR",           //"METAR and SPECI";
+	21:  "TAF",             //"TAF and Amended TAF";
+	22:  "SIGMET",          //"SIGMET";
+	23:  "Conv SIGMET",     //"Convective SIGMET";
+	24:  "AIRMET",          //"AIRMET";
+	25:  "PIREP",           //"PIREP";
+	26:  "Severe Wx",       //"AWW";
+	27:  "Winds Aloft",     //"Winds and Temperatures Aloft";
+	51:  "NEXRAD",          //"National NEXRAD, Type 0 - 4 level";
+	52:  "NEXRAD",          //"National NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
+	53:  "NEXRAD",          //"National NEXRAD, Type 2 - 8 level";
+	54:  "NEXRAD",          //"National NEXRAD, Type 3 - 16 level";
+	55:  "NEXRAD",          //"Regional NEXRAD, Type 0 - low dynamic range";
+	56:  "NEXRAD",          //"Regional NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
+	57:  "NEXRAD",          //"Regional NEXRAD, Type 2 - 8 level";
+	58:  "NEXRAD",          //"Regional NEXRAD, Type 3 - 16 level";
+	59:  "NEXRAD",          //"Individual NEXRAD, Type 0 - low dynamic range";
+	60:  "NEXRAD",          //"Individual NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
+	61:  "NEXRAD",          //"Individual NEXRAD, Type 2 - 8 level";
+	62:  "NEXRAD",          //"Individual NEXRAD, Type 3 - 16 level";
+	63:  "NEXRAD Regional", //"Global Block Representation - Regional NEXRAD, Type 4 – 8 level";
+	64:  "NEXRAD CONUS",    //"Global Block Representation - CONUS NEXRAD, Type 4 - 8 level";
+	81:  "Tops",            //"Radar echo tops graphic, scheme 1: 16-level";
+	82:  "Tops",            //"Radar echo tops graphic, scheme 2: 8-level";
+	83:  "Tops",            //"Storm tops and velocity";
+	101: "Lightning",       //"Lightning strike type 1 (pixel level)";
+	102: "Lightning",       //"Lightning strike type 2 (grid element level)";
+	151: "Lightning",       //"Point phenomena, vector format";
+	201: "Surface",         //"Surface conditions/winter precipitation graphic";
+	202: "Surface",         //"Surface weather systems";
+	254: "G-AIRMET",        //"AIRMET, SIGMET: Bitmap encoding";
+	351: "Time",            //"System Time";
+	352: "Status",          //"Operational Status";
+	353: "Status",          //"Ground Station Status";
+	401: "Imagery",         //"Generic Raster Scan Data Product APDU Payload Format Type 1";
+	402: "Text",
+	403: "Vector Imagery", //"Generic Vector Data Product APDU Payload Format Type 1";
+	404: "Symbols",
+	405: "Text",
+	411: "Text",    //"Generic Textual Data Product APDU Payload Format Type 1";
+	412: "Symbols", //"Generic Symbolic Product APDU Payload Format Type 1";
+	413: "Text",    //"Generic Textual Data Product APDU Payload Format Type 2";
+}
+
+type settings struct {
+	UAT_Enabled          bool
+	ES_Enabled           bool
+	Ping_Enabled         bool
+	GPS_Enabled          bool
+	NetworkOutputs       []networkConnection
+	SerialOutputs        map[string]serialConnection
+	DisplayTrafficSource bool
+	DEBUG                bool
+	ReplayLog            bool
+	PPM                  int
+	OwnshipModeS         string
+	WatchList            string
+	DeveloperMode        bool
+	StaticIps            []string
+}
+
+type status struct {
+	Version                                    string
+	Build                                      string
+	HardwareBuild                              string
+	Devices                                    uint32
+	Connected_Users                            uint
+	DiskBytesFree                              uint64
+	UAT_messages_last_minute                   uint
+	UAT_messages_max                           uint
+	ES_messages_last_minute                    uint
+	ES_messages_max                            uint
+	UAT_traffic_targets_tracking               uint16
+	ES_traffic_targets_tracking                uint16
+	Ping_connected                             bool
+	GPS_satellites_locked                      uint16
+	GPS_satellites_seen                        uint16
+	GPS_satellites_tracked                     uint16
+	GPS_position_accuracy                      float32
+	GPS_connected                              bool
+	GPS_solution                               string
+	GPS_detected_type                          uint
+	Uptime                                     int64
+	UptimeClock                                time.Time
+	CPUTemp                                    float32
+	NetworkDataMessagesSent                    uint64
+	NetworkDataMessagesSentNonqueueable        uint64
+	NetworkDataBytesSent                       uint64
+	NetworkDataBytesSentNonqueueable           uint64
+	NetworkDataMessagesSentLastSec             uint64
+	NetworkDataMessagesSentNonqueueableLastSec uint64
+	NetworkDataBytesSentLastSec                uint64
+	NetworkDataBytesSentNonqueueableLastSec    uint64
+	UAT_METAR_total                            uint32
+	UAT_TAF_total                              uint32
+	UAT_NEXRAD_total                           uint32
+	UAT_SIGMET_total                           uint32
+	UAT_PIREP_total                            uint32
+	UAT_NOTAM_total                            uint32
+	UAT_OTHER_total                            uint32
+	Errors                                     []string
+	Logfile_Size                               int64
+}
+
+var globalSettings settings
+var globalStatus status 
+
 // CRC16 table generated to use to work with GDL90 messages.
 var Crc16Table [256]uint16
 
@@ -956,65 +1078,6 @@ func parseInput(buf string) ([]byte, uint16) {
 	return frame, msgtype
 }
 
-var product_name_map = map[int]string{
-	0:   "METAR",
-	1:   "TAF",
-	2:   "SIGMET",
-	3:   "Conv SIGMET",
-	4:   "AIRMET",
-	5:   "PIREP",
-	6:   "Severe Wx",
-	7:   "Winds Aloft",
-	8:   "NOTAM",           //"NOTAM (Including TFRs) and Service Status";
-	9:   "D-ATIS",          //"Aerodrome and Airspace – D-ATIS";
-	10:  "Terminal Wx",     //"Aerodrome and Airspace - TWIP";
-	11:  "AIRMET",          //"Aerodrome and Airspace - AIRMET";
-	12:  "SIGMET",          //"Aerodrome and Airspace - SIGMET/Convective SIGMET";
-	13:  "SUA",             //"Aerodrome and Airspace - SUA Status";
-	20:  "METAR",           //"METAR and SPECI";
-	21:  "TAF",             //"TAF and Amended TAF";
-	22:  "SIGMET",          //"SIGMET";
-	23:  "Conv SIGMET",     //"Convective SIGMET";
-	24:  "AIRMET",          //"AIRMET";
-	25:  "PIREP",           //"PIREP";
-	26:  "Severe Wx",       //"AWW";
-	27:  "Winds Aloft",     //"Winds and Temperatures Aloft";
-	51:  "NEXRAD",          //"National NEXRAD, Type 0 - 4 level";
-	52:  "NEXRAD",          //"National NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
-	53:  "NEXRAD",          //"National NEXRAD, Type 2 - 8 level";
-	54:  "NEXRAD",          //"National NEXRAD, Type 3 - 16 level";
-	55:  "NEXRAD",          //"Regional NEXRAD, Type 0 - low dynamic range";
-	56:  "NEXRAD",          //"Regional NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
-	57:  "NEXRAD",          //"Regional NEXRAD, Type 2 - 8 level";
-	58:  "NEXRAD",          //"Regional NEXRAD, Type 3 - 16 level";
-	59:  "NEXRAD",          //"Individual NEXRAD, Type 0 - low dynamic range";
-	60:  "NEXRAD",          //"Individual NEXRAD, Type 1 - 8 level (quasi 6-level VIP)";
-	61:  "NEXRAD",          //"Individual NEXRAD, Type 2 - 8 level";
-	62:  "NEXRAD",          //"Individual NEXRAD, Type 3 - 16 level";
-	63:  "NEXRAD Regional", //"Global Block Representation - Regional NEXRAD, Type 4 – 8 level";
-	64:  "NEXRAD CONUS",    //"Global Block Representation - CONUS NEXRAD, Type 4 - 8 level";
-	81:  "Tops",            //"Radar echo tops graphic, scheme 1: 16-level";
-	82:  "Tops",            //"Radar echo tops graphic, scheme 2: 8-level";
-	83:  "Tops",            //"Storm tops and velocity";
-	101: "Lightning",       //"Lightning strike type 1 (pixel level)";
-	102: "Lightning",       //"Lightning strike type 2 (grid element level)";
-	151: "Lightning",       //"Point phenomena, vector format";
-	201: "Surface",         //"Surface conditions/winter precipitation graphic";
-	202: "Surface",         //"Surface weather systems";
-	254: "G-AIRMET",        //"AIRMET, SIGMET: Bitmap encoding";
-	351: "Time",            //"System Time";
-	352: "Status",          //"Operational Status";
-	353: "Status",          //"Ground Station Status";
-	401: "Imagery",         //"Generic Raster Scan Data Product APDU Payload Format Type 1";
-	402: "Text",
-	403: "Vector Imagery", //"Generic Vector Data Product APDU Payload Format Type 1";
-	404: "Symbols",
-	405: "Text",
-	411: "Text",    //"Generic Textual Data Product APDU Payload Format Type 1";
-	412: "Symbols", //"Generic Symbolic Product APDU Payload Format Type 1";
-	413: "Text",    //"Generic Textual Data Product APDU Payload Format Type 2";
-}
-
 func getProductNameFromId(product_id int) string {
 	name, present := product_name_map[product_id]
 	if present {
@@ -1027,69 +1090,6 @@ func getProductNameFromId(product_id int) string {
 
 	return fmt.Sprintf("Unknown (%d)", product_id)
 }
-
-type settings struct {
-	UAT_Enabled          bool
-	ES_Enabled           bool
-	Ping_Enabled         bool
-	GPS_Enabled          bool
-	NetworkOutputs       []networkConnection
-	SerialOutputs        map[string]serialConnection
-	DisplayTrafficSource bool
-	DEBUG                bool
-	ReplayLog            bool
-	PPM                  int
-	OwnshipModeS         string
-	WatchList            string
-	DeveloperMode        bool
-	StaticIps            []string
-}
-
-type status struct {
-	Version                                    string
-	Build                                      string
-	HardwareBuild                              string
-	Devices                                    uint32
-	Connected_Users                            uint
-	DiskBytesFree                              uint64
-	UAT_messages_last_minute                   uint
-	UAT_messages_max                           uint
-	ES_messages_last_minute                    uint
-	ES_messages_max                            uint
-	UAT_traffic_targets_tracking               uint16
-	ES_traffic_targets_tracking                uint16
-	Ping_connected                             bool
-	GPS_satellites_locked                      uint16
-	GPS_satellites_seen                        uint16
-	GPS_satellites_tracked                     uint16
-	GPS_position_accuracy                      float32
-	GPS_connected                              bool
-	GPS_solution                               string
-	GPS_detected_type                          uint
-	Uptime                                     int64
-	UptimeClock                                time.Time
-	CPUTemp                                    float32
-	NetworkDataMessagesSent                    uint64
-	NetworkDataMessagesSentNonqueueable        uint64
-	NetworkDataBytesSent                       uint64
-	NetworkDataBytesSentNonqueueable           uint64
-	NetworkDataMessagesSentLastSec             uint64
-	NetworkDataMessagesSentNonqueueableLastSec uint64
-	NetworkDataBytesSentLastSec                uint64
-	NetworkDataBytesSentNonqueueableLastSec    uint64
-	UAT_METAR_total                            uint32
-	UAT_TAF_total                              uint32
-	UAT_NEXRAD_total                           uint32
-	UAT_SIGMET_total                           uint32
-	UAT_PIREP_total                            uint32
-	UAT_NOTAM_total                            uint32
-	UAT_OTHER_total                            uint32
-	Errors                                     []string
-	Logfile_Size                               int64
-}
-
-var globalSettings settings
-var globalStatus status
 
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
