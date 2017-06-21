@@ -155,7 +155,6 @@ func sensorAttitudeSender() {
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s = ahrs.InitializeSimple()
-	SetAHRSConfig(globalSettings.AHRSSmoothingConstant, globalSettings.AHRSGPSWeight)
 	m = ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
 	needsCage = true
@@ -376,6 +375,8 @@ func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 
 // This is used in the orientation process where the user specifies the forward and up directions.
 func getMinAccelDirection() (i int, err error) {
+	myIMUReader.Read() // Clear out the averages
+	time.Sleep(500 * time.Millisecond) // Ensure we have enough values
 	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.Read()
 	if err != nil {
 		return
@@ -411,11 +412,6 @@ func getMinAccelDirection() (i int, err error) {
 func CageAHRS() {
 	needsCage = true
 	cal <- true
-}
-
-// SetAHRSConfig changes some AHRS parameters, intended for developers.
-func SetAHRSConfig(smoothConst, weight float64) {
-	s.SetConfig(map[string]float64{"uiSmoothConst": smoothConst, "gpsWeight": weight})
 }
 
 // ResetAHRSGLoad resets the min and max to the current G load value.
