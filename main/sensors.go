@@ -79,7 +79,7 @@ func tempAndPressureSender() {
 		altitude float64
 		err      error
 		dt       = 0.1
-		failnum  uint8
+		failNum  uint8
 	)
 
 	// Initialize variables for rate of climb calc
@@ -97,9 +97,9 @@ func tempAndPressureSender() {
 		press, err = myPressureReader.Pressure()
 		if err != nil {
 			log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
-			failnum++
-			if failnum > numRetries {
-				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failnum, err)
+			failNum++
+			if failNum > numRetries {
+				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
@@ -150,7 +150,7 @@ func sensorAttitudeSender() {
 		ff                   [3][3]float64 // Sensor orientation matrix
 		cc                   float64
 		mpuError, magError   error
-		failnum              uint8
+		failNum              uint8
 	)
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
@@ -188,7 +188,7 @@ func sensorAttitudeSender() {
 			needsCage = false
 		}
 
-		failnum = 0
+		failNum = 0
 		<-timer.C
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
@@ -242,16 +242,16 @@ func sensorAttitudeSender() {
 			m.MValid = magError == nil
 			if mpuError != nil {
 				log.Printf("AHRS Gyro/Accel Error: %s\n", mpuError)
-				failnum++
-				if failnum > numRetries {
+				failNum++
+				if failNum > numRetries {
 					log.Printf("AHRS Gyro/Accel Error: failed to read %d times, restarting: %s\n",
-						failnum-1, mpuError)
+						failNum-1, mpuError)
 					myIMUReader.Close()
 					globalStatus.IMUConnected = false
 				}
 				continue
 			}
-			failnum = 0
+			failNum = 0
 			if magError != nil {
 				log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
 				m.MValid = false
