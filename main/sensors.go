@@ -209,6 +209,7 @@ func sensorAttitudeSender() {
 			}
 
 			if needsCage {
+				log.Println("AHRS Info: Caging")
 				ff = *makeSensorRotationMatrix([3]float64{c[0], c[1], c[2]})
 				f[0], f[1], f[2], f[3] = ahrs.RotationMatrixToQuaternion(ff)
 				globalSettings.SensorQuaternion[0] = f[0]
