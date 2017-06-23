@@ -75,6 +75,30 @@ func (m *MPU9250) Read() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, G
 	return
 }
 
+// ReadOne returns the most recent time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z,
+// error reading Gyro/Accel, and error reading Mag.
+func (m *MPU9250) ReadOne() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MAGError error) {
+	var (
+		data *mpu9250.MPUData
+	)
+	data = new(mpu9250.MPUData)
+
+	data = <-m.mpu.C
+	T = data.T.UnixNano()
+	G1 = data.G1
+	G2 = data.G2
+	G3 = data.G3
+	A1 = data.A1
+	A2 = data.A2
+	A3 = data.A3
+	M1 = data.M1
+	M2 = data.M2
+	M3 = data.M3
+	GAError = data.GAError
+	MAGError = data.MagError
+	return
+}
+
 // Close stops reading the MPU.
 func (m *MPU9250) Close() {
 	m.mpu.CloseMPU()

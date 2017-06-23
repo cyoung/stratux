@@ -79,7 +79,7 @@ func tempAndPressureSender() {
 		altitude float64
 		err      error
 		dt       = 0.1
-		failnum  uint8
+		failNum  uint8
 	)
 
 	// Initialize variables for rate of climb calc
@@ -97,9 +97,9 @@ func tempAndPressureSender() {
 		press, err = myPressureReader.Pressure()
 		if err != nil {
 			log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
-			failnum++
-			if failnum > numRetries {
-				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failnum, err)
+			failNum++
+			if failNum > numRetries {
+				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
@@ -150,7 +150,7 @@ func sensorAttitudeSender() {
 		ff                   [3][3]float64 // Sensor orientation matrix
 		cc                   float64
 		mpuError, magError   error
-		failnum              uint8
+		failNum              uint8
 	)
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
@@ -188,7 +188,7 @@ func sensorAttitudeSender() {
 			needsCage = false
 		}
 
-		failnum = 0
+		failNum = 0
 		<-timer.C
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
@@ -209,6 +209,7 @@ func sensorAttitudeSender() {
 			}
 
 			if needsCage {
+				log.Println("AHRS Info: Caging")
 				ff = *makeSensorRotationMatrix([3]float64{c[0], c[1], c[2]})
 				f[0], f[1], f[2], f[3] = ahrs.RotationMatrixToQuaternion(ff)
 				globalSettings.SensorQuaternion[0] = f[0]
@@ -242,16 +243,16 @@ func sensorAttitudeSender() {
 			m.MValid = magError == nil
 			if mpuError != nil {
 				log.Printf("AHRS Gyro/Accel Error: %s\n", mpuError)
-				failnum++
-				if failnum > numRetries {
+				failNum++
+				if failNum > numRetries {
 					log.Printf("AHRS Gyro/Accel Error: failed to read %d times, restarting: %s\n",
-						failnum-1, mpuError)
+						failNum-1, mpuError)
 					myIMUReader.Close()
 					globalStatus.IMUConnected = false
 				}
 				continue
 			}
-			failnum = 0
+			failNum = 0
 			if magError != nil {
 				log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
 				m.MValid = false
@@ -375,9 +376,7 @@ func makeSensorRotationMatrix(g [3]float64) (rotmat *[3][3]float64) {
 
 // This is used in the orientation process where the user specifies the forward and up directions.
 func getMinAccelDirection() (i int, err error) {
-	myIMUReader.Read() // Clear out the averages
-	time.Sleep(500 * time.Millisecond) // Ensure we have enough values
-	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.Read()
+	_, _, _, _, a1, a2, a3, _, _, _, err, _ := myIMUReader.ReadOne()
 	if err != nil {
 		return
 	}

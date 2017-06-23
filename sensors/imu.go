@@ -9,6 +9,9 @@ type IMUReader interface {
 	// Read returns the average (since last reading) time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z,
 	// error reading Gyro/Accel, and error reading Mag.
 	Read() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MagError error)
+	// ReadOne returns the most recent time, Gyro X-Y-Z, Accel X-Y-Z, Mag X-Y-Z,
+	// error reading Gyro/Accel, and error reading Mag.
+	ReadOne() (T int64, G1, G2, G3, A1, A2, A3, M1, M2, M3 float64, GAError, MagError error)
 	// Close stops reading the MPU.
 	Close()
 }
