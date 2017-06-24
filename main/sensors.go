@@ -129,7 +129,6 @@ func initIMU() (ok bool) {
 	imu, err := sensors.NewMPU9250()
 	if err == nil {
 		myIMUReader = imu
-		time.Sleep(200 * time.Millisecond)
 		log.Println("AHRS Info: Successfully connected MPU9250")
 		return true
 	}

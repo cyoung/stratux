@@ -36,13 +36,10 @@ func NewMPU9250() (*MPU9250, error) {
 	}
 
 	// Set Gyro (Accel) LPFs to 20 (21) Hz to filter out prop/glareshield vibrations above 1200 (1260) RPM
-	log.Println("AHRS Info: Setting MPU9250 LPF")
 	mpu.SetGyroLPF(21)
 	mpu.SetAccelLPF(21)
-	time.Sleep(100 * time.Millisecond)
 
 	m.mpu = mpu
-
 	log.Println("AHRS Info: monitoring IMU")
 	return &m, nil
 }
