@@ -3,7 +3,6 @@ package sensors
 
 import (
 	"log"
-	"time"
 
 	"../goflying/mpu9250"
 )
