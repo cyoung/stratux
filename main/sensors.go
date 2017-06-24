@@ -44,7 +44,6 @@ func pollSensors() {
 
 		// If it's not currently connected, try connecting to pressure sensor
 		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
-			log.Println("AHRS Info: attempting pressure sensor connection.")
 			globalStatus.BMPConnected = initPressureSensor() // I2C temperature and pressure altitude.
 			go tempAndPressureSender()
 		}
@@ -125,7 +124,6 @@ func tempAndPressureSender() {
 }
 
 func initIMU() (ok bool) {
-	log.Println("AHRS Info: attempting to connect to MPU9250")
 	imu, err := sensors.NewMPU9250()
 	if err == nil {
 		myIMUReader = imu
@@ -135,7 +133,7 @@ func initIMU() (ok bool) {
 
 	// TODO westphae: try to connect to MPU9150 or other IMUs.
 
-	log.Println("AHRS Error: couldn't initialize MPU9250")
+	log.Println("AHRS Error: couldn't initialize an IMU")
 	return false
 }
 

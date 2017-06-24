@@ -2,8 +2,6 @@
 package sensors
 
 import (
-	"log"
-
 	"../goflying/mpu9250"
 )
 
@@ -28,7 +26,6 @@ func NewMPU9250() (*MPU9250, error) {
 		err error
 	)
 
-	log.Println("AHRS Info: Making new MPU9250")
 	mpu, err = mpu9250.NewMPU9250(gyroRange, accelRange, updateFreq, true, false)
 	if err != nil {
 		return nil, err
@@ -39,7 +36,6 @@ func NewMPU9250() (*MPU9250, error) {
 	mpu.SetAccelLPF(21)
 
 	m.mpu = mpu
-	log.Println("AHRS Info: monitoring IMU")
 	return &m, nil
 }
 
