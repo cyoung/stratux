@@ -151,7 +151,7 @@ func sensorAttitudeSender() {
 	)
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
-	s = ahrs.InitializeSimple()
+	s = ahrs.NewSimpleAHRS()
 	m = ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
 	needsCage = true
@@ -193,9 +193,9 @@ func sensorAttitudeSender() {
 			case <-cal:
 				log.Println("AHRS Info: Calibrating IMU")
 				ahrsCalibrating = true
-				//TODO westphae: check for errors when reading IMU
 				myIMUReader.Read() // Clear out the averages
 				time.Sleep(1 * time.Second)
+				//TODO westphae: check for errors when reading IMU
 				_, d[0], d[1], d[2], c[0], c[1], c[2], _, _, _, _, _ = myIMUReader.Read()
 				log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
 					c[0], c[1], c[2], d[0], d[1], d[2])
