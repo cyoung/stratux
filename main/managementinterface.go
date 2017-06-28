@@ -467,7 +467,6 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 			f = 0
 			log.Println("AHRS Info: sensor orientation: canceled")
 		}
-
 	}
 }
 

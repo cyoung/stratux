@@ -151,7 +151,7 @@ func sensorAttitudeSender() {
 	)
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
-	s = ahrs.NewSimpleAHRS()
+	s = ahrs.NewSimpleAHRS([4]float64{1, 0, 0, 0})
 	m = ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
 	needsCage = true
