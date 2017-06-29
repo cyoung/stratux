@@ -458,10 +458,11 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 			}
 
 			globalSettings.IMUMapping = [2]int{f, u}
+			globalSettings.SensorQuaternion = [4]float64{0, 0, 0, 0}
 			saveSettings()
 			myIMUReader.Close()
 			globalStatus.IMUConnected = false // restart the processes depending on the orientation
-			CageAHRS()
+			ResetAHRSGLoad()
 			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
 		default: // Cancel the sensor calibration.
 			f = 0

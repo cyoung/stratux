@@ -154,7 +154,6 @@ func sensorAttitudeSender() {
 	s = ahrs.NewSimpleAHRS([4]float64{1, 0, 0, 0})
 	m = ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
-	needsCage = true
 
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
@@ -183,6 +182,8 @@ func sensorAttitudeSender() {
 			// Use the sensor rotation quaternion from config.
 			ff = *ahrs.QuaternionToRotationMatrix(f[0], f[1], f[2], f[3])
 			needsCage = false
+		} else {
+			needsCage = true
 		}
 
 		failNum = 0
