@@ -32,7 +32,7 @@ function AHRSRenderer(locationId) {
     this.card.circle(2400).cx(0).cy(0).addClass('earth').clipWith(earthClip); // Earth
 
     var pitchMarks = this.card.group().addClass('marks').clipWith(this.pitchClip);
-    for (i = -1050; i <= 1050; i+=25) {
+    for (var i = -1050; i <= 1050; i+=25) {
         switch (i%100) {
             case 0:
                 pitchMarks.line(-40, i, 40, i);
@@ -41,7 +41,8 @@ function AHRSRenderer(locationId) {
                     pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(i).addClass('markText');
                 }
                 break;
-            case 50:
+            case -50:
+            case +50:
                 pitchMarks.line(-20, i, 20, i);
                 break;
             default:
