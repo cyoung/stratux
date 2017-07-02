@@ -10,9 +10,6 @@
 package main
 
 import (
-	"github.com/tarm/serial"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 	"io/ioutil"
 	"log"
 	"math"
@@ -23,6 +20,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tarm/serial"
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 type networkMessage struct {
@@ -69,6 +70,7 @@ const (
 	NETWORK_GDL90_STANDARD = 1
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
+	NETWORK_POSITION_FFSIM = 8
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
 	dhcp_lease_dir         = "/var/lib/dhcp"
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
@@ -458,6 +460,10 @@ func sendMsg(msg []byte, msgType uint8, queueable bool) {
 
 func sendGDL90(msg []byte, queueable bool) {
 	sendMsg(msg, NETWORK_GDL90_STANDARD, queueable)
+}
+
+func sendXPlane(msg []byte, queueable bool) {
+	sendMsg(msg, NETWORK_POSITION_FFSIM, queueable)
 }
 
 func monitorDHCPLeases() {
