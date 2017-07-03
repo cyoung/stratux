@@ -26,6 +26,8 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"archive/zip"
+	"path/filepath"
 )
 
 type SettingMessage struct {
@@ -387,8 +389,25 @@ func doReboot() {
 }
 
 func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleDeleteLogFile called!!!\n")
+	log.Println("handleDeleteLogFile called!!!")
 	clearDebugLogFile()
+}
+
+func handleDeleteAHRSLogFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error deleting AHRS logs: %s", err), http.StatusNotFound)
+		return
+	}
+
+	var fn string
+	for _, f := range files {
+		fn = f.Name()
+		if v, _ := filepath.Match("sensors_*.csv", fn) ; v {
+			os.Remove("/var/log/" + fn)
+			log.Printf("Deleting AHRS log file %s\n", fn)
+		}
+	}
 }
 
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
@@ -528,13 +547,63 @@ func delayReboot() {
 }
 
 func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
 	http.ServeFile(w, r, "/var/log/stratux.log")
 }
 
+func handleDownloadAHRSLogsRequest(w http.ResponseWriter, r *http.Request) {
+	// Common error handler
+	httpErr := func(w http.ResponseWriter, e error) {
+		http.Error(w, fmt.Sprintf("error zipping AHRS logs: %s", e), http.StatusNotFound)
+	}
+
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		httpErr(w, err)
+		return
+	}
+
+	z := zip.NewWriter(w)
+	defer z.Close()
+
+	for _, f := range files {
+		fn := f.Name()
+		v1, _ := filepath.Match("sensors_*.csv", fn)
+		v2, _ := filepath.Match("stratux.log", fn)
+		if !(v1 || v2) {
+			continue
+		}
+
+		unzippedFile, err := os.Open("/var/log/" + fn)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		fh, err := zip.FileInfoHeader(f)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+		zippedFile, err := z.CreateHeader(fh)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		_, err = io.Copy(zippedFile, unzippedFile)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"ahrs_logs.zip\"")
+}
+
 func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
 	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
@@ -747,13 +816,13 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
-
 	http.HandleFunc("/orientAHRS", handleOrientAHRS)
 	http.HandleFunc("/cageAHRS", handleCageAHRS)
 	http.HandleFunc("/resetGMeter", handleResetGMeter)
-
 	http.HandleFunc("/deletelogfile", handleDeleteLogFile)
 	http.HandleFunc("/downloadlog", handleDownloadLogRequest)
+	http.HandleFunc("/deleteahrslogfiles", handleDeleteAHRSLogFiles)
+	http.HandleFunc("/downloadahrslogs", handleDownloadAHRSLogsRequest)
 	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)

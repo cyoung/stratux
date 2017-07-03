@@ -795,6 +795,15 @@ func updateStatus() {
 	if err == nil {
 		globalStatus.Logfile_Size = fileInfo.Size()
 	}
+
+	var ahrsLogSize int64
+	ahrsLogFiles, _ := ioutil.ReadDir("/var/log")
+	for _, f := range ahrsLogFiles {
+		if v, _ := filepath.Match("sensors_*.csv", f.Name()); v {
+			ahrsLogSize += f.Size()
+		}
+	}
+	globalStatus.AHRS_LogFiles_Size = ahrsLogSize
 }
 
 type WeatherMessage struct {
@@ -1100,6 +1109,7 @@ type status struct {
 	UAT_OTHER_total                            uint32
 	Errors                                     []string
 	Logfile_Size                               int64
+	AHRS_LogFiles_Size                         int64
 	BMPConnected                               bool
 	IMUConnected                               bool
 }
