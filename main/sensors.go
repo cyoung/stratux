@@ -22,7 +22,6 @@ var (
 	i2cbus                     embd.I2CBus
 	myPressureReader           sensors.PressureReader
 	myIMUReader                sensors.IMUReader
-	s                          ahrs.AHRSProvider
 	cal                        chan (bool)
 	analysisLogger             *ahrs.AHRSLogger
 	ahrsCalibrating, needsCage bool // Does the sensor orientation matrix need to be recalculated?
@@ -139,16 +138,15 @@ func initIMU() (ok bool) {
 
 func sensorAttitudeSender() {
 	var (
-		roll, pitch, heading float64
 		t                    time.Time
-		m                    *ahrs.Measurement
+		roll, pitch, heading float64
 		mpuError, magError   error
 		failNum              uint8
 	)
 
 	log.Println("AHRS Info: initializing new Simple AHRS")
-	s = ahrs.NewSimpleAHRS()
-	m = ahrs.NewMeasurement()
+	s := ahrs.NewSimpleAHRS()
+	m := ahrs.NewMeasurement()
 	cal = make(chan (bool), 1)
 
 	// Set up loggers for analysis
