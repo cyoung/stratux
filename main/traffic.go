@@ -185,6 +185,8 @@ func sendTrafficUpdates() {
 		log.Printf("==================================================================\n")
 	}
 	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
+	var trafficIdentifier uint32
+	trafficIdentifier = 1
 	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
@@ -233,6 +235,17 @@ func sendTrafficUpdates() {
 					msgs = append(msgs, make([]byte, 0))
 				}
 				msgs[cur_n] = append(msgs[cur_n], makeTrafficReportMsg(ti)...)
+
+				var trafficCallsign string
+				if len(ti.Tail) > 0 {
+					trafficCallsign = ti.Tail
+				} else {
+					trafficCallsign = fmt.Sprintf("%d_%d", ti.Icao_addr, ti.Squawk)
+				}
+
+				// send traffic message to X-Plane
+				sendXPlane(createXPlaneTrafficMsg(trafficIdentifier, ti.Lat, ti.Lng, float32(ti.Alt), trafficCallsign), false)
+				trafficIdentifier++
 			}
 		}
 	}

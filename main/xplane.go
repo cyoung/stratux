@@ -27,3 +27,10 @@ func createXPlaneAttitudeMsg(headingDeg float32, pitchDeg float32, rollDeg float
 	// TODO find out what the remaining parameters are for
 	return []byte(fmt.Sprintf("XATT1,%.1f,%.1f,%.1f,%.4f,%.4f,%.4f,%.1f,%.1f,%.1f,%.2f,%.2f,%.2f", headingDeg, pitchDeg, rollDeg, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
 }
+
+func createXPlaneTrafficMsg(targetId uint32, latDeg float32, lonDeg float32, altFt float32, callSign string) []byte {
+	// example: XTRA1,1,47.435484,-122.304048,351,1,0,62,0,N172SP
+	// TODO find out what the remaining parameters are for
+	// could be: vertical speed (in ?), unknown, unknown, horizontal speed (in ?)
+	return []byte(fmt.Sprintf("XTRA1,%d,%.6f,%.6f,%d,%d,%d,%d,%d,%s", targetId, latDeg, lonDeg, int64(convertFeetToMeters(altFt)), 0, 0, 0, 0, callSign))
+}
