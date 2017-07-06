@@ -429,8 +429,6 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	go delayReboot()
 }
 
-var f int // We need this to be global to handle successive calls to handleOrientAHRS.
-
 func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	// define header in support of cross-domain AJAX
 	setNoCache(w)
@@ -444,7 +442,6 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		var (
 			action []byte = make([]byte, 1)
-			u      int
 			err    error
 		)
 
@@ -455,37 +452,21 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 
 		switch action[0] {
 		case 'f': // Set sensor "forward" direction (toward nose of airplane).
-			if f, err = getMinAccelDirection(); err != nil {
+			f, err := getMinAccelDirection()
+			if err != nil {
 				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
 				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
 				return
 			}
-			log.Printf("AHRS Info: sensor orientation: received forward direction %d\n", f)
-		case 'u': // Set sensor "up" direction (toward top of airplane).
-			if u, err = getMinAccelDirection(); err != nil {
-				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
-				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
-				return
-			}
-			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
-
-			if f == u || f == -u {
-				log.Printf("AHRS Error: sensor orientation: up (%d) and forward (%d) axes cannot be the same\n", u, f)
-				http.Error(w, fmt.Sprintf("up (%d) and forward (%d) axes cannot be the same", u, f),
-					http.StatusBadRequest)
-				return
-			}
-
-			globalSettings.IMUMapping = [2]int{f, u}
+			log.Printf("AHRS Info: sensor orientation success! forward axis is %d\n", f)
+			globalSettings.IMUMapping = [2]int{f, 0}
+		case 'd': // Set sensor "up" direction (toward top of airplane).
 			globalSettings.SensorQuaternion = [4]float64{0, 0, 0, 0}
 			saveSettings()
 			myIMUReader.Close()
 			globalStatus.IMUConnected = false // restart the processes depending on the orientation
 			ResetAHRSGLoad()
-			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
-		default: // Cancel the sensor calibration.
-			f = 0
-			log.Println("AHRS Info: sensor orientation: canceled")
+			time.Sleep(2000 * time.Millisecond)
 		}
 	}
 }

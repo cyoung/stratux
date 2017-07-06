@@ -261,31 +261,11 @@
 						<h4 class="modal-title">Set AHRS Sensor Orientation: Forward Direction</h4>
 					</div>
 					<div class="modal-body">
-						<p>Point the Stratux/sensor box so that the end that will be pointing toward the <strong>nose</strong> of the airplane is pointing toward the sky and press the <strong>Set Forward Direction</strong> button.</p>
+						<p>Point the Stratux so that the end that will be pointing toward the <strong>nose</strong> of the airplane is pointing toward the sky and press the <strong>Set Forward Direction</strong> button.</p>
 					</div>
 					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
-						<a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateUp" class="btn btn-default btn-primary">Set Forward Direction</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="modal" ui-if="modalCalibrateUp" ui-state="modalCalibrateUp">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateUp"></button>
-						<h4 class="modal-title">Set AHRS Sensor Orientation: Up Direction</h4>
-					</div>
-					<div class="modal-body">
-						<p>Place the Stratux/sensor box in the orientation it will be in during flight and press the <strong>Set Up Direction</strong> button.</p>
-					</div>
-					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateCanceled" class="btn btn-default">Cancel</a>
-						<a ng-click="setOrientation('up')" ui-turn-off="modalCalibrateUp" ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Up Direction</a>
+						<a ui-turn-off="modalCalibrateForward" class="btn btn-default">Cancel</a>
+						<a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward" ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Forward Direction</a>
 					</div>
 				</div>
 			</div>
@@ -301,10 +281,11 @@
 						<h4 class="modal-title">Set AHRS Sensor Orientation: Finished</h4>
 					</div>
 					<div class="modal-body">
-						<p>The sensors are calibrated.  These settings will be saved for future flights.</p>
+						<p>The sensor orientation is set.  These settings will be saved for future flights.</p>
+						<p>Place the Stratux in its in-flight orientation and press the <strong>Done</strong> button.</p>
 					</div>
 					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateDone" class="btn btn-default btn-primary">OK</a>
+						<a ng-click="setOrientation('done')" ui-turn-off="modalCalibrateDone" class="btn btn-default btn-primary">Done</a>
 					</div>
 				</div>
 			</div>
@@ -322,7 +303,7 @@
 					<div class="modal-body">
 						<p>There was an error: {{Orientation_Failure_Message}}</p>
 						<p><div id="orientationFailureMessage"></div></p>
-						<p>The calibration failed.</p>
+						<p>The calibration failed.  Please try again.</p>
 					</div>
 					<div class="modal-footer">
 						<a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
@@ -331,25 +312,5 @@
 			</div>
 		</div>
 	</div>
-	<div class="modal" ui-if="modalCalibrateCanceled" ui-state="modalCalibrateCanceled">
-		<div class="modal-overlay "></div>
-		<div class="vertical-alignment-helper center-block">
-			<div class="modal-dialog vertical-align-center">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button class="close" ui-turn-off="modalCalibrateCanceled"></button>
-						<h4 class="modal-title">Set AHRS Sensor Orientation: Canceled</h4>
-					</div>
-					<div class="modal-body">
-						<p>Calibration canceled.</p>
-					</div>
-					<div class="modal-footer">
-						<a ui-turn-off="modalCalibrateCanceled" class="btn btn-default btn-primary">OK</a>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
 </div>
 

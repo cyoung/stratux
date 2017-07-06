@@ -330,7 +330,6 @@ func updateExtraLogging() {
 func makeOrientationQuaternion(g [3]float64) (f *[4]float64) {
 	if globalSettings.IMUMapping[0] == 0 { // if unset, default to some standard orientation
 		globalSettings.IMUMapping[0] = -1 // +2 for RY836AI
-		globalSettings.IMUMapping[1] = -3 // +3 for RY836AI
 	}
 
 	// This is the "forward direction" chosen during the orientation process.

@@ -232,18 +232,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$http.post(URL_AHRS_ORIENT, action).
 		then(function (response) {
 			// console.log("sent " + action + " message.");
-			setTimeout(getSettings, 5000); // Sleep to allow leveling to finish.
 		}, function(response) {
 			// failure: cancel the calibration
 			// console.log(response.data);
 			$scope.Orientation_Failure_Message = response.data;
-			switch (action) {
-				case "forward":
-					$scope.Ui.turnOff("modalCalibrateUp");
-					break;
-				case "up":
-					$scope.Ui.turnOff('modalCalibrateDone');
-			}
+			$scope.Ui.turnOff('modalCalibrateDone');
 			$scope.Ui.turnOn("modalCalibrateFailed");
 		});
 	};
