@@ -407,6 +407,7 @@ func handleDeleteAHRSLogFiles(w http.ResponseWriter, r *http.Request) {
 			os.Remove("/var/log/" + fn)
 			log.Printf("Deleting AHRS log file %s\n", fn)
 		}
+		analysisLogger = nil
 	}
 }
 
