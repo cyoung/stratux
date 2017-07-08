@@ -16,6 +16,8 @@ import (
 
 const (
 	numRetries uint8 = 5
+	calCLimit        = 0.15
+	calDLimit        = 10.0
 )
 
 var (
@@ -180,6 +182,44 @@ func sensorAttitudeSender() {
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 
+			// Calibrate the sensors if requested.
+			select {
+			case <-cal:
+				ahrsCalibrating = true
+				myIMUReader.Read() // Clear out the averages
+				var (
+					nTries uint8
+					cc, dd float64
+				)
+				for (math.Abs(cc-1) > calCLimit || dd > calDLimit) && nTries < numRetries {
+					time.Sleep(1 * time.Second)
+					_, d1, d2, d3, c1, c2, c3, _, _, _, mpuError, _ := myIMUReader.Read()
+					cc = math.Sqrt(c1*c1 + c2*c2 + c3*c3)
+					dd = math.Sqrt(d1*d1 + d2*d2 + d3*d3)
+					nTries++
+					log.Printf("AHRS Info: IMU calibration attempt #%d\n", nTries)
+					if mpuError != nil {
+						log.Printf("AHRS Info: Error reading IMU while calibrating: %s\n", mpuError)
+					} else {
+						s.SetCalibrations(&[3]float64{c1, c2, c3}, &[3]float64{d1, d2, d3})
+						log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
+							c1, c2, c3, d1, d2, d3)
+					}
+					// Process caging if necessary.
+					if needsCage {
+						globalSettings.SensorQuaternion = *makeOrientationQuaternion([3]float64{c1, c2, c3})
+						saveSettings()
+						s.SetSensorQuaternion(&globalSettings.SensorQuaternion)
+						s.Reset()
+						needsCage = false
+						log.Println("AHRS Info: Caged")
+					}
+				}
+				ahrsCalibrating = false
+				<-timer.C // Make sure we get data for the actual algorithm
+			default:
+			}
+
 			// Make the IMU sensor measurements.
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano()/1000) / 1e6
@@ -218,38 +258,8 @@ func sensorAttitudeSender() {
 				}
 			}
 
-			// Process caging if necessary.
-			if needsCage {
-				globalSettings.SensorQuaternion = *makeOrientationQuaternion([3]float64{m.A1, m.A2, m.A3})
-				saveSettings()
-				s.SetSensorQuaternion(&globalSettings.SensorQuaternion)
-				s.Reset()
-				needsCage = false
-				log.Println("AHRS Info: Caged")
-			}
-
 			// Run the AHRS calculations.
 			s.Compute(m)
-
-			// Calibrate the sensors if requested.
-			// Must come after Compute so that the calibrations aren't zeroed out.
-			select {
-			case <-cal:
-				log.Println("AHRS Info: Calibrating IMU")
-				ahrsCalibrating = true
-				myIMUReader.Read() // Clear out the averages
-				time.Sleep(1 * time.Second)
-				_, d1, d2, d3, c1, c2, c3, _, _, _, mpuError, _ := myIMUReader.Read()
-				if mpuError != nil {
-					log.Printf("AHRS Info: Error reading IMU while calibrating: %s\n", mpuError)
-				} else {
-					s.SetCalibrations(&[3]float64{c1, c2, c3}, &[3]float64{d1, d2, d3})
-					log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
-						c1, c2, c3, d1, d2, d3)
-				}
-				ahrsCalibrating = false
-			default:
-			}
 
 			// If we have valid AHRS info, then update mySituation.
 			mySituation.muAttitude.Lock()
