@@ -180,10 +180,9 @@ func sensorAttitudeSender() {
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 
-			// Make the sensor measurements.
+			// Make the IMU sensor measurements.
 			t = stratuxClock.Time
 			m.T = float64(t.UnixNano()/1000) / 1e6
-
 			_, m.B1, m.B2, m.B3, m.A1, m.A2, m.A3, m.M1, m.M2, m.M3, mpuError, magError = myIMUReader.Read()
 			m.SValid = mpuError == nil
 			m.MValid = magError == nil
@@ -200,10 +199,13 @@ func sensorAttitudeSender() {
 			}
 			failNum = 0
 			if magError != nil {
-				log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
+				if globalSettings.DEBUG {
+					log.Printf("AHRS Magnetometer Error, not using for this run: %s\n", magError)
+				}
 				m.MValid = false
 			}
 
+			// Make the GPS measurements.
 			m.TW = float64(mySituation.GPSLastGroundTrackTime.UnixNano()/1000) / 1e6
 			m.WValid = isGPSGroundTrackValid()
 			if m.WValid {
@@ -298,11 +300,10 @@ func sensorAttitudeSender() {
 			// Log it to csv for later analysis.
 			if globalSettings.AHRSLog && usage.Usage() < 0.95 {
 				if analysisLogger == nil {
-					analysisFilename := filepath.Join(logDirf, fmt.Sprintf("sensors_%s.csv",
-						time.Now().Format("20060102_150405")))
+					analysisFilename := fmt.Sprintf("sensors_%s.csv", time.Now().Format("20060102_150405"))
 					logMap = s.GetLogMap()
 					updateExtraLogging()
-					analysisLogger = ahrs.NewAHRSLogger(analysisFilename, logMap)
+					analysisLogger = ahrs.NewAHRSLogger(filepath.Join(logDirf, analysisFilename), logMap)
 				}
 
 				if analysisLogger != nil {
