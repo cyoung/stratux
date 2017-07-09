@@ -202,7 +202,7 @@ func sensorAttitudeSender() {
 						log.Printf("AHRS Info: Error reading IMU while calibrating: %s\n", mpuError)
 					} else {
 						s.SetCalibrations(&[3]float64{c1, c2, c3}, &[3]float64{d1, d2, d3})
-						log.Printf("AHRS Info: IMU Calibrated: accel %6f %6f %6f; gyro %6f %6f %6f\n",
+						log.Printf("AHRS Info: IMU Calibration values: accel %6f %6f %6f; gyro %6f %6f %6f\n",
 							c1, c2, c3, d1, d2, d3)
 					}
 					// Process caging if necessary.
