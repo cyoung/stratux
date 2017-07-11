@@ -5,7 +5,7 @@
 .modal {
 }
 .grayout {
-    opacity: 0.6; /* Real browsers */
+    opacity: 0.4; /* Real browsers */
     filter: alpha(opacity = 60); /* MSIE */
 }
 .vertical-alignment-helper {
