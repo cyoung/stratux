@@ -487,6 +487,21 @@ func handleCageAHRS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleCalibrateAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CalibrateAHRS()
+	}
+}
+
 func handleResetGMeter(w http.ResponseWriter, r *http.Request) {
 	// define header in support of cross-domain AJAX
 	setNoCache(w)
@@ -799,6 +814,7 @@ func managementInterface() {
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
 	http.HandleFunc("/orientAHRS", handleOrientAHRS)
+	http.HandleFunc("/calibrateAHRS", handleCalibrateAHRS)
 	http.HandleFunc("/cageAHRS", handleCageAHRS)
 	http.HandleFunc("/resetGMeter", handleResetGMeter)
 	http.HandleFunc("/deletelogfile", handleDeleteLogFile)

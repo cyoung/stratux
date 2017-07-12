@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"../goflying/ahrs"
@@ -24,9 +25,9 @@ var (
 	i2cbus                     embd.I2CBus
 	myPressureReader           sensors.PressureReader
 	myIMUReader                sensors.IMUReader
-	cal                        chan (bool)
+	cal                        chan (string)
 	analysisLogger             *ahrs.AHRSLogger
-	ahrsCalibrating, needsCage bool // Does the sensor orientation matrix need to be recalculated?
+	ahrsCalibrating            bool
 	logMap                     map[string]interface{}
 )
 
@@ -149,7 +150,7 @@ func sensorAttitudeSender() {
 	log.Println("AHRS Info: initializing new Simple AHRS")
 	s := ahrs.NewSimpleAHRS()
 	m := ahrs.NewMeasurement()
-	cal = make(chan (bool), 1)
+	cal = make(chan (string), 1)
 
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
@@ -163,28 +164,36 @@ func sensorAttitudeSender() {
 	// Need a sampling freq faster than 10Hz
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
-		// Do an initial calibration
-		select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
-		case cal <- true:
-		default:
+		// Set sensor gyro calibrations
+		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0] + d[1]*d[1] + d[2]*d[2] > 0 {
+			s.SetCalibrations(c, d)
+			log.Printf("AHRS Info: IMU Calibrations read from settings: accel %6f %6f %6f; gyro %6f %6f %6f\n",
+				c[0], c[1], c[2], d[0], d[1], d[2])
+		} else {
+			// Do an initial calibration
+			select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
+			case cal <- "cal":
+			default:
+			}
 		}
 
-		// Set sensor rotation matrix / quaternion
+		// Set sensor quaternion
 		if f := &globalSettings.SensorQuaternion; f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0 {
 			s.SetSensorQuaternion(f)
-			needsCage = false
 		} else {
-			needsCage = true
+			cal <- "level"
 		}
 
 		failNum = 0
 		<-timer.C
+		time.Sleep(950 * time.Millisecond)
 		for globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
 			<-timer.C
 
-			// Calibrate the sensors if requested.
+			// Process calibration and level requests
 			select {
-			case <-cal:
+			case action := <-cal:
+				log.Printf("AHRS Info: cal received action %s\n", action)
 				ahrsCalibrating = true
 				myIMUReader.Read() // Clear out the averages
 				var (
@@ -201,18 +210,21 @@ func sensorAttitudeSender() {
 					if mpuError != nil {
 						log.Printf("AHRS Info: Error reading IMU while calibrating: %s\n", mpuError)
 					} else {
-						s.SetCalibrations(&[3]float64{c1, c2, c3}, &[3]float64{d1, d2, d3})
-						log.Printf("AHRS Info: IMU Calibration values: accel %6f %6f %6f; gyro %6f %6f %6f\n",
-							c1, c2, c3, d1, d2, d3)
-					}
-					// Process caging if necessary.
-					if needsCage {
-						globalSettings.SensorQuaternion = *makeOrientationQuaternion([3]float64{c1, c2, c3})
+						if strings.Contains(action, "cal") { // Calibrate gyros
+							globalSettings.D = [3]float64{d1, d2, d3}
+							s.SetCalibrations(nil, &globalSettings.D)
+							log.Printf("AHRS Info: IMU gyro calibration: %3f %3f %3f\n", d1, d2, d3)
+						}
+						if strings.Contains(action, "level") { // Calibrate accel / level
+							globalSettings.C = [3]float64{c1, c2, c3}
+							s.SetCalibrations(&globalSettings.C, nil)
+							globalSettings.SensorQuaternion = *makeOrientationQuaternion(globalSettings.C)
+							s.SetSensorQuaternion(&globalSettings.SensorQuaternion)
+							s.Reset()
+							log.Printf("AHRS Info: IMU accel calibration: %3f %3f %3f\n", c1, c2, c3)
+							log.Printf("AHRS Info: Caged to quaternion %v\n", globalSettings.SensorQuaternion)
+						}
 						saveSettings()
-						s.SetSensorQuaternion(&globalSettings.SensorQuaternion)
-						s.Reset()
-						needsCage = false
-						log.Println("AHRS Info: Caged")
 					}
 				}
 				ahrsCalibrating = false
@@ -395,8 +407,12 @@ func getMinAccelDirection() (i int, err error) {
 
 // CageAHRS sends a signal to the AHRSProvider that it should recalibrate and reset its level orientation.
 func CageAHRS() {
-	needsCage = true
-	cal <- true
+	cal <- "level"
+}
+
+// CageAHRS sends a signal to the AHRSProvider that it should recalibrate and reset its level orientation.
+func CalibrateAHRS() {
+	cal <- "cal"
 }
 
 // ResetAHRSGLoad resets the min and max to the current G load value.

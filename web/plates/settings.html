@@ -81,16 +81,22 @@
             <div class="panel-body">
                 <div class="col-xs-12">
                     <span style="position:relative; overflow: hidden;">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward">
-                            Set AHRS Sensor Orientation
-                        </button>
+                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
+                                ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
                     </span>
-                    <div class="form-group reset-flow">
-                        <label class="control-label col-xs-5">G Limits</label>
-                        <form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
-                            <input class="col-xs-7" type="string" required ng-model="GLimits" placeholder="Space-separated negative and positive G meter limits" ng-blur="updateGLimits()" />
-                        </form>
+                </div>
+                <div class="form-group reset-flow">
+                    <div class="col-xs-12">
+                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
+                                ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
                     </div>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">G Limits</label>
+                    <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
+                        <input class="col-xs-7" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
+                               placeholder="Space-separated negative and positive G meter limits"/>
+                    </form>
                 </div>
             </div>
         </div>
@@ -307,10 +313,33 @@
                     <div class="modal-body">
                         <p>There was an error: {{Orientation_Failure_Message}}</p>
                         <p><div id="orientationFailureMessage"></div></p>
-                        <p>The calibration failed.  Please try again.</p>
+                        <p>The orientation failed.  Please try again.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" ui-if="modalCalibrateGyros" ui-state="modalCalibrateGyros">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalCalibrateGyros"></button>
+                        <h4 class="modal-title">Calibrate MPU Gyros</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>Press <b>Calibrate</b> and keep the Stratux as stationary as possible for the next second.
+                            You should only do this in calm air as turbulence will throw off the calibrations.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalCalibrateGyros" class="btn btn-default">Cancel</a>
+                        <a ng-click="calibrateGyros()" ui-turn-off="modalCalibrateGyros"
+                           class="btn btn-default btn-primary">Calibrate</a>
                     </div>
                 </div>
             </div>

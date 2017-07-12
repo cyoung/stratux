@@ -1,4 +1,4 @@
-angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main module contollers set
+angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main module controllers set
 GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
 // create our controller function with all necessary logic
