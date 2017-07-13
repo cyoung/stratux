@@ -1,5 +1,5 @@
 // application constants
-var URL_HOST_BASE 		= window.location.hostname;
+var URL_HOST_BASE = window.location.hostname+(window.location.port ? ':'+window.location.port: '');
 var URL_SETTINGS_GET 	= "http://"	+ URL_HOST_BASE + "/getSettings";
 var URL_SETTINGS_SET 	= "http://"	+ URL_HOST_BASE + "/setSettings";
 var URL_GPS_GET 		= "http://"	+ URL_HOST_BASE + "/getSituation";
