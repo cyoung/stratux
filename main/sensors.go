@@ -181,7 +181,10 @@ func sensorAttitudeSender() {
 		if f := &globalSettings.SensorQuaternion; f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0 {
 			s.SetSensorQuaternion(f)
 		} else {
-			cal <- "level"
+			select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
+			case cal <- "level":
+			default:
+			}
 		}
 
 		failNum = 0
@@ -314,7 +317,7 @@ func sensorAttitudeSender() {
 			// Send to AHRS debugging server.
 			if ahrswebListener != nil {
 				if err = ahrswebListener.Send(s.GetState(), m); err != nil {
-					log.Printf("Error writing to ahrsweb: %s\n", err)
+					log.Printf("AHRS Error: couldn't write to ahrsweb: %s\n", err)
 					ahrswebListener = nil
 				}
 			}
