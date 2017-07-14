@@ -1,32 +1,41 @@
 #!/bin/bash
-echo "Running"
+
+STX_LOG="/var/log/stratux.log"
+function wLog () {
+	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $1" >> $STX_LOG	
+}
+
+wLog "Running Stratux Updater Script."
+
 echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 SCRIPT_MASK="update*stratux*v*.sh"
 TEMP_LOCATION="/boot/StratuxUpdates/$SCRIPT_MASK"
 UPDATE_LOCATION="/root/$SCRIPT_MASK"
 
-echo "Temp Location $TEMP_LOCATION"
-
 if [ -e ${TEMP_LOCATION} ]; then
-	echo "Found Update Script in $TEMP_LOCATION$SCRIPT_MASK"
+	wLog "Found Update Script in $TEMP_LOCATION$SCRIPT_MASK"
 	TEMP_SCRIPT=`ls -1t ${TEMP_LOCATION} | head -1`
-	echo "Moving Script $TEMP_SCRIPT"
+	wLog "Moving Script $TEMP_SCRIPT"
 	cp -r $TEMP_SCRIPT /root/
+	wLog "Changing permissions to chmod a+x $UPDATE_LOCATION"
 	chmod a+x $UPDATE_LOCATION
+	wLog "Removing Update file from $TEMP_LOCATION"
 	rm -rf $TEMP_SCRIPT
 fi
 
 # Check if we need to run an update.
 if [ -e ${UPDATE_LOCATION} ]; then
-	echo "ls -1t ${UPDATE_LOCATION} | head -1"
+	echo " ls -1t ${UPDATE_LOCATION} | head -1"  >> $STX_LOG
 	UPDATE_SCRIPT=`ls -1t ${UPDATE_LOCATION} | head -1`
 	if [ -n ${UPDATE_SCRIPT} ] ; then
 		# Execute the script, remove it, then reboot.
-		echo
-		echo "Running update script ${UPDATE_SCRIPT}..."
+		wLog "Running update script ${UPDATE_SCRIPT}..."
 		bash ${UPDATE_SCRIPT}
+		wLog "Removing Update SH"
 		rm -f $UPDATE_SCRIPT
+		wLog "Finished... Rebooting... Bye"
 		reboot
 	fi
 fi
+wLog "Exited without updating anyting..."
