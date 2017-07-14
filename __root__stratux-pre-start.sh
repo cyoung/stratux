@@ -1,4 +1,5 @@
 #!/bin/bash
+echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 STX_LOG="/var/log/stratux.log"
 function wLog () {
@@ -6,8 +7,6 @@ function wLog () {
 }
 
 wLog "Running Stratux Updater Script."
-
-echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 SCRIPT_MASK="update*stratux*v*.sh"
 TEMP_LOCATION="/boot/StratuxUpdates/$SCRIPT_MASK"
