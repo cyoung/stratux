@@ -16,6 +16,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -101,8 +102,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 	var err error
 
 	// create new decoding process
-	decodingCommand := exec.Command("flarm_decode", fmt.Sprintf("%.3f", lonDeg), fmt.Sprintf("%.3f", latDeg))
-	// decodingCommand := exec.Command("/root/stratux/sandbox/file_reader.py", "/root/stratux/sandbox/flarm_decode_1.txt")
+	decodingCommand := exec.Command("flarm_decode", fmt.Sprintf("%.3f", latDeg), fmt.Sprintf("%.3f", lonDeg))
 
 	// connect input data stream
 	decodingCommand.Stdin = inputStream
@@ -145,13 +145,13 @@ func decodeFlarmJSONData(flarmOutput io.Reader) {
 	if flarmOutput != nil {
 		inputScanner := bufio.NewScanner(flarmOutput)
 		for inputScanner.Scan() {
-			log.Println("Received FLARM data:", inputScanner.Text())
+			// log.Println("Received FLARM data:", inputScanner.Text())
 
 			var flarmMessage FLARMMessage
 			if err := json.Unmarshal(inputScanner.Bytes(), &flarmMessage); err != nil {
 				log.Println("FLARM JSON decoding error:", err)
 			} else {
-				log.Println("Decoded FLARM message:", flarmMessage)
+				// log.Println("Decoded FLARM message:", flarmMessage)
 
 				flarmAddress, err := strconv.ParseUint(flarmMessage.Addr, 16, 24)
 				if err != nil {
@@ -225,78 +225,90 @@ func decodeFlarmJSONData(flarmOutput io.Reader) {
 }
 
 func flarmListen() {
-	var err error
-
-	// create rtl_sdr receive process
-	receiveProcess := exec.Command("rtl_sdr", "-d", "1", "-f", "868.05m", "-s", "1.6m", "-g", "49.6", "-p", "49", "-")
-
-	// create demodulation process
-	demodProcess := exec.Command("nrf905_demod", "29")
-
-	// connect process pipes
-	if demodProcess.Stdin, err = receiveProcess.StdoutPipe(); err != nil {
-		log.Printf("Error while connecting receive to demodulation process: %s ", err)
-	}
-
-	// // debug
-	// flarmOutput := bytes.NewBufferString("{\"addr\":\"3D1F63\",\"time\":1499611315.018839,\"rssi\":-40.0,\"channel\":118,\"lat\":48.0918336,\"lon\":11.6618432,\"dist\":1975.58,\"alt\":1182,\"vs\":4,\"type\":2,\"stealth\":0,\"no_track\":0,\"ns\":[-61,-61,-60,-60],\"ew\":[-22,-23,-23,-24]}")
-
-	demodStdout, err := demodProcess.StdoutPipe()
-	if err != nil {
-		log.Printf("Error while getting Stdout pipe of demodulation process: %s ", err)
-	}
-
-	// start demodulation process
-	if err = demodProcess.Start(); err != nil {
-		log.Printf("Error while starting demodulation process: %s ", err)
-	}
-	log.Printf("Started FLARM demodulation process (pid=%d)", demodProcess.Process.Pid)
-	go watchCommand(demodProcess)
-
-	// wait for demodulation process to get ready
-	time.Sleep(5 * time.Second)
-
-	// start receive process
-	if err = receiveProcess.Start(); err != nil {
-		log.Printf("Error while starting receive process: %s ", err)
-	}
-	log.Printf("Started FLARM receive process (pid=%d)", receiveProcess.Process.Pid)
-	go watchCommand(receiveProcess)
-
-	// wait for receive process to get ready
-	time.Sleep(5 * time.Second)
-
-	// initialize decoding infrastructure
-	var decodingProcess *os.Process
-	var flarmOutput io.Reader
-
-	// set timer for (re-)starting decoding process (to use latest position)
-	flarmDecoderRestartTimer := time.NewTicker(60 * time.Second)
-
-	// initialize last position
-	var lastLon, lastLat float32 = 0.0, 0.0
-
-	// re-start loop to adapt decoding to latest position
 	for {
-		select {
-		case <-flarmDecoderRestartTimer.C:
-			// restart timer has triggered
+		var err error
 
-			// check if position has changes significantly
-			if math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
-				log.Println("Position has changed. Restarting FLARM decoder.")
+		if !globalSettings.FLARM_Enabled {
+			// wait until FLARM is enabled
+			time.Sleep(10 * time.Second)
+			continue
+		}
 
-				flarmOutput = nil
+		// connect to rtl_tcp
+		rtlTCPAddr := "127.0.0.1:40001"
+		rtlTCPConnection, err := net.Dial("tcp", rtlTCPAddr)
+		if err != nil {
+			time.Sleep(1 * time.Second)
+			continue
+		}
 
-				// start new decoding process
-				decodingProcess, flarmOutput = replaceFlarmDecodingProcess(mySituation.GPSLongitude, mySituation.GPSLatitude, decodingProcess, demodStdout)
+		// create buffered reader for data coming from receive process (via network)
+		receiveReader := bufio.NewReader(rtlTCPConnection)
 
-				// start JSON decoding goroutine
-				go decodeFlarmJSONData(flarmOutput)
+		// create demodulation process
+		demodProcess := exec.Command("nrf905_demod", "29")
 
-				// store current location
-				lastLon = mySituation.GPSLongitude
-				lastLat = mySituation.GPSLatitude
+		// connect receive process (via network) to demodulation process
+		demodProcess.Stdin = receiveReader
+
+		demodStdout, err := demodProcess.StdoutPipe()
+		if err != nil {
+			log.Printf("Error while getting Stdout pipe of demodulation process: %s ", err)
+		}
+
+		// start demodulation process
+		if err = demodProcess.Start(); err != nil {
+			log.Printf("Error while starting demodulation process: %s ", err)
+		}
+		log.Printf("Started FLARM demodulation process (pid=%d)", demodProcess.Process.Pid)
+
+		// initialize decoding infrastructure
+		var decodingProcess *os.Process
+		var flarmOutput io.Reader
+		stopDecodingLoop := false
+
+		// function that waits for the demodulation process to terminate
+		go func(command *exec.Cmd, stopDecodingLoop *bool) {
+			watchCommand(demodProcess)
+
+			*stopDecodingLoop = true
+		}(demodProcess, &stopDecodingLoop)
+
+		// set timer for (re-)starting decoding process (to use latest position)
+		flarmDecoderRestartTimer := time.NewTicker(60 * time.Second)
+
+		// initialize last position
+		var lastLon, lastLat float32 = 0.0, 0.0
+
+		// re-start loop to adapt decoding to latest position
+	decodingLoop:
+		for {
+			select {
+			case <-flarmDecoderRestartTimer.C:
+				// restart timer has triggered
+
+				// stop loop if demodulation process has terminated
+				if stopDecodingLoop == true {
+					log.Println("FLARM demodulation stopped, stopping decoding loop")
+					break decodingLoop
+				}
+
+				// check if position has changes significantly
+				if math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
+					log.Println("Position has changed, restarting FLARM decoder")
+
+					flarmOutput = nil
+
+					// start new decoding process
+					decodingProcess, flarmOutput = replaceFlarmDecodingProcess(mySituation.GPSLongitude, mySituation.GPSLatitude, decodingProcess, demodStdout)
+
+					// start JSON decoding goroutine
+					go decodeFlarmJSONData(flarmOutput)
+
+					// store current location
+					lastLon = mySituation.GPSLongitude
+					lastLat = mySituation.GPSLatitude
+				}
 			}
 		}
 	}

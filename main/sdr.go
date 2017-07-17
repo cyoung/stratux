@@ -41,11 +41,17 @@ type UAT Device
 // ES is a 1090 MHz device
 type ES Device
 
+// FLARM is an 868 MHz device
+type FLARM Device
+
 // UATDev holds a 978 MHz dongle object
 var UATDev *UAT
 
 // ESDev holds a 1090 MHz dongle object
 var ESDev *ES
+
+// FLARMDev holds an 868 MHz dongle object
+var FLARMDev *FLARM
 
 type Dump1090TermMessage struct {
 	Text   string
@@ -87,7 +93,7 @@ func (e *ES) read() {
 				log.Println("ES read(): shutdown msg received, calling cmd.Process.Kill() ...")
 				err := cmd.Process.Kill()
 				if err == nil {
-					log.Println("\t kill successful...")
+					log.Println("kill successful...")
 				}
 				return
 			default:
@@ -168,6 +174,90 @@ func (u *UAT) read() {
 	}
 }
 
+func (f *FLARM) read() {
+	defer f.wg.Done()
+	log.Println("Entered FLARM read() ...")
+	cmd := exec.Command("rtl_tcp", "-d", strconv.Itoa(f.indexID), "-f", "868.05m", "-s", "1.6m", "-g", "49.6", "-P", strconv.Itoa(f.ppm), "-a", "127.0.0.1", "-p", "40001")
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+
+	err := cmd.Start()
+	if err != nil {
+		log.Printf("Error executing rtl_tcp: %s\n", err)
+		// don't return immediately, use the proper shutdown procedure
+		shutdownFLARM = true
+		for {
+			select {
+			case <-f.closeCh:
+				return
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+
+	log.Println("Executed rtl_tcp successfully...")
+
+	done := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-f.closeCh:
+				log.Println("FLARM read(): shutdown msg received, calling cmd.Process.Kill() ...")
+				err := cmd.Process.Kill()
+				if err == nil {
+					log.Println("kill successful...")
+				}
+				return
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
+
+	stdoutBuf := make([]byte, 1024)
+	stderrBuf := make([]byte, 1024)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stdout.Read(stdoutBuf)
+				if err == nil && n > 0 {
+					log.Println("FLARM rtl_tcp stdout: ", string(stdoutBuf[:n]))
+				}
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				n, err := stderr.Read(stderrBuf)
+				if err == nil && n > 0 {
+					log.Println("FLARM rtl_tcp stderr: ", string(stderrBuf[:n]))
+				}
+			}
+		}
+	}()
+
+	cmd.Wait()
+
+	// we get here if A) the dump1090 process died
+	// on its own or B) cmd.Process.Kill() was called
+	// from within the goroutine, either way close
+	// the "done" channel, which ensures we don't leak
+	// goroutines...
+	close(done)
+}
+
 func getPPM(serial string) int {
 	r, err := regexp.Compile("str?a?t?u?x:\\d+:?(-?\\d*)")
 	if err != nil {
@@ -190,6 +280,12 @@ func getPPM(serial string) int {
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
 	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
+	return
+}
+
+func (f *FLARM) sdrConfig() (err error) {
+	f.ppm = getPPM(f.serial)
+	log.Printf("===== FLARM Device Serial: %s PPM %d =====\n", f.serial, f.ppm)
 	return
 }
 
@@ -335,6 +431,15 @@ func (e *ES) writeID() error {
 	return e.dev.SetHwInfo(info)
 }
 
+func (f *FLARM) writeID() error {
+	info, err := f.dev.GetHwInfo()
+	if err != nil {
+		return err
+	}
+	info.Serial = "stratux:868"
+	return f.dev.SetHwInfo(info)
+}
+
 func (u *UAT) shutdown() {
 	log.Println("Entered UAT shutdown() ...")
 	close(u.closeCh) // signal to shutdown
@@ -354,13 +459,21 @@ func (e *ES) shutdown() {
 	log.Println("ES shutdown() complete ...")
 }
 
+func (f *FLARM) shutdown() {
+	log.Println("Entered FLARM shutdown() ...")
+	close(f.closeCh) // signal to shutdown
+	log.Println("FLARM shutdown(): calling f.wg.Wait() ...")
+	f.wg.Wait() // Wait for the goroutine to shutdown
+	log.Println("FLARM shutdown() complete ...")
+}
+
 var sdrShutdown bool
 
 func sdrKill() {
 	// Send signal to shutdown to sdrWatcher().
 	sdrShutdown = true
 	// Spin until all devices have been de-initialized.
-	for UATDev != nil || ESDev != nil {
+	for UATDev != nil || ESDev != nil || FLARMDev != nil {
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -373,9 +486,11 @@ func reCompile(s string) *regexp.Regexp {
 
 type regexUAT regexp.Regexp
 type regexES regexp.Regexp
+type regexFLARM regexp.Regexp
 
 var rUAT = (*regexUAT)(reCompile("str?a?t?u?x:978"))
 var rES = (*regexES)(reCompile("str?a?t?u?x:1090"))
+var rFLARM = (*regexES)(reCompile("str?a?t?u?x:868"))
 
 func (r *regexUAT) hasID(serial string) bool {
 	if r == nil {
@@ -387,6 +502,13 @@ func (r *regexUAT) hasID(serial string) bool {
 func (r *regexES) hasID(serial string) bool {
 	if r == nil {
 		return strings.HasPrefix(serial, "stratux:1090")
+	}
+	return (*regexp.Regexp)(r).MatchString(serial)
+}
+
+func (r *regexFLARM) hasID(serial string) bool {
+	if r == nil {
+		return strings.HasPrefix(serial, "stratux:868")
 	}
 	return (*regexp.Regexp)(r).MatchString(serial)
 }
@@ -421,7 +543,22 @@ func createESDev(id int, serial string, idSet bool) error {
 	return nil
 }
 
-func configDevices(count int, esEnabled, uatEnabled bool) {
+func createFLARMDev(id int, serial string, idSet bool) error {
+	FLARMDev = &FLARM{indexID: id, serial: serial}
+	if err := FLARMDev.sdrConfig(); err != nil {
+		log.Printf("FLARMDev.sdrConfig() failed: %s\n", err)
+		FLARMDev = nil
+		return err
+	}
+	FLARMDev.wg = &sync.WaitGroup{}
+	FLARMDev.idSet = idSet
+	FLARMDev.closeCh = make(chan int)
+	FLARMDev.wg.Add(1)
+	go FLARMDev.read()
+	return nil
+}
+
+func configDevices(count int, esEnabled, uatEnabled, flarmEnabled bool) {
 	// once the tagged dongles have been assigned, explicitly range over
 	// the remaining IDs and assign them to any anonymous dongles
 	unusedIDs := make(map[int]string)
@@ -439,6 +576,8 @@ func configDevices(count int, esEnabled, uatEnabled bool) {
 				createUATDev(i, s, true)
 			} else if esEnabled && ESDev == nil && rES.hasID(s) {
 				createESDev(i, s, true)
+			} else if flarmEnabled && FLARMDev == nil && rFLARM.hasID(s) {
+				createFLARMDev(i, s, true)
 			} else {
 				unusedIDs[i] = s
 			}
@@ -456,6 +595,8 @@ func configDevices(count int, esEnabled, uatEnabled bool) {
 			createUATDev(i, s, false)
 		} else if esEnabled && ESDev == nil && !rUAT.hasID(s) {
 			createESDev(i, s, false)
+		} else if flarmEnabled && FLARMDev == nil && !rFLARM.hasID(s) {
+			createFLARMDev(i, s, false)
 		}
 	}
 }
@@ -465,12 +606,14 @@ func configDevices(count int, esEnabled, uatEnabled bool) {
 // include catastrophic dongle failures
 var shutdownES bool
 var shutdownUAT bool
+var shutdownFLARM bool
 
 // Watch for config/device changes.
 func sdrWatcher() {
 	prevCount := 0
 	prevUATEnabled := false
 	prevESEnabled := false
+	prevFLARMEnabled := false
 
 	// Get the system (RPi) uptime.
 	info := syscall.Sysinfo_t{}
@@ -498,6 +641,10 @@ func sdrWatcher() {
 				ESDev.shutdown()
 				ESDev = nil
 			}
+			if FLARMDev != nil {
+				FLARMDev.shutdown()
+				FLARMDev = nil
+			}
 			return
 		}
 
@@ -517,10 +664,19 @@ func sdrWatcher() {
 			}
 			shutdownES = false
 		}
+		// true when we get stderr output
+		if shutdownFLARM {
+			if FLARMDev != nil {
+				FLARMDev.shutdown()
+				FLARMDev = nil
+			}
+			shutdownFLARM = false
+		}
 
 		// capture current state
 		esEnabled := globalSettings.ES_Enabled
 		uatEnabled := globalSettings.UAT_Enabled
+		flarmEnabled := globalSettings.FLARM_Enabled
 		count := rtl.GetDeviceCount()
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
@@ -529,7 +685,7 @@ func sdrWatcher() {
 			count = 2
 		}
 
-		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled {
+		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevFLARMEnabled == flarmEnabled {
 			continue
 		}
 
@@ -542,11 +698,16 @@ func sdrWatcher() {
 			ESDev.shutdown()
 			ESDev = nil
 		}
-		configDevices(count, esEnabled, uatEnabled)
+		if FLARMDev != nil {
+			FLARMDev.shutdown()
+			FLARMDev = nil
+		}
+		configDevices(count, esEnabled, uatEnabled, flarmEnabled)
 
 		prevCount = count
 		prevUATEnabled = uatEnabled
 		prevESEnabled = esEnabled
+		prevFLARMEnabled = flarmEnabled
 	}
 }
 

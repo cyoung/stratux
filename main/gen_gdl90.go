@@ -1097,6 +1097,7 @@ func getProductNameFromId(product_id int) string {
 type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
+    FLARM_Enabled        bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	BMP_Sensor_Enabled   bool
@@ -1171,6 +1172,7 @@ var globalStatus status
 func defaultSettings() {
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
+	globalSettings.FLARM_Enabled = false
 	globalSettings.GPS_Enabled = true
 	globalSettings.IMU_Sensor_Enabled = true
 	globalSettings.BMP_Sensor_Enabled = true

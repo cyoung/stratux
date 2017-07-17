@@ -5,7 +5,7 @@ After=network.target
 [Service]
 ExecStartPre=/root/stratux-pre-start.sh
 ExecStart=/usr/bin/gen_gdl90
-ExecStop=/usr/bin/killall dump1090 flarm_decode nrf905_demod rtl_sdr
+ExecStop=/usr/bin/killall dump1090 flarm_decode nrf905_demod rtl_tcp
 KillMode=process
 Restart=always
 RestartSec=5
