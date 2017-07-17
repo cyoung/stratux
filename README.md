@@ -13,9 +13,6 @@ Raspberry Pi 2 with the Edimax EW-7811Un Wi-Fi dongle is supported but not recom
 
 Tested and works well with most common R820T and R820T2 RTL-SDR devices.
 
-Tested with and preliminary support added for [uAvionix pingEFB dual-link ADS-B receiver](http://www.uavionix.com/products/pingefb/).
-
-
 Apps with stratux recognition/support:
 * Seattle Avionics FlyQ EFB 2.1.1+.
 * AvNav EFB 2.0.0+.
@@ -31,9 +28,14 @@ Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic. AHRS not functional.
 * Avare
 
+Dangerzone builds (AHRS display):
+* ForeFlight 7+ - weather, traffic, AHRS.
+
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 
 http://stratux.me/
+
+http://slack.stratux.me/
 
 https://www.reddit.com/r/stratux
 
