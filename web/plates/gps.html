@@ -1,13 +1,13 @@
 <div class="col-sm-12">
-	<div class="col-sm-6">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading"><span class="panel_label">GPS</span></div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
 						<div class="map-container">
-							<div id="map_display" class="world-map" ng-attr-style="background-position:{{map_pos_x + 'px ' + map_pos_y + 'px'}}; width:{{map_width}}px; height:{{map_height}}px;">
-								<div class="mark-position" ng-style="{left: map_mark_x+'px', top: map_mark_y+'px'}">
+							<div id="map_display" class="world-map" ng-attr-style="background-position:{{map_pos_x + 'px ' + map_pos_y + 'px'}}; width:{{map_width}}px; height:{{map_height}}px; opacity:{{map_opacity}};">
+								<div class="mark-position" ng-style="{left: map_mark_x+'px', top: map_mark_y+'px', opacity: map_mark_opacity}">
 									<span class="fa fa-crosshairs"></span>
 								</div>
 							</div>
@@ -18,9 +18,10 @@
 				<div class="row">
 					<strong class="col-xs-6 text-center">Location:</strong>
 					<strong class="col-xs-6 text-center">Track:</strong>
-                </div>
+				</div>
 				<div class="row">
-					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_accuracy}} m <br> {{gps_alt}} &plusmn; {{gps_vert_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
+					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_horizontal_accuracy}} m <br>
+						{{gps_alt}} &plusmn; {{gps_vertical_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
 					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
 				</div>
 			</div>
@@ -28,34 +29,60 @@
 	</div>
 	<div class="col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">AHRS</span></div>
+			<div class="panel-heading"><span ng-click="hideClick()" class="panel_label">AHRS</span></div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
-					    <canvas id="ahrs_display">
-        					your web browser doesn't support the &lt;canvas>&gt; element.
-    					</canvas>
+						<div id="ahrs_display"></div>
 					</span>
 				</div>
-				<div class="separator"></div>
-				<div class="row">
-					<strong class="col-xs-3 text-center">Heading:</strong>
-					<strong class="col-xs-3 text-center">Pitch:</strong>
-					<strong class="col-xs-3 text-center">Roll:</strong>
-					<strong class="col-xs-3 text-center">P-Alt:</strong>
+				<div class="col-xs-12">
+					<div class="row" style="margin-bottom: 4px;">
+						<div class="col-xs-3 text-center indicator off" id="status-calibrating">Ready</div>
+						<div class="col-xs-2 text-center indicator off" id="status-gps">GPS</div>
+						<div class="col-xs-2 text-center indicator off" id="status-imu">ATT</div>
+						<div class="col-xs-2 text-center indicator off" id="status-bmp">ALT</div>
+						<div class="col-xs-3 text-center indicator off" id="status-logging">Logging</div>
+					</div>
 				</div>
-				<div class="row">
-					<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
-					<span class="col-xs-3 text-center">{{ahrs_alt}} ft</span>
+				<div class="col-xs-12">
+					<div class="separator"></div>
+					<div class="col-xs-3">
+						<a ng-click="AHRSCage()" class="btn btn-primary" ng-disabled="IsCaging()">Reset /<br>Level</a>
+					</div>
+					<div class="col-xs-9">
+						<div class="row">
+							<strong class="col-xs-3 text-center">Heading</strong>
+							<strong class="col-xs-3 text-center">Pitch</strong>
+							<strong class="col-xs-3 text-center">Roll</strong>
+							<strong class="col-xs-3 text-center">P-Alt</strong>
+						</div>
+						<div class="row">
+							<span class="col-xs-3 text-center">{{ahrs_heading}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_pitch}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_roll}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_alt}}'</span>
+						</div>
+						<div class="row">
+							<strong class="col-xs-3 text-center">Mag Hdg</strong>
+							<strong class="col-xs-3 text-center" >Slip/<wbr>Skid</strong>
+							<strong class="col-xs-3 text-center">Turn Rate</strong>
+							<strong class="col-xs-3 text-center">G Load</strong>
+						</div>
+						<div class="row">
+							<span class="col-xs-3 text-center">{{ahrs_heading_mag}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_slip_skid}}&deg;</span>
+							<span class="col-xs-3 text-center">{{ahrs_turn_rate}} min</span>
+							<span class="col-xs-3 text-center">{{ahrs_gload}}G</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
 <div class="col-sm-12">
-	<div class="col-sm-6">
+	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
 			<div class="panel-heading">
 				<span class="panel_label">Satellites</span>
@@ -83,7 +110,7 @@
 			<div class="panel-footer">
 				<div class="row">
 					<label class="col-xs-6">GPS solution:</label>
-					<span class="col-xs-6">{{SolutionText}} @ {{PositionSampleRate}} Hz</span>
+					<span class="col-xs-6">{{SolutionText}}</span>
 				</div>
 				<div class="row">
 					<label class="col-xs-6">Summary:</label>
@@ -91,16 +118,19 @@
 				</div>
 			</div>
 		</div>
-	</div>	
-</div>
-
-<!--
-<div class="col-sm-12">
-	<div class="panel panel-default">
-		<div class="panel-heading">Raw GPS / AHRS Data</div>
-		<div class="panel-body">
-			<pre>{{raw_data}}</pre>
+	</div>
+	<div class="col-sm-6 hider">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="panel_label">G-Meter</span>
+			</div>
+			<div class="panel-body">
+				<div class="row">
+					<span class="col-xs-12">
+						<div id="gMeter_display"></div>
+					</span>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
--->

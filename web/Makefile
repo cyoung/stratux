@@ -10,7 +10,8 @@ all:
 	mkdir -p /var/www/js
 	cp js/main.js /var/www/js
 	cp js/addtohomescreen.min.js /var/www/js
-	cp js/j3di-all.min.js /var/www/js
+	cp js/svg.min.js /var/www/js
+	cp js/NoSleep.min.js /var/www/js
 	mkdir -p /var/www/img
 	cp img/logo*.png /var/www/img
 	cp img/screen*.png /var/www/img
