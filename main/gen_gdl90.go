@@ -167,66 +167,6 @@ var product_name_map = map[int]string{
 	413: "Text",    //"Generic Textual Data Product APDU Payload Format Type 2";
 }
 
-type settings struct {
-	UAT_Enabled          bool
-	ES_Enabled           bool
-	Ping_Enabled         bool
-	GPS_Enabled          bool
-	NetworkOutputs       []networkConnection
-	SerialOutputs        map[string]serialConnection
-	DisplayTrafficSource bool
-	DEBUG                bool
-	ReplayLog            bool
-	PPM                  int
-	OwnshipModeS         string
-	WatchList            string
-	DeveloperMode        bool
-	StaticIps            []string
-}
-
-type status struct {
-	Version                                    string
-	Build                                      string
-	HardwareBuild                              string
-	Devices                                    uint32
-	Connected_Users                            uint
-	DiskBytesFree                              uint64
-	UAT_messages_last_minute                   uint
-	UAT_messages_max                           uint
-	ES_messages_last_minute                    uint
-	ES_messages_max                            uint
-	UAT_traffic_targets_tracking               uint16
-	ES_traffic_targets_tracking                uint16
-	Ping_connected                             bool
-	GPS_satellites_locked                      uint16
-	GPS_satellites_seen                        uint16
-	GPS_satellites_tracked                     uint16
-	GPS_position_accuracy                      float32
-	GPS_connected                              bool
-	GPS_solution                               string
-	GPS_detected_type                          uint
-	Uptime                                     int64
-	UptimeClock                                time.Time
-	CPUTemp                                    float32
-	NetworkDataMessagesSent                    uint64
-	NetworkDataMessagesSentNonqueueable        uint64
-	NetworkDataBytesSent                       uint64
-	NetworkDataBytesSentNonqueueable           uint64
-	NetworkDataMessagesSentLastSec             uint64
-	NetworkDataMessagesSentNonqueueableLastSec uint64
-	NetworkDataBytesSentLastSec                uint64
-	NetworkDataBytesSentNonqueueableLastSec    uint64
-	UAT_METAR_total                            uint32
-	UAT_TAF_total                              uint32
-	UAT_NEXRAD_total                           uint32
-	UAT_SIGMET_total                           uint32
-	UAT_PIREP_total                            uint32
-	UAT_NOTAM_total                            uint32
-	UAT_OTHER_total                            uint32
-	Errors                                     []string
-	Logfile_Size                               int64
-}
-
 var globalSettings settings
 var globalStatus status
 
