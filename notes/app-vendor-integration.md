@@ -91,7 +91,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 * `http://192.168.10.1/getStatus` - device status and statistics. Example output (commented JSON):
 
-```json
+```javascript
 {
   "Version": "v0.5b1",            // Software version.
   "Devices": 0,                   // Number of radios connected.
