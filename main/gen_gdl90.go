@@ -167,9 +167,6 @@ var product_name_map = map[int]string{
 	413: "Text",    //"Generic Textual Data Product APDU Payload Format Type 2";
 }
 
-var globalSettings settings
-var globalStatus status
-
 // CRC16 table generated to use to work with GDL90 messages.
 var Crc16Table [256]uint16
 
