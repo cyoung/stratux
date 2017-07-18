@@ -4,6 +4,12 @@
 
 .modal {
 }
+
+.grayout {
+    opacity: 0.4; /* Real browsers */
+    filter: alpha(opacity = 60); /* MSIE */
+}
+
 .vertical-alignment-helper {
 	display:table;
 	height: 100%;

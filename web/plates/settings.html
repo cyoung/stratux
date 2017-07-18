@@ -1,222 +1,274 @@
 <div class="col-sm-12">
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Hardware</div>
-            <div class="panel-body">
-                <div class="form-group">
-                    <label class="control-label col-xs-7">978 MHz</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
+<!-- Begin Left Col -->
+    <div class="col-sm-6">
+<!-- Hardware Settings -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default ng-scope">
+                <div class="panel-heading">Hardware</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">978 MHz</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">1090 MHz</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">1090 MHz</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Ping ADS-B</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='Ping_Enabled' settings-change></ui-switch>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Ping ADS-B</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='Ping_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">GPS</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">GPS</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">AHRS Sensor</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='IMU_Sensor_Enabled' settings-change></ui-switch>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">AHRS Sensor</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='IMU_Sensor_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Baro Sensor</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Diagnostics</div>
-            <div class="panel-body">
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Show Traffic Source in Callsign</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='DisplayTrafficSource' settings-change></ui-switch>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Verbose Message Log</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='DEBUG' settings-change></ui-switch>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Record Replay Logs</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label col-xs-7">Record AHRS Logs</label>
-                    <div class="col-xs-5">
-                        <ui-switch ng-model='AHRSLog' settings-change></ui-switch>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Baro Sensor</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">AHRS</div>
-            <div class="panel-body">
-                <div class="col-xs-12">
-                    <span style="position:relative; overflow: hidden;">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
-                                ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
-                    </span>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
-                                ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
-                    </div>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">G Limits</label>
-                    <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
-                        <input class="col-xs-7" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
-                               placeholder="Space-separated negative and positive G meter limits"/>
+<!-- WiFi Settings -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default ng-scope">
+                <div class="panel-heading">WiFi Settings</div>
+                <div class="panel-body grayout">
+                    <form name="WiFiSettings">
+                        <div class="alert alert-info">
+                            <strong>Notice!</strong> This feature has not been implemented... YET! 
+                        </div>
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">WiFi SSID</label>
+                            <input class="col-xs-7" type="string" ng-model="WiFiSSID" placeholder="WiFi Network Name" />
+                        </div>
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-7">Network Security</label>
+                            <div class="col-xs-5">
+                                <ui-switch ng-model="WiFiSecurityEnabled" settings-change> </ui-switch>
+                            </div>
+                        </div>
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">WiFi Passcode</label>
+                            <input class="col-xs-7" type="string" ng-model="WiFiPasscode" placeholder="WiFi Passcode" />
+                        </div>
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-7">WiFi Channel</label>
+                            <select class="input-small col-sm-2 form-control-sm" ng-model="WiFiChannel" id="WiFiChannel">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                            </select>
+                        </div>
+                        <div class="form-group reset-flow">
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalSubmitWiFi">Submit WiFi Changes</button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="col-sm-12">
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Configuration</div>
-            <div class="panel-body">
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">Mode S Code (Hex)</label>
-                    <form name="modeForm" ng-submit="updatemodes()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
-                        <input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">Watch List</label>
-                    <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">PPM Correction</label>
-                    <form name="ppmForm" ng-submit="updateppm()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
-                    <label class="control-label col-xs-5">Serial Output Baudrate</label>
-                    <form name="ppmForm" ng-submit="updateBaud()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-	
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Commands</div>
-            <div class="panel-body">
-                <!-- Upload. Temporary. -->
-                <div class="col-xs-12">
-                    <span ng-show="update_files == ''">
-                        <span style="position:relative; overflow: hidden;">
-                            <span class="fake-btn fake-btn-block">Click to select System Update file</span>
-                            <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
-                        </span>
-                    </span>
-                    <span ng-hide="update_files == ''">
-                        <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
-                    </span>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button>
-                    </div>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Developer mode area -->
-<div class="col-sm-12">
-    <div ng-show="DeveloperMode" class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Developer Options</div>
-            <div class="panel-body">
-                <div class="col-xs-12">
+<!-- System Configuration -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Configuration</div>
+                <div class="panel-body">
                     <div class="form-group reset-flow">
-                        <label class="control-label col-xs-5">Static IPs</label>
-                        <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
-                            <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+                        <label class="control-label col-xs-5">Mode S Code (Hex)</label>
+                        <form name="modeForm" ng-submit="updatemodes()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
+                            <input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
+                        </form>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">Watch List</label>
+                        <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
+                        </form>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">PPM Correction</label>
+                        <form name="ppmForm" ng-submit="updateppm()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
+                        </form>
+                    </div>
+                    <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
+                        <label class="control-label col-xs-5">Serial Output Baudrate</label>
+                        <form name="ppmForm" ng-submit="updateBaud()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
                         </form>
                     </div>
                 </div>
             </div>
         </div>
+<!-- Developer Options -->
+        <div ng-show="DeveloperMode" class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Developer Options</div>
+                <div class="panel-body">
+                    <div class="col-xs-12">
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Static IPs</label>
+                            <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
+                                <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-
-
-<div class="col-sm-12" ng-show="DeveloperMode" >
-    <div class="panel panel-default">
-        <div class="panel-heading">Raw Configuration</div>
-        <div class="panel-body">
-            <p>stratux.conf:</p>
-            <pre>{{rawSettings}}</pre>
+<!-- End Left Col -->
+<!-- Begin Right Col -->
+    <div class="col-sm-6">
+<!-- Diagnostics Values -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Diagnostics</div>
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Show Traffic Source in Callsign</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='DisplayTrafficSource' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Verbose Message Log</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='DEBUG' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Record Replay Logs</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-xs-7">Record AHRS Logs</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='AHRSLog' settings-change></ui-switch>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- AHRS Options -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">AHRS</div>
+                <div class="panel-body">
+                    <div class="col-xs-12">
+                        <span style="position:relative; overflow: hidden;">
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
+                            ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
+                        </span>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <div class="col-xs-12">
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
+                                    ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
+                        </div>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-3">G Limits</label>
+                        <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
+                            <input class="col-xs-9" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
+                                   placeholder="Space-separated negative and positive G meter limits"/>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- App Commands -->
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Commands</div>
+                <div class="panel-body">
+                    <!-- Upload. Temporary. -->
+                    <div class="col-xs-12">
+                        <span ng-show="update_files == ''">
+                            <span style="position:relative; overflow: hidden;">
+                                <span class="fake-btn fake-btn-block">Click to select System Update file</span>
+                                <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
+                            </span>
+                        </span>
+                        <span ng-hide="update_files == ''">
+                            <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
+                        </span>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <div class="col-xs-12">
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button> 				
+                        </div>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <div class="col-xs-12">
+                            <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12" ng-show="DeveloperMode" >
+        <div class="panel panel-default">
+            <div class="panel-heading">Raw Configuration</div>
+            <div class="panel-body">
+                <p>stratux.conf:</p>
+                <pre>{{rawSettings}}</pre>
+            </div>
         </div>
     </div>
 </div>
-
+<!-- ############################################## -->
+<!--                    Modal popups                -->
+<!-- ############################################## -->
+<!-- Messages Modal -->
 <div class="col-sm-12">
     <h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
     <h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
+    <h3 ui-if="WiFiRestart" ui-state="WiFiRestart">Stratux WiFi is Restarting Services.  You may need to reconnect WiFi once services are restored.</h3>
 </div>
 
 <div ui-content-for="modals">
+<!-- Reboot Config Modal -->
     <div class="modal" ui-if="modalReboot" ui-state="modalReboot">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
             <div class="modal-dialog vertical-align-center">
-     
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button class="close"
-                                ui-turn-off="modalReboot"></button>
+                        <button class="close" ui-turn-off="modalReboot"></button>
                         <h4 class="modal-title">Are you really sure?</h4>
                     </div>
                     <div class="modal-body">
@@ -231,16 +283,14 @@
             </div>
         </div>
     </div>
-  
+<!-- Shutdown Modal -->
     <div class="modal" ui-if="modalShutdown" ui-state="modalShutdown">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
             <div class="modal-dialog vertical-align-center">
-     
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button class="close"
-                                ui-turn-off="modalShutdown"></button>
+                        <button class="close" ui-turn-off="modalShutdown"></button>
                         <h4 class="modal-title">Are you really sure?</h4>
                     </div>
                     <div class="modal-body">
@@ -255,7 +305,7 @@
             </div>
         </div>
     </div>
-
+<!-- Calibrate Forward Modal -->
     <div class="modal" ui-if="modalCalibrateForward" ui-state="modalCalibrateForward">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -279,6 +329,7 @@
             </div>
         </div>
     </div>
+<!-- Calibration Success Modal -->
     <div class="modal" ui-if="modalCalibrateDone" ui-state="modalCalibrateDone">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -290,8 +341,8 @@
                     </div>
                     <div class="modal-body">
                         <p>The sensor orientation is set.  These settings will be saved for future flights.
-                            Place the Stratux in its in-flight orientation and keep it stationary for 5 seconds
-                            after you press the <strong>Done</strong> button.</p>
+                        Place the Stratux in its in-flight orientation and keep it stationary for 5 seconds
+                        after you press the <strong>Done</strong> button.</p>
                     </div>
                     <div class="modal-footer">
                         <a ng-click="setOrientation('done')" ui-turn-off="modalCalibrateDone"
@@ -301,6 +352,7 @@
             </div>
         </div>
     </div>
+<!-- Calibration Failed Modal -->
     <div class="modal" ui-if="modalCalibrateFailed" ui-state="modalCalibrateFailed">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -322,7 +374,7 @@
             </div>
         </div>
     </div>
-
+<!-- Gyro Calibration Modal -->
     <div class="modal" ui-if="modalCalibrateGyros" ui-state="modalCalibrateGyros">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -340,6 +392,96 @@
                         <a ui-turn-off="modalCalibrateGyros" class="btn btn-default">Cancel</a>
                         <a ng-click="calibrateGyros()" ui-turn-off="modalCalibrateGyros"
                            class="btn btn-default btn-primary">Calibrate</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- WiFi Submit Modal -->
+    <div class="modal" ui-if="modalSubmitWiFi" ui-state="modalSubmitWiFi">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalSubmitWiFi"></button>
+                        <h4 class="modal-title">Are you really sure?</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>Do you wish to submit the WiFi cnanges?</p>
+                        <p>Note that the wireless services will reboot immediately and it will stop responding during the reboot</p>
+                        <p>You might have to reselect the new WiFi network if you made changes to the SSID or security.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalSubmitWiFi" ui-turn-on="modalCancelWiFi" class="btn btn-default">Cancel</a>
+                        <a ng-click="updateWiFi()" ui-turn-off="modalSubmitWiFi" ui-turn-on="WiFiRestart" class="btn btn-primary">Submit Changes</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- WiFi Success Modal -->
+    <div class="modal" ui-if="modalSuccessWiFi" ui-state="modalSuccessWiFi">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalSuccessWiFi"></button>
+                        <h4 class="modal-title">Success</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>I am not able to get these values to update after updateWiFi finction but they are being sent back to the server correctly. Something about a $scope.$apply() function and a change outside of the digets. I cannot figure this out<br /> https://stackoverflow.com/questions/30119538/angularjs-ng-bind-not-updating</p>
+                        <p>Your WiFi settings were successful. </p>
+                        <p>WiFi SSID: {{WiFiSSID}}</p>
+                        <p>WiFi Security: {{WiFiSecurityEnabled}}</p>
+                        <p>WiFi Passcode: {{WiFiPasscode}}</p>
+                        <p>WiFi Channel: {{WiFiChannel}}</p>
+                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. You might have to reconnect to your new WiFi SSID.    </p>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalSuccessWiFi" class="btn btn-default">Close</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- WiFi Error Modal -->
+    <div class="modal" ui-if="modalErrorWiFi" ui-state="modalErrorWiFi">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalErrorWiFi"></button>
+                        <h4 class="modal-title">Errors in your WiFi Settings</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div>{{WiFiErrors.WiFiSSID}}</div>
+                        <div>{{WiFiErrors.WiFiPasscode}}</div>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalErrorWiFi" ng-click="resetSettings()" class="btn btn-default">Close</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- WiFi Canceled Modal -->
+    <div class="modal" ui-if="modalCancelWiFi" ui-state="modalCancelWiFi">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalCancelWiFi"></button>
+                        <h4 class="modal-title">WiFi Settings: Canceled</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>WiFi Settings Canceled.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalCancelWiFi" ng-click="resetSettings()" class="btn btn-default btn-primary">OK</a>
                     </div>
                 </div>
             </div>
