@@ -61,7 +61,7 @@
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-7">Network Security</label>
                             <div class="col-xs-5">
-                                <ui-switch ng-model="WiFiSecurityEnabled" settings-change> </ui-switch>
+                                <ui-switch ng-model="WiFiSecurityEnabled" settings-change></ui-switch>
                             </div>
                         </div>
                         <div class="form-group reset-flow">
@@ -103,28 +103,32 @@
                         <form name="modeForm" ng-submit="updatemodes()" novalidate>
                             <!-- type="number" not supported except on mobile -->
                             <!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
-                            <input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
+                            <input class="col-xs-7" type="string" required ng-model="OwnshipModeS"
+                                   placeholder="FAA HEX code" ng-blur="updatemodes()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-5">Watch List</label>
                         <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
                             <!-- type="number" not supported except on mobile -->
-                            <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
+                            <input class="col-xs-7" type="string" required ng-model="WatchList"
+                                   placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-5">PPM Correction</label>
                         <form name="ppmForm" ng-submit="updateppm()" novalidate>
                             <!-- type="number" not supported except on mobile -->
-                            <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
+                            <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer"
+                                   ng-blur="updateppm()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
                         <label class="control-label col-xs-5">Serial Output Baudrate</label>
                         <form name="ppmForm" ng-submit="updateBaud()" novalidate>
                             <!-- type="number" not supported except on mobile -->
-                            <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
+                            <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer"
+                                   ng-blur="updateBaud()" />
                         </form>
                     </div>
                 </div>
@@ -139,7 +143,9 @@
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Static IPs</label>
                             <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
-                                <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+                                <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" "
+                                       ng-trim="false" placeholder="space-delimited ip's to send network data"
+                                       ng-blur="updatestaticips()" />
                             </form>
                         </div>
                     </div>
@@ -219,11 +225,13 @@
                         <span ng-show="update_files == ''">
                             <span style="position:relative; overflow: hidden;">
                                 <span class="fake-btn fake-btn-block">Click to select System Update file</span>
-                                <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
+                                <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file"
+                                       onchange="angular.element(this).scope().setUploadFile(this.files)"/>
                             </span>
                         </span>
                         <span ng-hide="update_files == ''">
-                            <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
+                            <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">
+                                Install {{update_files[0].name}}</button>
                         </span>
                     </div>
                     <div class="form-group reset-flow">
@@ -257,7 +265,8 @@
 <div class="col-sm-12">
     <h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
     <h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
-    <h3 ui-if="WiFiRestart" ui-state="WiFiRestart">Stratux WiFi is Restarting Services.  You may need to reconnect WiFi once services are restored.</h3>
+    <h3 ui-if="WiFiRestart" ui-state="WiFiRestart">Stratux WiFi is Restarting Services.  You may need to reconnect WiFi
+        once services are restored.</h3>
 </div>
 
 <div ui-content-for="modals">
@@ -277,7 +286,8 @@
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalReboot" class="btn btn-default">Cancel</a>
-                        <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting" class="btn btn-primary">Reboot</a>
+                        <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting"
+                           class="btn btn-primary">Reboot</a>
                     </div>
                 </div>
             </div>
@@ -299,7 +309,8 @@
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalShutdown" class="btn btn-default">Cancel</a>
-                        <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown" class="btn btn-primary">Shutdown</a>
+                        <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown"
+                           class="btn btn-primary">Shutdown</a>
                     </div>
                 </div>
             </div>
@@ -408,13 +419,15 @@
                         <h4 class="modal-title">Are you really sure?</h4>
                     </div>
                     <div class="modal-body">
-                        <p>Do you wish to submit the WiFi cnanges?</p>
-                        <p>Note that the wireless services will reboot immediately and it will stop responding during the reboot</p>
+                        <p>Do you wish to submit the WiFi changes?</p>
+                        <p>Note that the wireless services will reboot immediately and
+                            it will stop responding during the reboot</p>
                         <p>You might have to reselect the new WiFi network if you made changes to the SSID or security.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalSubmitWiFi" ui-turn-on="modalCancelWiFi" class="btn btn-default">Cancel</a>
-                        <a ng-click="updateWiFi()" ui-turn-off="modalSubmitWiFi" ui-turn-on="WiFiRestart" class="btn btn-primary">Submit Changes</a>
+                        <a ng-click="updateWiFi()" ui-turn-off="modalSubmitWiFi" ui-turn-on="WiFiRestart"
+                           class="btn btn-primary">Submit Changes</a>
                     </div>
                 </div>
             </div>
@@ -431,13 +444,18 @@
                         <h4 class="modal-title">Success</h4>
                     </div>
                     <div class="modal-body">
-                        <p>I am not able to get these values to update after updateWiFi finction but they are being sent back to the server correctly. Something about a $scope.$apply() function and a change outside of the digets. I cannot figure this out<br /> https://stackoverflow.com/questions/30119538/angularjs-ng-bind-not-updating</p>
+                        <p>I am not able to get these values to update after updateWiFi function but they are being
+                            sent back to the server correctly.
+                            Something about a $scope.$apply() function and a change outside of the digets.
+                            I cannot figure this out<br />
+                            https://stackoverflow.com/questions/30119538/angularjs-ng-bind-not-updating</p>
                         <p>Your WiFi settings were successful. </p>
                         <p>WiFi SSID: {{WiFiSSID}}</p>
                         <p>WiFi Security: {{WiFiSecurityEnabled}}</p>
                         <p>WiFi Passcode: {{WiFiPasscode}}</p>
                         <p>WiFi Channel: {{WiFiChannel}}</p>
-                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. You might have to reconnect to your new WiFi SSID.    </p>
+                        <p>Your Stratux's WiFi services are now restarting to apply the new settings.
+                            You might have to reconnect to your new WiFi SSID.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalSuccessWiFi" class="btn btn-default">Close</a>
