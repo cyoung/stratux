@@ -11,10 +11,6 @@ package main
 
 import "fmt"
 
-func convertFeetToMeters(feet float32) float32 {
-	return feet * 0.3048
-}
-
 func createXPlaneGpsMsg(latDeg float32, lonDeg float32, altMslFt float32) []byte {
 	// example: XGPS1,-122.298432,47.450756,420.9961,349.7547,57.9145
 	// TODO find out what the remaining parameters are for
