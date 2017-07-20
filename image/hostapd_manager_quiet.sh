@@ -4,7 +4,7 @@
 #                   STRATUX QUIET HOSTAPD MANAGE                     #
 ######################################################################
 # This script is almost identical to hostapd_manager.sh except all the
-# screen outputs are supplressed except for error messages. 
+# screen outputs are supplressed except for error messages.
 #
 # Usage:
 # hostapd_manager_quiet.sh -s Stratux-N12345 -p SquawkDirty! -c 5
@@ -127,7 +127,7 @@ while getopts $options option; do
    \?) # invalid option
 	error_exit "Invalid option -$OPTARG"
      ;;
-   :) # Missing Arg 
+   :) # Missing Arg
      error_exit "Missing option for argument -$OPTARG"
      ;;
    *) # Invalid
@@ -221,17 +221,17 @@ do
             sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
             sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
         else
-        	echo "" >> ${i}
-        	echo "#auth_algs=1" >> ${i}
-			echo "#wpa=3" >> ${i}
-			echo "#wpa_passphrase=$defaultPass" >> ${i}
-			echo "#wpa_key_mgmt=WPA-PSK" >> ${i}
+            echo "" >> ${i}
+            echo "#auth_algs=1" >> ${i}
+            echo "#wpa=3" >> ${i}
+            echo "#wpa_passphrase=$defaultPass" >> ${i}
+            echo "#wpa_key_mgmt=WPA-PSK" >> ${i}
             echo "#wpa_pairwise=TKIP" >> ${i}
-			echo "#rsn_pairwise=CCMP" >> ${i}
+            echo "#rsn_pairwise=CCMP" >> ${i}
         fi
     fi
   else
-   	error_exit "No ${i} file found..."
+    error_exit "No ${i} file found..."
   fi
 done
 
