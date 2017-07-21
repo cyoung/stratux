@@ -11,10 +11,12 @@
 DAEMON_USER_PREF=/etc/hostapd/hostapd.user
 
 #Logging Function
+SCRIPT=`basename ${BASH_SOURCE[0]}`
 STX_LOG="/var/log/stratux.log"
 function wLog () {
-	echo "$(date +"%Y/%m/%d %H:%m:%S")  - stratux-wifi.sh - $1" >> $STX_LOG	
+	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> $STX_LOG
 }
+wLog "Running Stratux WiFI Script."
 
 ##### Function for setting up new file structure for hostapd settings
 ##### Look for hostapd.user and if found do nothing.
