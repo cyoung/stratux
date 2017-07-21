@@ -3,13 +3,11 @@
 #                      STRATUX HOSTAPD MANAGER                      #
 ######################################################################
 
-#Set Script Name variable
-SCRIPT=`basename ${BASH_SOURCE[0]}`
-
 #Logging Function
+SCRIPT=`basename ${BASH_SOURCE[0]}`
 STX_LOG="/var/log/stratux.log"
 function wLog () {
-	echo "$(date +"%Y/%m/%d %H:%m:%S")  - hostapd_manager.sh - $1" >> $STX_LOG	
+	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> $STX_LOG
 }
 
 # files to edit
