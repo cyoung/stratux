@@ -28,7 +28,6 @@ cp -f stratux-wifi.sh /usr/sbin/
 
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
-cp -f hostapd_manager_quiet.sh /usr/sbin/
 
 #SDR Serial Script
 cp -f sdr-tool.sh /usr/sbin/

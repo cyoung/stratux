@@ -55,7 +55,6 @@ install:
 	cp -f libdump978.so /usr/lib/libdump978.so
 	cp -f dump1090/dump1090 /usr/bin/
 	cp -f image/hostapd_manager.sh /usr/sbin/
-	cp -f image/hostapd_manager_quiet.sh /usr/sbin/
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:

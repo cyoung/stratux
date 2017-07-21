@@ -164,14 +164,14 @@ while getopts $options option; do
           OPT_E=$defaultPass
 		  echo "${GREEN}     WiFi will be encrypted using ${BOLD}${UNDR}$OPT_E${NORMAL}${GREEN} as the passphrase!${WHITE}${NORMAL}"
       else
-          echo "${BOLD}${RED}$err Option -e does not require arguement.${WHITE}${NORMAL}"
+          echo "${BOLD}${RED}$err Option -e does not require argument.${WHITE}${NORMAL}"
           exit 1
       fi
       ;;
 	p) #set encryption with user specified passphrase
 		if [[ -z "${OPTARG}" || "${OPTARG}" =~ ^[[:space:]]*$ || "${OPTARG}" == -* ]]; then
 			echo "${BOLD}${RED}$err Encryption option(-p) used without passphrase!${WHITE}${NORMAL}"
-			echo "${BOLD}${RED}$err Encryption option(-p) required an arguement \"-p passphrase\" ${WHITE}${NORMAL}"
+			echo "${BOLD}${RED}$err Encryption option(-p) required an argument \"-p passphrase\" ${WHITE}${NORMAL}"
 		else
 			OPT_P=$OPTARG
 		fi
@@ -277,7 +277,7 @@ do
     if [ $OPT_E != false ]; then
     	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$OPT_E ${MAGENTA}to $i...${WHITE}"
         if grep -q "^#auth_algs=" ${i}; then
-        	#echo "uncomenting wpa"
+            #echo "uncommenting wpa"
             sed -i "s/^#auth_algs=.*/auth_algs=1/" ${i}
             sed -i "s/^#wpa=.*/wpa=3/" ${i}
             sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
@@ -306,7 +306,7 @@ do
     if [ $OPT_O != false ]; then
        	echo "${MAGENTA}Removing WPA encryption in $i...${WHITE}"
         if grep -q "^auth_algs=" ${i}; then
-        	#echo "comenting out wpa"
+            #echo "commenting out wpa"
             sed -i "s/^auth_algs=.*/#auth_algs=1/" ${i}
             sed -i "s/^wpa=.*/#wpa=3/" ${i}
             sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
@@ -314,7 +314,7 @@ do
             sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
             sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
         elif grep -q "^#auth_algs=" ${i}; then
-        	#echo "rewriting comentied out wpa"
+            #echo "rewriting commented out wpa"
             sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${i}
             sed -i "s/^#wpa=.*/#wpa=3/" ${i}
             sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}

@@ -2,11 +2,12 @@
 
 echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
+#Logging Function
+SCRIPT=`basename ${BASH_SOURCE[0]}`
 STX_LOG="/var/log/stratux.log"
 function wLog () {
-	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $1" >> ${STX_LOG}
+	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> ${STX_LOG}
 }
-
 wLog "Running Stratux Updater Script."
 
 SCRIPT_MASK="update*stratux*v*.sh"
