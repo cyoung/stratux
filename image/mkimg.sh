@@ -43,8 +43,6 @@ cp -f hostapd-edimax.conf mnt/etc/hostapd/hostapd-edimax.conf
 #hostapd manager script
 cp -f hostapd_manager.sh mnt/usr/sbin/hostapd_manager.sh
 chmod 755 mnt/usr/sbin/hostapd_manager.sh
-cp -f hostapd_manager_quiet.sh mnt/usr/sbin/hostapd_manager_quiet.sh
-chmod 755 mnt/usr/sbin/hostapd_manager_quiet.sh
 #hostapd
 cp -f hostapd-edimax mnt/usr/sbin/hostapd-edimax
 chmod 755 mnt/usr/sbin/hostapd-edimax
