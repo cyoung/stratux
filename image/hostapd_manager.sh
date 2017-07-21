@@ -9,6 +9,7 @@ STX_LOG="/var/log/stratux.log"
 function wLog () {
 	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> $STX_LOG
 }
+wLog "Running Hostapd Manager Script."
 
 # files to edit
 HOSTAPD=('/etc/hostapd/hostapd.user')
