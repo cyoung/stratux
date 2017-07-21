@@ -12,8 +12,7 @@ OPT_C=false
 OPT_E=false
 OPT_O=false
 OPT_P=false
-OPT_Q=false
-defaultPass="SquawkDirtyToMe!"
+wifiPass="SquawkDirtyToMe!"
 
 parm="*"
 err="####"
@@ -42,7 +41,6 @@ function HELP {
   echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e or -p."
   echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}$defaultPass{NORM}. Cannot be used with -o or -p"
   echo "${REV}-p${NORM}  --Turns on encryption with your chosen passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o or -e. \"-p password!\""
-  echo "${REV}-q${NORM}  --Run silently. Still a work in progress, but quieter."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
   echo -e "Example: ${BOLD}$SCRIPT -s Stratux-N3558D -c 5 -p SquawkDirty!${NORM}"\\n
   exit 1
@@ -66,10 +64,10 @@ confirm() {
 function APPLYSETTINGSLOUD {
 	echo "${RED}${BOLD} $att At this time the script will restart your WiFi services.${WHITE}${NORMAL}"
 	echo "If you are connected to Stratux through the ${BOLD}192.168.10.1${NORMAL} interface then you will be disconnected"
-	echo "Please wait 1 min and look for the new SSID on your wireless device."
+	echo "Please wait upto 1 min and look for the new SSID on your wireless device."
 	sleep 3
 	echo "${YELLOW}$att Restarting Stratux WiFi Services... $att ${WHITE}"
-	echo "${YELLOW}$att SSH will now  disconnect if connected to http://192.168.1.10 ... $att ${WHITE}"
+	echo "${YELLOW}$att SSH will now  disconnect if connected to http://192.168.10.1 ... $att ${WHITE}"
 	echo "Killing hostapd..."
 	sleep 2
 	/usr/bin/killall -9 hostapd hostapd-edimax
@@ -91,18 +89,6 @@ function APPLYSETTINGSLOUD {
 	echo ""
 	echo ""
 	echo "All systems should be up and running and you should see your new SSID!"
-}
-
-function APPLYSETTINGSQUIET {
-	sleep 2
-	/usr/bin/killall -9 hostapd hostapd-edimax
-	sleep 1
-	/usr/sbin/service isc-dhcp-server stop
-	sleep 0.5
-	ifdown wlan0
-	sleep 0.5
-	ifup wlan0
-	sleep 0.5
 }
 
 clear
@@ -129,7 +115,7 @@ fi
 #If an option should be followed by an argument, it should be followed by a ":".
 #Notice there is no ":" after "eoqh". The leading ":" suppresses error messages from
 #getopts. This is required to get my unrecognized option code to work.
-options=':s:c:p:eoqh'
+options=':s:c:p:eoh'
 #options=':s:c:h'
 while getopts $options option; do
   case $option in
@@ -161,7 +147,7 @@ while getopts $options option; do
     e)  #set option "e" with default passphrase
 		if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
           echo "$parm Encrypted WiFI Option -e used."
-          OPT_E=$defaultPass
+          OPT_E=$wifiPass
 		  echo "${GREEN}     WiFi will be encrypted using ${BOLD}${UNDR}$OPT_E${NORMAL}${GREEN} as the passphrase!${WHITE}${NORMAL}"
       else
           echo "${BOLD}${RED}$err Option -e does not require arguement.${WHITE}${NORMAL}"
@@ -173,12 +159,14 @@ while getopts $options option; do
 			echo "${BOLD}${RED}$err Encryption option(-p) used without passphrase!${WHITE}${NORMAL}"
 			echo "${BOLD}${RED}$err Encryption option(-p) required an arguement \"-p passphrase\" ${WHITE}${NORMAL}"
 		else
+			OPT_E=$OPTARG
 			OPT_P=$OPTARG
 		fi
 		echo "$parm Encryption option -p used:"
 		if [ -z `echo $OPT_P | tr -d "[:print:]"` ] && [ ${#OPT_P} -ge 8 ]  && [ ${#OPT_P} -le 63 ]; then
 			echo "${GREEN}     WiFi will be encrypted using ${BOLD}${UNDR}$OPT_P${NORMAL}${GREEN} as the passphrase!${WHITE}${NORMAL}"
-			else
+			OPT_P=false
+		else
 			echo  "${BOLD}${RED}$err Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
 		exit 1
 		fi
@@ -192,9 +180,6 @@ while getopts $options option; do
           echo "${BOLD}${RED}$err Option -o does not require arguement.${WHITE}${NORMAL}"
           exit 1
       fi
-      ;;
-    q)	 #set Quiet mode
-		OPT_Q=true
       ;;
     h)  #show help
       HELP
@@ -242,9 +227,7 @@ echo ""
 echo "${BOLD}No errors found. Continuning...${NORMAL}"
 echo ""
 
-if [ $OPT_Q == false ]; then
-	confirm "Are you ready to apply these settings? [y/n]"
-fi
+confirm "Are you ready to apply these settings? [y/n]"
 
 # files to edit
 HOSTAPD=('/etc/hostapd/hostapd.user')
@@ -347,10 +330,6 @@ done
 
 ### Apply Settings and restart all services
 
-if [ $OPT_Q == false ]; then
-	APPLYSETTINGSLOUD
-else
-	APPLYSETTINGSQUIET
-fi
+APPLYSETTINGSLOUD
 
 exit 0
