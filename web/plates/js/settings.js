@@ -1,6 +1,7 @@
 angular.module('appControllers').controller('SettingsCtrl', SettingsCtrl); // get the main module controllers set
 SettingsCtrl.$inject = ['$rootScope', '$scope', '$state', '$location', '$window', '$http']; // Inject my dependencies
 
+
 // create our controller function with all necessary logic
 function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
@@ -39,13 +40,13 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
-        $scope.GLimits = settings.GLimits;
+                $scope.GLimits = settings.GLimits;
 		$scope.StaticIps = settings.StaticIps;
 
-        $scope.WiFiSSID = settings.WiFiSSID;
-        $scope.WiFiPassphrase = settings.WiFiPassphrase;
-        $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
-        $scope.WiFiChannel = settings.WiFiChannel.toString();
+                $scope.WiFiSSID = settings.WiFiSSID;
+                $scope.WiFiPassphrase = settings.WiFiPassphrase;
+                $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
+                $scope.WiFiChannel = settings.WiFiChannel.toString();
 	}
 
 	function getSettings() {
@@ -76,7 +77,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 		});
 	}
-
+        
+        function isValidSSID(str) { return /^[!#;].|[+\[\]/"\t\s].*$/.test(str); }
+        function isValidWPA(str) { return /^[\u0020-\u007e\u00a0-\u00ff]*$/.test(str); }
+        
 	getSettings();
 
     // Reset all settings from a button on the page
@@ -273,39 +277,33 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
             'Errors': false
         };
 
-        if ($scope.WiFiSecurityEnabled) {
-            if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || ($scope.WiFiSSID.length === 0)) {
-                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") Cannot be Blank.";
+        if (($scope.WiFiSSID == undefined) || ($scope.WiFiSSID == null) || ($scope.WiFiSSID.length == 0) || ($scope.WiFiSSID.length > 32) || (isValidSSID($scope.WiFiSSID))) {
+                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 charecter but not more then 32 charecters. It cannot start with: ! , ; , #  or contain:  + , [ , ] , \" , or a tab";
                 $scope.WiFiErrors.Errors = true;
             }
-
-            if ($scope.WiFiPassphrase.length < 8) {
-                if ($scope.WiFiPassphrase.length === 0) {
-                    $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be at least 8 characters long";
-                } else {
-                    $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase + ", must be at least 8 characters long";
-                }
+        if ($scope.WiFiSecurityEnabled) {
+            if (!isValidWPA($scope.WiFiPassphrase)) {
+                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase + ", contains invalid charecters.";
+                $scope.WiFiErrors.Errors = true;
+            }
+            if ($scope.WiFiPassphrase.length < 8 || $scope.WiFiPassphrase.length > 63 ) {
+                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be at between 8 and 63 characters long.";
                 $scope.WiFiErrors.Errors = true;
             }
         }
-
-        $scope.Ui.turnOff("modalSubmitWiFi");
-
         if (!$scope.WiFiErrors.Errors) {
-            var newsettings = {
+            newsettings = {
                 "WiFiSSID" :  $scope.WiFiSSID,
-                "WiFiSecurityEnabled": $scope.WiFiSecurityEnabled,
+                "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
                 "WiFiPassphrase" : $scope.WiFiPassphrase,
                 "WiFiChannel" : parseInt($scope.WiFiChannel)
             };
 
-            // console.log(angular.toJson(newsettings));
-            setSettings(angular.toJson(newsettings));
+            console.log(angular.toJson(newsettings));
             $scope.Ui.turnOn("modalSuccessWiFi");
-
+            setSettings(angular.toJson(newsettings));
         } else {
-
-            $scope.Ui.turnOn("modalErrorWiFi");
+                $scope.Ui.turnOn("modalErrorWiFi");
         }
     };
 }
