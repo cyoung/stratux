@@ -43,9 +43,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.StaticIps = settings.StaticIps;
 
         $scope.WiFiSSID = settings.WiFiSSID;
+        $scope.WiFiPassphrase = settings.WiFiPassphrase;
         $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
-        $scope.WiFiPasscode = settings.WiFiPasscode;
-        $scope.WiFiChannel = settings.WiFiChannel;
+        $scope.WiFiChannel = settings.WiFiChannel.toString();
 	}
 
 	function getSettings() {
@@ -268,23 +268,25 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
     $scope.updateWiFi = function(action) {
         $scope.WiFiErrors = {
-            'WiFiSSID':'',
-            'WiFiPasscode':'',
-            'Errors':false
+            'WiFiSSID': '',
+            'WiFiPassphrase': '',
+            'Errors': false
         };
 
-        if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || ($scope.WiFiSSID.length === 0)) {
-            $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") Cannot be Blank.";
-            $scope.WiFiErrors.Errors = true;
-        }
-
-        if ($scope.WiFiPasscode.length < 8) {
-            if ($scope.WiFiPasscode.length === 0) {
-                $scope.WiFiErrors.WiFiPasscode = "Your WiFi Password must be at least 8 characters long";
-            } else {
-                $scope.WiFiErrors.WiFiPasscode = "Your WiFi Password, " + $scope.WiFiPasscode + ", must be at least 8 characters long";
+        if ($scope.WiFiSecurityEnabled) {
+            if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || ($scope.WiFiSSID.length === 0)) {
+                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") Cannot be Blank.";
+                $scope.WiFiErrors.Errors = true;
             }
-            $scope.WiFiErrors.Errors = true;
+
+            if ($scope.WiFiPassphrase.length < 8) {
+                if ($scope.WiFiPassphrase.length === 0) {
+                    $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be at least 8 characters long";
+                } else {
+                    $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase + ", must be at least 8 characters long";
+                }
+                $scope.WiFiErrors.Errors = true;
+            }
         }
 
         $scope.Ui.turnOff("modalSubmitWiFi");
@@ -292,21 +294,18 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         if (!$scope.WiFiErrors.Errors) {
             var newsettings = {
                 "WiFiSSID" :  $scope.WiFiSSID,
-                "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
-                "WiFiPasscode" : $scope.WiFiPasscode,
-                "WiFiChannel" : $scope.WiFiChannel
+                "WiFiSecurityEnabled": $scope.WiFiSecurityEnabled,
+                "WiFiPassphrase" : $scope.WiFiPassphrase,
+                "WiFiChannel" : parseInt($scope.WiFiChannel)
             };
 
-            console.log(angular.toJson(newsettings));
-            alert("Developers,\nThis is the JSON string\n"+angular.toJson(newsettings)+"\npassed to\n"+URL_SETTINGS_SET+"\n");
+            // console.log(angular.toJson(newsettings));
             setSettings(angular.toJson(newsettings));
             $scope.Ui.turnOn("modalSuccessWiFi");
 
         } else {
 
             $scope.Ui.turnOn("modalErrorWiFi");
-
-            //alert($scope.WiFiErrorMsg);
         }
     };
 }

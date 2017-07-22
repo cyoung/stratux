@@ -49,11 +49,8 @@
         <div class="panel-group col-sm-12">
             <div class="panel panel-default ng-scope">
                 <div class="panel-heading">WiFi Settings</div>
-                <div class="panel-body grayout">
+                <div class="panel-body">
                     <form name="WiFiSettings">
-                        <div class="alert alert-info">
-                            <strong>Notice!</strong> This feature has not been implemented... YET!
-                        </div>
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi SSID</label>
                             <input class="col-xs-7" type="string" ng-model="WiFiSSID" placeholder="WiFi Network Name" />
@@ -65,8 +62,9 @@
                             </div>
                         </div>
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-5">WiFi Passcode</label>
-                            <input class="col-xs-7" type="string" ng-model="WiFiPasscode" placeholder="WiFi Passcode" />
+                            <label class="control-label col-xs-5">WiFi Passphrase</label>
+                            <input class="col-xs-7" type="string" ng-model="WiFiPassphrase"
+                                   ng-disabled="!WiFiSecurityEnabled" placeholder="WiFi Passphrase" />
                         </div>
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-7">WiFi Channel</label>
@@ -82,8 +80,6 @@
                                 <option value="9">9</option>
                                 <option value="10">10</option>
                                 <option value="11">11</option>
-                                <option value="12">12</option>
-                                <option value="13">13</option>
                             </select>
                         </div>
                         <div class="form-group reset-flow">
@@ -207,8 +203,9 @@
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-3">G Limits</label>
-                        <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
+                        <form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
                             <input class="col-xs-9" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
+                                   ng-disabled="!IMU_Sensor_Enabled"
                                    placeholder="Space-separated negative and positive G meter limits"/>
                         </form>
                     </div>
@@ -410,7 +407,7 @@
     </div>
 <!-- WiFi Submit Modal -->
     <div class="modal" ui-if="modalSubmitWiFi" ui-state="modalSubmitWiFi">
-        <div class="modal-overlay "></div>
+        <div class="modal-overlay"></div>
         <div class="vertical-alignment-helper center-block">
             <div class="modal-dialog vertical-align-center">
                 <div class="modal-content">
@@ -422,7 +419,8 @@
                         <p>Do you wish to submit the WiFi changes?</p>
                         <p>Note that the wireless services will reboot immediately and
                             it will stop responding during the reboot</p>
-                        <p>You might have to reselect the new WiFi network if you made changes to the SSID or security.</p>
+                        <p>You might have to reselect the new WiFi network on your device
+                            if you made changes to the SSID or security settings.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalSubmitWiFi" ui-turn-on="modalCancelWiFi" class="btn btn-default">Cancel</a>
@@ -444,16 +442,13 @@
                         <h4 class="modal-title">Success</h4>
                     </div>
                     <div class="modal-body">
-                        <p>I am not able to get these values to update after updateWiFi function but they are being
-                            sent back to the server correctly.
-                            Something about a $scope.$apply() function and a change outside of the digets.
-                            I cannot figure this out<br />
-                            https://stackoverflow.com/questions/30119538/angularjs-ng-bind-not-updating</p>
                         <p>Your WiFi settings were successful. </p>
-                        <p>WiFi SSID: {{WiFiSSID}}</p>
-                        <p>WiFi Security: {{WiFiSecurityEnabled}}</p>
-                        <p>WiFi Passcode: {{WiFiPasscode}}</p>
-                        <p>WiFi Channel: {{WiFiChannel}}</p>
+                        <ul>
+                        <li>WiFi SSID: {{WiFiSSID}}</li>
+                        <li>WiFi Security: {{WiFiSecurityEnabled}}</li>
+                        <li>WiFi Passphrase: {{WiFiPassphrase}}</li>
+                        <li>WiFi Channel: {{WiFiChannel}}</li>
+                        </ul>
                         <p>Your Stratux's WiFi services are now restarting to apply the new settings.
                             You might have to reconnect to your new WiFi SSID.</p>
                     </div>
@@ -476,7 +471,7 @@
                     </div>
                     <div class="modal-body">
                         <div>{{WiFiErrors.WiFiSSID}}</div>
-                        <div>{{WiFiErrors.WiFiPasscode}}</div>
+                        <div>{{WiFiErrors.WiFiPassphrase}}</div>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalErrorWiFi" ng-click="resetSettings()" class="btn btn-default">Close</a>

@@ -238,6 +238,7 @@ func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+	readWiFiUserSettings()
 	settingsJSON, _ := json.Marshal(&globalSettings)
 	fmt.Fprintf(w, "%s\n", settingsJSON)
 }
@@ -256,6 +257,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		// raw, _ := httputil.DumpRequest(r, true)
 		// log.Printf("handleSettingsSetRequest:raw: %s\n", raw)
 
+		var resetWiFi bool
 		decoder := json.NewDecoder(r.Body)
 		for {
 			var msg map[string]interface{} // support arbitrary JSON
@@ -364,15 +366,47 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.StaticIps = ips
+					case "WiFiSSID":
+						globalSettings.WiFiSSID = val.(string)
+						resetWiFi = true
+					case "WiFiChannel":
+						globalSettings.WiFiChannel = int(val.(float64))
+						resetWiFi = true
+					case "WiFiSecurityEnabled":
+						globalSettings.WiFiSecurityEnabled = val.(bool)
+						resetWiFi = true
+					case "WiFiPassphrase":
+						globalSettings.WiFiPassphrase = val.(string)
+						resetWiFi = true
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
 				saveSettings()
+				if resetWiFi {
+					saveWiFiUserSettings()
+					go func() {
+						time.Sleep(time.Second)
+						cmd := exec.Command("ifdown", "wlan0")
+						if err := cmd.Start(); err != nil {
+							log.Printf("Error shutting down WiFi: %s\n", err.Error())
+						}
+						if err = cmd.Wait(); err != nil {
+							log.Printf("Error shutting down WiFi: %s\n", err.Error())
+						}
+						cmd = exec.Command("ifup", "wlan0")
+						if err := cmd.Start(); err != nil {
+							log.Printf("Error starting WiFi: %s\n", err.Error())
+						}
+						if err = cmd.Wait(); err != nil {
+							log.Printf("Error starting WiFi: %s\n", err.Error())
+						}
+					}()
+				}
 			}
 		}
 
-		// while it may be redundent, we return the latest settings
+		// while it may be redundant, we return the latest settings
 		settingsJSON, _ := json.Marshal(&globalSettings)
 		fmt.Fprintf(w, "%s\n", settingsJSON)
 	}
