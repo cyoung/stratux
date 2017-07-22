@@ -40,13 +40,13 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
-                $scope.GLimits = settings.GLimits;
+        $scope.GLimits = settings.GLimits;
 		$scope.StaticIps = settings.StaticIps;
 
-                $scope.WiFiSSID = settings.WiFiSSID;
-                $scope.WiFiPassphrase = settings.WiFiPassphrase;
-                $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
-                $scope.WiFiChannel = settings.WiFiChannel.toString();
+        $scope.WiFiSSID = settings.WiFiSSID;
+        $scope.WiFiPassphrase = settings.WiFiPassphrase;
+        $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
+        $scope.WiFiChannel = settings.WiFiChannel.toString();
 	}
 
 	function getSettings() {
@@ -77,10 +77,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 		});
 	}
-        
-        function isValidSSID(str) { return /^[!#;].|[+\[\]/"\t\s].*$/.test(str); }
-        function isValidWPA(str) { return /^[\u0020-\u007e\u00a0-\u00ff]*$/.test(str); }
-        
+
 	getSettings();
 
     // Reset all settings from a button on the page
@@ -277,13 +274,21 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
             'Errors': false
         };
 
-        if (($scope.WiFiSSID == undefined) || ($scope.WiFiSSID == null) || ($scope.WiFiSSID.length == 0) || ($scope.WiFiSSID.length > 32) || (isValidSSID($scope.WiFiSSID))) {
-                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 charecter but not more then 32 charecters. It cannot start with: ! , ; , #  or contain:  + , [ , ] , \" , or a tab";
+        function isValidSSID(str) { return /^[!#;].|[+\[\]/"\t\s].*$/.test(str); }
+        function isValidWPA(str) { return /^[\u0020-\u007e\u00a0-\u00ff]*$/.test(str); }
+
+        if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || ($scope.WiFiSSID.length === 0) ||
+            ($scope.WiFiSSID.length > 32) || (isValidSSID($scope.WiFiSSID))) {
+                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 character " +
+                    "but not more then 32 characters." +
+                    "It cannot start with: ! , ; , #  or contain:  + , [ , ] , \" , or a tab";
                 $scope.WiFiErrors.Errors = true;
             }
+
         if ($scope.WiFiSecurityEnabled) {
             if (!isValidWPA($scope.WiFiPassphrase)) {
-                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase + ", contains invalid charecters.";
+                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase +
+                    ", contains invalid characters.";
                 $scope.WiFiErrors.Errors = true;
             }
             if ($scope.WiFiPassphrase.length < 8 || $scope.WiFiPassphrase.length > 63 ) {
@@ -291,19 +296,20 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
                 $scope.WiFiErrors.Errors = true;
             }
         }
+
         if (!$scope.WiFiErrors.Errors) {
-            newsettings = {
+            var newsettings = {
                 "WiFiSSID" :  $scope.WiFiSSID,
                 "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
                 "WiFiPassphrase" : $scope.WiFiPassphrase,
                 "WiFiChannel" : parseInt($scope.WiFiChannel)
             };
 
-            console.log(angular.toJson(newsettings));
-            $scope.Ui.turnOn("modalSuccessWiFi");
+            // console.log(angular.toJson(newsettings));
             setSettings(angular.toJson(newsettings));
+            $scope.Ui.turnOn("modalSuccessWiFi");
         } else {
-                $scope.Ui.turnOn("modalErrorWiFi");
+            $scope.Ui.turnOn("modalErrorWiFi");
         }
     };
 }

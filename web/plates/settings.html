@@ -64,7 +64,8 @@
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi Passphrase</label>
                             <input class="col-xs-7" type="string" ng-model="WiFiPassphrase"
-                                   ng-disabled="!WiFiSecurityEnabled" placeholder="WiFi Passphrase" />
+                                   ng-disabled="!WiFiSecurityEnabled" ng-class="{grayout: !WiFiSecurityEnabled}"
+                                   placeholder="WiFi Passphrase" />
                         </div>
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-7">WiFi Channel</label>
@@ -205,7 +206,7 @@
                         <label class="control-label col-xs-3">G Limits</label>
                         <form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
                             <input class="col-xs-9" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
-                                   ng-disabled="!IMU_Sensor_Enabled"
+                                   ng-disabled="!IMU_Sensor_Enabled" ng-class="{grayout: !IMU_Sensor_Enabled}"
                                    placeholder="Space-separated negative and positive G meter limits"/>
                         </form>
                     </div>
@@ -420,7 +421,7 @@
                         <p>WiFi Security: <b>{{WiFiSecurityEnabled}}</b></p>
                         <p>WiFi Passphrase: <b>{{WiFiPassphrase}}</b></p>
                         <p>WiFi Channel: <b>{{WiFiChannel}}</b></p>
-                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. This could take up to 30 seconds<br />
+                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. This could take up to 30 seconds.<br/>
                            You might have to reconnect to your new WiFi SSID. </p>
                     </div>
                     <div class="modal-footer">
