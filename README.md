@@ -28,6 +28,8 @@ Tested weather/traffic displays:
 * ForeFlight 7+ - weather, traffic. AHRS not functional.
 * Avare
 
+Other EFBs? See the [app vendor integration guide](https://github.com/cyoung/stratux/blob/master/notes/app-vendor-integration.md).
+
 Dangerzone builds (AHRS display):
 * ForeFlight 7+ - weather, traffic, AHRS.
 
