@@ -11,11 +11,13 @@ package main
 
 import "fmt"
 
-func createXPlaneGpsMsg(latDeg float32, lonDeg float32, altMslFt float32) []byte {
+func convertKnotsToXPlaneSpeed(knots float32) float32 {
+	return knots / 1.945
+}
+
+func createXPlaneGpsMsg(latDeg float32, lonDeg float32, altMslFt float32, trackDeg float32, speedKt float32) []byte {
 	// example: XGPS1,-122.298432,47.450756,420.9961,349.7547,57.9145
-	// TODO find out what the remaining parameters are for
-	// could be: track (in degrees), speed (in ?)
-	return []byte(fmt.Sprintf("XGPS1,%.6f,%.6f,%.4f,%.4f,%.4f", lonDeg, latDeg, convertFeetToMeters(altMslFt), 0.0, 0.0))
+	return []byte(fmt.Sprintf("XGPS1,%.6f,%.6f,%.4f,%.4f,%.4f", lonDeg, latDeg, convertFeetToMeters(altMslFt), trackDeg, convertKnotsToXPlaneSpeed(speedKt)))
 }
 
 func createXPlaneAttitudeMsg(headingDeg float32, pitchDeg float32, rollDeg float32) []byte {

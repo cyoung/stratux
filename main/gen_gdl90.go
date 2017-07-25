@@ -430,7 +430,7 @@ func makeOwnshipReport() bool {
 	}
 
 	sendGDL90(prepareMessage(msg), false)
-	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL), false)
+	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL, groundTrack, float32(gdSpeed)), false)
 
 	return true
 }
