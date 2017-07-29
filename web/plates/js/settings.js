@@ -46,7 +46,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.WiFiSSID = settings.WiFiSSID;
         $scope.WiFiPassphrase = settings.WiFiPassphrase;
         $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
-        $scope.WiFiChannel = settings.WiFiChannel.toString();
+        $scope.WiFiChannel = settings.WiFiChannel;
+
+        $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 	}
 
 	function getSettings() {
@@ -274,14 +276,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
             'Errors': false
         };
 
-        function isValidSSID(str) { return /^[!#;].|[+\[\]/"\t\s].*$/.test(str); }
-        function isValidWPA(str) { return /^[\u0020-\u007e\u00a0-\u00ff]*$/.test(str); }
-
-        if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || ($scope.WiFiSSID.length === 0) ||
-            ($scope.WiFiSSID.length > 32) || (isValidSSID($scope.WiFiSSID))) {
+        if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || !isValidSSID($scope.WiFiSSID)) {
                 $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 character " +
-                    "but not more then 32 characters." +
-                    "It cannot start with: ! , ; , #  or contain:  + , [ , ] , \" , or a tab";
+                    "but not more than 32 characters. It can only contain a-z, A-Z, 0-9, _ or -.";
                 $scope.WiFiErrors.Errors = true;
             }
 
@@ -292,7 +289,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
                 $scope.WiFiErrors.Errors = true;
             }
             if ($scope.WiFiPassphrase.length < 8 || $scope.WiFiPassphrase.length > 63 ) {
-                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be at between 8 and 63 characters long.";
+                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be between 8 and 63 characters long.";
                 $scope.WiFiErrors.Errors = true;
             }
         }
@@ -313,3 +310,114 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         }
     };
 }
+
+function isValidSSID(str) { return /^[a-zA-Z0-9()_-]{1,32}$/.test(str); }
+function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/.test(str); }
+
+angular.module('appControllers')
+    .directive('hexInput', function() { // directive for ownship hex code validation
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function hexValidation(value) {
+                    var valid = /^$|^[0-9A-Fa-f]{6}$/.test(value);
+                    ctrl.$setValidity('FAAHex', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(hexValidation);
+            }
+        };
+    })
+    .directive('watchlistInput', function() { // directive for ICAO space-separated watch list validation
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function watchListValidation(value) {
+                    // The list of METAR locations at http://www.aviationweather.gov/docs/metar/stations.txt
+                    // lists only 4-letter/number ICAO codes.
+                    var valid = /^([A-Za-z0-9]{4}( [A-Za-z0-9]{4})*|)$/.test(value);
+                    ctrl.$setValidity('ICAOWatchList', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(watchListValidation);
+            }
+        };
+    })
+    .directive('ssidInput', function() { // directive for WiFi SSID validation
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function ssidValidation(value) {
+                    var valid = isValidSSID(value);
+                    ctrl.$setValidity('ssid', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(ssidValidation);
+            }
+        };
+    })
+    .directive('wpaInput', function() { // directive for WiFi WPA Passphrase validation
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function wpaValidation(value) {
+                    var valid = isValidWPA(value);
+                    ctrl.$setValidity('wpaPassphrase', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(wpaValidation);
+            }
+        };
+    })
+    .directive('ipListInput', function() { // directive for validation of list of IP addresses
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function ipListValidation(value) {
+                    var r = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
+                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$")).test(value);
+                    ctrl.$setValidity('ipList', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(ipListValidation);
+            }
+        };
+    })
+    .directive('gLimitsInput', function() { // directive for validation of list of G Limits
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function gLimitsValidation(value) {
+                    var r = "[-+]?[0-9]*\.?[0-9]+";
+                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$")).test(value);
+                    ctrl.$setValidity('gLimits', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(gLimitsValidation);
+            }
+        };
+    });
