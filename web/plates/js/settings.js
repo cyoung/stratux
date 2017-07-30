@@ -311,8 +311,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
     };
 }
 
-function isValidSSID(str) { return /^[a-zA-Z0-9()_-]{1,32}$/.test(str); }
-function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/.test(str); }
+function isValidSSID(str) { return /^[a-zA-Z0-9()_-]{1,32}$/g.test(str); }
+function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/g.test(str); }
 
 angular.module('appControllers')
     .directive('hexInput', function() { // directive for ownship hex code validation
@@ -339,7 +339,8 @@ angular.module('appControllers')
                 function watchListValidation(value) {
                     // The list of METAR locations at http://www.aviationweather.gov/docs/metar/stations.txt
                     // lists only 4-letter/number ICAO codes.
-                    var valid = /^([A-Za-z0-9]{4}( [A-Za-z0-9]{4})*|)$/.test(value);
+                    var r = "[A-Za-z0-9]{4}";
+                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('ICAOWatchList', valid);
                     if (valid) {
                         return value;
@@ -391,7 +392,7 @@ angular.module('appControllers')
             link: function(scope, element, attr, ctrl) {
                 function ipListValidation(value) {
                     var r = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
-                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$")).test(value);
+                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('ipList', valid);
                     if (valid) {
                         return value;
@@ -409,7 +410,7 @@ angular.module('appControllers')
             link: function(scope, element, attr, ctrl) {
                 function gLimitsValidation(value) {
                     var r = "[-+]?[0-9]*\.?[0-9]+";
-                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$")).test(value);
+                    var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('gLimits', valid);
                     if (valid) {
                         return value;
