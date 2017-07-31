@@ -367,7 +367,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 						globalSettings.StaticIps = ips
 					case "WiFiSSID":
-						globalSettings.WiFiSSID = val.(string)
+						ssidStr := val.(string)
+						// Verify SSID format
+						re := regexp.MustCompile(`^[a-zA-Z0-9()_\- ]{1,32}$`)
+						if !re.MatchString(ssidStr) {
+							log.Printf("handleSettingsSetRequest:WiFiSSID Error: %s\n", ssidStr)
+							continue
+						}
+						globalSettings.WiFiSSID = ssidStr
 						resetWiFi = true
 					case "WiFiChannel":
 						globalSettings.WiFiChannel = int(val.(float64))
@@ -376,7 +383,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.WiFiSecurityEnabled = val.(bool)
 						resetWiFi = true
 					case "WiFiPassphrase":
-						globalSettings.WiFiPassphrase = val.(string)
+						passphraseStr := val.(string)
+						// Verify WPA passphrase format
+						re := regexp.MustCompile(`^[\x20-\x7e]{8,63}$`)
+						if !re.MatchString(passphraseStr) {
+							log.Printf("handleSettingsSetRequest:WiFiPassphrase Error: %s\n", passphraseStr)
+							continue
+						}
+						globalSettings.WiFiPassphrase = passphraseStr
 						resetWiFi = true
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
