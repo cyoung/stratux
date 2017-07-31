@@ -278,7 +278,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
         if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || !isValidSSID($scope.WiFiSSID)) {
                 $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 character " +
-                    "but not more than 32 characters. It can only contain a-z, A-Z, 0-9, _ or -.";
+                    "but not more than 32 characters. It can only contain a-z, A-Z, 0-9, (, ), _, - or {space}.";
                 $scope.WiFiErrors.Errors = true;
             }
 
@@ -311,7 +311,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
     };
 }
 
-function isValidSSID(str) { return /^[a-zA-Z0-9()_-]{1,32}$/g.test(str); }
+function isValidSSID(str) { return /^[a-zA-Z0-9()_\- ]{1,32}$/g.test(str); }
 function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/g.test(str); }
 
 angular.module('appControllers')
