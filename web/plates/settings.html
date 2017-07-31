@@ -74,7 +74,8 @@
                                     ng-model="WiFiChannel" ng-options="x for x in Channels"></select>
                         </div>
                         <div class="form-group reset-flow">
-                            <button class="btn btn-primary btn-block" ng-click="updateWiFi()">Submit WiFi Changes</button>
+                            <button class="btn btn-primary btn-block" ng-disabled="WiFiSettings.$invalid"
+                                    ng-click="updateWiFi()">Submit WiFi Changes</button>
                         </div>
                     </form>
                 </div>
