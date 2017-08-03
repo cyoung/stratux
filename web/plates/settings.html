@@ -119,24 +119,6 @@
                 </div>
             </div>
         </div>
-<!-- Developer Options -->
-        <div ng-show="DeveloperMode" class="panel-group col-sm-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">Developer Options</div>
-                <div class="panel-body">
-                    <div class="col-xs-12">
-                        <div class="form-group reset-flow">
-                            <label class="control-label col-xs-5">Static IPs</label>
-                            <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
-                                <input class="col-xs-7" type="text" ip-list-input ng-model="StaticIps" ng-list=" "
-                                       ng-trim="false" placeholder="space-delimited ip's to send network data"
-                                       ng-blur="updatestaticips()" />
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 <!-- End Left Col -->
 <!-- Begin Right Col -->
@@ -229,6 +211,24 @@
                     <div class="form-group reset-flow">
                         <div class="col-xs-12">
                             <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- Developer Options -->
+        <div ng-show="DeveloperMode" class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Developer Options</div>
+                <div class="panel-body">
+                    <div class="col-xs-12">
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Static IPs</label>
+                            <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
+                                <input class="col-xs-7" type="text" ip-list-input ng-model="StaticIps" ng-list=" "
+                                       ng-trim="false" placeholder="space-delimited ip's to send network data"
+                                       ng-blur="updatestaticips()" />
+                            </form>
                         </div>
                     </div>
                 </div>
