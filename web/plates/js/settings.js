@@ -156,7 +156,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
             newsettings = {
                 "GLimits": settings["GLimits"]
             };
-            console.log(angular.toJson(newsettings));
+            // console.log(angular.toJson(newsettings));
             setSettings(angular.toJson(newsettings));
         }
     };
@@ -228,22 +228,29 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.setOrientation = function(action) {
-		console.log("sending " + action + " message.");
+		// console.log("sending " + action + " message.");
 		$http.post(URL_AHRS_ORIENT, action).
 		then(function (response) {
-			console.log("sent " + action + " message.");
+			// console.log("sent " + action + " message.");
 		}, function(response) {
 			// failure: cancel the calibration
-			console.log(response.data);
+			// console.log(response.data);
 			$scope.Orientation_Failure_Message = response.data;
-			switch (action) {
-				case "forward":
-					$scope.Ui.turnOff("modalCalibrateUp");
-					break;
-				case "up":
-					$scope.Ui.turnOff('modalCalibrateDone');
-			}
+			$scope.Ui.turnOff('modalCalibrateDone');
 			$scope.Ui.turnOn("modalCalibrateFailed");
 		});
 	};
+
+	$scope.calibrateGyros = function() {
+	    console.log("sending calibrate message.");
+	    $http.post(URL_AHRS_CAL).
+            then(function(response) {
+                console.log("Sent calibrate message.");
+        }, function(response) {
+                console.log(response.data);
+                $scope.Calibration_Failure_Message = response.data;
+                $scope.Ui.turnOff("modalCalibrateGyros");
+                $scope.Ui.turnOn("modalCalibrateGyrosFailed");
+        });
+    };
 }

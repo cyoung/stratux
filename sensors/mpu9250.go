@@ -2,9 +2,6 @@
 package sensors
 
 import (
-	"log"
-	"time"
-
 	"../goflying/mpu9250"
 )
 
@@ -29,21 +26,16 @@ func NewMPU9250() (*MPU9250, error) {
 		err error
 	)
 
-	log.Println("AHRS Info: Making new MPU9250")
 	mpu, err = mpu9250.NewMPU9250(gyroRange, accelRange, updateFreq, true, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set Gyro (Accel) LPFs to 20 (21) Hz to filter out prop/glareshield vibrations above 1200 (1260) RPM
-	log.Println("AHRS Info: Setting MPU9250 LPF")
 	mpu.SetGyroLPF(21)
 	mpu.SetAccelLPF(21)
-	time.Sleep(100 * time.Millisecond)
 
 	m.mpu = mpu
-
-	log.Println("AHRS Info: monitoring IMU")
 	return &m, nil
 }
 

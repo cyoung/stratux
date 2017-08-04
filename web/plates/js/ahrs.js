@@ -3,7 +3,7 @@ function AHRSRenderer(locationId) {
 	this.height = -1;
 
     this.locationId = locationId;
-	this.canvas = document.getElementById(locationId);
+	this.canvas = document.getElementById(this.locationId);
     this.resize();
 
     // State variables
@@ -13,7 +13,7 @@ function AHRSRenderer(locationId) {
     this.slipSkid = 0;
     this.altitude = 0;
 
-    var display = SVG(locationId).viewbox(-200, -200, 400, 400).group();
+    var display = SVG(this.locationId).viewbox(-200, -200, 400, 400).group();
 
     this.ai = display.group().addClass('ai');
 
@@ -26,26 +26,24 @@ function AHRSRenderer(locationId) {
     this.ai = this.ai.clipWith(screenClip).group();
 
     // card is the earth+sky+pitch marks, moves with both pitch and roll.
+    this.pitchScale = 0.5;
     this.card = this.ai.group();
     this.card.circle(2400).cx(0).cy(0).addClass('sky'); // Sky
     this.card.line(-1200, 0, 1200, 0).addClass('marks'); // Horizon line
     this.card.circle(2400).cx(0).cy(0).addClass('earth').clipWith(earthClip); // Earth
 
     var pitchMarks = this.card.group().addClass('marks').clipWith(this.pitchClip);
-    for (i = -1050; i <= 1050; i+=25) {
-        switch (i%100) {
-            case 0:
-                pitchMarks.line(-40, i, 40, i);
-                if (i !== 0) {
-                    pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(i).addClass('markText');
-                    pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(i).addClass('markText');
-                }
-                break;
-            case 50:
-                pitchMarks.line(-20, i, 20, i);
-                break;
-            default:
-                pitchMarks.line(-10, i, 10, i);
+    var y;
+    for (var i = -1050; i <= 1050; i+=50) {
+        y = i * this.pitchScale;
+        if (i%100 === 0) {
+            pitchMarks.line(-30, y, 30, y);
+            if (i !== 0) {
+                pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(y).addClass('markText');
+                pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(y).addClass('markText');
+            }
+        } else {
+            pitchMarks.line(-15, y, 15, y);
         }
     }
 
@@ -119,10 +117,10 @@ AHRSRenderer.prototype = {
 		    this.slipSkid = +10;
         }
 
-        this.pitchClip.translate(0, -10 * this.pitch);
+        this.pitchClip.translate(0, -10 * this.pitch * this.pitchScale);
         this.rollClip.rotate(this.roll, 0, 0);
-        this.card.rotate(0, 0, 0).translate(0, 10 * this.pitch);
-        this.card.rotate(-this.roll, 0, -10 * this.pitch);
+        this.card.rotate(0, 0, 0).translate(0, 10 * this.pitch * this.pitchScale);
+        this.card.rotate(-this.roll, 0, -10 * this.pitch * this.pitchScale);
         this.rollMarks.rotate(-this.roll, 0, 0);
         this.headingMarks.translate(-2 * (this.heading % 360), 0);
         this.skidBar.translate(-2 * this.slipSkid, 0);
@@ -157,7 +155,7 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     this.height = -1;
 
     this.locationId = locationId;
-    this.canvas = document.getElementById(locationId);
+    this.canvas = document.getElementById(this.locationId);
     this.resize();
 
     // State variables
@@ -166,7 +164,7 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     this.max = 1;
 
     // Draw the G Meter using the svg.js library
-    var gMeter = SVG(locationId).viewbox(-200, -200, 400, 400).group().addClass('gMeter');
+    var gMeter = SVG(this.locationId).viewbox(-200, -200, 400, 400).group().addClass('gMeter');
 
     var el, card = gMeter.group().addClass('card');
     card.circle(390).cx(0).cy(0);

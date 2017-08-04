@@ -1,26 +1,29 @@
 // application constants
-var URL_HOST_BASE 		= window.location.hostname;
-var URL_SETTINGS_GET 	= "http://"	+ URL_HOST_BASE + "/getSettings";
-var URL_SETTINGS_SET 	= "http://"	+ URL_HOST_BASE + "/setSettings";
-var URL_GPS_WS			= "ws://"	+ URL_HOST_BASE + "/situation";
-var URL_TOWERS_GET 		= "http://"	+ URL_HOST_BASE + "/getTowers";
-var URL_STATUS_GET 		= "http://"	+ URL_HOST_BASE + "/getStatus";
-var URL_SATELLITES_GET	= "http://"	+ URL_HOST_BASE + "/getSatellites";
-var URL_STATUS_WS 		= "ws://"	+ URL_HOST_BASE + "/status";
-var URL_TRAFFIC_WS 		= "ws://"	+ URL_HOST_BASE + "/traffic";
-var URL_WEATHER_WS 		= "ws://"	+ URL_HOST_BASE + "/weather";
-var URL_DEVELOPER_GET   = "ws://"   + URL_HOST_BASE + "/developer";
-var URL_UPDATE_UPLOAD	= "http://" + URL_HOST_BASE + "/updateUpload";
-var URL_REBOOT			= "http://" + URL_HOST_BASE + "/reboot";
-var URL_SHUTDOWN		= "http://" + URL_HOST_BASE + "/shutdown";
-var URL_RESTARTAPP      = "http://" + URL_HOST_BASE + "/restart";
-var URL_DEV_TOGGLE_GET  = "http://" + URL_HOST_BASE + "/develmodetoggle";
-var URL_AHRS_ORIENT     = "http://" + URL_HOST_BASE + "/orientAHRS";
-var URL_AHRS_CAGE       = "http://" + URL_HOST_BASE + "/cageAHRS";
-var URL_GMETER_RESET    = "http://" + URL_HOST_BASE + "/resetGMeter";
-var URL_DELETELOGFILE   = "http://" + URL_HOST_BASE + "/deletelogfile";
-var URL_DOWNLOADLOGFILE = "http://" + URL_HOST_BASE + "/downloadlog";
-var URL_DOWNLOADDB      = "http://" + URL_HOST_BASE + "/downloaddb";
+var URL_HOST_BASE            = window.location.hostname;
+var URL_SETTINGS_GET         = "http://" + URL_HOST_BASE + "/getSettings";
+var URL_SETTINGS_SET         = "http://" + URL_HOST_BASE + "/setSettings";
+var URL_GPS_WS               = "ws://"   + URL_HOST_BASE + "/situation";
+var URL_TOWERS_GET           = "http://" + URL_HOST_BASE + "/getTowers";
+var URL_STATUS_GET           = "http://" + URL_HOST_BASE + "/getStatus";
+var URL_SATELLITES_GET       = "http://" + URL_HOST_BASE + "/getSatellites";
+var URL_STATUS_WS            = "ws://"   + URL_HOST_BASE + "/status";
+var URL_TRAFFIC_WS           = "ws://"   + URL_HOST_BASE + "/traffic";
+var URL_WEATHER_WS           = "ws://"   + URL_HOST_BASE + "/weather";
+var URL_DEVELOPER_GET        = "ws://"   + URL_HOST_BASE + "/developer";
+var URL_UPDATE_UPLOAD        = "http://" + URL_HOST_BASE + "/updateUpload";
+var URL_REBOOT               = "http://" + URL_HOST_BASE + "/reboot";
+var URL_SHUTDOWN             = "http://" + URL_HOST_BASE + "/shutdown";
+var URL_RESTARTAPP           = "http://" + URL_HOST_BASE + "/restart";
+var URL_DEV_TOGGLE_GET       = "http://" + URL_HOST_BASE + "/develmodetoggle";
+var URL_AHRS_ORIENT          = "http://" + URL_HOST_BASE + "/orientAHRS";
+var URL_AHRS_CAL             = "http://" + URL_HOST_BASE + "/calibrateAHRS";
+var URL_AHRS_CAGE            = "http://" + URL_HOST_BASE + "/cageAHRS";
+var URL_GMETER_RESET         = "http://" + URL_HOST_BASE + "/resetGMeter";
+var URL_DELETELOGFILE        = "http://" + URL_HOST_BASE + "/deletelogfile";
+var URL_DOWNLOADLOGFILE      = "http://" + URL_HOST_BASE + "/downloadlog";
+var URL_DELETEAHRSLOGFILES   = "http://" + URL_HOST_BASE + "/deleteahrslogfiles";
+var URL_DOWNLOADAHRSLOGFILES = "http://" + URL_HOST_BASE + "/downloadahrslogs";
+var URL_DOWNLOADDB           = "http://" + URL_HOST_BASE + "/downloaddb";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
@@ -91,7 +94,7 @@ app.controller('MainCtrl', function ($scope, $http) {
 	// any logic global logic
     $http.get(URL_SETTINGS_GET)
     .then(function(response) {
-			settings = angular.fromJson(response.data);
+			var settings = angular.fromJson(response.data);
             $scope.DeveloperMode = settings.DeveloperMode;
     }, function(response) {
         //Second function handles error

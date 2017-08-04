@@ -26,6 +26,8 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"archive/zip"
+	"path/filepath"
 )
 
 type SettingMessage struct {
@@ -387,8 +389,26 @@ func doReboot() {
 }
 
 func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleDeleteLogFile called!!!\n")
+	log.Println("handleDeleteLogFile called!!!")
 	clearDebugLogFile()
+}
+
+func handleDeleteAHRSLogFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error deleting AHRS logs: %s", err), http.StatusNotFound)
+		return
+	}
+
+	var fn string
+	for _, f := range files {
+		fn = f.Name()
+		if v, _ := filepath.Match("sensors_*.csv", fn) ; v {
+			os.Remove("/var/log/" + fn)
+			log.Printf("Deleting AHRS log file %s\n", fn)
+		}
+		analysisLogger = nil
+	}
 }
 
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
@@ -410,8 +430,6 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	go delayReboot()
 }
 
-var f int // We need this to be global to handle successive calls to handleOrientAHRS.
-
 func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	// define header in support of cross-domain AJAX
 	setNoCache(w)
@@ -425,7 +443,6 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		var (
 			action []byte = make([]byte, 1)
-			u      int
 			err    error
 		)
 
@@ -436,38 +453,22 @@ func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
 
 		switch action[0] {
 		case 'f': // Set sensor "forward" direction (toward nose of airplane).
-			if f, err = getMinAccelDirection(); err != nil {
+			f, err := getMinAccelDirection()
+			if err != nil {
 				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
 				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
 				return
 			}
-			log.Printf("AHRS Info: sensor orientation: received forward direction %d\n", f)
-		case 'u': // Set sensor "up" direction (toward top of airplane).
-			if u, err = getMinAccelDirection(); err != nil {
-				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
-				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
-				return
-			}
-			log.Printf("AHRS Info: sensor orientation: received up direction %d\n", u)
-
-			if f == u || f == -u {
-				log.Printf("AHRS Error: sensor orientation: up (%d) and forward (%d) axes cannot be the same\n", u, f)
-				http.Error(w, fmt.Sprintf("up (%d) and forward (%d) axes cannot be the same", u, f),
-					http.StatusBadRequest)
-				return
-			}
-
-			globalSettings.IMUMapping = [2]int{f, u}
+			log.Printf("AHRS Info: sensor orientation success! forward axis is %d\n", f)
+			globalSettings.IMUMapping = [2]int{f, 0}
+		case 'd': // Set sensor "up" direction (toward top of airplane).
+			globalSettings.SensorQuaternion = [4]float64{0, 0, 0, 0}
 			saveSettings()
 			myIMUReader.Close()
 			globalStatus.IMUConnected = false // restart the processes depending on the orientation
-			CageAHRS()
-			log.Printf("AHRS Info: sensor orientation success! forward: %d; up: %d\n", f, u)
-		default: // Cancel the sensor calibration.
-			f = 0
-			log.Println("AHRS Info: sensor orientation: canceled")
+			ResetAHRSGLoad()
+			time.Sleep(2000 * time.Millisecond)
 		}
-
 	}
 }
 
@@ -483,6 +484,21 @@ func handleCageAHRS(w http.ResponseWriter, r *http.Request) {
 	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
 	if r.Method == "POST" {
 		CageAHRS()
+	}
+}
+
+func handleCalibrateAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CalibrateAHRS()
 	}
 }
 
@@ -528,13 +544,63 @@ func delayReboot() {
 }
 
 func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
 	http.ServeFile(w, r, "/var/log/stratux.log")
 }
 
+func handleDownloadAHRSLogsRequest(w http.ResponseWriter, r *http.Request) {
+	// Common error handler
+	httpErr := func(w http.ResponseWriter, e error) {
+		http.Error(w, fmt.Sprintf("error zipping AHRS logs: %s", e), http.StatusNotFound)
+	}
+
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		httpErr(w, err)
+		return
+	}
+
+	z := zip.NewWriter(w)
+	defer z.Close()
+
+	for _, f := range files {
+		fn := f.Name()
+		v1, _ := filepath.Match("sensors_*.csv", fn)
+		v2, _ := filepath.Match("stratux.log", fn)
+		if !(v1 || v2) {
+			continue
+		}
+
+		unzippedFile, err := os.Open("/var/log/" + fn)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		fh, err := zip.FileInfoHeader(f)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+		zippedFile, err := z.CreateHeader(fh)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		_, err = io.Copy(zippedFile, unzippedFile)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"ahrs_logs.zip\"")
+}
+
 func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
 	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
@@ -747,13 +813,14 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
-
 	http.HandleFunc("/orientAHRS", handleOrientAHRS)
+	http.HandleFunc("/calibrateAHRS", handleCalibrateAHRS)
 	http.HandleFunc("/cageAHRS", handleCageAHRS)
 	http.HandleFunc("/resetGMeter", handleResetGMeter)
-
 	http.HandleFunc("/deletelogfile", handleDeleteLogFile)
 	http.HandleFunc("/downloadlog", handleDownloadLogRequest)
+	http.HandleFunc("/deleteahrslogfiles", handleDeleteAHRSLogFiles)
+	http.HandleFunc("/downloadahrslogs", handleDownloadAHRSLogsRequest)
 	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
 
 	err := http.ListenAndServe(managementAddr, nil)
