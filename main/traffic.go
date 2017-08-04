@@ -154,6 +154,14 @@ var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 var OwnshipTrafficInfo TrafficInfo
 
+func convertFeetToMeters(feet float32) float32 {
+	return feet * 0.3048
+}
+
+func convertMetersToFeet(meters float32) float32 {
+	return meters / 0.3048
+}
+
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
 		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
