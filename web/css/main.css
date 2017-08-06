@@ -11,6 +11,12 @@
     background-color: #ffffff;
 }
 
+button.btn-error[disabled] {
+	color: #333;
+	background-color: pink;
+	border-color: #fc0;
+}
+
 .vertical-alignment-helper {
 	display:table;
 	height: 100%;

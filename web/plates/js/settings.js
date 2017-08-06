@@ -47,6 +47,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.WiFiPassphrase = settings.WiFiPassphrase;
         $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
         $scope.WiFiChannel = settings.WiFiChannel;
+        $scope.WiFiButtonOKText = "Submit WiFi Changes";
+        $scope.WiFiButtonSSIDLengthText = "SSID must be 1-32 characters long";
+        $scope.WiFiButtonSSIDCharText = "SSID can contain only A-Z, a-z, 0-9, ()_- or {space}";
+        $scope.WiFiButtonWPALengthText = "Passphrase must be 8-63 characters long";
+        $scope.WiFiButtonWPACharText = "Passphrase contains invalid characters";
+        $scope.WiFiButtonText = $scope.WiFiButtonOKText;
+        $scope.WiFiButtonNormalStyle = {"font-size": "14px"};
+        $scope.WiFiButtonSmallStyle = {"font-size": "11px"};
 
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 	}
@@ -157,7 +165,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.updatestaticips = function () {
 		if ($scope.StaticIps !== settings.StaticIps) {
 			var newsettings = {
-				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
+				"StaticIps": $scope.StaticIps === undefined ? "" : $scope.StaticIps.join(' ')
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
@@ -258,68 +266,87 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
     };
 
     $scope.calibrateGyros = function() {
-        console.log("sending calibrate message.");
+        // console.log("sending calibrate message.");
         $http.post(URL_AHRS_CAL).then(function (response) {
-            console.log("Sent calibrate message.");
+            // console.log("Sent calibrate message.");
         }, function (response) {
-            console.log(response.data);
+            // console.log(response.data);
             $scope.Calibration_Failure_Message = response.data;
             $scope.Ui.turnOff("modalCalibrateGyros");
             $scope.Ui.turnOn("modalCalibrateGyrosFailed");
         });
     };
 
-    $scope.updateWiFi = function(action) {
-        $scope.WiFiErrors = {
-            'WiFiSSID': '',
-            'WiFiPassphrase': '',
-            'Errors': false
-        };
+    $scope.ssidValid = isValidSSID($scope.WiFiSSID);
+    $scope.wpaValid = isValidWPA($scope.WiFiPassphrase);
 
-        if (($scope.WiFiSSID === undefined) || ($scope.WiFiSSID === null) || !isValidSSID($scope.WiFiSSID)) {
-                $scope.WiFiErrors.WiFiSSID = "Your Network Name(\"SSID\") must be at least 1 character " +
-                    "but not more than 32 characters. It can only contain a-z, A-Z, 0-9, (, ), _, - or {space}.";
-                $scope.WiFiErrors.Errors = true;
-            }
+    $scope.updateWiFiErrorState = function(ssid, passphrase) {
+        $scope.WiFiButtonText = $scope.WiFiButtonOKText;
+        $scope.WiFiButtonStyle = $scope.WiFiButtonNormalStyle;
+
+        $scope.ssidValid = isValidSSID(ssid);
+        $scope.WiFiSettings.$setValidity('ssid', $scope.ssidValid);
 
         if ($scope.WiFiSecurityEnabled) {
-            if (!isValidWPA($scope.WiFiPassphrase)) {
-                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password, " + $scope.WiFiPassphrase +
-                    ", contains invalid characters.";
-                $scope.WiFiErrors.Errors = true;
-            }
-            if ($scope.WiFiPassphrase.length < 8 || $scope.WiFiPassphrase.length > 63 ) {
-                $scope.WiFiErrors.WiFiPassphrase = "Your WiFi Password must be between 8 and 63 characters long.";
-                $scope.WiFiErrors.Errors = true;
+            $scope.wpaValid = isValidWPA(passphrase);
+        } else {
+            $scope.wpaValid = true;
+        }
+        $scope.WiFiSettings.$setValidity('wpaPassphrase', $scope.wpaValid);
+
+        if (!$scope.wpaValid) {
+            if ((typeof passphrase === 'undefined') || (passphrase === null) ||
+                (passphrase.length < 8) || (passphrase.length > 63)) {
+                $scope.WiFiButtonText = $scope.WiFiButtonWPALengthText;
+            } else {
+                $scope.WiFiButtonText = $scope.WiFiButtonWPACharText;
             }
         }
 
-        if (!$scope.WiFiErrors.Errors) {
-            var newsettings = {
-                "WiFiSSID" :  $scope.WiFiSSID,
-                "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
-                "WiFiPassphrase" : $scope.WiFiPassphrase,
-                "WiFiChannel" : parseInt($scope.WiFiChannel)
-            };
-
-            // console.log(angular.toJson(newsettings));
-            setSettings(angular.toJson(newsettings));
-            $scope.Ui.turnOn("modalSuccessWiFi");
-        } else {
-            $scope.Ui.turnOn("modalErrorWiFi");
+        if (!$scope.ssidValid) {
+            if ((typeof ssid === 'undefined') || (ssid === null) ||
+                (ssid.length < 1) || (ssid.length > 32)) {
+                $scope.WiFiButtonText = $scope.WiFiButtonSSIDLengthText;
+            } else {
+                $scope.WiFiButtonText = $scope.WiFiButtonSSIDCharText;
+                $scope.WiFiButtonStyle = $scope.WiFiButtonSmallStyle;
+            }
         }
     };
+
+    $scope.$watch(function() { return $scope.WiFiSecurityEnabled; }, function(value) {
+        $scope.updateWiFiErrorState($scope.WiFiSSID, $scope.WiFiPassphrase);
+        return value;
+    });
+
+    $scope.updateWiFi = function() {
+        var newSettings = {
+            "WiFiSSID" :  $scope.WiFiSSID,
+            "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
+            "WiFiPassphrase" : $scope.WiFiPassphrase,
+            "WiFiChannel" : parseInt($scope.WiFiChannel)
+        };
+
+        setSettings(angular.toJson(newSettings));
+        $scope.Ui.turnOn("modalSuccessWiFi");
+    }
 }
 
-function isValidSSID(str) { return /^[a-zA-Z0-9()_\- ]{1,32}$/g.test(str); }
-function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/g.test(str); }
+function isValidSSID(ssid) {
+    if (typeof ssid === 'undefined') { return false; }
+    return /^[a-zA-Z0-9()_\- ]{1,32}$/g.test(ssid);
+}
+function isValidWPA(passphrase) {
+    if (typeof passphrase === 'undefined') { return false; }
+    return /^[\u0020-\u007e]{8,63}$/g.test(passphrase);
+}
 
 angular.module('appControllers')
     .directive('hexInput', function() { // directive for ownship hex code validation
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function hexValidation(value) {
+                ctrl.$parsers.push(function(value) {
                     var valid = /^$|^[0-9A-Fa-f]{6}$/.test(value);
                     ctrl.$setValidity('FAAHex', valid);
                     if (valid) {
@@ -327,8 +354,7 @@ angular.module('appControllers')
                     } else {
                         return "";
                     }
-                }
-                ctrl.$parsers.push(hexValidation);
+                })
             }
         };
     })
@@ -336,7 +362,7 @@ angular.module('appControllers')
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function watchListValidation(value) {
+                ctrl.$parsers.push(function(value) {
                     // The list of METAR locations at http://www.aviationweather.gov/docs/metar/stations.txt
                     // lists only 4-letter/number ICAO codes.
                     var r = "[A-Za-z0-9]{4}";
@@ -347,8 +373,7 @@ angular.module('appControllers')
                     } else {
                         return "";
                     }
-                }
-                ctrl.$parsers.push(watchListValidation);
+                })
             }
         };
     })
@@ -356,16 +381,10 @@ angular.module('appControllers')
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function ssidValidation(value) {
-                    var valid = isValidSSID(value);
-                    ctrl.$setValidity('ssid', valid);
-                    if (valid) {
-                        return value;
-                    } else {
-                        return "";
-                    }
-                }
-                ctrl.$parsers.push(ssidValidation);
+                ctrl.$parsers.push(function(value) {
+                    scope.updateWiFiErrorState(value, scope.WiFiPassphrase);
+                    return value;
+                })
             }
         };
     })
@@ -373,16 +392,10 @@ angular.module('appControllers')
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function wpaValidation(value) {
-                    var valid = isValidWPA(value);
-                    ctrl.$setValidity('wpaPassphrase', valid);
-                    if (valid) {
-                        return value;
-                    } else {
-                        return "";
-                    }
-                }
-                ctrl.$parsers.push(wpaValidation);
+                ctrl.$parsers.push(function(value) {
+                    scope.updateWiFiErrorState(scope.WiFiSSID, value);
+                    return value;
+                })
             }
         };
     })
@@ -390,7 +403,7 @@ angular.module('appControllers')
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function ipListValidation(value) {
+                ctrl.$parsers.push(function(value) {
                     var r = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
                     var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('ipList', valid);
@@ -399,8 +412,7 @@ angular.module('appControllers')
                     } else {
                         return "";
                     }
-                }
-                ctrl.$parsers.push(ipListValidation);
+                })
             }
         };
     })
@@ -408,7 +420,7 @@ angular.module('appControllers')
         return {
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
-                function gLimitsValidation(value) {
+                ctrl.$parsers.push(function(value) {
                     var r = "[-+]?[0-9]*\.?[0-9]+";
                     var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('gLimits', valid);
@@ -417,8 +429,7 @@ angular.module('appControllers')
                     } else {
                         return "";
                     }
-                }
-                ctrl.$parsers.push(gLimitsValidation);
+                })
             }
         };
     });
