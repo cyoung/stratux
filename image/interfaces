@@ -12,6 +12,11 @@ iface wlan0 inet static
   netmask 255.255.255.0
   post-up /usr/sbin/stratux-wifi.sh
 
+auto eth0:0
+iface eth0:0 inet static
+  address 192.168.10.1
+  netmask 255.255.255.0
+
 #####################################################################
 ##               Custom settings not for novice users!!!!!!  
 ##               Modify at your own risk!!!!!!!!!!!!!!!!!!!
