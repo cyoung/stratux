@@ -471,6 +471,8 @@ func sdrWatcher() {
 	prevUATEnabled := false
 	prevESEnabled := false
 
+	time.Sleep(90 * time.Second)
+
 	for {
 		time.Sleep(1 * time.Second)
 		if sdrShutdown {
