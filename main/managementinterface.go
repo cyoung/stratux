@@ -188,6 +188,22 @@ func handleSituationWS(conn *websocket.Conn) {
 
 }
 
+// AJAX call - /getAll. Responds with current global status, situation, settings
+// a webservice call for the same data available on the individual requests but all together
+func handleGetAllRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	setJSONHeaders(w)
+	out := map[string]interface{}{}
+	statusJSON, _ := json.Marshal(&globalStatus)
+	json.Unmarshal(statusJSON, &out)
+	situationJSON, _ := json.Marshal(&mySituation)
+	json.Unmarshal(situationJSON, &out)
+	settingsJSON, _ := json.Marshal(&globalSettings)
+	json.Unmarshal(settingsJSON, &out)
+	allJSON, _ := json.Marshal(&out)
+	fmt.Fprintf(w, "%s\n", allJSON)
+}
+
 // AJAX call - /getStatus. Responds with current global status
 // a webservice call for the same data available on the websocket but when only a single update is needed
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
@@ -848,6 +864,7 @@ func managementInterface() {
 			s.ServeHTTP(w, req)
 		})
 
+	http.HandleFunc("/getAll", handleGetAllRequest)
 	http.HandleFunc("/getStatus", handleStatusRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
