@@ -625,14 +625,13 @@ func networkStatsCounter() {
 
 /*
 	ffMonitor().
-		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
-
+		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp" UDP messages broadcasted on
+		 port 50113. If received, updates the pingResponse map with the time the packet was received.
+		 This is used as an extra validation of client availability.
 */
 
 func ffMonitor() {
-	ff_warned := false // Has a warning been issued via globalStatus.Errors?
-
+	// Listen for Foreflight heartbeat packets
 	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
@@ -663,14 +662,12 @@ func ffMonitor() {
 			netMutex.Unlock()
 			continue
 		}
-		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
-			p.FFCrippled = true
-			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
-			if !ff_warned {
-				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
-				addSystemError(e)
-				ff_warned = true
+		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") {
+			// Client is indicating that it can received GDL90 packets, update the pingResponse map to note that the client is active
+			if globalSettings.DEBUG {
+				log.Printf("ffMonitor(): received Foreflight heartbeat from client: %s\n", ip)
 			}
+			pingResponse[ip] = stratuxClock.Time
 		}
 		outSockets[ffIpAndPort] = p
 		netMutex.Unlock()
@@ -691,4 +688,5 @@ func initNetwork() {
 	go networkStatsCounter()
 	go serialOutWatcher()
 	go networkOutWatcher()
+	go ffMonitor()
 }
