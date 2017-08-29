@@ -10,11 +10,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"github.com/tarm/serial"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 	"io/ioutil"
 	"log"
 	"math"
@@ -25,6 +21,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mostlygeek/arp"
+	"github.com/tarm/serial"
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 type networkMessage struct {
@@ -151,13 +152,29 @@ func getDHCPLeases() (map[string]string, error) {
 */
 func isSleeping(k string) bool {
 	ipAndPort := strings.Split(k, ":")
-	// No ping response. Assume disconnected/sleeping device.
-	if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
-		return true
-	}
+
+	// If the client has sent us an ICMP Unreachable packet in the past 5 seconds, immediately return true (client is sleeping)
 	if stratuxClock.Since(outSockets[k].LastUnreachable) < (5 * time.Second) {
 		return true
 	}
+
+	if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
+		// No ping response for at least 10 seconds, check to see if the device has a MAC address in our ARP table.  If it does, the device is still on the network but not responding to ICMP
+		if mac := arp.Search(ipAndPort[0]); mac == "00:00:00:00:00:00" {
+			// Client has no MAC address in our ARP table.  Return true (client is definitely sleeping)
+			return true
+		}
+		// Client has a MAC address in our ARP table (60 second expiration).
+		// If the last successful ICMP reply was > 30 seconds ago, mark the client asleep.
+		// iOS devices will still respond to ARP while asleep, but sometimes drop ICMP packets.
+		// Due to that reason, we cannot use ARP alone to determine device state.
+		// Older iOS devices may drop ICMP packets while awake and EFB is active due to hardware performance
+		// The 30 second "second chance" provides some grace period for those older devices.
+		if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (30*time.Second) {
+			return true
+		}
+	}
+	// Client is connected and not sleeping
 	return false
 }
 
@@ -183,6 +200,18 @@ func sendToAllConnectedClients(msg networkMessage) {
 	defer netMutex.Unlock()
 	for k, netconn := range outSockets {
 		sleepFlag := isSleeping(k)
+
+		if netconn.SleepFlag != sleepFlag {
+			// Connection is transitioning states, log the transition
+			state := "sleep"
+			if !sleepFlag {
+				state = "connected"
+			}
+
+			if globalSettings.DEBUG {
+				log.Printf("%s:%d - Client transitioning to %s state\n", netconn.Ip, netconn.Port, state)
+			}
+		}
 
 		netconn.SleepFlag = sleepFlag
 		outSockets[k] = netconn
