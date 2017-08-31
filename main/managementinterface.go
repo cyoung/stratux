@@ -188,6 +188,22 @@ func handleSituationWS(conn *websocket.Conn) {
 
 }
 
+// AJAX call - /getAll. Responds with current global status, situation, settings
+// a webservice call for the same data available on the individual requests but all together
+func handleGetAllRequest(w http.ResponseWriter, r *http.Request) {
+	setNoCache(w)
+	setJSONHeaders(w)
+	out := map[string]interface{}{}
+	statusJSON, _ := json.Marshal(&globalStatus)
+	json.Unmarshal(statusJSON, &out)
+	situationJSON, _ := json.Marshal(&mySituation)
+	json.Unmarshal(situationJSON, &out)
+	settingsJSON, _ := json.Marshal(&globalSettings)
+	json.Unmarshal(settingsJSON, &out)
+	allJSON, _ := json.Marshal(&out)
+	fmt.Fprintf(w, "%s\n", allJSON)
+}
+
 // AJAX call - /getStatus. Responds with current global status
 // a webservice call for the same data available on the websocket but when only a single update is needed
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
@@ -238,6 +254,7 @@ func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+	readWiFiUserSettings()
 	settingsJSON, _ := json.Marshal(&globalSettings)
 	fmt.Fprintf(w, "%s\n", settingsJSON)
 }
@@ -256,6 +273,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		// raw, _ := httputil.DumpRequest(r, true)
 		// log.Printf("handleSettingsSetRequest:raw: %s\n", raw)
 
+		var resetWiFi bool
 		decoder := json.NewDecoder(r.Body)
 		for {
 			var msg map[string]interface{} // support arbitrary JSON
@@ -364,15 +382,61 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.StaticIps = ips
+					case "WiFiSSID":
+						ssidStr := val.(string)
+						// Verify SSID format
+						re := regexp.MustCompile(`^[a-zA-Z0-9()_\- ]{1,32}$`)
+						if !re.MatchString(ssidStr) {
+							log.Printf("handleSettingsSetRequest:WiFiSSID Error: %s\n", ssidStr)
+							continue
+						}
+						globalSettings.WiFiSSID = ssidStr
+						resetWiFi = true
+					case "WiFiChannel":
+						globalSettings.WiFiChannel = int(val.(float64))
+						resetWiFi = true
+					case "WiFiSecurityEnabled":
+						globalSettings.WiFiSecurityEnabled = val.(bool)
+						resetWiFi = true
+					case "WiFiPassphrase":
+						passphraseStr := val.(string)
+						// Verify WPA passphrase format
+						re := regexp.MustCompile(`^[\x20-\x7e]{8,63}$`)
+						if !re.MatchString(passphraseStr) {
+							log.Printf("handleSettingsSetRequest:WiFiPassphrase Error: %s\n", passphraseStr)
+							continue
+						}
+						globalSettings.WiFiPassphrase = passphraseStr
+						resetWiFi = true
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
 				saveSettings()
+				if resetWiFi {
+					saveWiFiUserSettings()
+					go func() {
+						time.Sleep(time.Second)
+						cmd := exec.Command("ifdown", "wlan0")
+						if err := cmd.Start(); err != nil {
+							log.Printf("Error shutting down WiFi: %s\n", err.Error())
+						}
+						if err = cmd.Wait(); err != nil {
+							log.Printf("Error shutting down WiFi: %s\n", err.Error())
+						}
+						cmd = exec.Command("ifup", "wlan0")
+						if err := cmd.Start(); err != nil {
+							log.Printf("Error starting WiFi: %s\n", err.Error())
+						}
+						if err = cmd.Wait(); err != nil {
+							log.Printf("Error starting WiFi: %s\n", err.Error())
+						}
+					}()
+				}
 			}
 		}
 
-		// while it may be redundent, we return the latest settings
+		// while it may be redundant, we return the latest settings
 		settingsJSON, _ := json.Marshal(&globalSettings)
 		fmt.Fprintf(w, "%s\n", settingsJSON)
 	}
@@ -800,6 +864,7 @@ func managementInterface() {
 			s.ServeHTTP(w, req)
 		})
 
+	http.HandleFunc("/getAll", handleGetAllRequest)
 	http.HandleFunc("/getStatus", handleStatusRequest)
 	http.HandleFunc("/getSituation", handleSituationRequest)
 	http.HandleFunc("/getTowers", handleTowersRequest)
