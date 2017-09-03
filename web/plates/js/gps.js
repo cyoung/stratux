@@ -1,6 +1,9 @@
 angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main module controllers set
 GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
+const MSG_GROUND_TEST = "GROUND TEST MODE - GPS REQUIRED\nDO NOT USE IN FLIGHT",
+    MSG_LEVELING = "Calibrating. Fly straight and do not move sensor.";
+
 // create our controller function with all necessary logic
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     $scope.$parent.helppage = 'plates/gps-help.html';
@@ -116,14 +119,19 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.SolutionText = solutionText;
 
         $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
+        var msg_ix = ahrs.messages.indexOf(MSG_GROUND_TEST);
+        if (msg_ix < 0 && $scope.gps_horizontal_accuracy >= 30) {
+            ahrs.messages.push(MSG_GROUND_TEST);
+        } else if (msg_ix >= 0 && $scope.gps_horizontal_accuracy < 30) {
+            ahrs.messages.splice(msg_ix, 1);
+        }
+
         if ($scope.gps_horizontal_accuracy > 19999) {
             $scope.gps_horizontal_accuracy = "\u221e";
             $scope.gps_lat = "--";
             $scope.gps_lon = "--";
-            $scope.gps_alt = "--";
             $scope.gps_track = "--";
             $scope.gps_speed = "--";
-            $scope.gps_vert_speed = "--";
             $scope.map_opacity = 0.2;
             $scope.map_mark_opacity = 0;
         } else {
@@ -133,6 +141,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.gps_vertical_accuracy = (situation.GPSVerticalAccuracy*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
         if ($scope.gps_vertical_accuracy > 9999) {
             $scope.gps_vertical_accuracy = "\u221e";
+            $scope.gps_alt = "--";
+            $scope.gps_vert_speed = "--";
         }
 
 
@@ -199,7 +209,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
             if ($scope.ahrs_gload > 360) {
                 $scope.ahrs_gload = "--";
-            } else {
+            } else if (gMeter !== undefined) {
                 gMeter.update(situation.AHRSGLoad, situation.AHRSGLoadMin, situation.AHRSGLoadMax);
             }
 
@@ -241,13 +251,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
         }
-        if (situation.AHRSStatus & 0x10) {
-            statusLog.classList.remove("off");
-            statusLog.classList.add("on");
-        } else {
-            statusLog.classList.add("off");
-            statusLog.classList.remove("on");
-        }
         if (situation.AHRSStatus & 0x08) {
             statusCal.classList.add("blink");
             statusCal.classList.remove("on");
@@ -257,7 +260,22 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusCal.classList.add("on");
             statusCal.innerText = "Ready";
         }
-        // "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
+        if (situation.AHRSStatus & 0x10) {
+            statusLog.classList.remove("off");
+            statusLog.classList.add("on");
+        } else {
+            statusLog.classList.add("off");
+            statusLog.classList.remove("on");
+        }
+
+        var msg_ix = ahrs.messages.indexOf(MSG_LEVELING);
+        if (statusCal.innerText === "Caging" && msg_ix < 0) {
+            ahrs.messages.push(MSG_LEVELING);
+            ahrs.turn_off();
+        } else if (statusCal.innerText !== "Caging" && msg_ix >= 0) {
+            ahrs.messages.splice(ahrs.messages.indexOf(MSG_LEVELING), 1);
+            ahrs.turn_on();
+        }
 
         setGeoReferenceMap(situation.GPSLatitude, situation.GPSLongitude);
     }
@@ -342,6 +360,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
     // GPS/AHRS Controller tasks go here
     var ahrs = new AHRSRenderer("ahrs_display");
+    ahrs.turn_on();
 
     $scope.hideClick = function() {
         $scope.isHidden = !$scope.isHidden;
@@ -360,23 +379,13 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     $scope.AHRSCage = function() {
-        if (!$scope.IsCaging()) {
+        if (statusCal.innerText !== "Caging") {
             $http.post(URL_AHRS_CAGE).then(function (response) {
                 // do nothing
             }, function (response) {
                 // do nothing
             });
         }
-    };
-
-    $scope.IsCaging = function() {
-        var caging = statusCal.innerText === "Caging";
-        if (caging) {
-            ahrs.turn_off("Calibrating. Fly straight and do not move sensor.");
-        } else {
-            ahrs.turn_on();
-        }
-        return caging;
     };
 
     $scope.GMeterReset = function() {
