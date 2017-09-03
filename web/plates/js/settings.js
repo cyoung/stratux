@@ -252,13 +252,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.setOrientation = function(action) {
-		// console.log("sending " + action + " message.");
 		$http.post(URL_AHRS_ORIENT, action).
 		then(function (response) {
-			// console.log("sent " + action + " message.");
 		}, function(response) {
-			// failure: cancel the calibration
-			// console.log(response.data);
+			// failure: cancel the orientation procedure.
 			$scope.Orientation_Failure_Message = response.data;
 			$scope.Ui.turnOff('modalCalibrateDone');
 			$scope.Ui.turnOn("modalCalibrateFailed");
@@ -266,11 +263,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
     };
 
     $scope.calibrateGyros = function() {
-        // console.log("sending calibrate message.");
         $http.post(URL_AHRS_CAL).then(function (response) {
-            // console.log("Sent calibrate message.");
         }, function (response) {
-            // console.log(response.data);
             $scope.Calibration_Failure_Message = response.data;
             $scope.Ui.turnOff("modalCalibrateGyros");
             $scope.Ui.turnOn("modalCalibrateGyrosFailed");
