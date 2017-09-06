@@ -22,13 +22,13 @@ const (
 )
 
 var (
-	i2cbus                     embd.I2CBus
-	myPressureReader           sensors.PressureReader
-	myIMUReader                sensors.IMUReader
-	cal                        chan (string)
-	analysisLogger             *ahrs.AHRSLogger
-	ahrsCalibrating            bool
-	logMap                     map[string]interface{}
+	i2cbus           embd.I2CBus
+	myPressureReader sensors.PressureReader
+	myIMUReader      sensors.IMUReader
+	cal              chan (string)
+	analysisLogger   *ahrs.AHRSLogger
+	ahrsCalibrating  bool
+	logMap           map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -165,7 +165,7 @@ func sensorAttitudeSender() {
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
 		// Set sensor gyro calibrations
-		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0] + d[1]*d[1] + d[2]*d[2] > 0 {
+		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0]+d[1]*d[1]+d[2]*d[2] > 0 {
 			s.SetCalibrations(c, d)
 			log.Printf("AHRS Info: IMU Calibrations read from settings: accel %6f %6f %6f; gyro %6f %6f %6f\n",
 				c[0], c[1], c[2], d[0], d[1], d[2])
@@ -178,7 +178,7 @@ func sensorAttitudeSender() {
 		}
 
 		// Set sensor quaternion
-		if f := &globalSettings.SensorQuaternion; f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0 {
+		if f := &globalSettings.SensorQuaternion; f[0]*f[0]+f[1]*f[1]+f[2]*f[2]+f[3]*f[3] > 0 {
 			s.SetSensorQuaternion(f)
 		} else {
 			select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
@@ -271,6 +271,9 @@ func sensorAttitudeSender() {
 				} else {
 					m.W3 = float64(mySituation.GPSVerticalSpeed) * 3600 / 6076.12
 				}
+			} else {
+				addSystemError(fmt.Errorf("GPS is required for AHRS"))
+				log.Println("AHRS Error: GPS is required for AHRS")
 			}
 
 			// Run the AHRS calculations.
