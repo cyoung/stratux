@@ -56,6 +56,7 @@ function mac-ssid {
 		grep -v "^ssid=" $DAEMON_USER_PREF >${DAEMON_USER_PREF}.tmp
 		echo "ssid=merlin-${MAC}" >>${DAEMON_USER_PREF}.tmp
 		mv -f ${DAEMON_USER_PREF}.tmp ${DAEMON_USER_PREF}
+		touch /etc/Merlin
 	fi
 }
 
