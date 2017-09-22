@@ -188,7 +188,7 @@ func sendTrafficUpdates() {
 	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
-			dist, bearing := distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+			dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
 			ti.Bearing = bearing
 			ti.BearingDist_valid = true
@@ -223,7 +223,7 @@ func sendTrafficUpdates() {
 				if globalSettings.DEBUG {
 					log.Printf("Ownship target detected for code %X\n", code)
 				}
-				OwnshipTrafficInfo = ti
+				//				OwnshipTrafficInfo = ti
 			} else {
 				cur_n := len(msgs) - 1
 				if len(msgs[cur_n]) >= 35 {
@@ -259,6 +259,10 @@ func registerTrafficUpdate(ti TrafficInfo) {
 func isTrafficAlertable(ti TrafficInfo) bool {
 	// Set alert bit if possible and traffic is within some threshold
 	// TODO: Could be more intelligent, taking into account headings etc.
+	if !ti.BearingDist_valid {
+		// If not able to calculate the distance to the target, let the alert bit be set always.
+		return true
+	}
 	if ti.BearingDist_valid &&
 		ti.Distance < 3704 { // 3704 meters, 2 nm.
 		return true
@@ -589,6 +593,9 @@ func parseDownlinkReport(s string, signalLevel int) {
 	if ti.Position_valid {
 		ti.Lat = lat
 		ti.Lng = lng
+		if isGPSValid() {
+			ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
 	}
@@ -868,7 +875,7 @@ func esListen() {
 					ti.Lat = lat
 					ti.Lng = lng
 					if isGPSValid() {
-						ti.Distance, ti.Bearing = distance(float64(mySituation.Lat), float64(mySituation.Lng), float64(ti.Lat), float64(ti.Lng))
+						ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 						ti.BearingDist_valid = true
 					}
 					ti.Position_valid = true
@@ -1073,8 +1080,8 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	lat := 43.99
 	lng := -88.56
 	if isGPSValid() {
-		lat = float64(mySituation.Lat)
-		lng = float64(mySituation.Lng)
+		lat = float64(mySituation.GPSLatitude)
+		lng = float64(mySituation.GPSLongitude)
 	}
 	traffRelLat := y / 60
 	traffRelLng := -x / (60 * math.Cos(lat*math.Pi/180.0))
@@ -1108,7 +1115,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
-	ti.Alt = int32(mySituation.Alt + relAlt)
+	ti.Alt = int32(mySituation.GPSAltitudeMSL + relAlt)
 	ti.Track = uint16(hdg)
 	ti.Speed = uint16(gs)
 	if hdg >= 240 && hdg < 270 {

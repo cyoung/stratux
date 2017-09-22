@@ -1,353 +1,250 @@
-function ahrsRenderer(location_id) {
-	this.gcontext = {}; // globals
-	this.gl = null;
-
+function AHRSRenderer(locationId) {
 	this.width = -1;
 	this.height = -1;
 
-	this.locationID = location_id;
-	this.canvas = document.getElementById(location_id);
-	this.canvas_container = document.getElementById(location_id).parentElement;
+    this.locationId = locationId;
+	this.canvas = document.getElementById(this.locationId);
+    this.resize();
+
+    // State variables
+    this.pitch = 0;
+    this.roll = 0;
+    this.heading = 0;
+    this.slipSkid = 0;
+    this.altitude = 0;
+
+    var display = SVG(this.locationId).viewbox(-200, -200, 400, 400).group();
+
+    this.ai = display.group().addClass('ai');
+
+    var defs = this.ai.defs(),
+        earthClip = defs.rect(2400, 1200).x(-1200).y(0),
+        screenClip = defs.rect(400, 400).cx(0).cy(0);
+    this.pitchClip = defs.circle(320).cx(0).cy(0);
+    this.rollClip = defs.polygon('0,0 -200,-200 200,-200');
+
+    this.ai = this.ai.clipWith(screenClip).group();
+
+    // card is the earth+sky+pitch marks, moves with both pitch and roll.
+    this.pitchScale = 0.5;
+    this.card = this.ai.group();
+    this.card.circle(2400).cx(0).cy(0).addClass('sky'); // Sky
+    this.card.line(-1200, 0, 1200, 0).addClass('marks'); // Horizon line
+    this.card.circle(2400).cx(0).cy(0).addClass('earth').clipWith(earthClip); // Earth
+
+    var pitchMarks = this.card.group().addClass('marks').clipWith(this.pitchClip);
+    var y;
+    for (var i = -1050; i <= 1050; i+=50) {
+        y = i * this.pitchScale;
+        if (i%100 === 0) {
+            pitchMarks.line(-30, y, 30, y);
+            if (i !== 0) {
+                pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(y).addClass('markText');
+                pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(+55).cy(y).addClass('markText');
+            }
+        } else {
+            pitchMarks.line(-15, y, 15, y);
+        }
+    }
+
+    this.rollMarks = this.ai.group().addClass('marks').clipWith(this.rollClip);
+    for (i=-180; i<180; i+=10) {
+        if (i === 0) {
+            this.rollMarks.polygon('-10,-189 0,-175 10,-189').style('stroke-width', 0);
+        }
+        else if (i % 30 === 0) {
+            this.rollMarks.line(0, -175, 0, -195).rotate(i, 0, 0);
+        } else {
+            this.rollMarks.line(0, -175, 0, -189).rotate(i, 0, 0);
+        }
+    }
+
+    var rollPointer = this.ai.group().addClass('marks');
+    rollPointer.polygon('-10,-160 0,-174 10,-160').style('stroke-width', 0);
+    rollPointer.polygon('-10,+160 0,+174 10,+160').style('stroke-width', 0);
+    this.skidBar = this.ai.rect(20, 6).cx(0).y(-158).style('stroke-width', 0).addClass('marks');
+
+    var pointer = this.ai.group().addClass('pointer');
+    pointer.polygon('-150,-3 -78,-3 -75,0 -78,3 -150,3');
+    pointer.polygon('+150,-3 +78,-3 +75,0 +78,3 +150,3');
+    pointer.polygon('-75,25 0,0 75,25 25,25 25,20 -25,20 -25,25').addClass('pointerBG');
+    pointer.polygon('-75,25 0,0 75,25 0,10');
+    pointer.line(0, 0, 0, 10);
+
+    this.headingMarks = this.ai.group().addClass('marks');
+    for (i=-200; i<=920; i+=20) {
+        if (i%60 === 0) {
+            this.headingMarks.line(i, 175, i, 178);
+            this.headingMarks.text(((i<0 ? (i/2+360) : i/2)%360).toString()).x(i).cy(185).addClass('markText');
+            this.headingMarks.line(i, 192, i, 195);
+        } else {
+            this.headingMarks.line(i, 175, i, 195).style('stroke-width', 1);
+        }
+    }
+
+    this.err = display.group().addClass('error').group();
+    this.err.rect(400, 400).cx(0).cy(0);
+    this.err.line(-200, -200, 200, +200);
+    this.err.line(-200, +200, 200, -200);
+    this.errText = this.err.text("").cx(0).cy(0).addClass('errText');
+    var tb = this.errText.bbox();
+    this.errTextBg = this.err.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.errText);
 }
 
-ahrsRenderer.prototype = {
-	constructor: ahrsRenderer,
+AHRSRenderer.prototype = {
+	constructor: AHRSRenderer,
 
-	_init_canvas: function () {
-		var gl = initWebGL(this.locationID);
-		if (!gl)
-			return;
-		this.gl = gl;
+    resize: function () {
+        var canvasWidth = this.canvas.parentElement.offsetWidth - 12;
 
-		vertex_shader = ' \
-uniform mat4 u_modelViewProjMatrix; \
-uniform mat4 u_normalMatrix; \
-uniform vec3 lightDir; \
-attribute vec3 vNormal; \
-attribute vec4 vColor; \
-attribute vec4 vPosition; \
-varying float v_Dot; \
-varying vec4 v_Color; \
-void main() { \
-	gl_Position = u_modelViewProjMatrix * vPosition; \
-	v_Color = vColor; \
-	vec4 transNormal = u_normalMatrix * vec4(vNormal, 1); \
-	v_Dot = max(dot(transNormal.xyz, lightDir), 0.0); \
-}';
-		
-		color_shader = '\
-precision mediump float; \
-varying float v_Dot; \
-varying vec4 v_Color; \
-void main() { \
-	gl_FragColor = vec4(v_Color.xyz * v_Dot, v_Color.a); \
-}';
+        if (canvasWidth !== this.width) {
+            this.width = canvasWidth;
+            this.height = canvasWidth * 0.5;
 
-		var vertexShader = loadShaderVertexScript(gl, vertex_shader);
-		var colorShader = loadShaderFragmentScript(gl, color_shader);
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+    },
 
-		var program = gl.createProgram();
+	update: function (pitch, roll, heading, slipSkid) {
+        this.pitch = pitch;
+        this.roll = roll;
+        this.heading = heading;
+		this.slipSkid = slipSkid;
+		if (this.slipSkid < -10) {
+		    this.slipSkid = -10;
+        } else if (this.slipSkid > 10) {
+		    this.slipSkid = +10;
+        }
 
-		gl.attachShader(program, vertexShader);
-		gl.attachShader(program, colorShader);
-
-		// Bind attributes
-		gl.bindAttribLocation(program, 0, "vNormal");
-		gl.bindAttribLocation(program, 1, "vColor");
-		gl.bindAttribLocation(program, 2, "vPosition");
-
-		gl.linkProgram(program);
-
-		var linked = gl.getProgramParameter(program, gl.LINK_STATUS);
-		if (!linked && !gl.isContextLost()) {
-			// something went wrong with the link
-			var error = gl.getProgramInfoLog(program);
-			log("Error in program linking:" + error);
-			gl.deleteProgram(program);
-			gl.deleteProgram(fragmentShader);
-			gl.deleteProgram(vertexShader);
-		} else {
-			gl.useProgram(program);
-			gl.clearColor(0, 0, 0, 0) // rgba for background color
-			gl.clearDepth(10000); //??
-
-			if (false /* funcky blending */ ) {
-				gl.disable(gl.DEPTH_TEST);
-				gl.enable(gl.BLEND);
-				gl.depthFunc(gl.LESS);
-				gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-			} else {
-				gl.enable(gl.DEPTH_TEST);
-				gl.enable(gl.BLEND);
-				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-			}
-
-			this.gcontext.program = program;
-		}
+        this.pitchClip.translate(0, -10 * this.pitch * this.pitchScale);
+        this.rollClip.rotate(this.roll, 0, 0);
+        this.card.rotate(0, 0, 0).translate(0, 10 * this.pitch * this.pitchScale);
+        this.card.rotate(-this.roll, 0, -10 * this.pitch * this.pitchScale);
+        this.rollMarks.rotate(-this.roll, 0, 0);
+        this.headingMarks.translate(-2 * (this.heading % 360), 0);
+        this.skidBar.translate(-2 * this.slipSkid, 0);
 	},
 
-	init: function () {
-		this._init_canvas(); // init the canvas
-		g = this.gcontext;
-		gl = this.gl;
+	turn_on: function() {
+	    this.err.hide();
+	    this.ai.show();
+	    this.errText.clear();
+    },
 
-		if (gl === null)
-			return;
+	turn_off: function(message) {
+        this.errText.text(message).center(0, 0);
+        var tb = this.errText.bbox();
+        this.errTextBg.attr({'x': tb.x, 'y': tb.y, 'width': tb.w, 'height': tb.h});
+        this.ai.hide();
+        this.err.show();
+    }
+};
 
-		// Set up a uniform variable for the shaders
-		gl.uniform3f(gl.getUniformLocation(g.program, "lightDir"), 0, 1, 1); // above and back
+function GMeterRenderer(locationId, nlim, plim, resetCallback) {
+    if (nlim > plim) {
+        this.nlim = plim;
+        this.plim = nlim;
+    } else {
+        this.nlim = nlim;
+        this.plim = plim;
+    }
+    this.nticks = Math.floor(this.plim+1) - Math.ceil(this.nlim-1) + 1;
 
-		// Create a box. On return 'gl' contains a 'box' property with
-		// the BufferObjects containing the arrays for vertices,
-		// normals, texture coords, and indices.
-		// g.box = makeBox(gl);
-		g.box = this.makePaperAirplane(gl);
+    this.width = -1;
+    this.height = -1;
 
-		// Create some matrices to use later and save their locations in the shaders
-		g.mvMatrix = new J3DIMatrix4();
-		g.u_normalMatrixLoc = gl.getUniformLocation(g.program, "u_normalMatrix");
-		g.normalMatrix = new J3DIMatrix4();
-		g.u_modelViewProjMatrixLoc =
-			gl.getUniformLocation(g.program, "u_modelViewProjMatrix");
-		g.mvpMatrix = new J3DIMatrix4();
+    this.locationId = locationId;
+    this.canvas = document.getElementById(this.locationId);
+    this.resize();
 
-		gl.enableVertexAttribArray(0); // lighting
-		gl.enableVertexAttribArray(1); // color
-		gl.enableVertexAttribArray(2); // vertices
+    // State variables
+    this.g = 1;
+    this.min = 1;
+    this.max = 1;
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.vertexObject);
-		gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
+    // Draw the G Meter using the svg.js library
+    var gMeter = SVG(this.locationId).viewbox(-200, -200, 400, 400).group().addClass('gMeter');
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.normalObject);
-		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-		
-		gl.bindBuffer(gl.ARRAY_BUFFER, g.box.colorObject);
-		gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); // was gl.UNSIGNED_BYTE
-		
-		// Bind the index array
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g.box.indexObject);
+    var el, card = gMeter.group().addClass('card');
+    card.circle(390).cx(0).cy(0);
+    card.line(-150, 0, -190, 0)
+        .addClass('marks one');
+    for (var i=Math.ceil(this.nlim-1); i<=Math.floor(this.plim+1); i++) {
+        if (i%2 === 0) {
+            el = card.line(-150, 0, -190, 0).addClass('big');
+            card.text(i.toString())
+                .addClass('text')
+                .cx(-105).cy(0)
+                .transform({ rotation: (i-1)/this.nticks*360, cx: 0, cy: 0, relative: true })
+                .transform({ rotation: -(i-1)/this.nticks*360, relative: true });
+        } else {
+            el = card.line(-165, 0, -190, 0);
 
-		this.pitch = 0;
-		this.roll = 0;
-		this.heading = 0;
+        }
+        el.addClass('marks')
+            .rotate((i-1)/this.nticks*360, 0, 0);
+    }
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.plim-1)/this.nticks*360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.nlim-1)/this.nticks*360, 0, 0);
 
-		this.resize();
-	},
+    var ax = -Math.cos(2*Math.PI/this.nticks),
+        ay = -Math.sin(2*Math.PI/this.nticks);
+    card.path('M -175 0, A 175 175 0 0 1 ' + 175*ax + ' ' + 175*ay)
+        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
+        .addClass('marks')
+        .style('fill-opacity', '0');
+    card.path('M -180 0, A 180 180 0 0 1 ' + 180*ax + ' ' + 180*ay)
+        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
+        .addClass('marks')
+        .style('fill-opacity', '0');
 
-	resize: function () {
-		gl = this.gl;
-		g = this.gcontext;
-		if (gl === null)
-			return;
+    this.min_el = gMeter.group().addClass('min');
+    this.min_el.polygon('0,0 -170,0 -160,-5 0,-5').addClass('pointer');
+    this.min_el.polygon('0,0 -170,0 -160,+5 0,+5').addClass('pointerBG');
 
-		var canvasWidth = this.canvas_container.offsetWidth - 12; // was (2*(this.canvas_container.offsetLeft)) // account for padding adjustments
+    this.pointer_el = gMeter.group().addClass('g');
+    this.pointer_el.polygon('0,0 -170,0 -150,-10 0,-10').addClass('pointer');
+    this.pointer_el.polygon('0,0 -170,0 -150,+10 0,+10').addClass('pointerBG');
 
-		if (canvasWidth !== this.width) {
-			this.width = canvasWidth;
-			this.height = canvasWidth *0.5;
-			
-			this.canvas.width = this.width;
-			this.canvas.height = this.height;
-			// Set the viewport and projection matrix for the scene
-			gl.viewport(0, 0, this.width, this.height);
-			g.perspectiveMatrix = new J3DIMatrix4();
-			g.perspectiveMatrix.perspective(30, this.width / this.height, 1, 10000);
-			g.perspectiveMatrix.lookat(	0, 0, 4, // eye location
-										0, 0, 0, // focal point
-										0, 1, 0); // up vector
-		}
-	},
+    this.max_el = gMeter.group().addClass('max');
+    this.max_el.polygon('0,0 -170,0 -150,-5 0,-5').addClass('pointer');
+    this.max_el.polygon('0,0 -170,0 -150,+5 0,+5').addClass('pointerBG');
 
-	orientation: function (x, y, z) {
-		if (x > 360) x -= 360;
-		if (y > 360) y -= 360;
-		if (z > 360) z -= 360;
-		this.pitch = x; // need to reorient to level 
-		this.roll = y;
-		this.heading = z;
-	},
+    gMeter.circle(40).cx(0).cy(0).addClass('center');
 
-	animate: function (t, x, y, z) {
-		var FPS = 24; // we assume we can maintain a certain frame rate
-		var x_inc = ((x - this.pitch) / (FPS * t));
-		var y_inc = ((y - this.roll) / (FPS * t));
-		if ((z < this.heading) && (this.heading - z) > 180) {
-			// let the animation wrap aroung gracefully clockwise
-			z += 360;
-		} else if ((z > this.heading) && (z - this.heading) > 180) {
-			// let the animation wrap aroung gracefully counter clockwise
-			this.heading += 360;
-		}
-		var z_inc = ((z - this.heading) / (FPS * t));
-		var _this = this;
-		//console.log(z_inc);
-		var frames = 0;
-		var f = function () {
-			_this.pitch += x_inc;
-			_this.roll += y_inc;
-			_this.heading += z_inc;
-			if (frames < (FPS * t)) {
-				_this.draw();
-				frames++
-				window.requestAnimationFrame(f, _this.canvas); // recurse
-			} else {
-				_this.orientation(x, y, z);
-			}
-		};
-		f();
-	},
-
-	draw: function () {
-		this.resize();
-		gl = this.gl;
-		g = this.gcontext;
-		if (gl === null)
-			return;
-
-		// Clear the canvas
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-		// Make a model/view matrix.
-		g.mvMatrix.makeIdentity();
-
-		g.mvMatrix.rotate(15, 1, 0, 0); // adjust viewing angle slightly by pitching the airplane up
-
-		g.mvMatrix.rotate(this.pitch, 1, 0, 0);
-		g.mvMatrix.rotate(-this.roll, 0, 0, 1);
-		g.mvMatrix.rotate(-this.heading, 0, 1, 0);
-
-		// Construct the normal matrix from the model-view matrix and pass it in
-		g.normalMatrix.load(g.mvMatrix);
-		g.normalMatrix.invert();
-		g.normalMatrix.transpose();
-		g.normalMatrix.setUniform(gl, g.u_normalMatrixLoc, false);
-
-		// Construct the model-view * projection matrix and pass it in
-		g.mvpMatrix.load(g.perspectiveMatrix);
-		g.mvpMatrix.multiply(g.mvMatrix);
-		g.mvpMatrix.setUniform(gl, g.u_modelViewProjMatrixLoc, false);
-
-		// Draw the object
-		gl.drawElements(gl.TRIANGLES, g.box.numIndices, gl.UNSIGNED_BYTE, 0);
-	},
-	
-	makePaperAirplane: function (ctx) {
-		// Return an object with the following properties:
-		//  normalObject        WebGLBuffer object for normals (for lighting)
-		//  vertexObject        WebGLBuffer object for vertices (actual 3d object)
-		//  indexObject         WebGLBuffer object for indices (index of triangles within object)
-		//  numIndices          The number of indices in the indexObject (number of triangles)
-
-		// constants to make it easy to adjust the proportions and axis of the object
-		var LENGTH = 1; 	var WIDTH = 1;		var DEPTH = 0.33;		var SPREAD = 0.1;
-		var CENTERX = 0;	var CENTERY = 0;	var CENTERZ = 0.5;
-
-		// vertex coords array
-		var vertices = new Float32Array([
-			CENTERX, CENTERY, -LENGTH-CENTERZ,
-			-WIDTH, CENTERY, LENGTH-CENTERZ,
-			-SPREAD, CENTERY, LENGTH-CENTERZ, // left wing
-
-		   	CENTERX, CENTERY, -LENGTH-CENTERZ,
-			CENTERX, -DEPTH, LENGTH-CENTERZ,
-			-SPREAD, CENTERY, LENGTH-CENTERZ, // left center section
-
-		   	CENTERX, CENTERY, -LENGTH-CENTERZ,
-			CENTERX, -DEPTH, LENGTH-CENTERZ,
-			SPREAD, CENTERY, LENGTH-CENTERZ, // right center section
-
-			CENTERX, CENTERY, -LENGTH-CENTERZ,
-			WIDTH, CENTERY, LENGTH-CENTERZ,
-			SPREAD, CENTERY, LENGTH-CENTERZ // right wing
-			]);
-
-		// normal array for light reflection and shading
-		var normals = new Float32Array([
-			0, 1, 0,
-         	0, 1, 0,
-         	0, 1, 0, // left wing actual perpendicular is up
-         	1, 1, 0,
-         	1, 1, 0,
-         	1, 1, 0, // left center section estmated perpendicular is right
-         	-1, 1, 0,
-         	-1, 1, 0,
-         	-1, 1, 0, // right center section estmated perpendicular is left
-         	0, 1, 0,
-         	0, 1, 0,
-         	0, 1, 0 // right wing actual perpendicular is up
-		]);
-
-
-		// index array
-		var indices = new Uint8Array([
-			0, 1, 2, // left wing
-           	3, 4, 5, // left center section
-           	6, 7, 8, // right center section
-           	9, 10, 11 // right wing
-		]);
-
-		// Set up the array of colors for the cube's faces
-		// the tip of the paper aiplane is lighter and then a gradiant back to red for teh left and a green for the right
-		var colors_rg = new Uint8Array([
-			1, 0, 0, 1,
-			1, 0, 0, 1,
-			1, 0, 0, 1, // left wing
-			   
-			1, 0, 0, 1,
-			1, 0, 0, 1,
-			1, 0, 0, 1, // left center section
-			   
-			0, 1, 0, 1,
-			0, 1, 0, 1,
-			0, 1, 0, 1, // right center section
-			   
-			0, 1, 0, 1,
-			0, 1, 0, 1,
-			0, 1, 0, 1 // right wing
-		]);
-
-		var colors_bt = new Float32Array([
-			.21, .31, .49, 1,
-			.21, .31, .49, 1,
-			.21, .31, .49, 1,
-
-			.21, .31, .49, 1,
-			.21, .31, .49, 1,
-			.21, .31, .49, 1,
-			   
-			.39, .38, .22, 1,
-			.39, .38, .22, 1,
-			.39, .38, .22, 1,
-
-			.39, .38, .22, 1,
-			.39, .38, .22, 1,
-			.39, .38, .22, 1
-		]);
-
-		var retval = {};
-
-		retval.vertexObject = ctx.createBuffer();
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.vertexObject);
-		ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.STATIC_DRAW);
-
-		retval.normalObject = ctx.createBuffer();
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, retval.normalObject);
-		ctx.bufferData(ctx.ARRAY_BUFFER, normals, ctx.STATIC_DRAW);
-
-		ctx.bindBuffer(ctx.ARRAY_BUFFER, null);
-
-		retval.indexObject = ctx.createBuffer();
-		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, retval.indexObject);
-		ctx.bufferData(ctx.ELEMENT_ARRAY_BUFFER, indices, ctx.STATIC_DRAW);
-		ctx.bindBuffer(ctx.ELEMENT_ARRAY_BUFFER, null);
-
-		// Set up the vertex buffer for the colors
-		retval.colorObject = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, retval.colorObject);
-		gl.bufferData(gl.ARRAY_BUFFER, colors_bt, gl.STATIC_DRAW);
-
-		retval.numIndices = indices.length;
-
-		return retval;
-	}
+    var reset = gMeter.group().cx(-165).cy(165).addClass('reset');
+    reset.circle(60).cx(0).cy(0).addClass('reset');
+    reset.text('RESET').cx(0).cy(0).addClass('text');
+    reset.on('click', function() {
+        reset.animate(200).rotate(20, 0, 0);
+        resetCallback();
+        reset.animate(200).rotate(0, 0, 0);
+    }, this);
 }
+
+GMeterRenderer.prototype = {
+    constructor: GMeterRenderer,
+
+    resize: function () {
+        var canvasWidth = this.canvas.parentElement.offsetWidth - 12;
+
+        if (canvasWidth !== this.width) {
+            this.width = canvasWidth;
+            this.height = canvasWidth * 0.5;
+
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+    },
+
+    update: function (g, gmin, gmax) {
+        this.g = g;
+        this.min = gmin;
+        this.max = gmax;
+
+        this.pointer_el.rotate((g-1)/this.nticks*360, 0, 0);
+        this.max_el.rotate((this.max-1)/this.nticks*360, 0, 0);
+        this.min_el.rotate((this.min-1)/this.nticks*360, 0, 0);
+    }
+};

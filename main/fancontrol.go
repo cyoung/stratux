@@ -21,19 +21,16 @@ const (
 	defaultTempTarget = 50.
 	hysteresis        = float32(1.)
 
-	/* This puts our PWM frequency at 19.2 MHz / 128 =
-	/* 150kHz. Higher frequencies will reduce audible switching
-	/* noise but will be less efficient */
-	pwmClockDivisor = 128
+	pwmClockDivisor = 100
 
 	/* Minimum duty cycle is the point below which the fan does
 	/* not spin. This depends on both your fan and the switching
 	/* transistor used. */
-	defaultPwmDutyMin = 20
-	pwmDutyMax        = 256
+	defaultPwmDutyMin = 1
+	pwmDutyMax        = 10
 
 	// how often to update
-	delaySeconds = 2
+	delaySeconds = 30
 
 	// GPIO-1/BCM "18"/Pin 12 on a Raspberry PI 3
 	defaultPin = 1
@@ -50,8 +47,16 @@ var stdlog, errlog *log.Logger
 
 func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 	cPin := C.int(pin)
+
 	C.wiringPiSetup()
-	C.pwmSetMode(C.PWM_MODE_BAL)
+
+	// Power on "test". Allows the user to verify that their fan is working.
+	C.pinMode(cPin, C.OUTPUT)
+	C.digitalWrite(cPin, C.HIGH)
+	time.Sleep(5 * time.Second)
+	C.digitalWrite(cPin, C.LOW)
+
+	C.pwmSetMode(C.PWM_MODE_MS)
 	C.pinMode(cPin, C.PWM_OUTPUT)
 	C.pwmSetRange(pwmDutyMax)
 	C.pwmSetClock(pwmClockDivisor)
@@ -63,6 +68,9 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 		}
 	})
 	pwmDuty := 0
+
+	delay := time.NewTicker(delaySeconds * time.Second)
+
 	for {
 		if temp > (tempTarget + hysteresis) {
 			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), pwmDutyMin)
@@ -74,8 +82,12 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 		}
 		//log.Println(temp, " ", pwmDuty)
 		C.pwmWrite(cPin, C.int(pwmDuty))
-		time.Sleep(delaySeconds * time.Second)
+		<-delay.C
 	}
+
+	// Default to "ON".
+	C.pinMode(cPin, C.OUTPUT)
+	C.digitalWrite(cPin, C.HIGH)
 }
 
 // Service has embedded daemon
@@ -148,7 +160,7 @@ func (service *Service) Manage() (string, error) {
 }
 
 // Accept a client connection and collect it in a channel
-func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
+func acceptConnection(listener net.Listener, listen chan net.Conn) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -159,6 +171,7 @@ func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
 }
 
 func handleClient(client net.Conn) {
+	defer client.Close()
 	for {
 		buf := make([]byte, 4096)
 		numbytes, err := client.Read(buf)

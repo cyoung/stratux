@@ -6,13 +6,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
-	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog']; 
+	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'IMU_Sensor_Enabled',
+		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'AHRSLog'];
 	var settings = {};
 	for (i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
 	}
 	$scope.update_files = '';
-	
+
 	function loadSettings(data) {
 		settings = angular.fromJson(data);
 		// consider using angular.extend()
@@ -26,18 +27,23 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
 		$scope.GPS_Enabled = settings.GPS_Enabled;
+
+		$scope.IMU_Sensor_Enabled = settings.IMU_Sensor_Enabled;
+		$scope.BMP_Sensor_Enabled = settings.BMP_Sensor_Enabled;
 		$scope.DisplayTrafficSource = settings.DisplayTrafficSource;
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
+		$scope.AHRSLog = settings.AHRSLog;
+
 		$scope.PPM = settings.PPM;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
-		$scope.StaticIps = settings.StaticIps;
+        $scope.GLimits = settings.GLimits;
 	}
 
 	function getSettings() {
-		// Simple GET request example (note: responce is asynchronous)
+		// Simple GET request example (note: response is asynchronous)
 		$http.get(URL_SETTINGS_GET).
 		then(function (response) {
 			loadSettings(response.data);
@@ -48,10 +54,10 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 				settings[toggles[i]] = false;
 			}
 		});
-	};
+	}
 
 	function setSettings(msg) {
-		// Simple POST request example (note: responce is asynchronous)
+		// Simple POST request example (note: response is asynchronous)
 		$http.post(URL_SETTINGS_SET, msg).
 		then(function (response) {
 			loadSettings(response.data);
@@ -68,7 +74,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	getSettings();
 
 	$scope.$watchGroup(toggles, function (newValues, oldValues, scope) {
-		var newsettings = {}
+		var newsettings = {};
 		var dirty = false;
 		for (i = 0; i < newValues.length; i++) {
 			if ((newValues[i] !== undefined) && (settings[toggles[i]] !== undefined)) {
@@ -76,7 +82,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 					settings[toggles[i]] = newValues[i];
 					newsettings[toggles[i]] = newValues[i];
 					dirty = true;
-				};
+				}
 			}
 		}
 		if (dirty) {
@@ -86,7 +92,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	});
 
 	$scope.updateppm = function () {
-		settings["PPM"] = 0
+		settings["PPM"] = 0;
 		if (($scope.PPM !== undefined) && ($scope.PPM !== null) && ($scope.PPM !== settings["PPM"])) {
 			settings["PPM"] = parseInt($scope.PPM);
 			newsettings = {
@@ -98,7 +104,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.updateBaud = function () {
-		settings["Baud"] = 0
+		settings["Baud"] = 0;
 		if (($scope.Baud !== undefined) && ($scope.Baud !== null) && ($scope.Baud !== settings["Baud"])) {
 			settings["Baud"] = parseInt($scope.Baud);
 			newsettings = {
@@ -109,19 +115,20 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
-	$scope.updatewatchlist = function () {
-		if ($scope.WatchList !== settings["WatchList"]) {
-			settings["WatchList"] = "";
-			if ($scope.WatchList !== undefined) {
-				settings["WatchList"] = $scope.WatchList.toUpperCase();
-			}
-			newsettings = {
-				"WatchList": settings["WatchList"]
-			};
-			// console.log(angular.toJson(newsettings));
-			setSettings(angular.toJson(newsettings));
-		}
-	};
+    $scope.updatewatchlist = function () {
+        if ($scope.WatchList !== settings["WatchList"]) {
+            settings["WatchList"] = "";
+            if ($scope.WatchList !== undefined) {
+                settings["WatchList"] = $scope.WatchList.toUpperCase();
+            }
+            newsettings = {
+                "WatchList": settings["WatchList"]
+            };
+            // console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
+
 	$scope.updatemodes = function () {
 		if ($scope.OwnshipModeS !== settings["OwnshipModeS"]) {
 			settings["OwnshipModeS"] = $scope.OwnshipModeS.toUpperCase();
@@ -132,15 +139,27 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+
 	$scope.updatestaticips = function () {
 		if ($scope.StaticIps !== settings.StaticIps) {
 			newsettings = {
-				"StaticIps": $scope.StaticIps === undefined? "" : $scope.StaticIps.join(' ')
+				"StaticIps": $scope.StaticIps === undefined ? "" : $scope.StaticIps.join(' ')
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+
+	$scope.updateGLimits = function () {
+        if ($scope.GLimits !== settings["GLimits"]) {
+            settings["GLimits"] = $scope.GLimits;
+            newsettings = {
+                "GLimits": settings["GLimits"]
+            };
+            // console.log(angular.toJson(newsettings));
+            setSettings(angular.toJson(newsettings));
+        }
+    };
 
 	$scope.postShutdown = function () {
 		$window.location.href = "/";
@@ -169,25 +188,25 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.setUploadFile = function (files) {
 		$scope.update_files = files;
 		$scope.$apply();
-	}
+	};
 	$scope.resetUploadFile = function () {
 		$scope.update_files = '';
 		$scope.$apply();
-	}
+	};
 	$scope.uploadFile = function () {
 		var fd = new FormData();
 		//Take the first selected file
 		var file = $scope.update_files[0];
 		// check for empty string
 		if (file === undefined || file === null) {
-			alert ("update file not selected")
+			alert ("update file not selected");
 			return;
 		}
 		var filename = file.name;
 		// check for expected file naming convention
 		var re = /^update.*\.sh$/;
 		if (!re.exec(filename)) {
-			alert ("file does not appear to be an update")
+			alert ("file does not appear to be an update");
 			return;
 		}
 		
@@ -207,4 +226,31 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		});
 
 	};
-};
+
+	$scope.setOrientation = function(action) {
+		// console.log("sending " + action + " message.");
+		$http.post(URL_AHRS_ORIENT, action).
+		then(function (response) {
+			// console.log("sent " + action + " message.");
+		}, function(response) {
+			// failure: cancel the calibration
+			// console.log(response.data);
+			$scope.Orientation_Failure_Message = response.data;
+			$scope.Ui.turnOff('modalCalibrateDone');
+			$scope.Ui.turnOn("modalCalibrateFailed");
+		});
+	};
+
+	$scope.calibrateGyros = function() {
+	    console.log("sending calibrate message.");
+	    $http.post(URL_AHRS_CAL).
+            then(function(response) {
+                console.log("Sent calibrate message.");
+        }, function(response) {
+                console.log(response.data);
+                $scope.Calibration_Failure_Message = response.data;
+                $scope.Ui.turnOff("modalCalibrateGyros");
+                $scope.Ui.turnOn("modalCalibrateGyrosFailed");
+        });
+    };
+}

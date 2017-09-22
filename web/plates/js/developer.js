@@ -10,7 +10,7 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 			return; // we are getting called once after clicking away from the status page
 
 		if (($scope.socket === undefined) || ($scope.socket === null)) {
-			socket = new WebSocket(URL_STATUS_WS);
+			var socket = new WebSocket(URL_STATUS_WS);
 			$scope.socket = socket; // store socket in scope for enter/exit usage
 		}
 
@@ -36,9 +36,9 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 
 		socket.onmessage = function (msg) {
-			console.log('Received status update.')
+			console.log('Received status update.');
 
-			var status = JSON.parse(msg.data)
+			var status = JSON.parse(msg.data);
 			// Update Status
 			$scope.Version = status.Version;
 			$scope.Build = status.Build.substr(0, 10);
@@ -62,7 +62,8 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.UAT_PIREP_total = status.UAT_PIREP_total;
             $scope.UAT_NOTAM_total = status.UAT_NOTAM_total;
             $scope.UAT_OTHER_total = status.UAT_OTHER_total;
-            $scope.Logfile_Size = status.Logfile_Size;
+            $scope.Logfile_Size = humanFileSize(status.Logfile_Size);
+            $scope.AHRS_LogFiles_Size = humanFileSize(status.AHRS_LogFiles_Size);
 			// Errors array.
 			if (status.Errors.length > 0) {
 				$scope.visible_errors = true;
@@ -70,7 +71,7 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 			}
 
 			var uptime = status.Uptime;
-			if (uptime != undefined) {
+			if (uptime !== undefined) {
 				var up_d = parseInt((uptime/1000) / 86400),
 				    up_h = parseInt((uptime/1000 - 86400*up_d) / 3600),
 				    up_m = parseInt((uptime/1000 - 86400*up_d - 3600*up_h) / 60),
@@ -80,7 +81,7 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 				// $('#Uptime').text('unavailable');
 			}
 			var boardtemp = status.CPUTemp;
-			if (boardtemp != undefined) {
+			if (boardtemp !== undefined) {
 				/* boardtemp is celcius to tenths */
 				$scope.CPUTemp = String(boardtemp.toFixed(1) + 'C / ' + ((boardtemp * 9 / 5) + 32.0).toFixed(1) + 'F');
 			} else {
@@ -99,7 +100,12 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 		}, function (response) {
 			// do nothing
 		});
-	};    
+	};
+
+	$scope.webUIRefresh = function() {
+		location.reload(true);
+	};
+
 	$scope.postDeleteLog = function () {
 		$http.post(URL_DELETELOGFILE).
 		then(function (response) {
@@ -108,8 +114,8 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 		}, function (response) {
 			// do nothing
 		});
-	};    
-    
+	};
+
 	$scope.postDownloadLog = function () {
 		$http.post(URL_DOWNLOADLOGFILE).
 		then(function (response) {
@@ -117,8 +123,28 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 			// $scope.$apply();
 		}, function (response) {
 			// do nothing
-		});   
-    };       
+		});
+	};
+
+    $scope.postDeleteAHRSLogs = function () {
+        $http.post(URL_DELETEAHRSLOGFILES).
+        then(function (response) {
+            // do nothing
+            // $scope.$apply();
+        }, function (response) {
+            // do nothing
+        });
+    };
+
+    $scope.postDownloadAHRSLogs = function () {
+        $http.post(URL_DOWNLOADAHRSLOGFILES).
+        then(function (response) {
+            // do nothing
+            // $scope.$apply();
+        }, function (response) {
+            // do nothing
+        });
+    };
 
 	$scope.postDownloadDB = function () {
 		$http.post(URL_DOWNLOADDB).
@@ -127,10 +153,18 @@ function DeveloperCtrl($rootScope, $scope, $state, $http, $interval) {
 			// $scope.$apply();
 		}, function (response) {
 			// do nothing
-		});        
-    };
+		});
+	};
 
 	connect($scope); // connect - opens a socket and listens for messages
 
-};
-    
+}
+
+function humanFileSize(size) {
+    if (size === 0) {
+        return '0 B'
+	} else {
+        var i = Math.floor(Math.log(size) / Math.log(1024));
+        return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+    }
+}

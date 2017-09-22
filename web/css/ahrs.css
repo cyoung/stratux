@@ -1,0 +1,161 @@
+/* Thanks to https://codepen.io/fskirschbaum/pen/MYJNaj for the indicator template */
+
+.indicator {
+    margin: 0 1%;
+    width: 18%;
+    height: 100%;
+    background-color: #ABFF00;
+    border-radius: 10%;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
+}
+
+.indicator.off {
+    background-color: #F00;
+}
+
+.indicator.on {
+    background-color: #ABFF00;
+}
+
+.indicator.blink {
+    background-color: #F00;
+    -webkit-animation: blinkRed 1s infinite;
+    -moz-animation: blinkRed 1s infinite;
+    -ms-animation: blinkRed 1s infinite;
+    -o-animation: blinkRed 1s infinite;
+    animation: blinkRed 1s infinite;
+}
+
+@-webkit-keyframes blinkRed {
+    from { background-color: #F22; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F22; }
+}
+@-moz-keyframes blinkRed {
+    from { background-color: #F22; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F22; }
+}
+@-ms-keyframes blinkRed {
+    from { background-color: #F22; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F22; }
+}
+@-o-keyframes blinkRed {
+    from { background-color: #F22; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F22; }
+}
+@keyframes blinkRed {
+    from { background-color: #F22; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F22; }
+}
+
+/* For g-meter */
+.gMeter .reset {
+    fill: #121512;
+    stroke: #222522;
+}
+
+.gMeter .card {
+    fill: #121512;
+    stroke: #222522;
+}
+
+.gMeter .center {
+    fill: #172017;
+    stroke: #222522;
+}
+
+.gMeter .pointer {
+    stroke: #bbbbcc;
+    fill: #ddddee;
+}
+
+.gMeter .pointerBG {
+    fill: #bbbbcc;
+}
+
+.gMeter .marks {
+    fill: #ddddee;
+    stroke: #eeeeff;
+    stroke-width: 4;
+}
+
+.gMeter .big {
+    stroke-width: 6;
+}
+
+.gMeter .one {
+    stroke-width: 8;
+}
+
+.gMeter .limit {
+    fill: #dd2222;
+    stroke: #ff1111;
+    stroke-width: 6;
+}
+
+.gMeter .text {
+    font-size: 1em;
+    font-family: sans-serif;
+    text-anchor: middle;
+    stroke-width: 0;
+    fill: #ddddee;
+}
+
+.gMeter .card .text {
+    font-size: 2.5em;
+}
+
+.gMeter .reset .text {
+    text-anchor: start;
+}
+
+/* For attitude indicator */
+.ai .earth {
+    fill: chocolate;
+}
+
+.ai .sky {
+    fill: deepskyblue;
+}
+
+.ai .pointer {
+    stroke: goldenrod;
+    fill: yellow;
+}
+
+.ai .pointerBG {
+    fill: goldenrod;
+}
+
+.ai .marks {
+    fill: white;
+    stroke: white;
+    stroke-width: 2px;
+}
+
+.ai .markText {
+    font-size: 16px;
+    font-family: sans-serif;
+    text-anchor: middle;
+    alignment-baseline: middle;
+    stroke-width: 0px;
+}
+
+.error {
+    fill: black;
+    stroke: red;
+    stroke-width: 2px;
+}
+
+.error .errText {
+    font-size: 16px;
+    font-family: sans-serif;
+    text-anchor: central;
+    alignment-baseline: middle;
+    stroke-width: 0px;
+    fill: red;
+}

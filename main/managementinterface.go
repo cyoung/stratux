@@ -26,6 +26,8 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+	"archive/zip"
+	"path/filepath"
 )
 
 type SettingMessage struct {
@@ -223,13 +225,13 @@ func handleTowersRequest(w http.ResponseWriter, r *http.Request) {
 func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	satelliteMutex.Lock()
+	mySituation.muSatellite.Lock()
 	satellitesJSON, err := json.Marshal(&Satellites)
 	if err != nil {
 		log.Printf("Error sending GNSS satellite JSON data: %s\n", err.Error())
 	}
 	fmt.Fprintf(w, "%s\n", satellitesJSON)
-	satelliteMutex.Unlock()
+	mySituation.muSatellite.Unlock()
 }
 
 // AJAX call - /getSettings. Responds with all stratux.conf data.
@@ -275,6 +277,18 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
 						globalSettings.GPS_Enabled = val.(bool)
+					case "IMU_Sensor_Enabled":
+						globalSettings.IMU_Sensor_Enabled = val.(bool)
+						if !globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected {
+							myIMUReader.Close()
+							globalStatus.IMUConnected = false
+						}
+					case "BMP_Sensor_Enabled":
+						globalSettings.BMP_Sensor_Enabled = val.(bool)
+						if !globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
+							myPressureReader.Close()
+							globalStatus.BMPConnected = false
+						}
 					case "DEBUG":
 						globalSettings.DEBUG = val.(bool)
 					case "DisplayTrafficSource":
@@ -283,6 +297,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						v := val.(bool)
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
+						}
+					case "AHRSLog":
+						globalSettings.AHRSLog = val.(bool)
+					case "IMUMapping":
+						if globalSettings.IMUMapping != val.([2]int) {
+							globalSettings.IMUMapping = val.([2]int)
+							myIMUReader.Close()
+							globalStatus.IMUConnected = false // Force a restart of the IMU reader
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
@@ -304,6 +326,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "WatchList":
 						globalSettings.WatchList = val.(string)
+					case "GLimits":
+						globalSettings.GLimits = val.(string)
 					case "OwnshipModeS":
 						// Expecting a hex string less than 6 characters (24 bits) long.
 						if len(val.(string)) > 6 { // Too long.
@@ -365,8 +389,26 @@ func doReboot() {
 }
 
 func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleDeleteLogFile called!!!\n")
+	log.Println("handleDeleteLogFile called!!!")
 	clearDebugLogFile()
+}
+
+func handleDeleteAHRSLogFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error deleting AHRS logs: %s", err), http.StatusNotFound)
+		return
+	}
+
+	var fn string
+	for _, f := range files {
+		fn = f.Name()
+		if v, _ := filepath.Match("sensors_*.csv", fn) ; v {
+			os.Remove("/var/log/" + fn)
+			log.Printf("Deleting AHRS log file %s\n", fn)
+		}
+		analysisLogger = nil
+	}
 }
 
 func handleDevelModeToggle(w http.ResponseWriter, r *http.Request) {
@@ -386,6 +428,93 @@ func handleRebootRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	go delayReboot()
+}
+
+func handleOrientAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		var (
+			action []byte = make([]byte, 1)
+			err    error
+		)
+
+		if _, err = r.Body.Read(action); err != nil {
+			log.Println("AHRS Error: handleOrientAHRS received invalid request")
+			http.Error(w, "orientation received invalid request", http.StatusBadRequest)
+		}
+
+		switch action[0] {
+		case 'f': // Set sensor "forward" direction (toward nose of airplane).
+			f, err := getMinAccelDirection()
+			if err != nil {
+				log.Printf("AHRS Error: sensor orientation: couldn't read accelerometer: %s\n", err)
+				http.Error(w, fmt.Sprintf("couldn't read accelerometer: %s\n", err), http.StatusBadRequest)
+				return
+			}
+			log.Printf("AHRS Info: sensor orientation success! forward axis is %d\n", f)
+			globalSettings.IMUMapping = [2]int{f, 0}
+		case 'd': // Set sensor "up" direction (toward top of airplane).
+			globalSettings.SensorQuaternion = [4]float64{0, 0, 0, 0}
+			saveSettings()
+			myIMUReader.Close()
+			globalStatus.IMUConnected = false // restart the processes depending on the orientation
+			ResetAHRSGLoad()
+			time.Sleep(2000 * time.Millisecond)
+		}
+	}
+}
+
+func handleCageAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CageAHRS()
+	}
+}
+
+func handleCalibrateAHRS(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		CalibrateAHRS()
+	}
+}
+
+func handleResetGMeter(w http.ResponseWriter, r *http.Request) {
+	// define header in support of cross-domain AJAX
+	setNoCache(w)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Method", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+
+	// For an OPTION method request, we return header without processing.
+	// This ensures we are recognized as supporting cross-domain AJAX REST calls.
+	if r.Method == "POST" {
+		ResetAHRSGLoad()
+	}
 }
 
 func doRestartApp() {
@@ -415,13 +544,63 @@ func delayReboot() {
 }
 
 func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
 	http.ServeFile(w, r, "/var/log/stratux.log")
 }
 
+func handleDownloadAHRSLogsRequest(w http.ResponseWriter, r *http.Request) {
+	// Common error handler
+	httpErr := func(w http.ResponseWriter, e error) {
+		http.Error(w, fmt.Sprintf("error zipping AHRS logs: %s", e), http.StatusNotFound)
+	}
+
+	files, err := ioutil.ReadDir("/var/log")
+	if err != nil {
+		httpErr(w, err)
+		return
+	}
+
+	z := zip.NewWriter(w)
+	defer z.Close()
+
+	for _, f := range files {
+		fn := f.Name()
+		v1, _ := filepath.Match("sensors_*.csv", fn)
+		v2, _ := filepath.Match("stratux.log", fn)
+		if !(v1 || v2) {
+			continue
+		}
+
+		unzippedFile, err := os.Open("/var/log/" + fn)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		fh, err := zip.FileInfoHeader(f)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+		zippedFile, err := z.CreateHeader(fh)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+
+		_, err = io.Copy(zippedFile, unzippedFile)
+		if err != nil {
+			httpErr(w, err)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"ahrs_logs.zip\"")
+}
+
 func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "applicaiton/zip")
+	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
 	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
@@ -634,9 +813,16 @@ func managementInterface() {
 	http.HandleFunc("/updateUpload", handleUpdatePostRequest)
 	http.HandleFunc("/roPartitionRebuild", handleroPartitionRebuild)
 	http.HandleFunc("/develmodetoggle", handleDevelModeToggle)
+	http.HandleFunc("/orientAHRS", handleOrientAHRS)
+	http.HandleFunc("/calibrateAHRS", handleCalibrateAHRS)
+	http.HandleFunc("/cageAHRS", handleCageAHRS)
+	http.HandleFunc("/resetGMeter", handleResetGMeter)
 	http.HandleFunc("/deletelogfile", handleDeleteLogFile)
 	http.HandleFunc("/downloadlog", handleDownloadLogRequest)
+	http.HandleFunc("/deleteahrslogfiles", handleDeleteAHRSLogFiles)
+	http.HandleFunc("/downloadahrslogs", handleDownloadAHRSLogsRequest)
 	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
+
 	err := http.ListenAndServe(managementAddr, nil)
 
 	if err != nil {
