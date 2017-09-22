@@ -9,6 +9,10 @@ dependencies:
   override:
     - cd .. ; rm -rf stratux ; git clone --recursive https://github.com/cyoung/stratux ; cd stratux ; git config --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*" ; git fetch origin ; BRANCH=`echo "$CIRCLE_BRANCH" | sed 's/pull\//pr\//g'` ; git checkout $BRANCH ; make
 
+test:
+  override:
+    - make test
+
 deployment:
   production:
     branch: master
