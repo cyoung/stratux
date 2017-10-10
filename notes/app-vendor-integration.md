@@ -15,8 +15,9 @@ In order of preference:
 1. Look for `0xCC` (or `0x5358`) GDL90 heartbeat message. This is sent at the same time as the GDL90 heartbeat (0x00) message.
 2. Look for Wi-Fi network that **starts with** "stratux".
 3. Detect 192.168.10.0/24 Wi-Fi connection, verify stratux status with JSON response from ws://192.168.10.1/status.
+4. Use the the second [stratux status](http://hiltonsoftware.com/stratux/StratuxStatusMessage-V104.pdf) message.
 
-See main/gen_gdl90.go:makeStratuxHeartbeat() for heartbeat format.
+See main/gen_gdl90.go:makeStratuxHeartbeat() for heartbeat (#1) format.
 
 ### Sleep mode
 
@@ -93,18 +94,52 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 ```javascript
 {
-  "Version": "v0.5b1",            // Software version.
-  "Devices": 0,                   // Number of radios connected.
-  "Connected_Users": 1,           // Number of WiFi devices connected.
-  "UAT_messages_last_minute": 0,  // UAT messages received in last minute.
-  "UAT_messages_max": 17949,      // Max UAT messages received in a minute (since last reboot).
-  "ES_messages_last_minute": 0,   // 1090ES messages received in last minute.
-  "ES_messages_max": 0,           // Max 1090ES messages received in a minute (since last reboot).
-  "GPS_satellites_locked": 0,     // Number of GPS satellites used in last GPS lock.
-  "GPS_connected": true,          // GPS unit connected and functioning.
-  "GPS_solution": "",             // "DGPS (WAAS)", "3D GPS", "N/A", or "" when GPS not connected/enabled.
-  "Uptime": 227068,               // Device uptime (in milliseconds).
-  "CPUTemp": 42.236               // CPU temperature (in ºC).
+  "Version": "v1.4r2",
+  "Build": "ebd6b9bf5049aa5bb31c345c1eaa39648bc219a2",
+  "HardwareBuild": "",
+  "Devices": 1,
+  "Connected_Users": 0,
+  "DiskBytesFree": 60625375232,
+  "UAT_messages_last_minute": 0,
+  "UAT_messages_max": 0,
+  "ES_messages_last_minute": 0,
+  "ES_messages_max": 0,
+  "UAT_traffic_targets_tracking": 0,
+  "ES_traffic_targets_tracking": 0,
+  "Ping_connected": false,
+  "GPS_satellites_locked": 5,
+  "GPS_satellites_seen": 7,
+  "GPS_satellites_tracked": 9,
+  "GPS_position_accuracy": 10.2,
+  "GPS_connected": true,
+  "GPS_solution": "GPS + SBAS (WAAS)",
+  "GPS_detected_type": 55,
+  "Uptime": 323020,
+  "UptimeClock": "0001-01-01T00:05:23.02Z",
+  "CPUTemp": 47.774,
+  "CPULoad": "",
+  "NetworkDataMessagesSent": 0,
+  "NetworkDataMessagesSentNonqueueable": 0,
+  "NetworkDataBytesSent": 0,
+  "NetworkDataBytesSentNonqueueable": 0,
+  "NetworkDataMessagesSentLastSec": 0,
+  "NetworkDataMessagesSentNonqueueableLastSec": 0,
+  "NetworkDataBytesSentLastSec": 0,
+  "NetworkDataBytesSentNonqueueableLastSec": 0,
+  "UAT_METAR_total": 0,
+  "UAT_TAF_total": 0,
+  "UAT_NEXRAD_total": 0,
+  "UAT_SIGMET_total": 0,
+  "UAT_PIREP_total": 0,
+  "UAT_NOTAM_total": 0,
+  "UAT_OTHER_total": 0,
+  "Errors": [
+    
+  ],
+  "Logfile_Size": 34487043,
+  "AHRS_LogFiles_Size": 0,
+  "BMPConnected": true,
+  "IMUConnected": true
 }
 ```
 
@@ -116,27 +151,53 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "ES_Enabled": false,
   "Ping_Enabled": false,
   "GPS_Enabled": true,
+  "BMP_Sensor_Enabled": true,
+  "IMU_Sensor_Enabled": true,
   "NetworkOutputs": [
     {
       "Conn": null,
       "Ip": "",
       "Port": 4000,
-      "Capability": 5
-    },
-    {
-      "Conn": null,
-      "Ip": "",
-      "Port": 49002,
-      "Capability": 2
+      "Capability": 5,
+      "MessageQueueLen": 0,
+      "LastUnreachable": "0001-01-01T00:00:00Z",
+      "SleepFlag": false,
+      "FFCrippled": false
     }
   ],
+  "SerialOutputs": null,
+  "DisplayTrafficSource": false,
   "DEBUG": false,
-  "ReplayLog": true,
+  "ReplayLog": false,
+  "AHRSLog": false,
+  "IMUMapping": [
+    -1,
+    0
+  ],
+  "SensorQuaternion": [
+    0.0068582877312501,
+    0.0067230280142738,
+    0.7140806859355,
+    -0.69999752767998
+  ],
+  "C": [
+    -0.019065523239845,
+    -0.99225684377575,
+    -0.019766228217414
+  ],
+  "D": [
+    -2.7707754753258,
+    5.544145023957,
+    -1.890621662038
+  ],
   "PPM": 0,
   "OwnshipModeS": "F00000",
   "WatchList": "",
   "DeveloperMode": false,
-  "StaticIps": []
+  "GLimits": "",
+  "StaticIps": [
+    
+  ]
 }
 ```
 * `http://192.168.10.1/setSettings` - set device settings. Use an HTTP POST of JSON content in the format given above - posting only the fields containing the settings to be modified.
@@ -145,22 +206,45 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
 
 ```json
 {
-  "Lat": 39.108533,
-  "Lng": -76.770862,
-  "Satellites": 7,
-  "Accuracy": 5.88,
-  "NACp": 10,
-  "Alt": 170.10767,
-  "LastFixLocalTime": "2015-12-18T23:47:06.015563066Z",
-  "TrueCourse": 0,
-  "GroundSpeed": 0,
-  "LastGroundTrackTime": "0001-01-01T00:00:00Z",
-  "Temp": 6553,
-  "Pressure_alt": 231.27980834234,
-  "Pitch": -0.006116937627108,
-  "Roll": -0.026442866350631,
-  "Gyro_heading": 45.844213419776,
-  "LastAttitudeTime": "2015-12-18T23:47:06.774039623Z"
+  "GPSLastFixSinceMidnightUTC": 67337.6,
+  "GPSLatitude": 39.108533,
+  "GPSLongitude": -76.770862,
+  "GPSFixQuality": 2,
+  "GPSHeightAboveEllipsoid": 115.51,
+  "GPSGeoidSep": -17.523,
+  "GPSSatellites": 5,
+  "GPSSatellitesTracked": 11,
+  "GPSSatellitesSeen": 8,
+  "GPSHorizontalAccuracy": 10.2,
+  "GPSNACp": 9,
+  "GPSAltitudeMSL": 170.10767,
+  "GPSVerticalAccuracy": 8,
+  "GPSVerticalSpeed": -0.6135171,
+  "GPSLastFixLocalTime": "0001-01-01T00:06:44.24Z",
+  "GPSTrueCourse": 0,
+  "GPSTurnRate": 0,
+  "GPSGroundSpeed": 0.77598433056951,
+  "GPSLastGroundTrackTime": "0001-01-01T00:06:44.24Z",
+  "GPSTime": "2017-09-26T18:42:17Z",
+  "GPSLastGPSTimeStratuxTime": "0001-01-01T00:06:43.65Z",
+  "GPSLastValidNMEAMessageTime": "0001-01-01T00:06:44.24Z",
+  "GPSLastValidNMEAMessage": "$PUBX,04,184426.00,260917,240266.00,1968,18,-177618,-952.368,21*1A",
+  "GPSPositionSampleRate": 0,
+  "BaroTemperature": 37.02,
+  "BaroPressureAltitude": 153.32,
+  "BaroVerticalSpeed": 1.3123479,
+  "BaroLastMeasurementTime": "0001-01-01T00:06:44.23Z",
+  "AHRSPitch": -0.97934145732801,
+  "AHRSRoll": -2.2013729217108,
+  "AHRSGyroHeading": 187741.08073052,
+  "AHRSMagHeading": 3276.7,
+  "AHRSSlipSkid": 0.52267604604907,
+  "AHRSTurnRate": 3276.7,
+  "AHRSGLoad": 0.99847599584255,
+  "AHRSGLoadMin": 0.99815989027411,
+  "AHRSGLoadMax": 1.0043409597397,
+  "AHRSLastAttitudeTime": "0001-01-01T00:06:44.28Z",
+  "AHRSStatus": 7
 }
 ```
 
