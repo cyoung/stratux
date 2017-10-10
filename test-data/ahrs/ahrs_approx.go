@@ -35,6 +35,43 @@ func chkErr(err error) {
 	}
 }
 
+/*
+	ffMonitor().
+		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
+		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
+
+*/
+
+var ffPlay bool
+
+func ffMonitor() {
+	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
+	conn, err := net.ListenUDP("udp", &addr)
+	if err != nil {
+		fmt.Printf("ffMonitor(): error listening on port 50113: %s\n", err.Error())
+		return
+	}
+	defer conn.Close()
+	for {
+		buf := make([]byte, 1024)
+		n, _, err := conn.ReadFrom(buf)
+		if err != nil {
+			fmt.Printf("err: %s\n", err.Error())
+			return
+		}
+		// Got message, check if it's in the correct format.
+		if n < 3 || buf[0] != 0xFF || buf[1] != 0xFE {
+			continue
+		}
+		s := string(buf[2:n])
+		s = strings.Replace(s, "\x00", "", -1)
+		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") {
+			// Enable AHRS emulation.
+			ffPlay = true
+		}
+	}
+}
+
 func situationUpdater() {
 	situationUpdateTicker := time.NewTicker(100 * time.Millisecond)
 	for {
@@ -136,6 +173,7 @@ func main() {
 	fmt.Printf("loaded %d size ahrs table.\n", len(ahrsTable))
 
 	go situationUpdater()
+	go ffMonitor()
 
 	tm := time.NewTicker(125 * time.Millisecond)
 	for {
@@ -157,7 +195,7 @@ func main() {
 				mB = trigger
 			}
 		}
-		if len(mB) > 0 {
+		if len(mB) > 0 && ffPlay { // Only send if we have both an AHRS approximation to send and FF was detected.
 			conn.Write(mB)
 		}
 	}
