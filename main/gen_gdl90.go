@@ -1237,10 +1237,10 @@ func printStats() {
 		}
 		sensorsOutput := make([]string, 0)
 		if globalSettings.IMU_Sensor_Enabled {
-			sensorsOutput = append(sensorsOutput, fmt.Printf("Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
 		}
 		if globalSettings.BMP_Sensor_Enabled {
-			sensorsOutput = append(sensorsOutput, fmt.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime)))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime)))
 		}
 		if len(sensorsOutput) > 0 {
 			log.Printf("- " + strings.Join(sensorsOutput, ", "))
