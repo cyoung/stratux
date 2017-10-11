@@ -1092,7 +1092,6 @@ type status struct {
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
-	CPULoad                                    string
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64

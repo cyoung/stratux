@@ -117,7 +117,6 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "Uptime": 323020,
   "UptimeClock": "0001-01-01T00:05:23.02Z",
   "CPUTemp": 47.774,
-  "CPULoad": "",
   "NetworkDataMessagesSent": 0,
   "NetworkDataMessagesSentNonqueueable": 0,
   "NetworkDataBytesSent": 0,
