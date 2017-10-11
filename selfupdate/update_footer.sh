@@ -70,14 +70,11 @@ chmod 755 /usr/bin/fancontrol
 
 cp -f dump1090 /usr/bin/
 
-<<<<<<< HEAD
 # AHRS approx data.
 cp -f ahrs_table.log /root/
 cp -f ahrs_approx /usr/bin/
 chmod 755 /usr/bin/ahrs_approx
 
-=======
->>>>>>> master
 # DHCPD Config.
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
 
