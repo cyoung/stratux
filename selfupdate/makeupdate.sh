@@ -39,9 +39,12 @@ cp image/stratux-wifi.sh work/bin/
 cp image/rc.local work/bin/
 cp image/dhcpd.conf work/bin/
 cp image/interfaces work/bin/
+<<<<<<< HEAD
 cp test-data/ahrs/ahrs_table.log work/bin/
 cp ahrs_approx work/bin/
 
+=======
+>>>>>>> master
 
 #TODO: librtlsdr.
 cd work/
