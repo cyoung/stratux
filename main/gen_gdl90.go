@@ -1392,6 +1392,10 @@ func main() {
 	} else { // if not using the FlightBox config, use "normal" log file locations
 		logDirf = logDir
 	}
+	//Merlin: detect presence of /etc/Merlin file.
+	if _, err := os.Stat("/etc/Merlin"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "Merlin"
+	}
 	debugLogf = filepath.Join(logDirf, debugLogFile)
 	dataLogFilef = filepath.Join(logDirf, dataLogFile)
 	//FIXME: All of this should be removed by 08/01/2016.
