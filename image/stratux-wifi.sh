@@ -49,7 +49,7 @@ function hostapd-upgrade {
 ##### End hostapd settings structure function
 
 function mac-ssid {
-	T=`grep '^merlin' $DAEMON_USER_PREF`
+	T=`grep '^ssid=merlin' $DAEMON_USER_PREF`
 	if [ -z "$T" ] ; then
 		# Need to "upgrade" the ssid.
 		MAC=`ifconfig wlan0 | awk '/^[a-z]/ { iface=$1; mac=$NF; next }    /inet addr:/ { print mac }' | cut -d: -f4,5 | sed -e 's/://'`
@@ -106,7 +106,9 @@ if [ ! -f $DAEMON_USER_PREF ]; then
 	hostapd-upgrade
 fi
 
-mac-ssid
+if [ -e /etc/Merlin ]; then
+	mac-ssid
+fi
 
 # function to build /tmp/hostapd.conf and start AP
 ap-start
