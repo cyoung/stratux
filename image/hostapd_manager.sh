@@ -274,6 +274,10 @@ do
         fi
     fi
 
+    if [ $OPT_P != false ]; then
+      OPT_E=$OPT_P
+    fi
+
     if [ $OPT_E != false ]; then
     	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$OPT_E ${MAGENTA}to $i...${WHITE}"
         if grep -q "^#auth_algs=" ${i}; then

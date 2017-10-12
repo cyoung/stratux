@@ -69,6 +69,8 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 	})
 	pwmDuty := 0
 
+	delay := time.NewTicker(delaySeconds * time.Second)
+
 	for {
 		if temp > (tempTarget + hysteresis) {
 			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), pwmDutyMin)
@@ -80,7 +82,7 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 		}
 		//log.Println(temp, " ", pwmDuty)
 		C.pwmWrite(cPin, C.int(pwmDuty))
-		time.Sleep(delaySeconds * time.Second)
+		<-delay.C
 	}
 
 	// Default to "ON".
@@ -158,7 +160,7 @@ func (service *Service) Manage() (string, error) {
 }
 
 // Accept a client connection and collect it in a channel
-func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
+func acceptConnection(listener net.Listener, listen chan net.Conn) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -169,6 +171,7 @@ func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
 }
 
 func handleClient(client net.Conn) {
+	defer client.Close()
 	for {
 		buf := make([]byte, 4096)
 		numbytes, err := client.Read(buf)

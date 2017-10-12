@@ -18,6 +18,3 @@ deployment:
     branch: master
     commands:
       - yes | ssh -i ~/.ssh/id_updates.stratux.me stratux-updates@updates.stratux.me "touch queue/`git log -n 1 --pretty=%H`"
-    branch: ahrs_dev
-    commands:
-      - yes | ssh -i ~/.ssh/id_updates.stratux.me stratux-updates@updates.stratux.me "touch queue/`git log -n 1 --pretty=%H`"

@@ -1,26 +1,24 @@
 package main
 
-
 import (
 	"fmt"
-//	"time"
+	//	"time"
 	"../uatparse"
-	"os"
 	"bufio"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
+	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode"
-	"strconv"
-	"github.com/gonum/plot"
-	"github.com/gonum/plot/plotter"
-	"github.com/gonum/plot/plotutil"
-	"github.com/gonum/plot/vg"
-	"sort"
 )
 
 const (
 	UPLINK_FRAME_DATA_BYTES = 432
 )
-
 
 /*
 
@@ -51,28 +49,27 @@ Winds Aloft										12 hours												10 minutes
 
 */
 
-func append_metars(rawUplinkMessage string, curMetars []string)  []string {
+func append_metars(rawUplinkMessage string, curMetars []string) []string {
 	ret := curMetars
 
 	uatMsg, err := uatparse.New(rawUplinkMessage)
 	if err != nil {
 		return ret
 	}
-//fmt.Printf("*************************\n")
+	//fmt.Printf("*************************\n")
 	metars, _ := uatMsg.GetTextReports()
 	for _, v := range metars {
-//fmt.Printf("EE: %s\n", v)
+		//fmt.Printf("EE: %s\n", v)
 		vSplit := strings.Split(v, " ")
 		if vSplit[0] != "METAR" || len(vSplit) < 3 { // Only looking for METARs.
 			continue
 		}
 		ret = append(ret, v)
 	}
-//fmt.Printf("=========================\n")
-	
+	//fmt.Printf("=========================\n")
+
 	return ret
 }
-
 
 /*
 	Average number of METARs received for an airport for which you first received a METAR in the first 5 minutes, over 10 minutes. Divided by two.
@@ -97,7 +94,7 @@ func metar_qos_one_period(a, b []string) float64 {
 		ret += float64(num)
 	}
 	if len(numMetarByIdent) > 0 {
-		ret = ret / float64(2 * len(numMetarByIdent))
+		ret = ret / float64(2*len(numMetarByIdent))
 	}
 	return ret
 }
@@ -124,7 +121,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		buf = strings.TrimFunc(buf, func(r rune) bool {return unicode.IsControl(r)})
+		buf = strings.TrimFunc(buf, func(r rune) bool { return unicode.IsControl(r) })
 		linesplit := strings.Split(buf, ",")
 		if len(linesplit) < 2 { // Blank line or invalid.
 			continue
@@ -132,9 +129,9 @@ func main() {
 		if linesplit[0] == "START" { // Reset ticker, new start.
 			//TODO: Support multiple sessions.
 			// Reset the counters, new session.
-//			qos = make(map[uint]float64)
-//			curWindowMetars = make([]string, 0)
-//			curWindow = 0
+			//			qos = make(map[uint]float64)
+			//			curWindowMetars = make([]string, 0)
+			//			curWindow = 0
 			windowOffset = curWindow
 		} else { // If it's not "START", then it's a tick count.
 			i, err := strconv.ParseInt(linesplit[0], 10, 64)
@@ -145,17 +142,17 @@ func main() {
 
 			// Window number in current session.
 			wnum := int64(i / (5 * 60 * 1000000000))
-//			fmt.Printf("%d\n", curWindow)
-			if wnum + windowOffset != curWindow { // Switched over.
+			//			fmt.Printf("%d\n", curWindow)
+			if wnum+windowOffset != curWindow { // Switched over.
 				curWindow = wnum + windowOffset
-				beforeLastWindowMetars, ok := metarsByWindow[curWindow - 2]
-				lastWindowMetars, ok2 := metarsByWindow[curWindow - 1]
+				beforeLastWindowMetars, ok := metarsByWindow[curWindow-2]
+				lastWindowMetars, ok2 := metarsByWindow[curWindow-1]
 				if ok && ok2 {
-			//		fmt.Printf("%v\n\n\nheyy\n\n%v\n", beforeLastWindowMetars, lastWindowMetars)
-					qos[curWindow - 1] = metar_qos_one_period(beforeLastWindowMetars, lastWindowMetars)
-					fmt.Printf("qos=%f\n", qos[curWindow - 1])
-					delete(metarsByWindow, curWindow - 2)
-					delete(metarsByWindow, curWindow - 1)
+					//		fmt.Printf("%v\n\n\nheyy\n\n%v\n", beforeLastWindowMetars, lastWindowMetars)
+					qos[curWindow-1] = metar_qos_one_period(beforeLastWindowMetars, lastWindowMetars)
+					fmt.Printf("qos=%f\n", qos[curWindow-1])
+					delete(metarsByWindow, curWindow-2)
+					delete(metarsByWindow, curWindow-1)
 				}
 			}
 			metarsByWindow[curWindow] = append_metars(linesplit[1], metarsByWindow[curWindow])
@@ -180,7 +177,7 @@ func main() {
 
 	pts := make(plotter.XYs, len(qos))
 	i := 0
-	for _,k := range keys {
+	for _, k := range keys {
 		v := qos[int64(k)]
 		fmt.Printf("%d, %f\n", k, v)
 		pts[i].X = float64(k)
@@ -192,7 +189,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := p.Save(4 * vg.Inch, 4 * vg.Inch, "qos.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, "qos.png"); err != nil {
 		panic(err)
 	}
 }

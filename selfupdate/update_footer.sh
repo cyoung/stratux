@@ -70,6 +70,12 @@ chmod 755 /usr/bin/fancontrol
 
 cp -f dump1090 /usr/bin/
 
+# DHCPD Config.
+cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+
+# Interfaces file.
+cp -f interfaces /etc/network/interfaces
+
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
 
