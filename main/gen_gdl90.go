@@ -689,6 +689,7 @@ func blinkStatusLED() {
 		ledON = !ledON
 	}
 }
+
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
@@ -700,8 +701,10 @@ func heartBeatSender() {
 			//  Blinking when there is a critical system error (and Stratux is still running).
 
 			if len(globalStatus.Errors) == 0 { // Any system errors?
-				// Turn on green ACT LED on the Pi.
-				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				if !globalStatus.NightMode { // LED is off by default (/boot/config.txt.)
+					// Turn on green ACT LED on the Pi.
+					ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				}
 			} else if !ledBlinking {
 				// This assumes that system errors do not disappear until restart.
 				go blinkStatusLED()
@@ -1112,6 +1115,7 @@ type status struct {
 	AHRS_LogFiles_Size                         int64
 	BMPConnected                               bool
 	IMUConnected                               bool
+	NightMode                                  bool // For turning off LEDs.
 }
 
 var globalSettings settings
