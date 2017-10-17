@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from oled.device import ssd1306, sh1106
-from oled.render import canvas
+from luma.oled.device import ssd1306, sh1106
+from luma.core.render import canvas
 
 from PIL import ImageDraw, ImageFont, Image
 
