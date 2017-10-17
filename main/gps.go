@@ -274,6 +274,18 @@ func initGPSSerial() bool {
 
 		p.Write(makeUBXCFG(0x06, 0x24, 36, nav))
 
+		// Turn off "time pulse" (usually drives an LED).
+		tp5 := make([]byte, 32)
+		tp5[4] = 0x32
+		tp5[8] = 0x40
+		tp5[9] = 0x42
+		tp5[10] = 0x0F
+		tp5[12] = 0x40
+		tp5[13] = 0x42
+		tp5[14] = 0x0F
+		tp5[28] = 0xE7
+		p.Write(makeUBXCFG(0x06, 0x31, 32, tp5))
+
 		// GNSS configuration CFG-GNSS for ublox 7 higher, p. 125 (v8)
 
 		// Notes: ublox8 is multi-GNSS capable (simultaneous decoding of GPS and GLONASS, or
