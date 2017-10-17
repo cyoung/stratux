@@ -916,11 +916,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			tmpSituation.GPSNACp = calculateNACp(tmpSituation.GPSHorizontalAccuracy)
 
 			// field 10 = vertical accuracy, m
-			vAcc, err := strconv.ParseFloat(x[10], 32)
-			if err != nil {
-				return false
-			}
-			tmpSituation.GPSVerticalAccuracy = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
+			/*
+				vAcc, err := strconv.ParseFloat(x[10], 32)
+				if err != nil {
+					return false
+				}
+				tmpSituation.GPSVerticalAccuracy = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
+			*/
+			tmpSituation.GPSVerticalAccuracy = float32(2.) * tmpSituation.GPSHorizontalAccuracy
 
 			// field 2 = time
 			if len(x[2]) < 8 {
