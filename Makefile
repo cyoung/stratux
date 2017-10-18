@@ -11,7 +11,7 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
-	make ahrs_approx xdump978 xdump1090 xflarmdecode xgen_gdl90 $(PLATFORMDEPENDENT)
+	make ahrs_approx xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
@@ -32,12 +32,9 @@ xdump978:
 ahrs_approx:
 	go build $(BUILDINFO) -p 4 test-data/ahrs/ahrs_approx.go
 
-xflarmdecode:
-	cd flarm && make
-
 .PHONY: test
 test:
-	make -C test	
+	make -C test
 
 www:
 	cd web && make
@@ -62,11 +59,13 @@ install:
 	cp -f dump1090/dump1090 /usr/bin/
 	cp -f image/hostapd_manager.sh /usr/sbin/
 	cp -f image/stratux-wifi.sh /usr/sbin/
-	cp -f flarm/nrf905_demod /usr/bin/
-	cp -f flarm/flarm_decode /usr/bin/
+	rm -f /var/run/ogn-rf.fifo
+	mkfifo /var/run/ogn-rf.fifo
+	cp -f ogn/rtlsdr-ogn/ogn-rf /usr/bin/
+	chmod a+s /usr/bin/ogn-rf
+	cp -f ogn/rtlsdr-ogn/ogn-decode /usr/bin/
 
 clean:
 	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean
 	cd dump978 && make clean
-	cd flarm && make clean

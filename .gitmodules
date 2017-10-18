@@ -4,6 +4,4 @@
 [submodule "goflying"]
 	path = goflying
 	url = https://github.com/cyoung/goflying
-[submodule "flarm"]
-	path = flarm
-	url = https://github.com/creaktive/flare.git
+

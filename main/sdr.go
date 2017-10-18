@@ -177,13 +177,26 @@ func (u *UAT) read() {
 func (f *FLARM) read() {
 	defer f.wg.Done()
 	log.Println("Entered FLARM read() ...")
-	cmd := exec.Command("rtl_tcp", "-d", strconv.Itoa(f.indexID), "-f", "868.05m", "-s", "1.6m", "-g", "49.6", "-P", strconv.Itoa(f.ppm), "-a", "127.0.0.1", "-p", "40001")
+
+	// generate OGN configuration file
+	configTemplateFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf.template"
+	configFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf"
+	OGNConfigDataCache.DeviceIndex = strconv.Itoa(f.indexID)
+	OGNConfigDataCache.Ppm = strconv.Itoa(f.ppm)
+	OGNConfigDataCache.Longitude = "0.0"
+	OGNConfigDataCache.Latitude = "0.0"
+	OGNConfigDataCache.Altitude = "0"
+	createOGNConfigFile(configTemplateFileName, configFileName)
+
+	cmd := exec.Command("ogn-rf", configFileName)
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
+	stdin, _ := cmd.StdinPipe()
+	defer stdin.Close()
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing rtl_tcp: %s\n", err)
+		log.Printf("Error executing ogn-rf: %s\n", err)
 		// don't return immediately, use the proper shutdown procedure
 		shutdownFLARM = true
 		for {
@@ -196,7 +209,9 @@ func (f *FLARM) read() {
 		}
 	}
 
-	log.Println("Executed rtl_tcp successfully...")
+	log.Println("Executed ogn-rf successfully...")
+
+	io.WriteString(stdin, "\n")
 
 	done := make(chan bool)
 
@@ -218,17 +233,15 @@ func (f *FLARM) read() {
 		}
 	}()
 
-	stdoutBuf := make([]byte, 1024)
-	stderrBuf := make([]byte, 1024)
 	go func() {
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				n, err := stdout.Read(stdoutBuf)
-				if err == nil && n > 0 {
-					log.Println("FLARM rtl_tcp stdout: ", string(stdoutBuf[:n]))
+				line, err := bufio.NewReader(stdout).ReadString('\n')
+				if err == nil {
+					log.Println("FLARM ogn-rf stdout: ", line)
 				}
 			}
 		}
@@ -240,15 +253,17 @@ func (f *FLARM) read() {
 			case <-done:
 				return
 			default:
-				n, err := stderr.Read(stderrBuf)
-				if err == nil && n > 0 {
-					log.Println("FLARM rtl_tcp stderr: ", string(stderrBuf[:n]))
+				line, err := bufio.NewReader(stderr).ReadString('\n')
+				if err == nil {
+					log.Println("FLARM ogn-rf stderr: ", line)
 				}
 			}
 		}
 	}()
 
 	cmd.Wait()
+
+	log.Println("FLARM ogn-rf terminated...")
 
 	// we get here if A) the dump1090 process died
 	// on its own or B) cmd.Process.Kill() was called
