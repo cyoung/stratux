@@ -35,6 +35,9 @@ type OGNConfigData struct {
 // OGNConfigDataCache is the global data structure for storing the latest OGN configuration
 var OGNConfigDataCache OGNConfigData
 
+// flag that indicates if OG decoding process is running
+var ognDecoderIsRunning bool
+
 // AprsFlarmData stores content of FLARM APRS aircraft beacon
 type AprsFlarmData struct {
 	Identifier     string
@@ -131,6 +134,9 @@ func watchCommand(command *exec.Cmd) {
 	// wait for command to terminate
 	err := command.Wait()
 
+	// set status flag
+	ognDecoderIsRunning = false
+
 	log.Printf("Process %s terminated: %v", command.Path, err)
 }
 
@@ -171,6 +177,9 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 		return nil
 	}
 	log.Printf("Started new FLARM decoding process (pid=%d)", decodingCommand.Process.Pid)
+
+	// set status flag
+	ognDecoderIsRunning = true
 
 	go watchCommand(decodingCommand)
 
@@ -513,6 +522,7 @@ func flarmListen() {
 		// initialize decoding infrastructure
 		var decodingProcess *os.Process
 		stopDecodingLoop := false
+		ognDecoderIsRunning = false
 
 		// set timer for (re-)starting decoding process (to use latest position)
 		flarmDecoderRestartTimer := time.NewTicker(60 * time.Second)
@@ -534,8 +544,8 @@ func flarmListen() {
 				}
 
 				// check if position has changes significantly
-				if math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
-					log.Println("Position has changed, restarting FLARM decoder")
+				if !ognDecoderIsRunning || math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
+					log.Println("Restarting FLARM decoder")
 
 					// generate OGN configuration file
 					OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)
