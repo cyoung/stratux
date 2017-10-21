@@ -382,6 +382,7 @@ func processAprsData(aprsData string) {
 
 		// set altitude
 		ti.Alt = int32(data.Altitude)
+		ti.AltIsGNSS = true
 		ti.Last_alt = stratuxClock.Time
 
 		// set vertical speed
