@@ -484,7 +484,7 @@ func sdrWatcher() {
 		} else if globalSettings.DeveloperMode {
 			// Throw a "critical error" if developer mode is enabled. Alerts the developer that the daemon was restarted (possibly)
 			//  unexpectedly.
-			daemonRestartedErr := fmt.Errorf("System uptime %d seconds. Daemon restarted.\n")
+			daemonRestartedErr := fmt.Errorf("System uptime %d seconds. Daemon was restarted.\n", info.Uptime)
 			addSystemError(daemonRestartedErr)
 		}
 	}
