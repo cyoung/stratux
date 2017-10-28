@@ -143,6 +143,17 @@ func watchCommand(command *exec.Cmd) {
 func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProcess *os.Process, configFileName string) *os.Process {
 	var err error
 
+	// kill old decoding process
+	if oldDecodingProcess != nil {
+		log.Printf("FLARM: Stopping old decoding process (pid=%d)", oldDecodingProcess.Pid)
+
+		if err = oldDecodingProcess.Kill(); err != nil {
+			log.Printf("FLARM: Error while killing old decoding process: %s ", err)
+
+			return nil
+		}
+	}
+
 	// create new decoding process
 	decodingCommand := exec.Command("ogn-decode", configFileName)
 
@@ -208,17 +219,6 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 	}()
 
 	io.WriteString(decoderInput, "\n")
-
-	// kill old decoding process
-	if oldDecodingProcess != nil {
-		log.Printf("Stopping old FLARM decoding process (pid=%d)", oldDecodingProcess.Pid)
-
-		if err = oldDecodingProcess.Kill(); err != nil {
-			log.Printf("Error while killing old decoding process: %s ", err)
-
-			return nil
-		}
-	}
 
 	return decodingCommand.Process
 }
