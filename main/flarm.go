@@ -137,7 +137,7 @@ func watchCommand(command *exec.Cmd) {
 	// set status flag
 	ognDecoderIsRunning = false
 
-	log.Printf("Process %s terminated: %v", command.Path, err)
+	log.Printf("FLARM: Process %s terminated: %v", command.Path, err)
 }
 
 func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProcess *os.Process, configFileName string) *os.Process {
@@ -149,7 +149,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 	// get new decoding process' input stream
 	decoderInput, err := decodingCommand.StdinPipe()
 	if err != nil {
-		log.Printf("Error while getting Stdin pipe of decoding process: %s ", err)
+		log.Printf("FLARM: Error while getting Stdin pipe of decoding process: %s ", err)
 
 		return nil
 	}
@@ -157,7 +157,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 	// get new decoding process' output stream
 	decoderOutput, err := decodingCommand.StdoutPipe()
 	if err != nil {
-		log.Printf("Error while getting Stdout pipe of decoding process: %s ", err)
+		log.Printf("FLARM: Error while getting Stdout pipe of decoding process: %s ", err)
 
 		return nil
 	}
@@ -165,18 +165,18 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 	// get new decoding process' error stream
 	decoderError, err := decodingCommand.StderrPipe()
 	if err != nil {
-		log.Printf("Error while getting Stderr pipe of decoding process: %s ", err)
+		log.Printf("FLARM: Error while getting Stderr pipe of decoding process: %s ", err)
 
 		return nil
 	}
 
 	// start new process
 	if err = decodingCommand.Start(); err != nil {
-		log.Printf("Error while starting decoding process: %s ", err)
+		log.Printf("FLARM: Error while starting decoding process: %s ", err)
 
 		return nil
 	}
-	log.Printf("Started new FLARM decoding process (pid=%d)", decodingCommand.Process.Pid)
+	log.Printf("FLARM: Started new decoding process (pid=%d)", decodingCommand.Process.Pid)
 
 	// set status flag
 	ognDecoderIsRunning = true
@@ -188,7 +188,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 		for {
 			line, err := bufio.NewReader(decoderOutput).ReadString('\n')
 			if err == nil {
-				log.Println("FLARM ogn-decode stdout:", line)
+				log.Println("FLARM: ogn-decode stdout:", line)
 			} else {
 				return
 			}
@@ -200,7 +200,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 		for {
 			line, err := bufio.NewReader(decoderError).ReadString('\n')
 			if err == nil {
-				log.Println("FLARM ogn-decode stderr:", line)
+				log.Println("FLARM: ogn-decode stderr:", line)
 			} else {
 				return
 			}
@@ -226,20 +226,20 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 func createOGNConfigFile(templateFileName string, outputFileName string) {
 	configTemplate, err := template.ParseFiles(templateFileName)
 	if err != nil {
-		log.Printf("Unable to open OGN config template file: %s", err)
+		log.Printf("FLARM: Unable to open OGN config template file: %s", err)
 		return
 	}
 
 	outputFile, err := os.Create(outputFileName)
 	defer outputFile.Close()
 	if err != nil {
-		log.Printf("Unable to open OGN config file: %s", err)
+		log.Printf("FLARM: Unable to open OGN config file: %s", err)
 		return
 	}
 
 	err = configTemplate.Execute(outputFile, OGNConfigDataCache)
 	if err != nil {
-		log.Printf("Problem while executing OGN config file template: %s", err)
+		log.Printf("FLARM: Problem while executing OGN config file template: %s", err)
 		return
 	}
 }
@@ -337,7 +337,7 @@ func processAprsData(aprsData string) {
 			flagsBytes, err := hex.DecodeString(match[1])
 			flagsDecoded := flagsBytes[0]
 			if err != nil {
-				log.Println("Error while decoding FLARM identifier flags")
+				log.Println("FLARM: Error while decoding identifier flags")
 			} else {
 				data.StealthMode = ((flagsDecoded&0x80)>>7 == 1)
 
@@ -540,13 +540,19 @@ func flarmListen() {
 
 				// stop loop if demodulation process has terminated
 				if stopDecodingLoop == true {
-					log.Println("Stopping decoding loop")
+					log.Println("FLARM: Stopping decoding loop")
 					break decodingLoop
 				}
 
 				// check if position has changes significantly
 				if !ognDecoderIsRunning || math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
-					log.Println("Restarting FLARM decoder")
+					if !ognDecoderIsRunning {
+						log.Println("FLARM: Decoder is not running")
+					} else {
+						log.Println("FLARM: Own position has changed")
+					}
+
+					log.Println("FLARM: Restarting decoder")
 
 					// generate OGN configuration file
 					OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)

@@ -196,7 +196,7 @@ func (f *FLARM) read() {
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing ogn-rf: %s\n", err)
+		log.Printf("FLARM: Error executing ogn-rf: %s\n", err)
 		// don't return immediately, use the proper shutdown procedure
 		shutdownFLARM = true
 		for {
@@ -209,7 +209,7 @@ func (f *FLARM) read() {
 		}
 	}
 
-	log.Println("Executed ogn-rf successfully...")
+	log.Println("FLARM: Executed ogn-rf successfully...")
 
 	io.WriteString(stdin, "\n")
 
@@ -241,7 +241,7 @@ func (f *FLARM) read() {
 			default:
 				line, err := bufio.NewReader(stdout).ReadString('\n')
 				if err == nil {
-					log.Println("FLARM ogn-rf stdout: ", line)
+					log.Println("FLARM: ogn-rf stdout: ", line)
 				}
 			}
 		}
@@ -255,7 +255,7 @@ func (f *FLARM) read() {
 			default:
 				line, err := bufio.NewReader(stderr).ReadString('\n')
 				if err == nil {
-					log.Println("FLARM ogn-rf stderr: ", line)
+					log.Println("FLARM: ogn-rf stderr: ", line)
 				}
 			}
 		}
@@ -263,7 +263,7 @@ func (f *FLARM) read() {
 
 	cmd.Wait()
 
-	log.Println("FLARM ogn-rf terminated...")
+	log.Println("FLARM: ogn-rf terminated...")
 
 	// we get here if A) the dump1090 process died
 	// on its own or B) cmd.Process.Kill() was called
