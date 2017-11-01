@@ -689,6 +689,7 @@ func blinkStatusLED() {
 		ledON = !ledON
 	}
 }
+
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
@@ -700,8 +701,10 @@ func heartBeatSender() {
 			//  Blinking when there is a critical system error (and Stratux is still running).
 
 			if len(globalStatus.Errors) == 0 { // Any system errors?
-				// Turn on green ACT LED on the Pi.
-				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				if !globalStatus.NightMode { // LED is off by default (/boot/config.txt.)
+					// Turn on green ACT LED on the Pi.
+					ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				}
 			} else if !ledBlinking {
 				// This assumes that system errors do not disappear until restart.
 				go blinkStatusLED()
@@ -1112,6 +1115,7 @@ type status struct {
 	AHRS_LogFiles_Size                         int64
 	BMPConnected                               bool
 	IMUConnected                               bool
+	NightMode                                  bool // For turning off LEDs.
 }
 
 var globalSettings settings
@@ -1237,13 +1241,13 @@ func printStats() {
 		}
 		sensorsOutput := make([]string, 0)
 		if globalSettings.IMU_Sensor_Enabled {
-			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last IMU read: %s", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
 		}
 		if globalSettings.BMP_Sensor_Enabled {
-			sensorsOutput = append(sensorsOutput, fmt.Sprintf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime)))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last BMP read: %s", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime)))
 		}
 		if len(sensorsOutput) > 0 {
-			log.Printf("- " + strings.Join(sensorsOutput, ", "))
+			log.Printf("- " + strings.Join(sensorsOutput, ", ") + "\n")
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
 		if !diskUsageWarning && usage.Usage() > 0.95 {
@@ -1391,6 +1395,10 @@ func main() {
 		logDirf = logDir_FB
 	} else { // if not using the FlightBox config, use "normal" log file locations
 		logDirf = logDir
+	}
+	//Merlin: detect presence of /etc/Merlin file.
+	if _, err := os.Stat("/etc/Merlin"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "Merlin"
 	}
 	debugLogf = filepath.Join(logDirf, debugLogFile)
 	dataLogFilef = filepath.Join(logDirf, dataLogFile)
