@@ -55,7 +55,7 @@ Some 1090ES transponders will send the actual registration number of the aircraf
 a squawk code.
 
 
-### Additional data available to EFBs
+### Additional data/control available to EFBs
 
 Stratux makes available a webserver to retrieve statistics which may be useful to EFBs:
 
@@ -262,3 +262,16 @@ Subsequent update (2837120 = 2B4A80 reports a newer position, altitude increased
 ```json
 {"Icao_addr":2837120,"OnGround":false,"Lat":42.193336,"Lng":-83.92136,"Position_valid":true,"Alt":3400,"Track":9,"Speed":92,"Speed_valid":true,"Vvel":0,"Tail":"","Last_seen":"2015-12-22T21:29:22.252914555Z","Last_source":2}
 ```
+
+* `http://192.168.10.1/calibrateAHRS` - run AHRS sensor calibration routine. Submit a blank POST to this URL.
+
+* `http://192.168.10.1/cageAHRS` - "level" attitude display. Submit a blank POST to this URL.
+
+* `http://192.168.10.1/resetGMeter` - reset G-meter to zero. Submit a blank POST to this URL.
+
+* `http://192.168.10.1/restart` - restart Stratux application.
+
+* `http://192.168.10.1/reboot` - reboot the system.
+
+* `http://192.168.10.1/shutdown` - shutdown the system.
+
