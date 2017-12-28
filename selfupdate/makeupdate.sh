@@ -18,7 +18,6 @@ mkdir -p work/bin
 cp gen_gdl90 work/bin/
 cp fancontrol work/bin/
 cp libdump978.so work/bin/
-cp linux-mpu9150/libimu.so work/bin/
 cp __lib__systemd__system__stratux.service work/bin/
 cp __root__stratux-pre-start.sh work/bin/
 cp dump1090/dump1090 work/bin/

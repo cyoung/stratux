@@ -1,6 +1,5 @@
 cp -f gen_gdl90 /usr/bin/gen_gdl90
 cp -f libdump978.so /usr/lib/libdump978.so
-cp -f libimu.so /usr/lib/libimu.so
 
 
 # Startup script.
