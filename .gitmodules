@@ -1,6 +1,6 @@
 [submodule "dump1090"]
 	path = dump1090
-	url = https://github.com/AvSquirrel/dump1090
+	url = https://github.com/stratux/dump1090
 [submodule "goflying"]
 	path = goflying
 	url = https://github.com/cyoung/goflying
