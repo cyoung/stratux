@@ -5,7 +5,7 @@ machine:
 
 dependencies:
   pre:
-    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd ~/; git clone https://github.com/jpoirier/librtlsdr; cd librtlsdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig; cd ~/; mkdir gopath; wget https://dl.google.com/go/go1.9.2.linux-amd64.tar.gz; tar -zxvf go1.9.2.linux-amd64.tar.gz; go version; env
+    - sudo apt-get update; sudo apt-get install libusb-1.0-0-dev; cd ~/; git clone https://github.com/jpoirier/librtlsdr; cd librtlsdr; mkdir build; cd build; cmake ../; make; sudo make install; sudo ldconfig; cd ~/; rm -rf gopath; mkdir gopath; wget https://dl.google.com/go/go1.9.2.linux-amd64.tar.gz; tar -zxvf go1.9.2.linux-amd64.tar.gz; go version; env
   override:
     - cd .. ; rm -rf stratux ; git clone --recursive https://github.com/cyoung/stratux ; cd stratux ; git config --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*" ; git fetch origin ; BRANCH=`echo "$CIRCLE_BRANCH" | sed 's/pull\//pr\//g'` ; git checkout $BRANCH ; make
 
