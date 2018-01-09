@@ -22,13 +22,13 @@ const (
 )
 
 var (
-	i2cbus                     embd.I2CBus
-	myPressureReader           sensors.PressureReader
-	myIMUReader                sensors.IMUReader
-	cal                        chan (string)
-	analysisLogger             *ahrs.AHRSLogger
-	ahrsCalibrating            bool
-	logMap                     map[string]interface{}
+	i2cbus           embd.I2CBus
+	myPressureReader sensors.PressureReader
+	myIMUReader      sensors.IMUReader
+	cal              chan (string)
+	analysisLogger   *ahrs.AHRSLogger
+	ahrsCalibrating  bool
+	logMap           map[string]interface{}
 )
 
 func initI2CSensors() {
@@ -52,7 +52,6 @@ func pollSensors() {
 
 		// If it's not currently connected, try connecting to IMU
 		if globalSettings.IMU_Sensor_Enabled && !globalStatus.IMUConnected {
-			log.Println("AHRS Info: attempting IMU connection.")
 			globalStatus.IMUConnected = initIMU() // I2C accel/gyro/mag.
 		}
 	}
@@ -62,13 +61,11 @@ func initPressureSensor() (ok bool) {
 	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
 	if err == nil {
 		myPressureReader = bmp
-		log.Println("AHRS Info: Successfully initialized BMP280")
 		return true
 	}
 
 	//TODO westphae: make bmp180.go to fit bmp interface
 
-	log.Println("AHRS Info: couldn't initialize BMP280 or BMP180")
 	return false
 }
 
@@ -93,14 +90,14 @@ func tempAndPressureSender() {
 		// Read temperature and pressure altitude.
 		temp, err = myPressureReader.Temperature()
 		if err != nil {
-			log.Printf("AHRS Error: Couldn't read temperature from sensor: %s", err)
+			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
 		}
 		press, err = myPressureReader.Pressure()
 		if err != nil {
-			log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
+			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
 			failNum++
 			if failNum > numRetries {
-				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
+				//				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
@@ -129,15 +126,15 @@ func initIMU() (ok bool) {
 	imu, err := sensors.NewMPU9250()
 	if err == nil {
 		myIMUReader = imu
-		log.Println("AHRS Info: Successfully connected MPU9250")
 		return true
 	}
 
 	// TODO westphae: try to connect to MPU9150 or other IMUs.
 
-	log.Println("AHRS Error: couldn't initialize an IMU")
 	return false
 }
+
+//FIXME: Shoud be moved to managementinterface.go and standardized on management interface port.
 
 func sensorAttitudeSender() {
 	var (
@@ -147,7 +144,6 @@ func sensorAttitudeSender() {
 		failNum              uint8
 	)
 
-	log.Println("AHRS Info: initializing new Simple AHRS")
 	s := ahrs.NewSimpleAHRS()
 	m := ahrs.NewMeasurement()
 	cal = make(chan (string), 1)
@@ -155,9 +151,8 @@ func sensorAttitudeSender() {
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
-		log.Printf("AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
+		addSingleSystemErrorf("ahrs-web-start", "AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
 	} else {
-		log.Println("AHRS Info: ahrswebListener started on port 8000")
 		defer ahrswebListener.Close()
 	}
 
@@ -165,7 +160,7 @@ func sensorAttitudeSender() {
 	timer := time.NewTicker(50 * time.Millisecond) // ~20Hz update.
 	for {
 		// Set sensor gyro calibrations
-		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0] + d[1]*d[1] + d[2]*d[2] > 0 {
+		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0]+d[1]*d[1]+d[2]*d[2] > 0 {
 			s.SetCalibrations(c, d)
 			log.Printf("AHRS Info: IMU Calibrations read from settings: accel %6f %6f %6f; gyro %6f %6f %6f\n",
 				c[0], c[1], c[2], d[0], d[1], d[2])
@@ -178,7 +173,7 @@ func sensorAttitudeSender() {
 		}
 
 		// Set sensor quaternion
-		if f := &globalSettings.SensorQuaternion; f[0]*f[0] + f[1]*f[1] + f[2]*f[2] + f[3]*f[3] > 0 {
+		if f := &globalSettings.SensorQuaternion; f[0]*f[0]+f[1]*f[1]+f[2]*f[2]+f[3]*f[3] > 0 {
 			s.SetSensorQuaternion(f)
 		} else {
 			select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.

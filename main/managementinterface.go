@@ -10,6 +10,7 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,13 +22,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
 	"time"
-	"archive/zip"
-	"path/filepath"
 )
 
 type SettingMessage struct {
@@ -403,7 +403,7 @@ func handleDeleteAHRSLogFiles(w http.ResponseWriter, r *http.Request) {
 	var fn string
 	for _, f := range files {
 		fn = f.Name()
-		if v, _ := filepath.Match("sensors_*.csv", fn) ; v {
+		if v, _ := filepath.Match("sensors_*.csv", fn); v {
 			os.Remove("/var/log/" + fn)
 			log.Printf("Deleting AHRS log file %s\n", fn)
 		}

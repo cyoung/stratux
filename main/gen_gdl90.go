@@ -1399,7 +1399,6 @@ func main() {
 	systemErrsMutex = &sync.Mutex{}
 	systemErrs = make(map[string]string)
 
-
 	// Set up status.
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
