@@ -1424,7 +1424,6 @@ func main() {
 		vtF, err := strconv.ParseFloat(vtS, 32)
 		if err == nil {
 			if vtF < 8.0 {
-				var err_os error
 				if globalStatus.HardwareBuild == "FlightBox" {
 					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
 				} else {
