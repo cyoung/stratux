@@ -151,7 +151,7 @@ func sensorAttitudeSender() {
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
-		addSingleSystemErrorf("ahrs-web-start", "AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
+		// addSingleSystemErrorf("ahrs-web-start", "AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
 	} else {
 		defer ahrswebListener.Close()
 	}
