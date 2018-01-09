@@ -654,14 +654,12 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
 	out, err := exec.Command("/usr/sbin/rebuild_ro_part.sh").Output()
 
-	var ret_err error
 	if err != nil {
-		ret_err = fmt.Errorf("Rebuild RO Partition error: %s", err.Error())
+		addSingleSystemErrorf("partition-rebuild", "Rebuild RO Partition error: %s", err.Error())
 	} else {
-		ret_err = fmt.Errorf("Rebuild RO Partition success: %s", out)
+		addSingleSystemErrorf("partition-rebuild", "Rebuild RO Partition success: %s", out)
 	}
 
-	addSystemError(ret_err)
 }
 
 // https://gist.github.com/alexisrobert/982674.

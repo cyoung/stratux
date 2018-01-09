@@ -1190,9 +1190,7 @@ func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
-		addSystemError(err_ret)
-		log.Printf("%s\n", err_ret.Error())
+		addSingleSystemErrorf("save-settings", "can't save settings %s: %s", configLocation, err.Error())
 		return
 	}
 	defer fd.Close()
@@ -1240,7 +1238,6 @@ func fsWriteTest(dir string) error {
 
 func printStats() {
 	statTimer := time.NewTicker(30 * time.Second)
-	diskUsageWarning := false
 	for {
 		<-statTimer.C
 		var memstats runtime.MemStats
@@ -1265,10 +1262,8 @@ func printStats() {
 			log.Printf("- " + strings.Join(sensorsOutput, ", ") + "\n")
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
-		if !diskUsageWarning && usage.Usage() > 0.95 {
-			err_p := fmt.Errorf("Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
-			addSystemError(err_p)
-			diskUsageWarning = true
+		if usage.Usage() > 0.95 {
+			addSingleSystemErrorf("disk-space", "Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		}
 		logStatus()
 	}
@@ -1432,11 +1427,10 @@ func main() {
 			if vtF < 8.0 {
 				var err_os error
 				if globalStatus.HardwareBuild == "FlightBox" {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
+					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
 				} else {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
+					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
 				}
-				addSystemError(err_os)
 			} else {
 				// Running Jessie or better. Remove some old init.d files.
 				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
@@ -1473,9 +1467,7 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
-		addSystemError(err_log)
-		log.Printf("%s\n", err_log.Error())
+		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
 	} else {
 		defer fp.Close()
 		// Keep the logfile handle for later use

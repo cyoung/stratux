@@ -76,19 +76,16 @@ const (
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
 
-var dhcpLeaseFileWarning bool
 var dhcpLeaseDirectoryLastTest time.Time // Last time fsWriteTest() was run on the DHCP lease directory.
 
 // Read the "dhcpd.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
 	// Do a write test. Even if we are able to read the file, it may be out of date because there's a fs write issue.
 	// Only perform the test once every 5 minutes to minimize writes.
-	if !dhcpLeaseFileWarning && (stratuxClock.Since(dhcpLeaseDirectoryLastTest) >= 5*time.Minute) {
+	if stratuxClock.Since(dhcpLeaseDirectoryLastTest) >= 5*time.Minute {
 		err := fsWriteTest(dhcp_lease_dir)
 		if err != nil {
-			err_p := fmt.Errorf("Write error on '%s', your EFB may have issues receiving weather and traffic.", dhcp_lease_dir)
-			addSystemError(err_p)
-			dhcpLeaseFileWarning = true
+			addSingleSystemErrorf("fs-write", "Write error on '%s', your EFB may have issues receiving weather and traffic.", dhcp_lease_dir)
 		}
 		dhcpLeaseDirectoryLastTest = stratuxClock.Time
 	}
@@ -602,8 +599,6 @@ func networkStatsCounter() {
 */
 
 func ffMonitor() {
-	ff_warned := false // Has a warning been issued via globalStatus.Errors?
-
 	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
@@ -637,11 +632,7 @@ func ffMonitor() {
 		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
 			p.FFCrippled = true
 			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
-			if !ff_warned {
-				e := errors.New("Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
-				addSystemError(e)
-				ff_warned = true
-			}
+			addSingleSystemErrorf("ff-warn", "Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
 		}
 		outSockets[ffIpAndPort] = p
 		netMutex.Unlock()
