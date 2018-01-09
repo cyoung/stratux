@@ -10,8 +10,6 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
