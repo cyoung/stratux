@@ -1172,6 +1172,21 @@ func addSystemError(err error) {
 	globalStatus.Errors = append(globalStatus.Errors, err.Error())
 }
 
+var systemErrsMutex *sync.Mutex
+var systemErrs map[string]string
+
+func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
+	systemErrsMutex.Lock()
+	if _, ok := systemErrs[ident]; !ok {
+		// Error hasn't been thrown yet.
+		systemErrs[ident] = fmt.Sprintf(format, a...)
+		globalStatus.Errors = append(globalStatus.Errors, systemErrs[ident])
+		log.Printf("Added critical system error: %s\n", systemErrs[ident])
+	}
+	// Do nothing on this call if the error has already been thrown.
+	systemErrsMutex.Unlock()
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
@@ -1384,6 +1399,11 @@ func main() {
 	mySituation.muAttitude = &sync.Mutex{}
 	mySituation.muBaro = &sync.Mutex{}
 	mySituation.muSatellite = &sync.Mutex{}
+
+	// Set up system error tracking.
+	systemErrsMutex = &sync.Mutex{}
+	systemErrs = make(map[string]string)
+
 
 	// Set up status.
 	globalStatus.Version = stratuxVersion
