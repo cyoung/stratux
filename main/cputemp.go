@@ -19,8 +19,6 @@ and often times reading this file hangs quite some time.  */
 func cpuTempMonitor(updater CpuTempUpdateFunc) {
 	timer := time.NewTicker(1 * time.Second)
 	for {
-		<-timer.C
-
 		// Update CPUTemp.
 		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 		tempStr := strings.Trim(string(temp), "\n")
@@ -38,7 +36,7 @@ func cpuTempMonitor(updater CpuTempUpdateFunc) {
 		if t >= invalidCpuTemp { // Only update if valid value was obtained.
 			updater(t)
 		}
-
+		<-timer.C
 	}
 }
 

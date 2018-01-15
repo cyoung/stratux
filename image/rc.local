@@ -17,6 +17,13 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
+
+#
+# Rotate logs on boot.
+#
+/usr/sbin/logrotate /etc/logrotate.conf
+
+
 /usr/bin/stratux-screen.py start
 
 exit 0

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from oled.device import ssd1306, sh1106
-from oled.render import canvas
+from luma.core.interface.serial import i2c
+from luma.oled.device import ssd1306, sh1106
+from luma.core.render import canvas
 
 from PIL import ImageDraw, ImageFont, Image
 
@@ -20,7 +21,8 @@ class StratuxScreen():
         self.pidfile_timeout = 5
     def run(self):
         font2 = ImageFont.truetype('/etc/stratux-screen/CnC_Red_Alert.ttf', 12)
-        oled = ssd1306(port=1, address=0x3C)
+        serial = i2c(port=1, address=0x3c)
+        oled = ssd1306(serial)
 
         with canvas(oled) as draw:
             logo = Image.open('/etc/stratux-screen/stratux-logo-64x64.bmp')

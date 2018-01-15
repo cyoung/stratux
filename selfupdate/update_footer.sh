@@ -1,6 +1,5 @@
 cp -f gen_gdl90 /usr/bin/gen_gdl90
 cp -f libdump978.so /usr/lib/libdump978.so
-cp -f libimu.so /usr/lib/libimu.so
 
 
 # Startup script.
@@ -22,6 +21,9 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
+
+#logrotate config
+cp -f logrotate.conf /etc/logrotate.conf
 
 #WiFi Hostapd ver test and hostapd.conf builder script
 cp -f stratux-wifi.sh /usr/sbin/
@@ -69,6 +71,12 @@ chmod 755 /usr/bin/fancontrol
 /usr/bin/fancontrol install
 
 cp -f dump1090 /usr/bin/
+
+# DHCPD Config.
+cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+
+# Interfaces file.
+cp -f interfaces /etc/network/interfaces
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}

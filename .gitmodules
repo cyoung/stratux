@@ -1,9 +1,9 @@
 [submodule "dump1090"]
 	path = dump1090
-	url = https://github.com/AvSquirrel/dump1090
+	url = https://github.com/stratux/dump1090
 [submodule "goflying"]
 	path = goflying
-	url = https://github.com/westphae/goflying
+	url = https://github.com/cyoung/goflying
 [submodule "vendor/github.com/kidoman/embd"]
 	path = vendor/github.com/kidoman/embd
 	url = https://github.com/kidoman/embd

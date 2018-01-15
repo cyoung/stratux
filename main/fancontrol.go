@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/takama/daemon"
 	"log"
-	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -39,14 +40,25 @@ const (
 	name        = "fancontrol"
 	description = "cooling fan speed control based on CPU temperature"
 
-	// port which daemon should be listen
-	port = ":9977"
+	// Address on which daemon should be listen.
+	addr = ":9977"
 )
+
+type FanControl struct {
+	TempTarget     float32
+	TempCurrent    float32
+	PWMDutyMin     int
+	PWMDutyMax     int
+	PWMDutyCurrent int
+	PWMPin         int
+}
+
+var myFanControl FanControl
 
 var stdlog, errlog *log.Logger
 
-func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
-	cPin := C.int(pin)
+func fanControl() {
+	cPin := C.int(myFanControl.PWMPin)
 
 	C.wiringPiSetup()
 
@@ -58,29 +70,32 @@ func fanControl(pwmDutyMin int, pin int, tempTarget float32) {
 
 	C.pwmSetMode(C.PWM_MODE_MS)
 	C.pinMode(cPin, C.PWM_OUTPUT)
-	C.pwmSetRange(pwmDutyMax)
+	C.pwmSetRange(C.uint(myFanControl.PWMDutyMax))
 	C.pwmSetClock(pwmClockDivisor)
-	C.pwmWrite(cPin, C.int(pwmDutyMin))
-	temp := float32(0.)
+	C.pwmWrite(cPin, C.int(myFanControl.PWMDutyMin))
+	myFanControl.TempCurrent = 0
 	go cpuTempMonitor(func(cpuTemp float32) {
 		if isCPUTempValid(cpuTemp) {
-			temp = cpuTemp
+			myFanControl.TempCurrent = cpuTemp
 		}
 	})
-	pwmDuty := 0
+
+	myFanControl.PWMDutyCurrent = 0
+
+	delay := time.NewTicker(delaySeconds * time.Second)
 
 	for {
-		if temp > (tempTarget + hysteresis) {
-			pwmDuty = iMax(iMin(pwmDutyMax, pwmDuty+1), pwmDutyMin)
-		} else if temp < (tempTarget - hysteresis) {
-			pwmDuty = iMax(pwmDuty-1, 0)
-			if pwmDuty < pwmDutyMin {
-				pwmDuty = 0
+		if myFanControl.TempCurrent > (myFanControl.TempTarget + hysteresis) {
+			myFanControl.PWMDutyCurrent = iMax(iMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+1), myFanControl.PWMDutyMin)
+		} else if myFanControl.TempCurrent < (myFanControl.TempTarget - hysteresis) {
+			myFanControl.PWMDutyCurrent = iMax(myFanControl.PWMDutyCurrent-1, 0)
+			if myFanControl.PWMDutyCurrent < myFanControl.PWMDutyMin {
+				myFanControl.PWMDutyCurrent = 0
 			}
 		}
-		//log.Println(temp, " ", pwmDuty)
-		C.pwmWrite(cPin, C.int(pwmDuty))
-		time.Sleep(delaySeconds * time.Second)
+		//log.Println(myFanControl.TempCurrent, " ", myFanControl.PWMDutyCurrent)
+		C.pwmWrite(cPin, C.int(myFanControl.PWMDutyCurrent))
+		<-delay.C
 	}
 
 	// Default to "ON".
@@ -121,7 +136,12 @@ func (service *Service) Manage() (string, error) {
 		}
 	}
 
-	go fanControl(*pwmDutyMin, *pin, float32(*tempTarget))
+	myFanControl.TempTarget = float32(*tempTarget)
+	myFanControl.PWMDutyMin = *pwmDutyMin
+	myFanControl.PWMDutyMax = pwmDutyMax
+	myFanControl.PWMPin = *pin
+
+	go fanControl()
 
 	// Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
@@ -129,54 +149,23 @@ func (service *Service) Manage() (string, error) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 
-	// Set up listener for defined host and port
-	listener, err := net.Listen("tcp", port)
-	if err != nil {
-		return "Possibly was a problem with the port binding", err
-	}
+	http.HandleFunc("/", handleStatusRequest)
+	http.ListenAndServe(addr, nil)
 
-	// set up channel on which to send accepted connections
-	listen := make(chan net.Conn, 100)
-	go acceptConnection(listener, listen)
-
-	// loop work cycle with accept connections or interrupt
-	// by system signal
+	// interrupt by system signal
 	for {
-		select {
-		case conn := <-listen:
-			go handleClient(conn)
-		case killSignal := <-interrupt:
-			stdlog.Println("Got signal:", killSignal)
-			stdlog.Println("Stoping listening on ", listener.Addr())
-			listener.Close()
-			if killSignal == os.Interrupt {
-				return "Daemon was interrupted by system signal", nil
-			}
-			return "Daemon was killed", nil
+		killSignal := <-interrupt
+		stdlog.Println("Got signal:", killSignal)
+		if killSignal == os.Interrupt {
+			return "Daemon was interrupted by system signal", nil
 		}
+		return "Daemon was killed", nil
 	}
 }
 
-// Accept a client connection and collect it in a channel
-func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
-		}
-		listen <- conn
-	}
-}
-
-func handleClient(client net.Conn) {
-	for {
-		buf := make([]byte, 4096)
-		numbytes, err := client.Read(buf)
-		if numbytes == 0 || err != nil {
-			return
-		}
-		client.Write(buf[:numbytes])
-	}
+func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
+	statusJSON, _ := json.Marshal(&myFanControl)
+	w.Write(statusJSON)
 }
 
 func init() {

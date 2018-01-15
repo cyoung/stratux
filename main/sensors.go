@@ -52,7 +52,6 @@ func pollSensors() {
 
 		// If it's not currently connected, try connecting to IMU
 		if globalSettings.IMU_Sensor_Enabled && !globalStatus.IMUConnected {
-			log.Println("AHRS Info: attempting IMU connection.")
 			globalStatus.IMUConnected = initIMU() // I2C accel/gyro/mag.
 		}
 	}
@@ -62,13 +61,11 @@ func initPressureSensor() (ok bool) {
 	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
 	if err == nil {
 		myPressureReader = bmp
-		log.Println("AHRS Info: Successfully initialized BMP280")
 		return true
 	}
 
 	//TODO westphae: make bmp180.go to fit bmp interface
 
-	log.Println("AHRS Info: couldn't initialize BMP280 or BMP180")
 	return false
 }
 
@@ -93,14 +90,14 @@ func tempAndPressureSender() {
 		// Read temperature and pressure altitude.
 		temp, err = myPressureReader.Temperature()
 		if err != nil {
-			log.Printf("AHRS Error: Couldn't read temperature from sensor: %s", err)
+			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
 		}
 		press, err = myPressureReader.Pressure()
 		if err != nil {
-			log.Printf("AHRS Error: Couldn't read pressure from sensor: %s", err)
+			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
 			failNum++
 			if failNum > numRetries {
-				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
+				//				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
 				break
@@ -129,15 +126,15 @@ func initIMU() (ok bool) {
 	imu, err := sensors.NewMPU9250()
 	if err == nil {
 		myIMUReader = imu
-		log.Println("AHRS Info: Successfully connected MPU9250")
 		return true
 	}
 
 	// TODO westphae: try to connect to MPU9150 or other IMUs.
 
-	log.Println("AHRS Error: couldn't initialize an IMU")
 	return false
 }
+
+//FIXME: Shoud be moved to managementinterface.go and standardized on management interface port.
 
 func sensorAttitudeSender() {
 	var (
@@ -147,7 +144,6 @@ func sensorAttitudeSender() {
 		failNum              uint8
 	)
 
-	log.Println("AHRS Info: initializing new Simple AHRS")
 	s := ahrs.NewSimpleAHRS()
 	m := ahrs.NewMeasurement()
 	cal = make(chan (string), 1)
@@ -155,9 +151,8 @@ func sensorAttitudeSender() {
 	// Set up loggers for analysis
 	ahrswebListener, err := ahrsweb.NewKalmanListener()
 	if err != nil {
-		log.Printf("AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
+		// addSingleSystemErrorf("ahrs-web-start", "AHRS Info: couldn't start ahrswebListener: %s\n", err.Error())
 	} else {
-		log.Println("AHRS Info: ahrswebListener started on port 8000")
 		defer ahrswebListener.Close()
 	}
 

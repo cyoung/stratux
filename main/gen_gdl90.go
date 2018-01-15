@@ -690,6 +690,7 @@ func blinkStatusLED() {
 		ledON = !ledON
 	}
 }
+
 func heartBeatSender() {
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
@@ -701,8 +702,10 @@ func heartBeatSender() {
 			//  Blinking when there is a critical system error (and Stratux is still running).
 
 			if len(globalStatus.Errors) == 0 { // Any system errors?
-				// Turn on green ACT LED on the Pi.
-				ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				if !globalStatus.NightMode { // LED is off by default (/boot/config.txt.)
+					// Turn on green ACT LED on the Pi.
+					ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+				}
 			} else if !ledBlinking {
 				// This assumes that system errors do not disappear until restart.
 				go blinkStatusLED()
@@ -1097,7 +1100,6 @@ type status struct {
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
-	CPULoad                                    string
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
@@ -1118,6 +1120,7 @@ type status struct {
 	AHRS_LogFiles_Size                         int64
 	BMPConnected                               bool
 	IMUConnected                               bool
+	NightMode                                  bool // For turning off LEDs.
 }
 
 var globalSettings settings
@@ -1175,12 +1178,25 @@ func addSystemError(err error) {
 	globalStatus.Errors = append(globalStatus.Errors, err.Error())
 }
 
+var systemErrsMutex *sync.Mutex
+var systemErrs map[string]string
+
+func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
+	systemErrsMutex.Lock()
+	if _, ok := systemErrs[ident]; !ok {
+		// Error hasn't been thrown yet.
+		systemErrs[ident] = fmt.Sprintf(format, a...)
+		globalStatus.Errors = append(globalStatus.Errors, systemErrs[ident])
+		log.Printf("Added critical system error: %s\n", systemErrs[ident])
+	}
+	// Do nothing on this call if the error has already been thrown.
+	systemErrsMutex.Unlock()
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
-		err_ret := fmt.Errorf("can't save settings %s: %s", configLocation, err.Error())
-		addSystemError(err_ret)
-		log.Printf("%s\n", err_ret.Error())
+		addSingleSystemErrorf("save-settings", "can't save settings %s: %s", configLocation, err.Error())
 		return
 	}
 	defer fd.Close()
@@ -1280,7 +1296,6 @@ func fsWriteTest(dir string) error {
 
 func printStats() {
 	statTimer := time.NewTicker(30 * time.Second)
-	diskUsageWarning := false
 	for {
 		<-statTimer.C
 		var memstats runtime.MemStats
@@ -1288,24 +1303,25 @@ func printStats() {
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
-		log.Printf(" - CPU load %s\n", globalStatus.CPULoad)
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.GPSLastFixLocalTime), mySituation.GPSFixQuality, mySituation.GPSSatellites, mySituation.GPSSatellitesSeen, mySituation.GPSSatellitesTracked, mySituation.GPSNACp, mySituation.GPSHorizontalAccuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVerticalSpeed, mySituation.GPSVerticalAccuracy)
 		}
+		sensorsOutput := make([]string, 0)
 		if globalSettings.IMU_Sensor_Enabled {
-			log.Printf(" - Last IMU read: %s\n", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last IMU read: %s", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
 		}
 		if globalSettings.BMP_Sensor_Enabled {
-			log.Printf(" - Last BMP read: %s\n", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime))
+			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last BMP read: %s", stratuxClock.HumanizeTime(mySituation.BaroLastMeasurementTime)))
+		}
+		if len(sensorsOutput) > 0 {
+			log.Printf("- " + strings.Join(sensorsOutput, ", ") + "\n")
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
-		if !diskUsageWarning && usage.Usage() > 0.95 {
-			err_p := fmt.Errorf("Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
-			addSystemError(err_p)
-			diskUsageWarning = true
+		if usage.Usage() > 0.95 {
+			addSingleSystemErrorf("disk-space", "Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		}
 		logStatus()
 	}
@@ -1437,6 +1453,10 @@ func main() {
 	mySituation.muBaro = &sync.Mutex{}
 	mySituation.muSatellite = &sync.Mutex{}
 
+	// Set up system error tracking.
+	systemErrsMutex = &sync.Mutex{}
+	systemErrs = make(map[string]string)
+
 	// Set up status.
 	globalStatus.Version = stratuxVersion
 	globalStatus.Build = stratuxBuild
@@ -1448,6 +1468,10 @@ func main() {
 	} else { // if not using the FlightBox config, use "normal" log file locations
 		logDirf = logDir
 	}
+	//Merlin: detect presence of /etc/Merlin file.
+	if _, err := os.Stat("/etc/Merlin"); !os.IsNotExist(err) {
+		globalStatus.HardwareBuild = "Merlin"
+	}
 	debugLogf = filepath.Join(logDirf, debugLogFile)
 	dataLogFilef = filepath.Join(logDirf, dataLogFile)
 	//FIXME: All of this should be removed by 08/01/2016.
@@ -1458,13 +1482,11 @@ func main() {
 		vtF, err := strconv.ParseFloat(vtS, 32)
 		if err == nil {
 			if vtF < 8.0 {
-				var err_os error
 				if globalStatus.HardwareBuild == "FlightBox" {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
+					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
 				} else {
-					err_os = fmt.Errorf("You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
+					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
 				}
-				addSystemError(err_os)
 			} else {
 				// Running Jessie or better. Remove some old init.d files.
 				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
@@ -1501,9 +1523,7 @@ func main() {
 	// Duplicate log.* output to debugLog.
 	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		err_log := fmt.Errorf("Failed to open '%s': %s", debugLogf, err.Error())
-		addSystemError(err_log)
-		log.Printf("%s\n", err_log.Error())
+		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
 	} else {
 		defer fp.Close()
 		// Keep the logfile handle for later use
