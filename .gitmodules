@@ -4,3 +4,6 @@
 [submodule "goflying"]
 	path = goflying
 	url = https://github.com/westphae/goflying
+[submodule "vendor/github.com/kidoman/embd"]
+	path = vendor/github.com/kidoman/embd
+	url = https://github.com/kidoman/embd
