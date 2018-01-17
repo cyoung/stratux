@@ -45,7 +45,7 @@
                         <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
                     </form>
                 </div>
-                <div class="form-group reset-flow">
+                <div ng-show="DeveloperMode" class="form-group reset-flow">
                     <label class="control-label col-xs-5">PPM Correction</label>
                     <form name="ppmForm" ng-submit="updateppm()" novalidate>
                         <!-- type="number" not supported except on mobile -->
