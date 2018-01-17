@@ -1,6 +1,111 @@
 <div class="col-sm-12">
     <div class="panel-group col-sm-6">
         <div class="panel panel-default">
+            <div class="panel-heading">AHRS</div>
+            <div class="panel-body">
+                <div class="col-xs-12">
+                    <span style="position:relative; overflow: hidden;">
+                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
+                                ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
+                    </span>
+                </div>
+                <div class="form-group reset-flow">
+                    <div class="col-xs-12">
+                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
+                                ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
+                    </div>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">G Limits</label>
+                    <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
+                        <input class="col-xs-7" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
+                               placeholder="Space-separated negative and positive G meter limits"/>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-group col-sm-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">Configuration</div>
+            <div class="panel-body">
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">Mode S Code (Hex)</label>
+                    <form name="modeForm" ng-submit="updatemodes()" novalidate>
+                        <!-- type="number" not supported except on mobile -->
+                        <!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
+                        <input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
+                    </form>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">Watch List</label>
+                    <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
+                        <!-- type="number" not supported except on mobile -->
+                        <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
+                    </form>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">PPM Correction</label>
+                    <form name="ppmForm" ng-submit="updateppm()" novalidate>
+                        <!-- type="number" not supported except on mobile -->
+                        <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
+                    </form>
+                </div>
+                <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
+                    <label class="control-label col-xs-5">Serial Output Baudrate</label>
+                    <form name="ppmForm" ng-submit="updateBaud()" novalidate>
+                        <!-- type="number" not supported except on mobile -->
+                        <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
+                    </form>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">Static IPs</label>
+                        <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
+                            <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
+                        </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-sm-12"> 
+    <div class="panel-group col-sm-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">Commands</div>
+            <div class="panel-body">
+                <!-- Upload. Temporary. -->
+                <div class="col-xs-12">
+                    <span ng-show="update_files == ''">
+                        <span style="position:relative; overflow: hidden;">
+                            <span class="fake-btn fake-btn-block">Click to select System Update file</span>
+                            <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
+                        </span>
+                    </span>
+                    <span ng-hide="update_files == ''">
+                        <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
+                    </span>
+                </div>
+                <div class="form-group reset-flow">
+                    <div class="col-xs-12">
+                        <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button>
+                    </div>
+                </div>
+                <div class="form-group reset-flow">
+                    <div class="col-xs-12">
+                        <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Developer mode area -->
+<div class="col-sm-12">
+    <div ng-show="DeveloperMode" class="panel-group col-sm-6">
+        <div class="panel panel-default">
             <div class="panel-heading">Hardware</div>
             <div class="panel-body">
                 <div class="form-group">
@@ -42,8 +147,7 @@
             </div>
         </div>
     </div>
-
-    <div class="panel-group col-sm-6">
+    <div ng-show="DeveloperMode" class="panel-group col-sm-6">
         <div class="panel panel-default">
             <div class="panel-heading">Diagnostics</div>
             <div class="panel-body">
@@ -75,120 +179,6 @@
         </div>
     </div>
 
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">AHRS</div>
-            <div class="panel-body">
-                <div class="col-xs-12">
-                    <span style="position:relative; overflow: hidden;">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
-                                ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
-                    </span>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
-                                ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
-                    </div>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">G Limits</label>
-                    <form name="GLimitForm" ng-submit="updateGLimits()" novalidate ng-disabled="!IMU_Sensor_Enabled">
-                        <input class="col-xs-7" type="string" required ng-model="GLimits" ng-blur="updateGLimits()"
-                               placeholder="Space-separated negative and positive G meter limits"/>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="col-sm-12">
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Configuration</div>
-            <div class="panel-body">
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">Mode S Code (Hex)</label>
-                    <form name="modeForm" ng-submit="updatemodes()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <!-- RegEx for validation: ^[A-Fa-f0-9]{6}$ -->
-                        <input class="col-xs-7" type="string" required ng-model="OwnshipModeS" placeholder="FAA HEX code" ng-blur="updatemodes()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">Watch List</label>
-                    <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="string" required ng-model="WatchList" placeholder="space-delimited identifiers" ng-blur="updatewatchlist()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">PPM Correction</label>
-                    <form name="ppmForm" ng-submit="updateppm()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="number_format" required ng-model="PPM" placeholder="integer" ng-blur="updateppm()" />
-                    </form>
-                </div>
-                <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
-                    <label class="control-label col-xs-5">Serial Output Baudrate</label>
-                    <form name="ppmForm" ng-submit="updateBaud()" novalidate>
-                        <!-- type="number" not supported except on mobile -->
-                        <input class="col-xs-7" type="number_format" required ng-model="Baud" placeholder="integer" ng-blur="updateBaud()" />
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-	
-    <div class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Commands</div>
-            <div class="panel-body">
-                <!-- Upload. Temporary. -->
-                <div class="col-xs-12">
-                    <span ng-show="update_files == ''">
-                        <span style="position:relative; overflow: hidden;">
-                            <span class="fake-btn fake-btn-block">Click to select System Update file</span>
-                            <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file" onchange="angular.element(this).scope().setUploadFile(this.files)"/>
-                        </span>
-                    </span>
-                    <span ng-hide="update_files == ''">
-                        <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">Install {{update_files[0].name}}</button>
-                    </span>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block" ui-turn-on="modalReboot">Reboot</button>
-                    </div>
-                </div>
-                <div class="form-group reset-flow">
-                    <div class="col-xs-12">
-                        <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Developer mode area -->
-<div class="col-sm-12">
-    <div ng-show="DeveloperMode" class="panel-group col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">Developer Options</div>
-            <div class="panel-body">
-                <div class="col-xs-12">
-                    <div class="form-group reset-flow">
-                        <label class="control-label col-xs-5">Static IPs</label>
-                        <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
-                            <input class="col-xs-7" type="string" required ng-model="StaticIps" ng-list=" " ng-trim="false" placeholder="space-delimited ip's to send network data" ng-blur="updatestaticips()" />
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 
