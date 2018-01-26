@@ -11,6 +11,7 @@ iface wlan0 inet static
   address 10.26.36.1
   netmask 255.255.255.0
   post-up /usr/sbin/stratux-wifi.sh
+  wireless-power off
 
 auto eth0:0
 iface eth0:0 inet static

@@ -61,6 +61,9 @@ chmod 755 mnt/usr/sbin/sdr-tool.sh
 #ping udev
 cp -f 99-uavionix.rules mnt/etc/udev/rules.d
 
+#logrotate conf
+cp -f logrotate.conf mnt/etc/logrotate.conf
+
 #fan/temp control script
 #remove old script
 rm -rf mnt/usr/bin/fancontrol.py
