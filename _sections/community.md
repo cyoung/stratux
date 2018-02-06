@@ -17,3 +17,8 @@ Ask for help or suggest/contribute improvements.
 * [EAA article on Stratux](http://www.eaa.org/en/eaa/aviation-communities-and-interests/homebuilt-aircraft-and-homebuilt-aircraft-kits/resources-for-while-youre-building/building-articles/instruments-and-avionics/live-weather-and-traffic-for-less-than-$120).
 * [Aviation Safety Magazine Article](http://www.aviationsafetymagazine.com/issues/35_12/features/Stratux-A-110-ADS-B-In-Receiver_11099-1.html).
 * [Aviation Consumer Magazine Article](http://www.aviationconsumer.com/issues/82_2/avionicsreport/Stratux-ADS-B-DIY-and-Save-Big_6887-1.html).
+
+### Useful links
+
+* [Towers map](http://towers.stratux.me/).
+* [Stratux wiki](http://github.com/cyoung/stratux/wiki).
