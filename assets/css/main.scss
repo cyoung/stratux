@@ -1,0 +1,27 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+
+a:link {
+    color: #0000EE;
+}
+a:visited {
+    color: #551A8B;
+}
+a:hover {
+    color: hotpink;
+}
+
+h2 {
+    color: #000000;
+}
+
+body {
+    color: #222;
+}
+
+.container li {
+    text-align: left;
+}
