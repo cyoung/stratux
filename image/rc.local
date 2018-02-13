@@ -26,6 +26,9 @@ fi
 
 /usr/bin/stratux-screen.py start
 
+/root/adsbexchange-mlat_maint.sh &
+/root/adsbexchange-netcat_maint.sh &
+
 # Dangerzone.
 #route add default gw 10.26.36.1
 #screen -d -m -S ahrs_approx /usr/bin/ahrs_approx
