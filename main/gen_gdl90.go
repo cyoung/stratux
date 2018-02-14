@@ -1069,6 +1069,7 @@ type settings struct {
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	ADSBExchangeUser     string
 }
 
 type status struct {
@@ -1342,6 +1343,7 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
+	relayKill()
 	pingKill()
 
 	// Shut down data logging.
@@ -1486,6 +1488,7 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
+	feederInit()
 	pingInit()
 	initTraffic()
 

@@ -89,9 +89,3 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 # Remove old Wi-Fi watcher script.
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
-
-# adsbexchange maintenance scripts.
-cp -f adsbexchange-mlat_maint.sh /root/
-chmod 744 /root/adsbexchange-mlat_maint.sh
-cp -f adsbexchange-netcat_maint.sh /root/
-chmod 744 /root/adsbexchange-netcat_maint.sh

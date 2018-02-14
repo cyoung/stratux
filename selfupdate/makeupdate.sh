@@ -39,8 +39,6 @@ cp image/rc.local work/bin/
 cp image/dhcpd.conf work/bin/
 cp image/interfaces work/bin/
 cp image/logrotate.conf work/bin
-cp image/adsbexchange-mlat_maint.sh work/bin
-cp image/adsbexchange-netcat_maint.sh work/bin
 
 cp test-data/ahrs/ahrs_table.log work/bin/
 cp ahrs_approx work/bin/
