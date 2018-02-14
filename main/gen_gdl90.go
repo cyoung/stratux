@@ -1342,8 +1342,8 @@ var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 // Graceful shutdown.
 func gracefulShutdown() {
 	// Shut down SDRs.
-	sdrKill()
 	relayKill()
+	sdrKill()
 	pingKill()
 
 	// Shut down data logging.

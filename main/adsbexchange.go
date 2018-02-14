@@ -150,7 +150,7 @@ func feederProcessMonitor() {
 			if (mlatclientRelay == nil) && globalStatus.GPS_satellites_locked > 0 && globalStatus.GPS_position_accuracy < 15.0 { //FIXME: 15m accuracy - set a minimum based on network requirements.
 				// Check "mlat-client".
 				//FIXME: mlatClientRelay never is re-set to nil if it crashes.
-				mlatclientRelay = makeRelayProc(RELAY_TYPE_MLAT_CLIENT, "/usr/bin/mlat-client", "--input-type", "dump1090", "--input-connect", "localhost:30005", "--lat", strconv.FormatFloat(float64(mySituation.GPSLatitude), 'f', 5, 32), "--lon", strconv.FormatFloat(float64(mySituation.GPSLongitude), 'f', 5, 32), "--alt", strconv.FormatFloat(float64(mySituation.GPSAltitudeMSL), 'f', 1, 32), "--user", globalSettings.ADSBExchangeUser, "--server", "feed.adsbexchange.com:31090", "--no-udp", "--results", "beast,connect,localhost:30104")
+				mlatclientRelay = makeRelayProc(RELAY_TYPE_MLAT_CLIENT, "/usr/bin/mlat-client", "--input-type", "dump1090", "--input-connect", "localhost:30005", "--lat", strconv.FormatFloat(float64(mySituation.GPSLatitude), 'f', 5, 32), "--lon", strconv.FormatFloat(float64(mySituation.GPSLongitude), 'f', 5, 32), "--alt", strconv.FormatFloat(float64(mySituation.GPSHeightAboveEllipsoid), 'f', 1, 32)+"ft", "--user", globalSettings.ADSBExchangeUser, "--server", "feed.adsbexchange.com:31090", "--no-udp", "--results", "beast,connect,localhost:30104")
 			}
 		}
 	}
