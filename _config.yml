@@ -33,9 +33,8 @@
 title: Stratux ADS-B
 subtitle: DIY/Low-cost Portable ADS-B
 description: >- # this means to ignore newlines until "baseurl:"
-  This is the demo site for a Jekyll theme version of
-  HTML5 UP's sleek, responsive site template Prologue.
-author: Your Incredible Name
+  Stratux ADS-B receiver software for pilots.
+author: cyoung
 email: website@stratux.me
 avatar: assets/images/logo.png
 
