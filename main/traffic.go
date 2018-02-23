@@ -246,7 +246,7 @@ func sendTrafficUpdates() {
 				if len(ti.Tail) > 0 {
 					trafficCallsign = ti.Tail
 				} else {
-					trafficCallsign = fmt.Sprintf("%X%d", ti.Icao_addr, ti.Squawk)
+					trafficCallsign = fmt.Sprintf("%X_%d", ti.Icao_addr, ti.Squawk)
 				}
 
 				// send traffic message to X-Plane
