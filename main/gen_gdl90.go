@@ -408,14 +408,27 @@ func makeOwnshipReport() bool {
 			msg[19+i] = tail[i]
 		}
 	}
-	// Create callsign "Stratux".
-	msg[19] = 0x53
-	msg[20] = 0x74
-	msg[21] = 0x72
-	msg[22] = 0x61
-	msg[23] = 0x74
-	msg[24] = 0x75
-	msg[25] = 0x78
+
+	myReg := "Stratux" // Default callsign.
+	// Use icao2reg() results for ownship tail number, if available.
+	if len(code) == 3 {
+		uintIcao := uint32(code[0])<<16 | uint32(code[1])<<8 | uint32(code[2])
+		regFromIcao, regFromIcaoValid := icao2reg(uintIcao)
+		if regFromIcaoValid {
+			// Valid "decoded" registration. Use this for the reg.
+			myReg = regFromIcao
+		}
+	}
+
+	// Truncate registration to 8 characters.
+	if len(myReg) > 8 {
+		myReg = myReg[:8]
+	}
+
+	// Write the callsign.
+	for i := 0; i < len(myReg); i++ {
+		msg[19+i] = myReg[i]
+	}
 
 	sendGDL90(prepareMessage(msg), false)
 	return true
