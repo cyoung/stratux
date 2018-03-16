@@ -243,7 +243,7 @@ func (f *FLARM) read() {
 			default:
 				line, err := bufio.NewReader(stdout).ReadString('\n')
 				if err == nil {
-					log.Println("FLARM: ogn-rf stdout: ", line)
+					log.Println("FLARM: ogn-rf stdout: ", strings.TrimSpace(line))
 				}
 			}
 		}
@@ -257,7 +257,7 @@ func (f *FLARM) read() {
 			default:
 				line, err := bufio.NewReader(stderr).ReadString('\n')
 				if err == nil {
-					log.Println("FLARM: ogn-rf stderr: ", line)
+					log.Println("FLARM: ogn-rf stderr: ", strings.TrimSpace(line))
 				}
 			}
 		}

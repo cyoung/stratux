@@ -199,7 +199,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 		for {
 			line, err := bufio.NewReader(decoderOutput).ReadString('\n')
 			if err == nil {
-				log.Println("FLARM: ogn-decode stdout:", line)
+				log.Println("FLARM: ogn-decode stdout:", strings.TrimSpace(line))
 			} else {
 				return
 			}
@@ -211,7 +211,7 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 		for {
 			line, err := bufio.NewReader(decoderError).ReadString('\n')
 			if err == nil {
-				log.Println("FLARM: ogn-decode stderr:", line)
+				log.Println("FLARM: ogn-decode stderr:", strings.TrimSpace(line))
 			} else {
 				return
 			}
