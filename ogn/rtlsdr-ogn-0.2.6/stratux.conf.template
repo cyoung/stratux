@@ -32,3 +32,8 @@ APRS:
                                        # Please refer to http://wiki.glidernet.org/receiver-naming-convention
   Server = "localhost:14580";
 };
+
+HTTP:
+{
+  Port = 8082;
+};
