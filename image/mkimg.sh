@@ -22,11 +22,14 @@ chroot mnt/ apt-get install -y hostapd isc-dhcp-server
 chroot mnt/ apt-get install -y tcpdump
 #wifi startup
 chroot mnt/ systemctl enable isc-dhcp-server
+#ssh startup
+chroot mnt/ systemctl enable ssh
 
 #disable ntpd autostart
 chroot mnt/ systemctl disable ntp
 
 #root key
+mkdir -p mnt/etc/ssh/authorized_keys
 cp -f root mnt/etc/ssh/authorized_keys/root
 chown root.root mnt/etc/ssh/authorized_keys/root
 chmod 644 mnt/etc/ssh/authorized_keys/root
@@ -129,10 +132,10 @@ make
 make install
 
 #disable serial console
-sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
+sed -i mnt/boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
-sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+sed -i mnt/etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
 #boot settings
 cp -f config.txt mnt/boot/
