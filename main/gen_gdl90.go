@@ -643,6 +643,39 @@ func makeStratuxHeartbeat() []byte {
 	return prepareMessage(msg)
 }
 
+/*
+
+	ForeFlight "ID Message".
+
+	Sends device information to ForeFlight.
+
+*/
+func makeFFIDMessage() []byte {
+	msg := make([]byte, 39)
+	msg[0] = 0x65 // Message type "ForeFlight".
+	msg[1] = 0    // ID message identifier.
+	msg[2] = 1    // Message version.
+	// Serial number. Set to "invalid" for now.
+	for i := 3; i <= 10; i++ {
+		msg[i] = 0xFF
+	}
+	devShortName := "Stratux" // Temporary. Will be populated in the future with other names.
+	if len(devShortName) > 8 {
+		devShortName = devShortName[:8] // 8 chars.
+	}
+	copy(msg[11:], devShortName)
+
+	devLongName := fmt.Sprintf("%s-%s", stratuxVersion, stratuxBuild)
+	if len(devLongName) > 16 {
+		devLongName = devLongName[:16] // 16 chars.
+	}
+	copy(msg[19:], devLongName)
+
+	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+
+	return prepareMessage(msg)
+}
+
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
@@ -727,6 +760,7 @@ func heartBeatSender() {
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
+			sendGDL90(makeFFIDMessage(), false)
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
 
