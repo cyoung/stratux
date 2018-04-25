@@ -1486,6 +1486,7 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
+	initUATRadioSerial()
 	pingInit()
 	initTraffic()
 
