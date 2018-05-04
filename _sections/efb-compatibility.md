@@ -10,7 +10,7 @@ order: 5
 | FlyQ EFB (Seattle Avionics) 2.1+ (iOS) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | Naviator (Android) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | AvNav 2.0.0+ (Android) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| ForeFlight 7.x+ (iOS) | :white_check_mark: | :white_check_mark: | [:small_blue_diamond:](https://www.reddit.com/r/stratux/comments/6daby0/experimental_builds_view_attitude_data_in_ff/) |
+| ForeFlight 7.x+ (iOS) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | WingX (iOS only) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | Avare EFB (Android) | :white_check_mark: | :white_check_mark: | :x: |
 | FltPlan Go (Android, iOS, and Windows) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
