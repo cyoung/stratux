@@ -3,27 +3,16 @@ package main
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/uavionix/serial"
 	"log"
-	"unsafe"
+	"math"
 )
-
-/*
-
-#cgo LDFLAGS: -ldump978
-
-#include <stdint.h>
-#include "../dump978/fec.h"
-
-*/
-import "C"
 
 var radioSerialConfig *serial.Config
 var radioSerialPort *serial.Port
 
 func initUATRadioSerial() error {
-	// Init for FEC routines.
-	C.init_fec()
 	// Initialize port at 2Mbaud.
 	radioSerialConfig = &serial.Config{Name: "/dev/ttyACM0", Baud: 2000000}
 	p, err := serial.OpenPort(radioSerialConfig)
@@ -66,7 +55,7 @@ func radioSerialPortReader() {
 		for i := 0; i < bufLen-6; i++ {
 			if (buf[i] == radioMagic[0]) && (buf[i+1] == radioMagic[1]) && (buf[i+2] == radioMagic[2]) && (buf[i+3] == radioMagic[3]) {
 				// Found the magic sequence. Get the length.
-				msgLen := int(uint16(buf[i+4])+(uint16(buf[i+5])<<8)) + 5 // 5 bytes for RSSI and TS.
+				msgLen := int(uint16(buf[i+4])+(uint16(buf[i+5])<<8)) + 6 // 6 bytes for rs_errors, RSSI, and TS.
 				// Check if we've read enough to finish this message.
 				if bufLen < i+6+msgLen {
 					break // Wait for more of the message to come in.
@@ -92,44 +81,31 @@ func radioSerialPortReader() {
 func processRadioMessage(msg []byte) {
 	log.Printf("processRadioMessage(): %d %s\n", len(msg), hex.EncodeToString(msg))
 
-	// RSSI and message timestamp are prepended to the actual packet.
+	// rs_errors, RSSI, and message timestamp are prepended to the actual packet.
+
+	// rs_errors.
+	rs_errors := int8(msg[0])
 
 	// RSSI
-	rssiRaw := int8(msg[0])
+	rssiRaw := int8(msg[1])
 	rssiAdjusted := int16(rssiRaw) - 132 // -132 dBm, calculated minimum RSSI.
-	rssiDump978 := int16(1000 * (10 ^ (float64(rssiAdjusted) / 20)))
+	l := math.Pow(10.0, float64(rssiAdjusted)/20.0)
+	rssiDump978 := int16(1000.0 * l)
 
-	_ := uint32(msg[1]) + (uint32(msg[2]) << 8) + (uint32(msg[3]) << 16) + (uint32(msg[4]) << 24) // Timestamp. Currently unused.
+	// Timestamp.
+	//ts := uint32(msg[2]) + (uint32(msg[3]) << 8) + (uint32(msg[4]) << 16) + (uint32(msg[5]) << 24) // Timestamp. Currently unused.
 
-	msg = msg[5:]
+	msg = msg[6:]
 
 	var toRelay string
-	switch len(msg) {
-	case 552:
-		to := make([]byte, 552)
-		var rs_errors int
-		i := int(C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
-		toRelay = fmt.Sprintf("+%s;ss=%d;", hex.EncodeToString(to[:432]), rssiDump978)
-		log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
-	case 48:
-		to := make([]byte, 48)
-		copy(to, msg)
-		var rs_errors int
-		i := int(C.correct_adsb_frame((*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
-		if i == 1 {
-			// Short ADS-B frame.
-			toRelay = fmt.Sprintf("-%s;ss=%d;", hex.EncodeToString(to[:18]), rssiDump978)
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
-		} else if i == 2 {
-			// Long ADS-B frame.
-			toRelay = fmt.Sprintf("-%s;ss=%d;", hex.EncodeToString(to[:34]), rssiDump978)
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
-		} else {
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, hex.EncodeToString(to))
-		}
-	default:
-		log.Printf("processRadioMessage(): unhandled message size %d\n", len(msg))
+	if len(msg) < 432 {
+		toRelay = "-" // Downlink.
+	} else {
+		toRelay = "+" // Uplink.
 	}
+
+	toRelay += fmt.Sprintf("%s;ss=%d;", hex.EncodeToString(msg), rssiDump978)
+	log.Printf("rs_errors=%d, msg=%s\n", rs_errors, toRelay)
 
 	if len(toRelay) > 0 {
 		o, msgtype := parseInput(toRelay)
