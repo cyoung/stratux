@@ -1939,10 +1939,8 @@ func makeAHRSGDL90Report() {
 		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
-			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
-		} else {
-			hdg = roundToInt16(float64(mySituation.GPSTrueCourse))
+		if !isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
+			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
