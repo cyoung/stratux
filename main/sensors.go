@@ -277,9 +277,12 @@ func sensorAttitudeSender() {
 				roll, pitch, heading = s.RollPitchHeading()
 				mySituation.AHRSRoll = roll / ahrs.Deg
 				mySituation.AHRSPitch = pitch / ahrs.Deg
-				mySituation.AHRSGyroHeading = heading / ahrs.Deg
+				mySituation.AHRSGyroHeading = heading
+				if !isAHRSInvalidValue(heading) {
+					mySituation.AHRSGyroHeading /= ahrs.Deg
+				}
 
-				// TODO westphae: until magnetometer calibration is performed, no mag heading
+				//TODO westphae: until magnetometer calibration is performed, no mag heading
 				mySituation.AHRSMagHeading = ahrs.Invalid
 				mySituation.AHRSSlipSkid = s.SlipSkid()
 				mySituation.AHRSTurnRate = s.RateOfTurn()

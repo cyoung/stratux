@@ -26,8 +26,4 @@ fi
 
 /usr/bin/stratux-screen.py start
 
-# Dangerzone.
-#route add default gw 10.26.36.1
-#screen -d -m -S ahrs_approx /usr/bin/ahrs_approx
-
 exit 0

@@ -408,14 +408,27 @@ func makeOwnshipReport() bool {
 			msg[19+i] = tail[i]
 		}
 	}
-	// Create callsign "Stratux".
-	msg[19] = 0x53
-	msg[20] = 0x74
-	msg[21] = 0x72
-	msg[22] = 0x61
-	msg[23] = 0x74
-	msg[24] = 0x75
-	msg[25] = 0x78
+
+	myReg := "Stratux" // Default callsign.
+	// Use icao2reg() results for ownship tail number, if available.
+	if len(code) == 3 {
+		uintIcao := uint32(code[0])<<16 | uint32(code[1])<<8 | uint32(code[2])
+		regFromIcao, regFromIcaoValid := icao2reg(uintIcao)
+		if regFromIcaoValid {
+			// Valid "decoded" registration. Use this for the reg.
+			myReg = regFromIcao
+		}
+	}
+
+	// Truncate registration to 8 characters.
+	if len(myReg) > 8 {
+		myReg = myReg[:8]
+	}
+
+	// Write the callsign.
+	for i := 0; i < len(myReg); i++ {
+		msg[19+i] = myReg[i]
+	}
 
 	sendGDL90(prepareMessage(msg), false)
 	return true
@@ -630,6 +643,39 @@ func makeStratuxHeartbeat() []byte {
 	return prepareMessage(msg)
 }
 
+/*
+
+	ForeFlight "ID Message".
+
+	Sends device information to ForeFlight.
+
+*/
+func makeFFIDMessage() []byte {
+	msg := make([]byte, 39)
+	msg[0] = 0x65 // Message type "ForeFlight".
+	msg[1] = 0    // ID message identifier.
+	msg[2] = 1    // Message version.
+	// Serial number. Set to "invalid" for now.
+	for i := 3; i <= 10; i++ {
+		msg[i] = 0xFF
+	}
+	devShortName := "Stratux" // Temporary. Will be populated in the future with other names.
+	if len(devShortName) > 8 {
+		devShortName = devShortName[:8] // 8 chars.
+	}
+	copy(msg[11:], devShortName)
+
+	devLongName := fmt.Sprintf("%s-%s", stratuxVersion, stratuxBuild)
+	if len(devLongName) > 16 {
+		devLongName = devLongName[:16] // 16 chars.
+	}
+	copy(msg[19:], devLongName)
+
+	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+
+	return prepareMessage(msg)
+}
+
 func makeHeartbeat() []byte {
 	msg := make([]byte, 7)
 	// See p.10.
@@ -714,6 +760,7 @@ func heartBeatSender() {
 			sendGDL90(makeHeartbeat(), false)
 			sendGDL90(makeStratuxHeartbeat(), false)
 			sendGDL90(makeStratuxStatus(), false)
+			sendGDL90(makeFFIDMessage(), false)
 			makeOwnshipReport()
 			makeOwnshipGeometricAltitudeReport()
 

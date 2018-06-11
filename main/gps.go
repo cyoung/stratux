@@ -1849,6 +1849,71 @@ func makeFFAHRSSimReport() {
 	sendMsg([]byte(s), NETWORK_AHRS_FFSIM, false)
 }
 
+/*
+
+	ForeFlight "AHRS Message".
+
+	Sends AHRS information to ForeFlight.
+
+*/
+
+func makeFFAHRSMessage() {
+	msg := make([]byte, 12)
+	msg[0] = 0x65 // Message type "ForeFlight".
+	msg[1] = 0x01 // AHRS message identifier.
+
+	// Values if invalid
+	pitch := int16(0x7FFF)
+	roll := int16(0x7FFF)
+	hdg := uint16(0xFFFF)
+	ias := uint16(0xFFFF)
+	tas := uint16(0xFFFF)
+
+	if isAHRSValid() {
+		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
+			pitch = roundToInt16(mySituation.AHRSPitch * 10)
+		}
+		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
+			roll = roundToInt16(mySituation.AHRSRoll * 10)
+		}
+	}
+
+	// Roll.
+	msg[2] = byte((roll >> 8) & 0xFF)
+	msg[3] = byte(roll & 0xFF)
+
+	// Pitch.
+	msg[4] = byte((pitch >> 8) & 0xFF)
+	msg[5] = byte(pitch & 0xFF)
+
+	// Heading.
+	msg[6] = byte((hdg >> 8) & 0xFF)
+	msg[7] = byte(hdg & 0xFF)
+
+	// Indicated Airspeed.
+	msg[8] = byte((ias >> 8) & 0xFF)
+	msg[9] = byte(ias & 0xFF)
+
+	// True Airspeed.
+	msg[10] = byte((tas >> 8) & 0xFF)
+	msg[11] = byte(tas & 0xFF)
+
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+}
+
+/*
+	ffAttitudeSender()
+	 Send AHRS message in FF format every 200ms.
+*/
+
+func ffAttitudeSender() {
+	ticker := time.NewTicker(200 * time.Millisecond)
+	for {
+		<-ticker.C
+		makeFFAHRSMessage()
+	}
+}
+
 func makeAHRSGDL90Report() {
 	msg := make([]byte, 24)
 	msg[0] = 0x4c
@@ -1874,10 +1939,8 @@ func makeAHRSGDL90Report() {
 		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
 			roll = roundToInt16(mySituation.AHRSRoll * 10)
 		}
-		if isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
-			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10) // TODO westphae: switch to AHRSMagHeading?
-		} else {
-			hdg = roundToInt16(float64(mySituation.GPSTrueCourse))
+		if !isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
+			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
 			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
@@ -2049,6 +2112,7 @@ func pollGPS() {
 	readyToInitGPS = true //TODO: Implement more robust method (channel control) to kill zombie serial readers
 	timer := time.NewTicker(4 * time.Second)
 	go gpsAttitudeSender()
+	go ffAttitudeSender()
 	for {
 		<-timer.C
 		// GPS enabled, was not connected previously?
