@@ -1533,7 +1533,6 @@ func main() {
 	crcInit() // Initialize CRC16 table.
 
 	sdrInit()
-	initUATRadioSerial()
 	pingInit()
 	initTraffic()
 
@@ -1573,6 +1572,10 @@ func main() {
 	go cpuTempMonitor(func(cpuTemp float32) {
 		globalStatus.CPUTemp = cpuTemp
 	})
+
+	// Start reading from serial UAT radio.
+	//FIXME: Follow 978 SDR option, or make a new one.
+	initUATRadioSerial()
 
 	reader := bufio.NewReader(os.Stdin)
 

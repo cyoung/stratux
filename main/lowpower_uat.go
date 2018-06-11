@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/uavionix/serial"
 	"log"
+	"time"
 	"unsafe"
 )
 
@@ -25,7 +27,7 @@ func initUATRadioSerial() error {
 	// Init for FEC routines.
 	C.init_fec()
 	// Initialize port at 2Mbaud.
-	radioSerialConfig = &serial.Config{Name: "/dev/ttyACM0", Baud: 2000000}
+	radioSerialConfig = &serial.Config{Name: "/dev/uatradio", Baud: 2000000}
 	p, err := serial.OpenPort(radioSerialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -100,7 +102,7 @@ func processRadioMessage(msg []byte) {
 	//rssiDump978 := int16(1000 * (10 ^ (float64(rssiAdjusted) / 20)))
 	rssiDump978 := rssiRaw
 
-	_ := uint32(msg[1]) + (uint32(msg[2]) << 8) + (uint32(msg[3]) << 16) + (uint32(msg[4]) << 24) // Timestamp. Currently unused.
+	//_ := uint32(msg[1]) + (uint32(msg[2]) << 8) + (uint32(msg[3]) << 16) + (uint32(msg[4]) << 24) // Timestamp. Currently unused.
 
 	msg = msg[5:]
 
