@@ -13,8 +13,8 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="vk162"
 
 # Stratux uatradio.
-#  0424:9514 (LaunchPad)
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0424", ATTRS{idProduct}=="9514", SYMLINK+="uatradio"
+#  0403:7028 (Stratux UATRadio)
+ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="uatradio"
 
 
 

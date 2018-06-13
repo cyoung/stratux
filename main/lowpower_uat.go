@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/uavionix/serial"
 	"log"
-	"time"
 	"unsafe"
 )
 
