@@ -133,7 +133,7 @@ func processRadioMessage(msg []byte) {
 		log.Printf("processRadioMessage(): unhandled message size %d\n", len(msg))
 	}
 
-	if len(toRelay) > 0 {
+	if len(toRelay) > 0 && rs_errors != 9999 {
 		o, msgtype := parseInput(toRelay)
 		if o != nil && msgtype != 0 {
 			relayMessage(msgtype, o)
