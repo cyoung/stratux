@@ -106,17 +106,16 @@ func processRadioMessage(msg []byte) {
 	msg = msg[5:]
 
 	var toRelay string
+	var rs_errors int
 	switch len(msg) {
 	case 552:
 		to := make([]byte, 552)
-		var rs_errors int
 		i := int(C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
 		toRelay = fmt.Sprintf("+%s;ss=%d;", hex.EncodeToString(to[:432]), rssiDump978)
 		log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
 	case 48:
 		to := make([]byte, 48)
 		copy(to, msg)
-		var rs_errors int
 		i := int(C.correct_adsb_frame((*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
 		if i == 1 {
 			// Short ADS-B frame.
