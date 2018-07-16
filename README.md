@@ -14,7 +14,7 @@ Raspberry Pi 2 with the Edimax EW-7811Un Wi-Fi dongle is supported but not recom
 Tested and works well with most common R820T and R820T2 RTL-SDR devices.
 
 Apps with stratux recognition/support:
-* ForeFlight 9.7+ - weather, traffic, AHRS.
+* ForeFlight 10+ - weather, traffic, AHRS.
 * Seattle Avionics FlyQ EFB 2.1.1+.
 * AvNav EFB 2.0.0+.
 * Naviator.

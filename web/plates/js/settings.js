@@ -220,7 +220,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			},
 			transformRequest: angular.identity
 		}).success(function (data) {
-			alert("success. wait 60 seconds and refresh home page to verify new version.");
+			alert("success. wait 5 minutes and refresh home page to verify new version.");
 			window.location.replace("/");
 		}).error(function (data) {
 			alert("error");
