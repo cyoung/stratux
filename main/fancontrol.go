@@ -30,10 +30,13 @@ const (
 	defaultPwmDutyMin = 1
 	pwmDutyMax        = 10
 
+	// Temperature at which we give up attempting active fan speed control and set it to full speed.
+	failsafeTemp = 65
+
 	// how often to update
 	delaySeconds = 30
 
-	// GPIO-1/BCM "18"/Pin 12 on a Raspberry PI 3
+	// GPIO-1/BCM "18"/Pin 12 on a Raspberry Pi 3
 	defaultPin = 1
 
 	// name of the service
@@ -96,6 +99,10 @@ func fanControl() {
 		//log.Println(myFanControl.TempCurrent, " ", myFanControl.PWMDutyCurrent)
 		C.pwmWrite(cPin, C.int(myFanControl.PWMDutyCurrent))
 		<-delay.C
+		if myFanControl.PWMDutyCurrent == myFanControl.PWMDutyMax && myFanControl.TempCurrent >= failsafeTemp {
+			// Reached the maximum temperature. We stop using PWM control and set the fan to "on" permanently.
+			break
+		}
 	}
 
 	// Default to "ON".
