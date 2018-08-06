@@ -3,8 +3,22 @@
 #                      STRATUX HOSTAPD MANAGER                      #
 ######################################################################
 
-#Set Script Name variable
+#Logging Function
 SCRIPT=`basename ${BASH_SOURCE[0]}`
+STX_LOG="/var/log/stratux.log"
+function wLog () {
+	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> $STX_LOG
+}
+wLog "Running Hostapd Manager Script."
+
+# files to edit
+HOSTAPD=('/etc/hostapd/hostapd.user')
+
+# values to be added to hostapd.user for security.
+HOSTAPD_SECURE_VALUES_DELETE=('auth_algs=1' 'wpa=3' 'wpa_passphrase=' 'wpa_key_mgmt=WPA-PSK' 'wpa_pairwise=TKIP' 'rsn_pairwise=CCMP')
+
+# 'wpa_passphrase=' was left out of this to set it with the $wifiPass. I assume you can not evaluate a variable from within an array variable
+HOSTAPD_SECURE_VALUES_WRITE=('auth_algs=1' 'wpa=3' 'wpa_key_mgmt=WPA-PSK' 'wpa_pairwise=TKIP' 'rsn_pairwise=CCMP')
 
 #Initialize variables to default values.
 OPT_S=false
@@ -12,8 +26,7 @@ OPT_C=false
 OPT_E=false
 OPT_O=false
 OPT_P=false
-OPT_Q=false
-defaultPass="SquawkDirtyToMe!"
+wifiPass="SquawkDirtyToMe!"
 
 parm="*"
 err="####"
@@ -40,15 +53,14 @@ function HELP {
   echo "${REV}-s${NORM}  --Sets the SSID to ${BOLD}ssid${NORM}. \"-s stratux\""
   echo "${REV}-c${NORM}  --Sets the channel to ${BOLD}chan${NORM}. \"-c 1\""
   echo "${REV}-o${NORM}  --Turns off encryption and sets network to open. Cannot be used with -e or -p."
-  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}$defaultPass{NORM}. Cannot be used with -o or -p"
+  echo "${REV}-e${NORM}  --Turns on encryption with passphrase ${BOLD}$wifiPass${NORM}. Cannot be used with -o or -p"
   echo "${REV}-p${NORM}  --Turns on encryption with your chosen passphrase ${BOLD}pass${NORM}. 8-63 Printable Characters(ascii 32-126). Cannot be used with -o or -e. \"-p password!\""
-  echo "${REV}-q${NORM}  --Run silently. Still a work in progress, but quieter."
   echo -e "${REV}-h${NORM}  --Displays this help message. No further functions are performed."\\n
   echo -e "Example: ${BOLD}$SCRIPT -s Stratux-N3558D -c 5 -p SquawkDirty!${NORM}"\\n
   exit 1
 }
 
-confirm() {
+function confirm() {
 	# call with a prompt string or use a default
 	read -r -p "$1 " response
 	case "$response" in
@@ -61,48 +73,45 @@ confirm() {
 	esac
 }
 
+function cleanhostapd () {
+	wLog "Cleaning hostapd config at $1"
+	for j in "${HOSTAPD_SECURE_VALUES_DELETE[@]}"
+	do
+		sed -i "/$j/ d" ${1}
+	done
+	sed -i '/^\s*$/d' ${1}
+}
+
+function writehostapd () {
+	wLog "Writing hostapd config at $1"
+	sed -i '/^\s*$/d' ${1}
+	echo "" >> ${1}
+	for j in "${HOSTAPD_SECURE_VALUES_WRITE[@]}"
+	do
+		echo "${j}" >> ${1}
+	done
+	echo "wpa_passphrase=$wifiPass" >> ${1}
+}
 
 #apply settings and restart all processes
-function APPLYSETTINGSLOUD {
+function APPLYSETTINGS {
+	wLog "Restarting all wifi settings."
 	echo "${RED}${BOLD} $att At this time the script will restart your WiFi services.${WHITE}${NORMAL}"
 	echo "If you are connected to Stratux through the ${BOLD}192.168.10.1${NORMAL} interface then you will be disconnected"
-	echo "Please wait 1 min and look for the new SSID on your wireless device."
+	echo "Please wait up to 1 min and look for the new SSID on your wireless device."
 	sleep 3
 	echo "${YELLOW}$att Restarting Stratux WiFi Services... $att ${WHITE}"
-	echo "${YELLOW}$att SSH will now  disconnect if connected to http://192.168.1.10 ... $att ${WHITE}"
-	echo "Killing hostapd..."
-	sleep 2
-	/usr/bin/killall -9 hostapd hostapd-edimax
-	echo "Killed..."
-	echo ""
-	echo "Killing DHCP Server..."
-	echo ""
-	/usr/sbin/service isc-dhcp-server stop
-	sleep 0.5
-	echo "Killed..."
-	echo ""
+	echo "${YELLOW}$att SSH will now disconnect if connected to http://192.168.10.1 ... $att ${WHITE}"
 	echo "ifdown wlan0..."
 	ifdown wlan0
 	sleep 0.5
 	echo "ifup wlan0..."
-	echo "Calling Stratux WiFI Start Script(stratux-wifi.sh)..."
+	echo "Calling Stratux WiFI Start Script(stratux-wifi.sh) via ifup wlan0..."
 	ifup wlan0
 	sleep 0.5
 	echo ""
 	echo ""
 	echo "All systems should be up and running and you should see your new SSID!"
-}
-
-function APPLYSETTINGSQUIET {
-	sleep 2
-	/usr/bin/killall -9 hostapd hostapd-edimax
-	sleep 1
-	/usr/sbin/service isc-dhcp-server stop
-	sleep 0.5
-	ifdown wlan0
-	sleep 0.5
-	ifup wlan0
-	sleep 0.5
 }
 
 clear
@@ -129,13 +138,14 @@ fi
 #If an option should be followed by an argument, it should be followed by a ":".
 #Notice there is no ":" after "eoqh". The leading ":" suppresses error messages from
 #getopts. This is required to get my unrecognized option code to work.
-options=':s:c:p:eoqh'
+options=':s:c:p:eoh'
 #options=':s:c:h'
 while getopts $options option; do
   case $option in
     s)  #set option "s"
       if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
           echo "${BOLD}${RED}$err No SSID for -s, exiting...${WHITE}${NORMAL}"
+		  wLog "No SSID for -s, exiting..."
           exit 1
       else
           OPT_S=$OPTARG
@@ -146,6 +156,7 @@ while getopts $options option; do
     c)  #set option "c"
       if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
           echo "${BOLD}${RED}$err Channel option(-c) used without value, exiting... ${WHITE}${NORMAL}"
+		  wLog "Channel option(-c) used without value, exiting..."
           exit 1
       else
           OPT_C=$OPTARG
@@ -154,6 +165,7 @@ while getopts $options option; do
           	echo "${GREEN}    Channel will now be set to ${BOLD}${UNDR}$OPT_C${WHITE}${NORMAL}."
           else
             echo "${BOLD}${RED}$err Channel is not within acceptable values, exiting...${WHITE}${NORMAL}"
+			wLog "Channel is not within acceptable values, exiting..."
             exit 1
           fi
       fi
@@ -161,26 +173,30 @@ while getopts $options option; do
     e)  #set option "e" with default passphrase
 		if [[ -z "${OPTARG}" || "${OPTARG}" == *[[:space:]]* || "${OPTARG}" == -* ]]; then
           echo "$parm Encrypted WiFI Option -e used."
-          OPT_E=$defaultPass
+          OPT_E=$wifiPass
 		  echo "${GREEN}     WiFi will be encrypted using ${BOLD}${UNDR}$OPT_E${NORMAL}${GREEN} as the passphrase!${WHITE}${NORMAL}"
       else
-          echo "${BOLD}${RED}$err Option -e does not require arguement.${WHITE}${NORMAL}"
+          echo "${BOLD}${RED}$err Option -e does not require argument. exiting...${WHITE}${NORMAL}"
+		  wLog "Option -e does not require argument."
           exit 1
       fi
       ;;
 	p) #set encryption with user specified passphrase
 		if [[ -z "${OPTARG}" || "${OPTARG}" =~ ^[[:space:]]*$ || "${OPTARG}" == -* ]]; then
 			echo "${BOLD}${RED}$err Encryption option(-p) used without passphrase!${WHITE}${NORMAL}"
-			echo "${BOLD}${RED}$err Encryption option(-p) required an arguement \"-p passphrase\" ${WHITE}${NORMAL}"
+			echo "${BOLD}${RED}$err Encryption option(-p) required an argument \"-p passphrase\". exiting...${WHITE}${NORMAL}"
+			wLog "Encryption option(-p) used without passphrase!"
 		else
 			OPT_P=$OPTARG
+			wifiPass=$OPTARG
 		fi
 		echo "$parm Encryption option -p used:"
 		if [ -z `echo $OPT_P | tr -d "[:print:]"` ] && [ ${#OPT_P} -ge 8 ]  && [ ${#OPT_P} -le 63 ]; then
 			echo "${GREEN}     WiFi will be encrypted using ${BOLD}${UNDR}$OPT_P${NORMAL}${GREEN} as the passphrase!${WHITE}${NORMAL}"
-			else
+		else
 			echo  "${BOLD}${RED}$err Invalid PASSWORD: 8 - 63 printable characters, exiting...${WHITE}${NORMAL}"
-		exit 1
+			wLog "Invalid PASSWORD: 8 - 63 printable characters, exiting..."
+			exit 1
 		fi
     ;;
     o)  #set option "o"
@@ -189,12 +205,10 @@ while getopts $options option; do
           echo "${GREEN}    WiFi will be set to ${BOLD}${UNDR}OPEN${NORMAL}${GREEN} or ${BOLD}${UNDR}UNSECURE${WHITE}${NORMAL}"
           OPT_O=true
       else
-          echo "${BOLD}${RED}$err Option -o does not require arguement.${WHITE}${NORMAL}"
+          echo "${BOLD}${RED}$err Option -o does not require argument. exiting...${WHITE}${NORMAL}"
+		  wLog "Option -o does not require argument. exiting..."
           exit 1
       fi
-      ;;
-    q)	 #set Quiet mode
-		OPT_Q=true
       ;;
     h)  #show help
       HELP
@@ -229,25 +243,22 @@ shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
 #file processing tasks within the while-do loop.
 
 if [[ $OPT_O == true  && (  $OPT_E != false || $OPT_P != false ) ]]; then
-  echo "${BOLD}${RED}$err Option -e , -p and -o cannot be used simultaneously ${WHITE}${NORMAL}"
+  echo "${BOLD}${RED}$err Option -e , -p and -o cannot be used simultaneously. Exiting... ${WHITE}${NORMAL}"
+  wLog "Option -e , -p and -o cannot be used simultaneously."
   exit 1
 fi
 
 if [ $OPT_P != false ] && [ $OPT_E != false ]; then
-  echo "${BOLD}${RED}$err Option -e and -p cannot be used simultaneously ${WHITE}${NORMAL}"
+  echo "${BOLD}${RED}$err Option -e and -p cannot be used simultaneously. Exiting... ${WHITE}${NORMAL}"
+  wLog "Option -e and -p cannot be used simultaneously."
   exit 1
 fi
 
 echo ""
-echo "${BOLD}No errors found. Continuning...${NORMAL}"
+echo "${BOLD}No errors found. Continuing...${NORMAL}"
 echo ""
 
-if [ $OPT_Q == false ]; then
-	confirm "Are you ready to apply these settings? [y/n]"
-fi
-
-# files to edit
-HOSTAPD=('/etc/hostapd/hostapd.user')
+confirm "Are you ready to apply these settings? [y/n]"
 
 ####
 #### File modification loop
@@ -256,7 +267,9 @@ for i in "${HOSTAPD[@]}"
 do
   if [ -f ${i} ]; then
     echo "Working on $i..."
-    if [ $OPT_S != false ]; then
+    wLog "Working on $i..."
+	if [ $OPT_S != false ]; then
+		wLog "Writing SSID $OPT_S to file $i"
     	echo "${MAGENTA}Setting ${YELLOW}SSID${MAGENTA} to ${YELLOW}$OPT_S ${MAGENTA}in $i...${WHITE}"
         if grep -q "^ssid=" ${HOSTAPD[$x]}; then
         sed -i "s/^ssid=.*/ssid=${OPT_S}/" ${i}
@@ -266,6 +279,7 @@ do
     fi
 
     if [ $OPT_C != false ]; then
+		wLog "Writing channel $OPT_C to file $i"
     	echo "${MAGENTA}Setting ${YELLOW}Channel${MAGENTA} to ${YELLOW}$OPT_C ${MAGENTA}in $i...${WHITE}"
         if grep -q "^channel=" ${i}; then
             sed -i "s/^channel=.*/channel=${OPT_C}/" ${i}
@@ -274,73 +288,23 @@ do
         fi
     fi
 
-    if [ $OPT_P != false ]; then
-      OPT_E=$OPT_P
+    if [ $OPT_E != false ] || [ $OPT_P  != false ]; then
+		wLog "Writing security and setting passphrase to $wifiPass to file $i"
+        echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$wifiPass ${MAGENTA}to $i...${WHITE}"
+        cleanhostapd $i
+		writehostapd $i
     fi
 
-    if [ $OPT_E != false ]; then
-    	echo "${MAGENTA}Adding WPA encryption with passphrase: ${YELLOW}$OPT_E ${MAGENTA}to $i...${WHITE}"
-        if grep -q "^#auth_algs=" ${i}; then
-        	#echo "uncomenting wpa"
-            sed -i "s/^#auth_algs=.*/auth_algs=1/" ${i}
-            sed -i "s/^#wpa=.*/wpa=3/" ${i}
-            sed -i "s/^#wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
-            sed -i "s/^#wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^#wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^#rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
-       elif grep -q "^auth_algs=" ${i}; then
-        	#echo "rewriting existing wpa"
-            sed -i "s/^auth_algs=.*/auth_algs=1/" ${i}
-            sed -i "s/^wpa=.*/wpa=3/" ${i}
-            sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$OPT_E/" ${i}
-            sed -i "s/^wpa_key_mgmt=.*/wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^wpa_pairwise=.*/wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^rsn_pairwise=.*/rsn_pairwise=CCMP/" ${i}
-       else
-#      		#echo "adding wpa"
-		echo "" >> ${i}
-	        echo "auth_algs=1" >> ${i}
-		echo "wpa=3" >> ${i}
-		echo "wpa_passphrase=$OPT_E" >> ${i}
-		echo "wpa_key_mgmt=WPA-PSK" >> ${i}
-	        echo "wpa_pairwise=TKIP" >> ${i}
-		echo "rsn_pairwise=CCMP" >> ${i}
-        fi
-    fi
     if [ $OPT_O != false ]; then
-       	echo "${MAGENTA}Removing WPA encryption in $i...${WHITE}"
-        if grep -q "^auth_algs=" ${i}; then
-        	#echo "comenting out wpa"
-            sed -i "s/^auth_algs=.*/#auth_algs=1/" ${i}
-            sed -i "s/^wpa=.*/#wpa=3/" ${i}
-            sed -i "s/^wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
-            sed -i "s/^wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
-        elif grep -q "^#auth_algs=" ${i}; then
-        	#echo "rewriting comentied out wpa"
-            sed -i "s/^#auth_algs=.*/#auth_algs=1/" ${i}
-            sed -i "s/^#wpa=.*/#wpa=3/" ${i}
-            sed -i "s/^#wpa_passphrase=.*/#wpa_passphrase=$defaultPass/" ${i}
-            sed -i "s/^#wpa_key_mgmt=.*/#wpa_key_mgmt=WPA-PSK/" ${i}
-            sed -i "s/^#wpa_pairwise=.*/#wpa_pairwise=TKIP/" ${i}
-            sed -i "s/^#rsn_pairwise=.*/#rsn_pairwise=CCMP/" ${i}
-        else
-        	#echo "adding commented out WPA"
-        	echo "" >> ${i}
-        	echo "#auth_algs=1" >> ${i}
-			echo "#wpa=3" >> ${i}
-			echo "#wpa_passphrase=$defaultPass" >> ${i}
-			echo "#wpa_key_mgmt=WPA-PSK" >> ${i}
-            echo "#wpa_pairwise=TKIP" >> ${i}
-			echo "#rsn_pairwise=CCMP" >> ${i}
-        fi
+		wLog "Removing WiFi security in file $i"
+        echo "${MAGENTA}Removing WPA encryption in $i...${WHITE}"
+        cleanhostapd $i
     fi
 
 	echo "${GREEN}Modified ${i}...done${WHITE}"
 	echo ""
   else
-   	echo "${MAGENTA}No ${i} file found...${WHITE}${NORMAL}"
+    echo "${MAGENTA}No ${i} file found...${WHITE}${NORMAL}"
 	echo ""
   fi
 done
@@ -350,11 +314,6 @@ done
 ### End main loop ###
 
 ### Apply Settings and restart all services
-
-if [ $OPT_Q == false ]; then
-	APPLYSETTINGSLOUD
-else
-	APPLYSETTINGSQUIET
-fi
+APPLYSETTINGS
 
 exit 0

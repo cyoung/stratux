@@ -52,6 +52,7 @@ const (
 	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
 	logDir_FB           = "/root/"
+	wifiConfigLocation  = "/etc/hostapd/hostapd.user"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -1116,6 +1117,10 @@ type settings struct {
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	WiFiSSID             string
+	WiFiChannel          int
+	WiFiSecurityEnabled  bool
+	WiFiPassphrase       string
 }
 
 type status struct {
@@ -1213,6 +1218,7 @@ func readSettings() {
 	}
 	globalSettings = newSettings
 	log.Printf("read in settings.\n")
+	readWiFiUserSettings()
 }
 
 func addSystemError(err error) {
@@ -1244,6 +1250,58 @@ func saveSettings() {
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
+}
+
+func readWiFiUserSettings() {
+	fd, err := os.Open(wifiConfigLocation)
+	if err != nil {
+		log.Printf("can't read wifi settings %s: %s\n", wifiConfigLocation,     err.Error())
+		return
+	}
+	defer fd.Close()
+
+	// Default values
+	globalSettings.WiFiSSID = "stratux"
+	globalSettings.WiFiChannel = 8
+	globalSettings.WiFiSecurityEnabled = false
+
+	scanner := bufio.NewScanner(fd)
+	var line []string
+	for scanner.Scan() {
+		line = strings.SplitN(scanner.Text(), "=", 2)
+		switch line[0] {
+		case "ssid":
+			globalSettings.WiFiSSID = line[1]
+		case "channel":
+			globalSettings.WiFiChannel, _ = strconv.Atoi(line[1])
+		case "wpa_passphrase":
+			globalSettings.WiFiPassphrase = line[1]
+			globalSettings.WiFiSecurityEnabled = true
+		default:
+		}
+	}
+	return
+}
+
+func saveWiFiUserSettings() {
+	fd, err := os.OpenFile(wifiConfigLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+	if err != nil {
+		err_ret := fmt.Errorf("can't save settings %s: %s", wifiConfigLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
+		return
+	}
+	defer fd.Close()
+
+	writer := bufio.NewWriter(fd)
+	fmt.Fprintf(writer, "ssid=%s\n", globalSettings.WiFiSSID)
+	fmt.Fprintf(writer, "channel=%d\n", globalSettings.WiFiChannel)
+	fmt.Fprint(writer, "\n")
+	if globalSettings.WiFiSecurityEnabled {
+		fmt.Fprint(writer, "auth_algs=1\nwpa=3\nwpa_key_mgmt=WPA-PSK\nwpa_pairwise=TKIP\nrsn_pairwise=CCMP\n")
+		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
+	}
+	writer.Flush()
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
