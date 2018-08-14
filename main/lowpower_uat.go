@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/uavionix/serial"
+	"github.com/stratux/serial"
 	"log"
 	"unsafe"
 )
