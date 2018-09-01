@@ -18,12 +18,13 @@ Apps with stratux recognition/support:
 * Seattle Avionics FlyQ EFB 2.1.1+.
 * AvNav EFB 2.0.0+.
 * Naviator.
-* WingX Pro7 8.6.2+
+* WingX Pro7 8.6.2+.
 * FltPlan Go.
 * AerovieReports.
 * AvPlan EFB.
 * iFly GPS 9.4+.
 * DroidEFB 2.1.1+.
+* Kwik EFIS / DMAP rel 22+.
 
 
 Tested weather/traffic displays:
