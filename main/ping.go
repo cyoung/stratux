@@ -40,6 +40,9 @@ func initPingSerial() bool {
 
 	if _, err := os.Stat("/dev/ping"); err == nil {
 		device = "/dev/ping"
+	} else if _, err := os.Stat("/dev/softrf"); err == nil {
+		device = "/dev/softrf"
+		baudrate = int(38400)
 	} else {
 		log.Printf("No suitable Ping device found.\n")
 		return false
