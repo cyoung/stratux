@@ -382,7 +382,9 @@ func processAprsData(aprsData string) {
 
 		// set altitude
 		ti.Alt = int32(data.Altitude)
-		ti.AltIsGNSS = true
+		ti.Alt = ti.Alt - int32(mySituation.GPSGeoidSep) // fix geoid sep
+		ti.Alt = ti.Alt - int32(mySituation.GPSAltitudeMSL) + int32(mySituation.BaroPressureAltitude) // calc traffic's baro alt
+		ti.AltIsGNSS = false
 		ti.Last_alt = stratuxClock.Time
 
 		// set vertical speed
