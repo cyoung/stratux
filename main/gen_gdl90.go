@@ -440,10 +440,10 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.GPSAltitudeMSL / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
-	msg[1] = byte(alt >> 8)                      // Altitude.
-	msg[2] = byte(alt & 0x00FF)                  // Altitude.
+	msg[0] = 0x0B                                		// Message type "Ownship Geo Alt".
+	alt := int16(mySituation.GPSHeightAboveEllipsoid / 5)	// GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(alt >> 8)                      		// Altitude.
+	msg[2] = byte(alt & 0x00FF)                  		// Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
@@ -671,7 +671,7 @@ func makeFFIDMessage() []byte {
 	}
 	copy(msg[19:], devLongName)
 
-	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	msg[38] = 0x00 // Capabilities mask. Altitude above the WGS84 ellipsoid for Ownship Geometric report.
 
 	return prepareMessage(msg)
 }
