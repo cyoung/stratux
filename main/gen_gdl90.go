@@ -441,9 +441,16 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg := make([]byte, 5)
 	// See p.28.
 	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.GPSAltitudeMSL / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
-	msg[1] = byte(alt >> 8)                      // Altitude.
-	msg[2] = byte(alt & 0x00FF)                  // Altitude.
+
+	var GPSalt float32
+	if globalSettings.GDL90MSLAlt_Enabled {
+		GPSalt = mySituation.GPSAltitudeMSL
+	} else {
+		GPSalt = mySituation.GPSHeightAboveEllipsoid
+	}
+	encodedAlt := int16(GPSalt / 5)    // GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(encodedAlt >> 8)     // Altitude.
+	msg[2] = byte(encodedAlt & 0x00FF) // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
@@ -671,7 +678,9 @@ func makeFFIDMessage() []byte {
 	}
 	copy(msg[19:], devLongName)
 
-	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	if globalSettings.GDL90MSLAlt_Enabled {
+		msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	}
 
 	return prepareMessage(msg)
 }
@@ -1117,6 +1126,7 @@ type settings struct {
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	GDL90MSLAlt_Enabled  bool
 }
 
 type status struct {
@@ -1189,6 +1199,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
+	globalSettings.GDL90MSLAlt_Enabled = true
 }
 
 func readSettings() {

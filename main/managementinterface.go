@@ -366,6 +366,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.StaticIps = ips
+					case "GDL90MSLAlt_Enabled":
+						globalSettings.GDL90MSLAlt_Enabled = val.(bool)
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
