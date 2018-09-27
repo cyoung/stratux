@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/stratux/serial"
 	"log"
+	"os"
+	"time"
 	"unsafe"
 )
 
@@ -25,18 +27,34 @@ var radioSerialPort *serial.Port
 func initUATRadioSerial() error {
 	// Init for FEC routines.
 	C.init_fec()
-	// Initialize port at 2Mbaud.
-	radioSerialConfig = &serial.Config{Name: "/dev/uatradio", Baud: 2000000}
-	p, err := serial.OpenPort(radioSerialConfig)
-	if err != nil {
-		log.Printf("serial port err: %s\n", err.Error())
-		return errors.New("serial port failed to initialize")
-	}
+	go func() {
+		watchTicker := time.NewTicker(1 * time.Second)
+		for {
+			<-watchTicker.C
+			// Watch for the radio or change in settings.
+			if !globalSettings.UAT_Enabled || globalStatus.UATRadio_connected {
+				// UAT not enabled or radio already set up. Continue.
+				continue
+			}
+			if _, err := os.Stat("/dev/uatradio"); err != nil {
+				// Device not connected.
+				continue
+			}
+			// Initialize port at 2Mbaud.
+			radioSerialConfig = &serial.Config{Name: "/dev/uatradio", Baud: 2000000}
+			p, err := serial.OpenPort(radioSerialConfig)
+			if err != nil {
+				log.Printf("serial port err: %s\n", err.Error())
+				continue
+			}
 
-	radioSerialPort = p
+			radioSerialPort = p
+			globalStatus.UATRadio_connected = true
 
-	// Start a goroutine to watch the serial port.
-	go radioSerialPortReader()
+			// Start a goroutine to watch the serial port.
+			go radioSerialPortReader(radioSerialPort)
+		}
+	}()
 	return nil
 }
 
@@ -46,15 +64,15 @@ func initUATRadioSerial() error {
 */
 var radioMagic = []byte{0x0a, 0xb0, 0xcd, 0xe0}
 
-func radioSerialPortReader() {
+func radioSerialPortReader(serialPort *serial.Port) {
+	defer func() {
+		globalStatus.UATRadio_connected = false
+		serialPort.Close()
+	}()
 	tmpBuf := make([]byte, 1024) // Read buffer.
 	var buf []byte               // Message buffer.
-	if radioSerialPort == nil {
-		return
-	}
-	defer radioSerialPort.Close()
 	for {
-		n, err := radioSerialPort.Read(tmpBuf)
+		n, err := serialPort.Read(tmpBuf)
 		if err != nil {
 			log.Printf("serial port err, shutting down radio: %s\n", err.Error())
 			return

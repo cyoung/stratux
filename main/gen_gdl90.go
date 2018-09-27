@@ -1132,6 +1132,7 @@ type status struct {
 	UAT_traffic_targets_tracking               uint16
 	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
+	UATRadio_connected                         bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
@@ -1574,7 +1575,6 @@ func main() {
 	})
 
 	// Start reading from serial UAT radio.
-	//FIXME: Follow 978 SDR option, or make a new one.
 	initUATRadioSerial()
 
 	reader := bufio.NewReader(os.Stdin)

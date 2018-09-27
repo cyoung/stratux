@@ -522,6 +522,9 @@ func sdrWatcher() {
 		esEnabled := globalSettings.ES_Enabled
 		uatEnabled := globalSettings.UAT_Enabled
 		count := rtl.GetDeviceCount()
+		if UATRadio_connected {
+			count++
+		}
 		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 
 		// support up to two dongles
