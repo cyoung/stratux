@@ -39,13 +39,17 @@ func initUATRadioSerial() error {
 				// Device not connected.
 				continue
 			}
+			log.Printf("===== UAT Device Name  : UATRadio v1.0 =====\n")
+
 			// Initialize port at 2Mbaud.
 			radioSerialConfig = &serial.Config{Name: "/dev/uatradio", Baud: 2000000}
 			p, err := serial.OpenPort(radioSerialConfig)
 			if err != nil {
-				log.Printf("serial port err: %s\n", err.Error())
+				log.Printf("\tUAT Open Failed: %s\n", err.Error())
 				continue
 			}
+
+			log.Printf("\tUATRadio init success.\n")
 
 			radioSerialPort = p
 			globalStatus.UATRadio_connected = true
