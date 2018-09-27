@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/stratux/serial"
 	"log"
@@ -126,7 +125,7 @@ func processRadioMessage(msg []byte) {
 	switch len(msg) {
 	case 552:
 		to := make([]byte, 552)
-		i := int(C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
+		C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors)))
 		toRelay = fmt.Sprintf("+%s;ss=%d;", hex.EncodeToString(to[:432]), rssiDump978)
 	case 48:
 		to := make([]byte, 48)
