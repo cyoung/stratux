@@ -91,8 +91,6 @@ func radioSerialPortReader() {
 */
 
 func processRadioMessage(msg []byte) {
-	log.Printf("processRadioMessage(): %d %s\n", len(msg), hex.EncodeToString(msg))
-
 	// RSSI and message timestamp are prepended to the actual packet.
 
 	// RSSI
@@ -112,7 +110,6 @@ func processRadioMessage(msg []byte) {
 		to := make([]byte, 552)
 		i := int(C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors))))
 		toRelay = fmt.Sprintf("+%s;ss=%d;", hex.EncodeToString(to[:432]), rssiDump978)
-		log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
 	case 48:
 		to := make([]byte, 48)
 		copy(to, msg)
@@ -120,13 +117,9 @@ func processRadioMessage(msg []byte) {
 		if i == 1 {
 			// Short ADS-B frame.
 			toRelay = fmt.Sprintf("-%s;ss=%d;", hex.EncodeToString(to[:18]), rssiDump978)
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
 		} else if i == 2 {
 			// Long ADS-B frame.
 			toRelay = fmt.Sprintf("-%s;ss=%d;", hex.EncodeToString(to[:34]), rssiDump978)
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, toRelay)
-		} else {
-			log.Printf("i=%d, rs_errors=%d, msg=%s\n", i, rs_errors, hex.EncodeToString(to))
 		}
 	default:
 		log.Printf("processRadioMessage(): unhandled message size %d\n", len(msg))
