@@ -24,15 +24,12 @@ Apps with stratux recognition/support:
 * AvPlan EFB.
 * iFly GPS 9.4+.
 * DroidEFB 2.1.1+.
-
+* kwikEFIS
 
 Tested weather/traffic displays:
 * Avare
 
 Other EFBs? See the [app vendor integration guide](https://github.com/cyoung/stratux/blob/master/notes/app-vendor-integration.md).
-
-Dangerzone builds (AHRS display):
-* ForeFlight 7+ - weather, traffic, AHRS.
 
 Questions?  [See the FAQ](https://github.com/cyoung/stratux/wiki/FAQ)
 
@@ -47,6 +44,7 @@ Jet tests (high gain antennas):
 * Dassault Falcon 20
 * Embraer ERJ 145
 * Cessna Citation 501
+* Citation Sovereign+
 * Lear 35
 * Rockwell B-1b
 * Boeing C-17

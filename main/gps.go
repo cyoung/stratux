@@ -303,12 +303,12 @@ func initGPSSerial() bool {
 		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
 		galileo := []byte{0x02, 0x04, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables Galileo
 
-		//if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-		//log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
-		//	glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
-		//	galileo = []byte{0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-8 tracking channels
-		//		updatespeed = []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00}         // Nav speed 2Hz
-		//	}
+		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+			log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
+			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
+			galileo = []byte{0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-8 tracking channels
+			updatespeed = []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00}         // Nav speed 2Hz
+		}
 		cfgGnss = append(cfgGnss, gps...)
 		cfgGnss = append(cfgGnss, sbas...)
 		cfgGnss = append(cfgGnss, beidou...)
