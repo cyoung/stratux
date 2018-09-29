@@ -12,6 +12,7 @@ function AHRSRenderer(locationId) {
     this.heading = 0;
     this.slipSkid = 0;
     this.altitude = 0;
+    this.messages = [];
 
     var display = SVG(this.locationId).viewbox(-200, -200, 400, 400).group();
 
@@ -86,9 +87,10 @@ function AHRSRenderer(locationId) {
     this.err.rect(400, 400).cx(0).cy(0);
     this.err.line(-200, -200, 200, +200);
     this.err.line(-200, +200, 200, -200);
-    this.errText = this.err.text("").cx(0).cy(0).addClass('errText');
-    var tb = this.errText.bbox();
-    this.errTextBg = this.err.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.errText);
+    this.message = display.group();
+    this.msgText = this.message.text("").cx(0).cy(-180).addClass('msgText');
+    var tb = this.msgText.bbox();
+    this.msgTextBg = this.message.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.msgText);
 }
 
 AHRSRenderer.prototype = {
@@ -117,6 +119,17 @@ AHRSRenderer.prototype = {
 		    this.slipSkid = +10;
         }
 
+        if (this.messages.length > 0) {
+            this.msgText.text(this.messages.join('\n')).center(0, 0);
+            var tb = this.msgText.bbox();
+            this.message.cy(-100 + tb.h);
+            this.msgTextBg.attr({x: tb.x - 3, y: tb.y - 2, width: tb.w + 6, height: tb.h + 4});
+            this.message.show();
+        } else {
+		    this.msgText.clear();
+		    this.message.hide();
+        }
+
         this.pitchClip.translate(0, -10 * this.pitch * this.pitchScale);
         this.rollClip.rotate(this.roll, 0, 0);
         this.card.rotate(0, 0, 0).translate(0, 10 * this.pitch * this.pitchScale);
@@ -129,13 +142,9 @@ AHRSRenderer.prototype = {
 	turn_on: function() {
 	    this.err.hide();
 	    this.ai.show();
-	    this.errText.clear();
     },
 
-	turn_off: function(message) {
-        this.errText.text(message).center(0, 0);
-        var tb = this.errText.bbox();
-        this.errTextBg.attr({'x': tb.x, 'y': tb.y, 'width': tb.w, 'height': tb.h});
+	turn_off: function() {
         this.ai.hide();
         this.err.show();
     }
