@@ -1,8 +1,8 @@
 angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main module controllers set
 GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
-const MSG_GROUND_TEST = "GROUND TEST MODE - GPS REQUIRED\nDO NOT USE IN FLIGHT",
-    MSG_LEVELING = "CALIBRATING. FLY STRAIGHT AND DO NOT MOVE SENSOR.";
+const MSG_GROUND_TEST = ["GROUND TEST MODE - GPS REQUIRED", "DO NOT USE IN FLIGHT WITHOUT GPS"],
+    MSG_LEVELING = ["\n", "CALIBRATING", "FLY STRAIGHT AND DO NOT MOVE SENSOR"];
 
 // create our controller function with all necessary logic
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
@@ -119,11 +119,11 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.SolutionText = solutionText;
 
         $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
-        var msg_ix = ahrs.messages.indexOf(MSG_GROUND_TEST);
+        var msg_ix = ahrs.messages.indexOf(MSG_GROUND_TEST[0]);
         if (msg_ix < 0 && $scope.gps_horizontal_accuracy >= 30) {
-            ahrs.messages.push(MSG_GROUND_TEST);
+            ahrs.messages = ahrs.messages.concat(MSG_GROUND_TEST);
         } else if (msg_ix >= 0 && $scope.gps_horizontal_accuracy < 30) {
-            ahrs.messages.splice(msg_ix, 1);
+            ahrs.messages.splice(msg_ix, MSG_GROUND_TEST.length);
         }
 
         if ($scope.gps_horizontal_accuracy > 19999) {
@@ -268,12 +268,12 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusLog.classList.remove("on");
         }
 
-        var msg_ix = ahrs.messages.indexOf(MSG_LEVELING);
+        msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
         if (statusCal.innerText === "Caging" && msg_ix < 0) {
-            ahrs.messages.push(MSG_LEVELING);
+            ahrs.messages = ahrs.messages.concat(MSG_LEVELING);
             ahrs.turn_off();
         } else if (statusCal.innerText !== "Caging" && msg_ix >= 0) {
-            ahrs.messages.splice(ahrs.messages.indexOf(MSG_LEVELING), 1);
+            ahrs.messages.splice(msg_ix, MSG_LEVELING.length);
             ahrs.turn_on();
         }
 
