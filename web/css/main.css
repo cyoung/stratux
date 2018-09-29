@@ -4,6 +4,13 @@
 
 .modal {
 }
+
+.grayout {
+    opacity: 0.4; /* Real browsers */
+    filter: alpha(opacity = 60); /* MSIE */
+    background-color: #ffffff;
+}
+
 .vertical-alignment-helper {
 	display:table;
 	height: 100%;
@@ -418,6 +425,10 @@ pre {
 
 body {
     font-weight: 400;
+}
+
+input.ng-invalid:not(.grayout){
+    background: pink;
 }
 
 /* change right sidebar behavior to always push */
