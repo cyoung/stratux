@@ -255,10 +255,12 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusCal.classList.add("blink");
             statusCal.classList.remove("on");
             statusCal.innerText = "Caging";
+            $scope.IsCaging = true;
         } else {
             statusCal.classList.remove("blink");
             statusCal.classList.add("on");
             statusCal.innerText = "Ready";
+            $scope.IsCaging = false;
         }
         if (situation.AHRSStatus & 0x10) {
             statusLog.classList.remove("off");
@@ -269,10 +271,10 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
 
         msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
-        if (statusCal.innerText === "Caging" && msg_ix < 0) {
+        if ($scope.IsCaging && msg_ix < 0) {
             ahrs.messages = ahrs.messages.concat(MSG_LEVELING);
             ahrs.turn_off();
-        } else if (statusCal.innerText !== "Caging" && msg_ix >= 0) {
+        } else if (!$scope.IsCaging && msg_ix >= 0) {
             ahrs.messages.splice(msg_ix, MSG_LEVELING.length);
             ahrs.turn_on();
         }
@@ -379,11 +381,25 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     $scope.AHRSCage = function() {
-        if (statusCal.innerText !== "Caging") {
+        if (!$scope.IsCaging) {
             $http.post(URL_AHRS_CAGE).then(function (response) {
-                // do nothing
             }, function (response) {
-                // do nothing
+                ahrs.messages = ahrs.messages.concat(response.data);
+                window.setTimeout(function() {
+                    ahrs.messages.splice(ahrs.messages.indexOf(response.data), 1);
+                }, 1000);
+            });
+        }
+    };
+
+    $scope.AHRSCalibrate = function() {
+        if (!$scope.IsCaging) {
+            $http.post(URL_AHRS_CAL).then(function (response) {
+            }, function (response) {
+                ahrs.messages = ahrs.messages.concat(response.data);
+                window.setTimeout(function() {
+                    ahrs.messages.splice(ahrs.messages.indexOf(response.data), 1);
+                }, 1000);
             });
         }
     };
@@ -401,6 +417,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $http.get(URL_SETTINGS_GET).
         then(function (response) {
             settings = angular.fromJson(response.data);
+            $scope.IMU_Sensor_Enabled = settings.IMU_Sensor_Enabled;
             if (settings.GLimits === "" || settings.GLimits === undefined) {
                 settings.GLimits = "-1.76 4.4";
             }
