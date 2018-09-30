@@ -2,7 +2,9 @@ angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main
 GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
 const MSG_GROUND_TEST = ["GROUND TEST MODE - GPS REQUIRED", "DO NOT USE IN FLIGHT WITHOUT GPS"],
-    MSG_LEVELING = ["\n", "CALIBRATING", "FLY STRAIGHT AND DO NOT MOVE SENSOR"];
+    MSG_LEVELING = ["\n", "CALIBRATING", "FLY STRAIGHT AND DO NOT MOVE SENSOR"],
+    MSG_PSEUDO_AHRS = ["WARNING - USING GPS PSEUDO AHRS", "CONNECT AN AHRS BOARD TO USE TRUE AHRS"],
+    MSG_NO_AHRS = ["NO AHRS AVAILABLE", "MUST HAVE IMU AND/OR GPS FOR AHRS"];
 
 // create our controller function with all necessary logic
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
@@ -120,10 +122,19 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
         $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
         var msg_ix = ahrs.messages.indexOf(MSG_GROUND_TEST[0]);
-        if (msg_ix < 0 && $scope.gps_horizontal_accuracy >= 30) {
+        if (msg_ix < 0 && $scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy >= 30) {
             ahrs.messages = ahrs.messages.concat(MSG_GROUND_TEST);
         } else if (msg_ix >= 0 && $scope.gps_horizontal_accuracy < 30) {
             ahrs.messages.splice(msg_ix, MSG_GROUND_TEST.length);
+        }
+
+        var msg_ix = ahrs.messages.indexOf(MSG_NO_AHRS[0]);
+        if (msg_ix < 0 && !$scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy >= 30) {
+            ahrs.messages = ahrs.messages.concat(MSG_NO_AHRS);
+            ahrs.turn_off();
+        } else if (msg_ix >= 0 && ($scope.IMU_Sensor_Enabled || $scope.gps_horizontal_accuracy < 30)) {
+            ahrs.messages.splice(msg_ix, MSG_NO_AHRS.length);
+            ahrs.turn_on();
         }
 
         if ($scope.gps_horizontal_accuracy > 19999) {
@@ -271,12 +282,20 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
 
         msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
-        if ($scope.IsCaging && msg_ix < 0) {
+        if (msg_ix < 0 && $scope.IsCaging) {
             ahrs.messages = ahrs.messages.concat(MSG_LEVELING);
             ahrs.turn_off();
-        } else if (!$scope.IsCaging && msg_ix >= 0) {
+        } else if (msg_ix >= 0 && !$scope.IsCaging) {
             ahrs.messages.splice(msg_ix, MSG_LEVELING.length);
             ahrs.turn_on();
+        }
+
+        $scope.IsPseudoAHRS = (!$scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy < 30);
+        msg_ix = ahrs.messages.indexOf(MSG_PSEUDO_AHRS[0]);
+        if (msg_ix < 0 && $scope.IsPseudoAHRS) {
+            ahrs.messages = ahrs.messages.concat(MSG_PSEUDO_AHRS);
+        } else if (msg_ix >= 0 && !$scope.IsPseudoAHRS) {
+            ahrs.messages.splice(msg_ix, MSG_PSEUDO_AHRS.length);
         }
 
         setGeoReferenceMap(situation.GPSLatitude, situation.GPSLongitude);
