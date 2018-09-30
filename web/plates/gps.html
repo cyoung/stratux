@@ -1,7 +1,11 @@
 <div class="col-sm-12">
 	<div class="col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading"><span ng-click="hideClick()" class="panel_label">AHRS</span></div>
+			<div class="panel-heading">
+				<span ng-click="hideClick()" class="panel_label">AHRS</span>
+				<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+				<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+			</div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
@@ -57,7 +61,9 @@
 	</div>
 	<div class="col-sm-6 hider">
 		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">GPS</span></div>
+			<div class="panel-heading">
+				<span class="panel_label">GPS</span>
+			</div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
