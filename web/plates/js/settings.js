@@ -257,18 +257,6 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		});
     };
 
-    $scope.calibrateGyros = function() {
-        console.log("sending calibrate message.");
-        $http.post(URL_AHRS_CAL).then(function (response) {
-            console.log("Sent calibrate message.");
-        }, function (response) {
-            console.log(response.data);
-            $scope.Calibration_Failure_Message = response.data;
-            $scope.Ui.turnOff("modalCalibrateGyros");
-            $scope.Ui.turnOn("modalCalibrateGyrosFailed");
-        });
-    };
-
     $scope.updateWiFi = function(action) {
         $scope.WiFiErrors = {
             'WiFiSSID': '',
