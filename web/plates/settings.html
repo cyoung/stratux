@@ -13,12 +13,6 @@
                         </span>
                     </div>
                     <div class="form-group reset-flow">
-                        <div class="col-xs-12">
-                            <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateGyros"
-                                    ng-disabled="!IMU_Sensor_Enabled">Calibrate Gyros</button>
-                        </div>
-                    </div>
-                    <div class="form-group reset-flow">
                         <label class="control-label col-xs-3">G Limits</label>
                         <form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
                             <input class="col-xs-9" type="text" g-limits-input ng-model="GLimits"
@@ -369,29 +363,6 @@
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-<!-- Gyro Calibration Modal -->
-    <div class="modal" ui-if="modalCalibrateGyros" ui-state="modalCalibrateGyros">
-        <div class="modal-overlay "></div>
-        <div class="vertical-alignment-helper center-block">
-            <div class="modal-dialog vertical-align-center">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button class="close" ui-turn-off="modalCalibrateGyros"></button>
-                        <h4 class="modal-title">Calibrate MPU Gyros</h4>
-                    </div>
-                    <div class="modal-body">
-                        <p>Press <b>Calibrate</b> and keep the Stratux as stationary as possible for the next second.
-                            You should only do this in calm air as turbulence will throw off the calibrations.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <a ui-turn-off="modalCalibrateGyros" class="btn btn-default">Cancel</a>
-                        <a ng-click="calibrateGyros()" ui-turn-off="modalCalibrateGyros"
-                           class="btn btn-default btn-primary">Calibrate</a>
                     </div>
                 </div>
             </div>
