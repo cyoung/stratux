@@ -83,7 +83,11 @@
     			</div>
 				<div class="row">
 					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_horizontal_accuracy}} m <br>
-						{{gps_alt}} &plusmn; {{gps_vertical_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
+						<b>Altitude MSL:</b> <br>
+						{{gps_alt}} &plusmn; {{gps_vertical_accuracy}} ft  @ {{gps_vert_speed}} ft/min <br>
+						<b>Height WGS-84 ellipsoid:</b> <br>
+						{{ gps_height_above_ellipsoid }} ft
+					</span>
 					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
 				</div>
 			</div>
