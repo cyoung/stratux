@@ -2102,7 +2102,7 @@ func isGPSClockValid() bool {
 func isAHRSValid() bool {
 	// If attitude information gets to be over 1 second old, declare invalid.
 	// If no GPS then we won't use or send attitude information.
-	return isGPSGroundTrackValid() && stratuxClock.Since(mySituation.AHRSLastAttitudeTime) < 1*time.Second
+	return isGPSValid() && stratuxClock.Since(mySituation.AHRSLastAttitudeTime) < 1*time.Second
 }
 
 func isTempPressValid() bool {
