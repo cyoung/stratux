@@ -95,3 +95,5 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
 
+cd /
+rm -rf /root/stratux-update
