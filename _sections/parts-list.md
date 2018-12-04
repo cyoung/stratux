@@ -7,7 +7,7 @@ order: 3
 
 ## Dual Band
 
-1. [Raspberry Pi 3 Motherboard](https://www.amazon.com/gp/product/B01CD5VC92/ref=as_li_tl?ie=UTF8&camp=1789&creative=9325&creativeASIN=B01CD5VC92&linkCode=as2&tag=stratux-20&linkId=45aa55e7490e86dc7a5301b154dc822c).
+1. [Raspberry Pi 3B Motherboard](https://www.amazon.com/gp/product/B01CD5VC92/ref=as_li_tl?ie=UTF8&camp=1789&creative=9325&creativeASIN=B01CD5VC92&linkCode=as2&tag=stratux-20&linkId=45aa55e7490e86dc7a5301b154dc822c). **NOTE**: The 3B+ will **not** work.
 2. [Pre-programmed SD card with Stratux software](https://amzn.com/B01I0G15YU).
 3. [Stratux 1090ES & UAT - Radios and High Gain Antennas](https://www.amazon.com/gp/product/B01M7NMWCD/ref=as_li_tl?ie=UTF8&camp=1789&creative=9325&creativeASIN=B01M7NMWCD&linkCode=as2&tag=stratux-20&linkId=e0f8da26cc3464c8424356913314cdd8).
 4. [Stratux Case with Fan, White ABS](https://www.amazon.com/gp/product/B072ND582W/ref=as_li_tl?ie=UTF8&camp=1789&creative=9325&creativeASIN=B072ND582W&linkCode=as2&tag=stratux-20&linkId=cf185209ccbd714f7931fbdec588d267).
