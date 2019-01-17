@@ -25,6 +25,7 @@ cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
 #logrotate config
 cp -f logrotate.conf /etc/logrotate.conf
+cp -f logrotate_d_stratux /etc/logrotate.d/stratux
 
 #WiFi Hostapd ver test and hostapd.conf builder script
 cp -f stratux-wifi.sh /usr/sbin/
