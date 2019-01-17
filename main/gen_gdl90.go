@@ -1476,16 +1476,18 @@ func handleSIGHUP() {
 		mfp := io.MultiWriter(fp, os.Stdout)
 		log.SetOutput(mfp)
 	}
-	log.Printf("signal caught: SIGHUP, handled\n")
+	log.Printf("signal caught: SIGHUP, handled.\n")
 }
 
 func signalWatcher() {
-	sig := <-sigs
-	if sig == syscall.SIGHUP {
-		handleSIGHUP()
-	} else {
-		log.Printf("signal caught: %s - shutting down.\n", sig.String())
-		gracefulShutdown()
+	for {
+		sig := <-sigs
+		if sig == syscall.SIGHUP {
+			handleSIGHUP()
+		} else {
+			log.Printf("signal caught: %s - shutting down.\n", sig.String())
+			gracefulShutdown()
+		}
 	}
 }
 
