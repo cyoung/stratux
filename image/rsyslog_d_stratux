@@ -1,0 +1,2 @@
+# Ignore gen_gdl90. stratux.log is written directly from the process.
+if $programname == 'gen_gdl90' then ~

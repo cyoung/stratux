@@ -23,6 +23,9 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
+#rsyslog config
+cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
+
 #logrotate config
 cp -f logrotate.conf /etc/logrotate.conf
 cp -f logrotate_d_stratux /etc/logrotate.d/stratux
