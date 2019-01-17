@@ -1256,7 +1256,7 @@ func saveSettings() {
 func readWiFiUserSettings() {
 	fd, err := os.Open(wifiConfigLocation)
 	if err != nil {
-		log.Printf("can't read wifi settings %s: %s\n", wifiConfigLocation,     err.Error())
+		log.Printf("can't read wifi settings %s: %s\n", wifiConfigLocation, err.Error())
 		return
 	}
 	defer fd.Close()
@@ -1464,10 +1464,29 @@ func gracefulShutdown() {
 	os.Exit(1)
 }
 
+// Close log file handle, open new one.
+func handleSIGHUP() {
+	logFileHandle.Close()
+	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
+	} else {
+		// Keep the logfile handle for later use
+		logFileHandle = fp
+		mfp := io.MultiWriter(fp, os.Stdout)
+		log.SetOutput(mfp)
+	}
+	log.Printf("signal caught: SIGHUP, handled\n")
+}
+
 func signalWatcher() {
 	sig := <-sigs
-	log.Printf("signal caught: %s - shutting down.\n", sig.String())
-	gracefulShutdown()
+	if sig == syscall.SIGHUP {
+		handleSIGHUP()
+	} else {
+		log.Printf("signal caught: %s - shutting down.\n", sig.String())
+		gracefulShutdown()
+	}
 }
 
 func clearDebugLogFile() {
@@ -1489,7 +1508,7 @@ func clearDebugLogFile() {
 
 func main() {
 	// Catch signals for graceful shutdown.
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
