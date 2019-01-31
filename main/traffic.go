@@ -687,6 +687,26 @@ func parseDownlinkReport(s string, signalLevel int) {
 		// Dimensions of vehicle - skip.
 	}
 
+	if msg_type == 1 || msg_type == 2 || msg_type == 5 || msg_type == 6 {
+		// Read AUXSV.
+		raw_alt := (int32(frame[29]) << 4) | ((int32(frame[30]) & 0xf0) >> 4)
+		if raw_alt != 0 {
+			alt := ((raw_alt - 1) * 25) - 1000
+			if ti.AltIsGNSS {
+				// Current ti.Alt is GNSS. Swap it for the AUXSV alt, which is baro.
+				baro_alt := ti.Alt
+				ti.Alt = alt
+				alt = baro_alt
+				ti.AltIsGNSS = false
+			}
+
+			ti.GnssDiffFromBaroAlt = alt - ti.Alt
+			ti.Last_GnssDiff = stratuxClock.Time
+			ti.Last_GnssDiffAlt = ti.Alt
+
+		}
+	}
+
 	ti.Track = track
 	ti.Speed = speed
 	ti.Vvel = vvel
