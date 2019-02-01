@@ -414,14 +414,14 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 
 func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Sync()
-	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
 	gracefulShutdown()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
 }
 
 func doReboot() {
 	syscall.Sync()
-	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 	gracefulShutdown()
+	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }
 
 func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {

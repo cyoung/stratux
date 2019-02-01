@@ -1446,7 +1446,7 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
-// Graceful shutdown.
+// Graceful shutdown. Do everything except for kill the process.
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
@@ -1463,7 +1463,6 @@ func gracefulShutdown() {
 
 	// Turn off green ACT LED on the Pi.
 	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
-	os.Exit(1)
 }
 
 // Close log file handle, open new one.
@@ -1489,6 +1488,7 @@ func signalWatcher() {
 		} else {
 			log.Printf("signal caught: %s - shutting down.\n", sig.String())
 			gracefulShutdown()
+			os.Exit(1)
 		}
 	}
 }
