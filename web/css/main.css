@@ -4,6 +4,13 @@
 
 .modal {
 }
+
+.grayout {
+    opacity: 0.4; /* Real browsers */
+    filter: alpha(opacity = 60); /* MSIE */
+    background-color: #ffffff;
+}
+
 .vertical-alignment-helper {
 	display:table;
 	height: 100%;
@@ -173,7 +180,6 @@
 	color: white;
 }
 
-.paperairplane_left,
 .traffic-style1,
 .traffic-style10,
 .traffic-style11 {
@@ -188,7 +194,6 @@
 	background-color: skyblue;
 }
 
-.paperairplane_right,
 .traffic-style2,
 .traffic-style20,
 .traffic-style21 {
@@ -435,6 +440,10 @@ pre {
 
 body {
     font-weight: 400;
+}
+
+input.ng-invalid:not(.grayout){
+    background: pink;
 }
 
 /* change right sidebar behavior to always push */

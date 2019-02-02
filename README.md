@@ -44,6 +44,7 @@ Jet tests (high gain antennas):
 * Dassault Falcon 20
 * Embraer ERJ 145
 * Cessna Citation 501
+* Citation Sovereign+
 * Lear 35
 * Rockwell B-1b
 * Boeing C-17

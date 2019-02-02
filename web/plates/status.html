@@ -107,7 +107,7 @@
 					</div>
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-5"><strong>CPU Temp:</strong></span>
-						<span class="col-xs-7">{{CPUTemp}}</span>
+						<span class="col-xs-7">{{CPUTemp}} <div ng-show="DeveloperMode == true">[{{CPUTempMin}} - {{CPUTempMax}}]</div></span>
 					</div>
 					<div class="col-sm-4 label_adj">
 						<span class="col-xs-5"><strong>Free Storage:</strong></span>

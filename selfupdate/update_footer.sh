@@ -1,6 +1,7 @@
 cp -f gen_gdl90 /usr/bin/gen_gdl90
+chmod 755 /usr/bin/gen_gdl90
 cp -f libdump978.so /usr/lib/libdump978.so
-
+chmod 655 /usr/bin/gen_gdl90
 
 # Startup script.
 RASPBIAN_VERSION=`cat /etc/debian_version`
@@ -22,17 +23,24 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
+#rsyslog config
+cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
+
 #logrotate config
 cp -f logrotate.conf /etc/logrotate.conf
+cp -f logrotate_d_stratux /etc/logrotate.d/stratux
 
 #WiFi Hostapd ver test and hostapd.conf builder script
 cp -f stratux-wifi.sh /usr/sbin/
+chmod 755 /usr/sbin/stratux-wifi.sh
 
 #WiFi Config Manager
 cp -f hostapd_manager.sh /usr/sbin/
+chmod 755 /usr/sbin/hostapd_manager.sh
 
 #SDR Serial Script
 cp -f sdr-tool.sh /usr/sbin/
+chmod 755 /usr/sbin/sdr-tool.sh
 
 #boot config
 cp -f config.txt /boot/config.txt
@@ -71,6 +79,7 @@ chmod 755 /usr/bin/fancontrol
 /usr/bin/fancontrol install
 
 cp -f dump1090 /usr/bin/
+chmod 755 /usr/bin/dump1090
 
 # AHRS approx data.
 cp -f ahrs_table.log /root/
@@ -90,3 +99,5 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
 
+cd /
+rm -rf /root/stratux-update

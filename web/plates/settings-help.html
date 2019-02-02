@@ -1,40 +1,78 @@
 <div class="section text-left help-page">
-	<p>The <strong>Settings</strong> page provides both control and configuration of your Stratux device.</p>
+    <p>The <strong>Settings</strong> page provides both control and configuration of your Stratux device.</p>
 
-	<p>Use the toggles in the <strong>Hardware</strong> section to control which devices are active.</p>
-	<p class="text-warning">NOTE: Only hardware toggled on here, will appear on the
-		<strong>Status</strong> page.</p>
+    <p>Use the toggles in the <strong>Hardware</strong> section to control which devices are active.</p>
+    <p class="text-warning">NOTE: Only hardware toggled on here, will appear on the
+        <strong>Status</strong> page.</p>
 
-	<p>The <strong>Diagnostics</strong> section helps with debugging and communicating with the Stratux project contributors via GitHub and the reddit subgroup.</p>
-	<ul class="list-simple">
-		<li>Toggling <strong>Traffic Source</strong> adds text for traffic targets within your navigation application. Traffic received via UAT will display <code>u</code> while traffic received via 1090 will display <code>e</code>.</li>
-		<li>Toggling <strong>Record Logs</strong> enables logging to a series of files for your Stratux device including data recorded for UAT traffic and weather, 1090 traffic, GPS messages, and AHRS messages. The log files are accessible from the <strong>Logs</strong> menu available on the left.</li>
-	</ul>
+<p>
+    The <strong>WiFi</strong> section allows the user to change various WiFi Settings:
+    <dl class="dl-horizontal">
+    <dt>WiFi SSID</dt><dd>The name of your Stratux Network.
+    You might want to change this to match your A/C Tail Number (ex: Stratux-N12345).</dd>
+    <dt>Network Security</dt><dd>This switch will turn your wireless security <b>On</b> or <b>Off</b>.</dd>
+    <dt>WiFi Passphrase</dt><dd>When Security is turned on this will be the password for your network.</dd>
+    <dt>WiFi Channel</dt><dd>Changing the WiFi Channel can improve the wireless signal if in a congested WiFi area.</dd>
+</dl>
+    </p>
 
-	<p>The <strong>AHRS</strong> section allows for calibration and future configuration of the AHRS function.
-		<strong>Calibrate AHRS Sensors</strong> guides initial setup of the AHRS function, specifying the orientation of the sensors relative to the airplane.  Additional calibration may be added later.</p>
-	<p>The calibration process determines which sensor direction will be forward, which toward the left wing, and which toward the ground.  You only have to do this once.  The settings for this sensor will be saved for future flights.</p>
-	<p>The direction of gravity is used to determine the forward and up orientations, and the left wing is determined based on this.</p>
+<p>The <strong>Diagnostics</strong> section helps with debugging and communicating with the Stratux project contributors
+    via GitHub and the reddit subgroup.</p>
+    <ul class="list-simple">
+        <li>Toggling <strong>Traffic Source</strong> adds text for traffic targets within your navigation application.
+            Traffic received via UAT will display <code>u</code>
+            while traffic received via 1090 will display <code>e</code>.</li>
+        <li>Toggling <strong>Record Logs</strong> enables logging to a series of files for your Stratux device including
+            data recorded for UAT traffic and weather, 1090 traffic, GPS messages, and AHRS messages.
+            The log files are accessible from the <strong>Logs</strong> menu available on the left.</li>
+    </ul>
 
-	<p>GLoad Limits allows the user to set which limits will show on the G Meter on the GPS/AHRS page.  Enter a space-separated list of G limits, e.g. "-1.76 4.4".</p>
+    <p>The <strong>AHRS</strong> section allows for calibration and future configuration of the AHRS function.
+        <strong>Calibrate AHRS Sensors</strong> guides initial setup of the AHRS function,
+        specifying the orientation of the sensors relative to the airplane.
+        Additional calibration may be added later.</p>
+    <p>The calibration process determines which sensor direction will be forward.
+        You only have to do this once.  The settings for this sensor will be saved for future flights.</p>
+    <p>The direction of gravity is used to determine the forward orientation.</p>
 
-	<p>The <strong>Configuration</strong> section lets you adjust the default operation of your Stratux device.</p>
-	<ul class="list-simple">
-		<li>To avoid having your own aircraft appear as traffic, and scare the bejeezus our of you, you may provide your <strong>Mode S code</strong>. You can find this value in the FAA N-Number Registry for your aircraft. You should use the hexadecimal value (not the octal value) for this setting. No validation is done so please ensure you enter your valide Mode S value.
-		</li>
-		<li>The <strong>Weather</strong> page uses a user-defined <strong>Watch List</strong> to filter the large volume of ADS-B weather messages for display. Define a list of identifiers (airport, VOR, etc) separated by a spaces. For example <code>KBOS EEN LAH LKP</code>. You may change this list at any time and the <strong>Weather</strong> page will start watching for the updated list immediately.
-			<br/>
-			<span class="text-warning">NOTE: To save your changes, you must either tap somehwere else on the page or hit <code>ENTER</code> or <code>RETURN</code> or <code>GO</code> (or whatever your keyboard indicates).</span>
-		</li>
-		<li>The SDR (software defined radio) receiver support an adjustment in the form of a <strong>PPM Correction</strong>. From the Raspberry Pi, you may use the command <code>kal -g 48 -s GSM850</code> to scan for available channels in your area. Then use the command <code>kal -g 48 -c <em>channel#</em></code> to calculate the PPM.
-			<br/>
-			<span class="text-warning">NOTE: You will need to perform all commands as <code>root</code> by issuing the command: <code>sudo su -</code>. You will need to stop the Stratux software before running the calibration process. You can stop all of the Stratux processes with the command: <code>pkill screen</code>.</span>
-		</li>
-		<li>Addiitonal settings will be added in future releases.</li>
-	</ul>
-	<p>The <strong>System</strong> section lets you safely shutdown or reboot your Stratux device.</p>
-	<ul>
-		<li><strong>Shutdown</strong> will immediately shutdown the Stratux.  You may then safely remove power.</li>
-		<li><strong>Reboot</strong> will immediately reboot the Stratux.  After the reboot you may have to rejoin the WiFi connection to reconnect.</li>
-	</ul>
+    <p>GLoad Limits allows the user to set which limits will show on the G Meter on the GPS/AHRS page.
+        Enter a space-separated list of G limits, e.g. "-1.76 4.4".</p>
+
+    <p>The <strong>Configuration</strong> section lets you adjust the default operation of your Stratux device.</p>
+    <ul class="list-simple">
+        <li>To avoid having your own aircraft appear as traffic, and scare the bejeezus our of you,
+            you may provide your <strong>Mode S code</strong>.
+            You can find this value in the FAA N-Number Registry for your aircraft.
+            You should use the hexadecimal value (not the octal value) for this setting.
+            No validation is done so please ensure you enter your valid Mode S value.
+        </li>
+        <li>The <strong>Weather</strong> page uses a user-defined <strong>Watch List</strong> to filter the
+            large volume of ADS-B weather messages for display.
+            Define a list of identifiers (airport, VOR, etc) separated by a spaces.
+            For example <code>KBOS EEN LAH LKP</code>.
+            You may change this list at any time and the <strong>Weather</strong> page will start watching for the
+            updated list immediately.
+            <br/>
+            <span class="text-warning">NOTE: To save your changes, you must either tap somewhere else on the page
+                or hit <code>ENTER</code> or <code>RETURN</code> or <code>GO</code>
+                (or whatever your keyboard indicates).</span>
+        </li>
+        <li>The SDR (software defined radio) receiver support an adjustment in the form of a
+            <strong>PPM Correction</strong>. From the Raspberry Pi, you may use the command
+            <code>kal -g 48 -s GSM850</code> to scan for available channels in your area.
+            Then use the command <code>kal -g 48 -c <em>channel#</em></code> to calculate the PPM.
+            <br/>
+            <span class="text-warning">NOTE: You will need to perform all commands as <code>root</code>
+                by issuing the command: <code>sudo su -</code>.
+                You will need to stop the Stratux software before running the calibration process.
+                You can stop all of the Stratux processes with the command: <code>pkill screen</code>.</span>
+        </li>
+        <li>Additional settings will be added in future releases.</li>
+    </ul>
+    <p>The <strong>System</strong> section lets you safely shutdown or reboot your Stratux device.</p>
+    <ul>
+        <li><strong>Shutdown</strong> will immediately shutdown the Stratux.  You may then safely remove power.</li>
+        <li><strong>Reboot</strong> will immediately reboot the Stratux.
+            After the reboot you may have to rejoin the WiFi connection to reconnect.</li>
+    </ul>
 </div>

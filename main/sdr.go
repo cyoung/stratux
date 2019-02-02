@@ -608,7 +608,7 @@ func configDevices(count int, esEnabled, uatEnabled, flarmEnabled bool) {
 	// dongles are set to the same stratux id and the unconsumed,
 	// non-anonymous, dongle makes it to this loop.
 	for i, s := range unusedIDs {
-		if uatEnabled && UATDev == nil && !rES.hasID(s) {
+		if uatEnabled && !globalStatus.UATRadio_connected && UATDev == nil && !rES.hasID(s) {
 			createUATDev(i, s, false)
 		} else if esEnabled && ESDev == nil && !rUAT.hasID(s) {
 			createESDev(i, s, false)
@@ -695,7 +695,11 @@ func sdrWatcher() {
 		uatEnabled := globalSettings.UAT_Enabled
 		flarmEnabled := globalSettings.FLARM_Enabled
 		count := rtl.GetDeviceCount()
-		atomic.StoreUint32(&globalStatus.Devices, uint32(count))
+		interfaceCount := count
+		if globalStatus.UATRadio_connected {
+			interfaceCount++
+		}
+		atomic.StoreUint32(&globalStatus.Devices, uint32(interfaceCount))
 
 		// support up to two dongles
 		if count > 2 {

@@ -12,6 +12,10 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="vk172"
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="vk162"
 
+# Stratux uatradio.
+#  0403:7028 (Stratux UATRadio)
+ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="uatradio"
+
 
 
 # pl2303 devices are indistinguishable using idVendor and idProduct.
