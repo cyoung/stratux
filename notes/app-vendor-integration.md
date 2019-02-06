@@ -27,17 +27,25 @@ Stratux makes use of of ICMP Echo/Echo Reply and ICMP Destination Unreachable pa
 the typical "sleep mode" period, whose content remains accurate despite said delay, and whose content is sufficiently redundant such
 that if the typical delay period is exceeded then it can be discarded.
 
-When a client enters sleep mode, queueable messages are entered into a FIFO queue of fixed size which should be sufficient to hold 10-25 minutes of
-data per client.
+When a client enters sleep mode, queueable messages are entered into a FIFO queue of fixed size which should be sufficient to hold 10-25 minutes of data per client. Non-queueable messages that are directed
+towards a client while in sleep mode are discarded. When in sleep mode, therefore, no GDL90 messages are received by the client.
 
-There are three cases that are used to detect the state of a client:
+There are three cases that are used to determine the state of a client:
 
 1. Responding to ICMP Echo AND no ICMP Destination Unreachable received for destination port => not sleeping.
 2. Not responding to ICMP Echo => sleeping.
 3. Responding to ICMP Echo AND ICMP Destination Unreachable received for destination port => sleeping.
 
-It is important to note that NEXRAD frames, METARs, and Winds Aloft may be delayed in reception. The timestamp in the GDL90 message should always
-be used to for the observation time, and not the time the message was received.
+The sleep mode detection routine has two parts:
+
+1. ICMP Echo packets are sent every 5 seconds. If a response is not received in the last 10 seconds, the client is in sleep mode.
+2. If an ICMP Destination Unreachable is received in the last 5 seconds, the client is in sleep mode.
+3. If an ICMP Destination Unreachable has been received in the last 15 seconds, but not in the last 5 seconds, the client is in *throttle mode*. In throttle mode, messages are sent at 0.1% of the normal rate. This gives the client a chance to recover or to respond that the port is closed.
+
+
+__Note__: NEXRAD frames, METARs, and Winds Aloft, and other weather data may be delayed in reception to
+the receiving application. The timestamp in the GDL90 message should always be used to for the observation
+time, and **not the time the message was received**.
 
 ### Traffic handling
 
