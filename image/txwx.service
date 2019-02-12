@@ -1,0 +1,14 @@
+[Unit]
+Description=TXWX
+Before=stratux.service
+
+[Service]
+ExecStart=/root/tx
+KillMode=process
+Restart=always
+RestartSec=5
+LimitCORE=1073741824
+
+[Install]
+WantedBy=multi-user.target
+

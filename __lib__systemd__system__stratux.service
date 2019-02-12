@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 ExecStartPre=/root/stratux-pre-start.sh
-ExecStart=/usr/bin/gen_gdl90
+ExecStart=/bin/sh -c '/root/rx | /usr/bin/gen_gdl90 -uatin'
 ExecStop=/usr/bin/pkill dump1090
 KillMode=process
 Restart=always

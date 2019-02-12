@@ -1,0 +1,15 @@
+[Unit]
+Description=Copy user wpa_supplicant.conf
+ConditionPathExists=/boot/clientmode
+ConditionPathExists=/boot/wpa_supplicant.conf
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mv /boot/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
+ExecStartPost=/bin/cp /root/interfaces_clientmode /etc/network/interfaces
+
+[Install]
+WantedBy=multi-user.target

@@ -14,10 +14,17 @@ if test "$RASPBIAN_VERSION" = "8.0" ; then
 fi
 
 cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
+cp -f clientmode_wifi_setup.service /lib/systemd/system/
+cp -f txwx.service /lib/systemd/system/
 cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
 chmod 644 /lib/systemd/system/stratux.service
+chmod 644 /lib/systemd/system/clientmode_wifi_setup.service
+chmod 644 /lib/systemd/system/txwx.service
 chmod 744 /root/stratux-pre-start.sh
 ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
+ln -fs /lib/systemd/system/clientmode_wifi_setup.service /etc/systemd/system/multi-user.target.wants/clientmode_wifi_setup.service
+ln -fs /lib/systemd/system/txwx.service /etc/systemd/system/multi-user.target.wants/txwx.service
+
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
@@ -55,6 +62,7 @@ sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 
 #udev config
+cp -f 9-rxwx.rules /etc/udev/rules.d
 cp -f 10-stratux.rules /etc/udev/rules.d
 cp -f 99-uavionix.rules /etc/udev/rules.d
 
@@ -91,6 +99,7 @@ cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
 
 # Interfaces file.
 cp -f interfaces /etc/network/interfaces
+cp -f interfaces_clientmode /root
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}

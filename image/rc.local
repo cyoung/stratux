@@ -23,6 +23,7 @@ fi
 #
 /usr/sbin/logrotate /etc/logrotate.conf
 
+screen -dm -S tx /root/start_tx.sh
 
 /usr/bin/stratux-screen.py start
 

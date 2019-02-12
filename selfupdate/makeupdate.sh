@@ -19,6 +19,8 @@ cp gen_gdl90 work/bin/
 cp fancontrol work/bin/
 cp libdump978.so work/bin/
 cp __lib__systemd__system__stratux.service work/bin/
+cp image/clientmode_wifi_setup.service work/bin/
+cp image/txwx.service work/bin/
 cp __root__stratux-pre-start.sh work/bin/
 cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
@@ -31,6 +33,7 @@ cp image/modules.txt work/bin/
 cp image/stxAliases.txt work/bin/
 cp image/hostapd_manager.sh work/bin/
 cp image/sdr-tool.sh work/bin/
+cp image/9-rxwx.rules work/bin/
 cp image/10-stratux.rules work/bin/
 cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
@@ -38,6 +41,7 @@ cp image/stratux-wifi.sh work/bin/
 cp image/rc.local work/bin/
 cp image/dhcpd.conf work/bin/
 cp image/interfaces work/bin/
+cp image/interfaces_clientmode work/bin/
 cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
 cp image/rsyslog_d_stratux work/bin/
