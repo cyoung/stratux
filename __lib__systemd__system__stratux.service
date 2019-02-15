@@ -6,6 +6,7 @@ After=network.target
 ExecStartPre=/root/stratux-pre-start.sh
 ExecStart=/bin/sh -c '/root/rx | /usr/bin/gen_gdl90 -uatin'
 ExecStop=/usr/bin/pkill dump1090
+ExecStop=/usr/bin/pkill rx
 KillMode=process
 Restart=always
 RestartSec=5
