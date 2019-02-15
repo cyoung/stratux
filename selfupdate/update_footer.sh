@@ -62,7 +62,7 @@ sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 
 #udev config
-cp -f 9-rxwx.rules /etc/udev/rules.d
+rm -f /etc/udev/rules.d/9-rxwx.rules
 cp -f 10-stratux.rules /etc/udev/rules.d
 cp -f 99-uavionix.rules /etc/udev/rules.d
 
