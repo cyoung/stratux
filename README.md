@@ -7,7 +7,7 @@
 RTL-SDR UAT tools
 
 
-Use with Raspberry Pi 3.
+Use with Raspberry Pi 3B. Do **not** use with the Raspberry Pi 3 _**B+**_.
 
 Raspberry Pi 2 with the Edimax EW-7811Un Wi-Fi dongle is supported but not recommended for new builds.
 
