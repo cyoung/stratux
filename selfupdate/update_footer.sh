@@ -98,8 +98,13 @@ chmod 755 /usr/bin/ahrs_approx
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
 
 # Interfaces file.
-cp -f interfaces /etc/network/interfaces
+cp -f interfaces /root
 cp -f interfaces_clientmode /root
+if [ ! -f /boot/clientmode ] ; then
+	cp -f interfaces /etc/network/interfaces
+else
+	cp -f interfaces_clientmode /etc/network/interfaces
+fi
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
