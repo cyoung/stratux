@@ -106,11 +106,11 @@ else
 	cp -f interfaces_clientmode /etc/network/interfaces
 fi
 
-# Web files install.
-cd web/ && make stratuxBuild=${stratuxBuild}
-
 # TXWX files.
 cp -f tx rx /root
+
+# Web files install.
+cd web/ && make stratuxBuild=${stratuxBuild}
 
 # Remove old Wi-Fi watcher script.
 rm -f /usr/sbin/wifi_watch.sh
