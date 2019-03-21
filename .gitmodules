@@ -4,3 +4,6 @@
 [submodule "goflying"]
 	path = goflying
 	url = https://github.com/cyoung/goflying
+[submodule "txwx"]
+	path = txwx
+	url = https://github.com/stratux/txwx

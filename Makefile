@@ -11,7 +11,7 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
-	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
+	make xdump978 xdump1090 xgen_gdl90 xtxwx $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
@@ -28,6 +28,9 @@ xdump1090:
 xdump978:
 	cd dump978 && make lib
 	sudo cp -f ./libdump978.so /usr/lib/libdump978.so
+
+xtxwx:
+	cd txwx && make
 
 .PHONY: test
 test:
