@@ -16,7 +16,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="
 #  0403:7028 (Stratux UATRadio)
 ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="uatradio"
 #  0403:7029 (Stratux UATRadio - LNA + 1W PA version)
-ATTRS{idProduct}=="7029", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="rxwxradio"
+ATTRS{idProduct}=="7029", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7029 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="rxwxradio"
 
 
 
