@@ -104,6 +104,9 @@ cp -f interfaces_clientmode /root
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
 
+# TXWX files.
+cp -f tx rx /root
+
 # Remove old Wi-Fi watcher script.
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local

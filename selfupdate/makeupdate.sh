@@ -44,6 +44,8 @@ cp image/interfaces_clientmode work/bin/
 cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
 cp image/rsyslog_d_stratux work/bin/
+cp txwx/tx work/bin/
+cp txwx/rx work/bin/
 
 cp test-data/ahrs/ahrs_table.log work/bin/
 cp ahrs_approx work/bin/
