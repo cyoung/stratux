@@ -108,6 +108,8 @@ fi
 
 # TXWX files.
 cp -f tx rx /root
+chmod 755 /root/tx
+chmod 755 /root/rx
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
