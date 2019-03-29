@@ -43,6 +43,8 @@ var (
 	)
 )
 
+var alwaysOn bool
+
 const (
 	// CPU temperature target, degrees C
 	defaultTempTarget = 50.
@@ -112,6 +114,12 @@ func fanControl() {
 	// Power on "test". Allows the user to verify that their fan is working.
 	C.pinMode(cPin, C.OUTPUT)
 	C.digitalWrite(cPin, C.HIGH)
+	if alwaysOn {
+		for {
+			// Loop infinitely. The fan should be on always.
+			time.Sleep(1 * time.Second)
+		}
+	}
 	time.Sleep(5 * time.Second)
 	C.digitalWrite(cPin, C.LOW)
 
@@ -164,6 +172,7 @@ func (service *Service) Manage() (string, error) {
 
 	tempTarget := flag.Float64("temp", defaultTempTarget, "Target CPU Temperature, degrees C")
 	pwmDutyMin := flag.Int("minduty", defaultPwmDutyMin, "Minimum PWM duty cycle")
+	flag.BoolVar(&alwaysOn, "alwaysOn", true, "Leave fan 'always-on'.")
 	pin := flag.Int("pin", defaultPin, "PWM pin (wiringPi numbering)")
 	flag.Parse()
 
