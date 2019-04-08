@@ -195,10 +195,13 @@ func initGPSSerial() bool {
 	isSirfIV := bool(false)
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
-	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI over USB).
+	if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
+		device = "/dev/ublox9"
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX9
+	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
 		device = "/dev/ublox8"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
-	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, RY725AI over USB).
+	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
 		device = "/dev/ublox7"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX7
 	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162 Rev 1).
@@ -303,8 +306,8 @@ func initGPSSerial() bool {
 		glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables GLONASS
 		galileo := []byte{0x02, 0x04, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01} // this disables Galileo
 
-		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-			log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
+		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+			log.Printf("UBX8/9/unknown device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
 			glonass = []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables GLONASS with 8-14 tracking channels
 			galileo = []byte{0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // this enables Galileo with 4-8 tracking channels
 			updatespeed = []byte{0x06, 0x00, 0xF4, 0x01, 0x01, 0x00}         // Nav speed 2Hz
