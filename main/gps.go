@@ -198,7 +198,7 @@ func initGPSSerial() bool {
 	if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
 		device = "/dev/ublox9"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX9
-	if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
+	} else if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
 		device = "/dev/ublox8"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
 	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
