@@ -1931,7 +1931,6 @@ func makeAHRSGDL90Report() {
 	palt := uint16(0xFFFF)
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
-		// AHRS invalid magic number is ahrs.Invalid.
 		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
 			pitch = roundToInt16(mySituation.AHRSPitch * 10)
 		}
@@ -2100,7 +2099,9 @@ func isGPSClockValid() bool {
 }
 
 func isAHRSValid() bool {
-	return stratuxClock.Since(mySituation.AHRSLastAttitudeTime) < 1*time.Second // If attitude information gets to be over 1 second old, declare invalid.
+	// If attitude information gets to be over 1 second old, declare invalid.
+	// If no GPS then we won't use or send attitude information.
+	return (globalSettings.DeveloperMode || isGPSValid()) && stratuxClock.Since(mySituation.AHRSLastAttitudeTime) < 1*time.Second
 }
 
 func isTempPressValid() bool {

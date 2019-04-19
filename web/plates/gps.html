@@ -1,35 +1,11 @@
 <div class="col-sm-12">
-	<div class="col-sm-6 hider">
-		<div class="panel panel-default">
-			<div class="panel-heading"><span class="panel_label">GPS</span></div>
-			<div class="panel-body">
-				<div class="row">
-					<span class="col-xs-12">
-						<div class="map-container">
-							<div id="map_display" class="world-map" ng-attr-style="background-position:{{map_pos_x + 'px ' + map_pos_y + 'px'}}; width:{{map_width}}px; height:{{map_height}}px; opacity:{{map_opacity}};">
-								<div class="mark-position" ng-style="{left: map_mark_x+'px', top: map_mark_y+'px', opacity: map_mark_opacity}">
-									<span class="fa fa-crosshairs"></span>
-								</div>
-							</div>
-						</div>
-					</span>
-				</div>
-				<div class="separator"></div>
-				<div class="row">
-					<strong class="col-xs-6 text-center">Location:</strong>
-					<strong class="col-xs-6 text-center">Track:</strong>
-				</div>
-				<div class="row">
-					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_horizontal_accuracy}} m <br>
-						{{gps_alt}} &plusmn; {{gps_vertical_accuracy}} ft  @ {{gps_vert_speed}} ft/min</span>
-					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
-				</div>
-			</div>
-		</div>
-	</div>
 	<div class="col-sm-6">
 		<div class="panel panel-default">
-			<div class="panel-heading"><span ng-click="hideClick()" class="panel_label">AHRS</span></div>
+			<div class="panel-heading">
+				<span ng-click="hideClick()" class="panel_label">AHRS</span>
+				<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+				<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+			</div>
 			<div class="panel-body">
 				<div class="row">
 					<span class="col-xs-12">
@@ -48,7 +24,10 @@
 				<div class="col-xs-12">
 					<div class="separator"></div>
 					<div class="col-xs-3">
-						<a ng-click="AHRSCage()" class="btn btn-primary" ng-disabled="IsCaging()">Reset /<br>Level</a>
+						<button class="btn btn-primary btn-block" ng-click="AHRSCage()"
+								ng-disabled="IsCaging || !IMU_Sensor_Enabled">Set Level</button>
+						<button class="btn btn-primary btn-block" ng-click="AHRSCalibrate()"
+								ng-disabled="IsCaging || !IMU_Sensor_Enabled">Zero Drift</button>
 					</div>
 					<div class="col-xs-9">
 						<div class="row">
@@ -76,6 +55,40 @@
 							<span class="col-xs-3 text-center">{{ahrs_gload}}G</span>
 						</div>
 					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-sm-6 hider">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<span class="panel_label">GPS</span>
+			</div>
+			<div class="panel-body">
+				<div class="row">
+					<span class="col-xs-12">
+						<div class="map-container">
+        					<div id="map_display" class="world-map" ng-attr-style="background-position:{{map_pos_x + 'px ' + map_pos_y + 'px'}}; width:{{map_width}}px; height:{{map_height}}px; opacity:{{map_opacity}};">
+    							<div class="mark-position" ng-style="{left: map_mark_x+'px', top: map_mark_y+'px', opacity: map_mark_opacity}">
+									<span class="fa fa-crosshairs"></span>
+								</div>
+							</div>
+						</div>
+					</span>
+				</div>
+	    		<div class="separator"></div>
+    			<div class="row">
+        			<strong class="col-xs-6 text-center">Location:</strong>
+        			<strong class="col-xs-6 text-center">Track:</strong>
+    			</div>
+				<div class="row">
+					<span class="col-xs-6 text-center">{{gps_lat}}, {{gps_lon}} &plusmn; {{gps_horizontal_accuracy}} m <br>
+						<b>Altitude MSL:</b> <br>
+						{{gps_alt}} &plusmn; {{gps_vertical_accuracy}} ft  @ {{gps_vert_speed}} ft/min <br>
+						<b>Height WGS-84 ellipsoid:</b> <br>
+						{{ gps_height_above_ellipsoid }} ft
+					</span>
+					<span class="col-xs-6 text-center">{{gps_track}}&deg; @ {{gps_speed}} KTS</span>
 				</div>
 			</div>
 		</div>

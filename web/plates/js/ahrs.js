@@ -1,9 +1,9 @@
 function AHRSRenderer(locationId) {
-	this.width = -1;
-	this.height = -1;
+    this.width = -1;
+    this.height = -1;
 
     this.locationId = locationId;
-	this.canvas = document.getElementById(this.locationId);
+    this.canvas = document.getElementById(this.locationId);
     this.resize();
 
     // State variables
@@ -12,6 +12,7 @@ function AHRSRenderer(locationId) {
     this.heading = 0;
     this.slipSkid = 0;
     this.altitude = 0;
+    this.messages = [];
 
     var display = SVG(this.locationId).viewbox(-200, -200, 400, 400).group();
 
@@ -34,9 +35,9 @@ function AHRSRenderer(locationId) {
 
     var pitchMarks = this.card.group().addClass('marks').clipWith(this.pitchClip);
     var y;
-    for (var i = -1050; i <= 1050; i+=50) {
+    for (var i = -1050; i <= 1050; i += 50) {
         y = i * this.pitchScale;
-        if (i%100 === 0) {
+        if (i % 100 === 0) {
             pitchMarks.line(-30, y, 30, y);
             if (i !== 0) {
                 pitchMarks.text(Math.abs(i) <= 900 ? Math.abs(i / 10).toString() : '80').x(-55).cy(y).addClass('markText');
@@ -48,7 +49,7 @@ function AHRSRenderer(locationId) {
     }
 
     this.rollMarks = this.ai.group().addClass('marks').clipWith(this.rollClip);
-    for (i=-180; i<180; i+=10) {
+    for (i = -180; i < 180; i += 10) {
         if (i === 0) {
             this.rollMarks.polygon('-10,-189 0,-175 10,-189').style('stroke-width', 0);
         }
@@ -72,10 +73,10 @@ function AHRSRenderer(locationId) {
     pointer.line(0, 0, 0, 10);
 
     this.headingMarks = this.ai.group().addClass('marks');
-    for (i=-200; i<=920; i+=20) {
-        if (i%60 === 0) {
+    for (i = -200; i <= 920; i += 20) {
+        if (i % 60 === 0) {
             this.headingMarks.line(i, 175, i, 178);
-            this.headingMarks.text(((i<0 ? (i/2+360) : i/2)%360).toString()).x(i).cy(185).addClass('markText');
+            this.headingMarks.text(((i < 0 ? (i / 2 + 360) : i / 2) % 360).toString()).x(i).cy(185).addClass('markText');
             this.headingMarks.line(i, 192, i, 195);
         } else {
             this.headingMarks.line(i, 175, i, 195).style('stroke-width', 1);
@@ -86,13 +87,15 @@ function AHRSRenderer(locationId) {
     this.err.rect(400, 400).cx(0).cy(0);
     this.err.line(-200, -200, 200, +200);
     this.err.line(-200, +200, 200, -200);
-    this.errText = this.err.text("").cx(0).cy(0).addClass('errText');
-    var tb = this.errText.bbox();
-    this.errTextBg = this.err.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.errText);
+
+    this.message = display.group().cy(-85);
+    this.msgText = this.message.text("").addClass('msgText').build(true);
+    var tb = this.msgText.bbox();
+    this.msgTextBg = this.message.rect(tb.x, tb.y, tb.w, tb.h).stroke({'width': 1}).after(this.msgText);
 }
 
 AHRSRenderer.prototype = {
-	constructor: AHRSRenderer,
+    constructor: AHRSRenderer,
 
     resize: function () {
         var canvasWidth = this.canvas.parentElement.offsetWidth - 12;
@@ -106,15 +109,32 @@ AHRSRenderer.prototype = {
         }
     },
 
-	update: function (pitch, roll, heading, slipSkid) {
+    update: function (pitch, roll, heading, slipSkid) {
         this.pitch = pitch;
         this.roll = roll;
         this.heading = heading;
-		this.slipSkid = slipSkid;
-		if (this.slipSkid < -10) {
-		    this.slipSkid = -10;
+        this.slipSkid = slipSkid;
+        if (this.slipSkid < -10) {
+            this.slipSkid = -10;
         } else if (this.slipSkid > 10) {
-		    this.slipSkid = +10;
+            this.slipSkid = +10;
+        }
+
+        if (this.messages.length > 0) {
+            this.message.hide();
+            this.msgText.clear();
+            var msgs = this.messages;
+            this.msgText.text(function (add) {
+                for (var i = 0; i < msgs.length; i++) {
+                    add.tspan(msgs[i]).center(0, 20 * i).newLine();
+                }
+            });
+            var tb = this.msgText.bbox();
+            this.msgTextBg.attr({x: tb.x - 3, y: tb.y - 2, width: tb.w + 6, height: tb.h + 4});
+            this.message.show();
+        } else {
+            this.message.hide();
+            this.msgText.clear();
         }
 
         this.pitchClip.translate(0, -10 * this.pitch * this.pitchScale);
@@ -124,18 +144,16 @@ AHRSRenderer.prototype = {
         this.rollMarks.rotate(-this.roll, 0, 0);
         this.headingMarks.translate(-2 * (this.heading % 360), 0);
         this.skidBar.translate(-2 * this.slipSkid, 0);
-	},
-
-	turn_on: function() {
-	    this.err.hide();
-	    this.ai.show();
-	    this.errText.clear();
     },
 
-	turn_off: function(message) {
-        this.errText.text(message).center(0, 0);
-        var tb = this.errText.bbox();
-        this.errTextBg.attr({'x': tb.x, 'y': tb.y, 'width': tb.w, 'height': tb.h});
+    turn_on: function () {
+        this.err.hide();
+        this.ai.show();
+        this.update(this.pitch, this.roll, this.heading, this.slipSkid);
+    },
+
+    turn_off: function () {
+        this.update(this.pitch, this.roll, this.heading, this.slipSkid);
         this.ai.hide();
         this.err.show();
     }
@@ -149,7 +167,7 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
         this.nlim = nlim;
         this.plim = plim;
     }
-    this.nticks = Math.floor(this.plim+1) - Math.ceil(this.nlim-1) + 1;
+    this.nticks = Math.floor(this.plim + 1) - Math.ceil(this.nlim - 1) + 1;
 
     this.width = -1;
     this.height = -1;
@@ -170,32 +188,32 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     card.circle(390).cx(0).cy(0);
     card.line(-150, 0, -190, 0)
         .addClass('marks one');
-    for (var i=Math.ceil(this.nlim-1); i<=Math.floor(this.plim+1); i++) {
-        if (i%2 === 0) {
+    for (var i = Math.ceil(this.nlim - 1); i <= Math.floor(this.plim + 1); i++) {
+        if (i % 2 === 0) {
             el = card.line(-150, 0, -190, 0).addClass('big');
             card.text(i.toString())
                 .addClass('text')
                 .cx(-105).cy(0)
-                .transform({ rotation: (i-1)/this.nticks*360, cx: 0, cy: 0, relative: true })
-                .transform({ rotation: -(i-1)/this.nticks*360, relative: true });
+                .transform({rotation: (i - 1) / this.nticks * 360, cx: 0, cy: 0, relative: true})
+                .transform({rotation: -(i - 1) / this.nticks * 360, relative: true});
         } else {
             el = card.line(-165, 0, -190, 0);
 
         }
         el.addClass('marks')
-            .rotate((i-1)/this.nticks*360, 0, 0);
+            .rotate((i - 1) / this.nticks * 360, 0, 0);
     }
-    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.plim-1)/this.nticks*360, 0, 0);
-    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.nlim-1)/this.nticks*360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.plim - 1) / this.nticks * 360, 0, 0);
+    card.line(-140, 0, -190, 0).addClass('marks limit').rotate((this.nlim - 1) / this.nticks * 360, 0, 0);
 
-    var ax = -Math.cos(2*Math.PI/this.nticks),
-        ay = -Math.sin(2*Math.PI/this.nticks);
-    card.path('M -175 0, A 175 175 0 0 1 ' + 175*ax + ' ' + 175*ay)
-        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
+    var ax = -Math.cos(2 * Math.PI / this.nticks),
+        ay = -Math.sin(2 * Math.PI / this.nticks);
+    card.path('M -175 0, A 175 175 0 0 1 ' + 175 * ax + ' ' + 175 * ay)
+        .rotate(Math.floor(this.plim) / this.nticks * 360, 0, 0)
         .addClass('marks')
         .style('fill-opacity', '0');
-    card.path('M -180 0, A 180 180 0 0 1 ' + 180*ax + ' ' + 180*ay)
-        .rotate(Math.floor(this.plim)/this.nticks*360, 0, 0)
+    card.path('M -180 0, A 180 180 0 0 1 ' + 180 * ax + ' ' + 180 * ay)
+        .rotate(Math.floor(this.plim) / this.nticks * 360, 0, 0)
         .addClass('marks')
         .style('fill-opacity', '0');
 
@@ -216,7 +234,7 @@ function GMeterRenderer(locationId, nlim, plim, resetCallback) {
     var reset = gMeter.group().cx(-165).cy(165).addClass('reset');
     reset.circle(60).cx(0).cy(0).addClass('reset');
     reset.text('RESET').cx(0).cy(0).addClass('text');
-    reset.on('click', function() {
+    reset.on('click', function () {
         reset.animate(200).rotate(20, 0, 0);
         resetCallback();
         reset.animate(200).rotate(0, 0, 0);
@@ -243,8 +261,8 @@ GMeterRenderer.prototype = {
         this.min = gmin;
         this.max = gmax;
 
-        this.pointer_el.rotate((g-1)/this.nticks*360, 0, 0);
-        this.max_el.rotate((this.max-1)/this.nticks*360, 0, 0);
-        this.min_el.rotate((this.min-1)/this.nticks*360, 0, 0);
+        this.pointer_el.rotate((g - 1) / this.nticks * 360, 0, 0);
+        this.max_el.rotate((this.max - 1) / this.nticks * 360, 0, 0);
+        this.min_el.rotate((this.min - 1) / this.nticks * 360, 0, 0);
     }
 };

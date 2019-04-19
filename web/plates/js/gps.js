@@ -1,6 +1,11 @@
 angular.module('appControllers').controller('GPSCtrl', GPSCtrl); // get the main module controllers set
 GPSCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
+const MSG_GROUND_TEST = ["GROUND TEST MODE - GPS REQUIRED", "DO NOT USE IN FLIGHT WITHOUT GPS"],
+    MSG_LEVELING = ["\n", "CALIBRATING", "FLY STRAIGHT AND DO NOT MOVE SENSOR"],
+    MSG_PSEUDO_AHRS = ["WARNING - USING GPS PSEUDO AHRS", "CONNECT AN AHRS BOARD TO USE TRUE AHRS"],
+    MSG_NO_AHRS = ["NO AHRS AVAILABLE", "MUST HAVE IMU AND/OR GPS FOR AHRS"];
+
 // create our controller function with all necessary logic
 function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     $scope.$parent.helppage = 'plates/gps-help.html';
@@ -116,14 +121,28 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.SolutionText = solutionText;
 
         $scope.gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
+        var msg_ix = ahrs.messages.indexOf(MSG_GROUND_TEST[0]);
+        if (msg_ix < 0 && $scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy >= 30) {
+            ahrs.messages = ahrs.messages.concat(MSG_GROUND_TEST);
+        } else if (msg_ix >= 0 && $scope.gps_horizontal_accuracy < 30) {
+            ahrs.messages.splice(msg_ix, MSG_GROUND_TEST.length);
+        }
+
+        var msg_ix = ahrs.messages.indexOf(MSG_NO_AHRS[0]);
+        if (msg_ix < 0 && !$scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy >= 30) {
+            ahrs.messages = ahrs.messages.concat(MSG_NO_AHRS);
+            ahrs.turn_off();
+        } else if (msg_ix >= 0 && ($scope.IMU_Sensor_Enabled || $scope.gps_horizontal_accuracy < 30)) {
+            ahrs.messages.splice(msg_ix, MSG_NO_AHRS.length);
+            ahrs.turn_on();
+        }
+
         if ($scope.gps_horizontal_accuracy > 19999) {
             $scope.gps_horizontal_accuracy = "\u221e";
             $scope.gps_lat = "--";
             $scope.gps_lon = "--";
-            $scope.gps_alt = "--";
             $scope.gps_track = "--";
             $scope.gps_speed = "--";
-            $scope.gps_vert_speed = "--";
             $scope.map_opacity = 0.2;
             $scope.map_mark_opacity = 0;
         } else {
@@ -133,6 +152,8 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.gps_vertical_accuracy = (situation.GPSVerticalAccuracy*3.2808).toFixed(1); // accuracy is in meters, need to display in ft
         if ($scope.gps_vertical_accuracy > 9999) {
             $scope.gps_vertical_accuracy = "\u221e";
+            $scope.gps_alt = "--";
+            $scope.gps_vert_speed = "--";
         }
 
 
@@ -144,6 +165,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.gps_lat = situation.GPSLatitude.toFixed(5); // result is string
         $scope.gps_lon = situation.GPSLongitude.toFixed(5); // result is string
         $scope.gps_alt = situation.GPSAltitudeMSL.toFixed(1);
+        $scope.gps_height_above_ellipsoid = situation.GPSHeightAboveEllipsoid.toFixed(1);
         $scope.gps_track = situation.GPSTrueCourse.toFixed(1);
         $scope.gps_speed = situation.GPSGroundSpeed.toFixed(1);
         $scope.gps_vert_speed = situation.GPSVerticalSpeed.toFixed(1);
@@ -151,6 +173,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.gps_lat = "--";
             $scope.gps_lon = "--";
             $scope.gps_alt = "--";
+            $scope.gps_height_above_ellipsoid = "--";
             $scope.gps_track = "--";
             $scope.gps_speed = "--";
             $scope.gps_vert_speed = "--";
@@ -199,7 +222,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.ahrs_gload = situation.AHRSGLoad.toFixed(2);
             if ($scope.ahrs_gload > 360) {
                 $scope.ahrs_gload = "--";
-            } else {
+            } else if (gMeter !== undefined) {
                 gMeter.update(situation.AHRSGLoad, situation.AHRSGLoadMin, situation.AHRSGLoadMax);
             }
 
@@ -241,6 +264,17 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
         }
+        if (situation.AHRSStatus & 0x08) {
+            statusCal.classList.add("blink");
+            statusCal.classList.remove("on");
+            statusCal.innerText = "Caging";
+            $scope.IsCaging = true;
+        } else {
+            statusCal.classList.remove("blink");
+            statusCal.classList.add("on");
+            statusCal.innerText = "Ready";
+            $scope.IsCaging = false;
+        }
         if (situation.AHRSStatus & 0x10) {
             statusLog.classList.remove("off");
             statusLog.classList.add("on");
@@ -248,16 +282,23 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusLog.classList.add("off");
             statusLog.classList.remove("on");
         }
-        if (situation.AHRSStatus & 0x08) {
-            statusCal.classList.add("blink");
-            statusCal.classList.remove("on");
-            statusCal.innerText = "Caging";
-        } else {
-            statusCal.classList.remove("blink");
-            statusCal.classList.add("on");
-            statusCal.innerText = "Ready";
+
+        msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
+        if (msg_ix < 0 && $scope.IsCaging) {
+            ahrs.messages = ahrs.messages.concat(MSG_LEVELING);
+            ahrs.turn_off();
+        } else if (msg_ix >= 0 && !$scope.IsCaging) {
+            ahrs.messages.splice(msg_ix, MSG_LEVELING.length);
+            ahrs.turn_on();
         }
-        // "LastAttitudeTime":"2015-10-11T16:47:03.534615187Z"
+
+        $scope.IsPseudoAHRS = (!$scope.IMU_Sensor_Enabled && $scope.gps_horizontal_accuracy < 30);
+        msg_ix = ahrs.messages.indexOf(MSG_PSEUDO_AHRS[0]);
+        if (msg_ix < 0 && $scope.IsPseudoAHRS) {
+            ahrs.messages = ahrs.messages.concat(MSG_PSEUDO_AHRS);
+        } else if (msg_ix >= 0 && !$scope.IsPseudoAHRS) {
+            ahrs.messages.splice(msg_ix, MSG_PSEUDO_AHRS.length);
+        }
 
         setGeoReferenceMap(situation.GPSLatitude, situation.GPSLongitude);
     }
@@ -342,6 +383,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
     // GPS/AHRS Controller tasks go here
     var ahrs = new AHRSRenderer("ahrs_display");
+    ahrs.turn_on();
 
     $scope.hideClick = function() {
         $scope.isHidden = !$scope.isHidden;
@@ -360,23 +402,27 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     };
 
     $scope.AHRSCage = function() {
-        if (!$scope.IsCaging()) {
+        if (!$scope.IsCaging) {
             $http.post(URL_AHRS_CAGE).then(function (response) {
-                // do nothing
             }, function (response) {
-                // do nothing
+                ahrs.messages = ahrs.messages.concat(response.data);
+                window.setTimeout(function() {
+                    ahrs.messages.splice(ahrs.messages.indexOf(response.data), 1);
+                }, 1000);
             });
         }
     };
 
-    $scope.IsCaging = function() {
-        var caging = statusCal.innerText === "Caging";
-        if (caging) {
-            ahrs.turn_off("Calibrating. Fly straight and do not move sensor.");
-        } else {
-            ahrs.turn_on();
+    $scope.AHRSCalibrate = function() {
+        if (!$scope.IsCaging) {
+            $http.post(URL_AHRS_CAL).then(function (response) {
+            }, function (response) {
+                ahrs.messages = ahrs.messages.concat(response.data);
+                window.setTimeout(function() {
+                    ahrs.messages.splice(ahrs.messages.indexOf(response.data), 1);
+                }, 1000);
+            });
         }
-        return caging;
     };
 
     $scope.GMeterReset = function() {
@@ -392,6 +438,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $http.get(URL_SETTINGS_GET).
         then(function (response) {
             settings = angular.fromJson(response.data);
+            $scope.IMU_Sensor_Enabled = settings.IMU_Sensor_Enabled;
             if (settings.GLimits === "" || settings.GLimits === undefined) {
                 settings.GLimits = "-1.76 4.4";
             }

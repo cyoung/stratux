@@ -1,0 +1,12 @@
+# Keep 10 days of stratux logfiles.
+/var/log/stratux.log
+{
+	rotate 10
+	daily
+	missingok
+	notifempty
+	compress
+        postrotate
+		/usr/bin/killall -HUP gen_gdl90
+	endscript
+}

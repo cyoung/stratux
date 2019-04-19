@@ -6,15 +6,16 @@
     height: 100%;
     background-color: #ABFF00;
     border-radius: 10%;
-    box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
 }
 
 .indicator.off {
     background-color: #F00;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #472001 0 -1px 9px, #FF4900 0 2px 12px;
 }
 
 .indicator.on {
     background-color: #ABFF00;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
 }
 
 .indicator.blink {
@@ -151,10 +152,10 @@
     stroke-width: 2px;
 }
 
-.error .errText {
+.msgText {
     font-size: 16px;
     font-family: sans-serif;
-    text-anchor: central;
+    text-anchor: middle;
     alignment-baseline: middle;
     stroke-width: 0px;
     fill: red;

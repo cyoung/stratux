@@ -52,6 +52,7 @@ const (
 	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
 	logDir_FB           = "/root/"
+	wifiConfigLocation  = "/etc/hostapd/hostapd.user"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -441,9 +442,16 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg := make([]byte, 5)
 	// See p.28.
 	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.GPSAltitudeMSL / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
-	msg[1] = byte(alt >> 8)                      // Altitude.
-	msg[2] = byte(alt & 0x00FF)                  // Altitude.
+
+	var GPSalt float32
+	if globalSettings.GDL90MSLAlt_Enabled {
+		GPSalt = mySituation.GPSAltitudeMSL
+	} else {
+		GPSalt = mySituation.GPSHeightAboveEllipsoid
+	}
+	encodedAlt := int16(GPSalt / 5)    // GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(encodedAlt >> 8)     // Altitude.
+	msg[2] = byte(encodedAlt & 0x00FF) // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
@@ -671,7 +679,9 @@ func makeFFIDMessage() []byte {
 	}
 	copy(msg[19:], devLongName)
 
-	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	if globalSettings.GDL90MSLAlt_Enabled {
+		msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	}
 
 	return prepareMessage(msg)
 }
@@ -1117,6 +1127,11 @@ type settings struct {
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	WiFiSSID             string
+	WiFiChannel          int
+	WiFiSecurityEnabled  bool
+	WiFiPassphrase       string
+	GDL90MSLAlt_Enabled  bool
 }
 
 type status struct {
@@ -1133,6 +1148,7 @@ type status struct {
 	UAT_traffic_targets_tracking               uint16
 	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
+	UATRadio_connected                         bool
 	GPS_satellites_locked                      uint16
 	GPS_satellites_seen                        uint16
 	GPS_satellites_tracked                     uint16
@@ -1143,6 +1159,8 @@ type status struct {
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
+	CPUTempMin                                 float32
+	CPUTempMax                                 float32
 	NetworkDataMessagesSent                    uint64
 	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
@@ -1189,6 +1207,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
+	globalSettings.GDL90MSLAlt_Enabled = true
 }
 
 func readSettings() {
@@ -1215,6 +1234,7 @@ func readSettings() {
 	}
 	globalSettings = newSettings
 	log.Printf("read in settings.\n")
+	readWiFiUserSettings()
 }
 
 func addSystemError(err error) {
@@ -1246,6 +1266,58 @@ func saveSettings() {
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
 	log.Printf("wrote settings.\n")
+}
+
+func readWiFiUserSettings() {
+	fd, err := os.Open(wifiConfigLocation)
+	if err != nil {
+		log.Printf("can't read wifi settings %s: %s\n", wifiConfigLocation, err.Error())
+		return
+	}
+	defer fd.Close()
+
+	// Default values
+	globalSettings.WiFiSSID = "stratux"
+	globalSettings.WiFiChannel = 8
+	globalSettings.WiFiSecurityEnabled = false
+
+	scanner := bufio.NewScanner(fd)
+	var line []string
+	for scanner.Scan() {
+		line = strings.SplitN(scanner.Text(), "=", 2)
+		switch line[0] {
+		case "ssid":
+			globalSettings.WiFiSSID = line[1]
+		case "channel":
+			globalSettings.WiFiChannel, _ = strconv.Atoi(line[1])
+		case "wpa_passphrase":
+			globalSettings.WiFiPassphrase = line[1]
+			globalSettings.WiFiSecurityEnabled = true
+		default:
+		}
+	}
+	return
+}
+
+func saveWiFiUserSettings() {
+	fd, err := os.OpenFile(wifiConfigLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+	if err != nil {
+		err_ret := fmt.Errorf("can't save settings %s: %s", wifiConfigLocation, err.Error())
+		addSystemError(err_ret)
+		log.Printf("%s\n", err_ret.Error())
+		return
+	}
+	defer fd.Close()
+
+	writer := bufio.NewWriter(fd)
+	fmt.Fprintf(writer, "ssid=%s\n", globalSettings.WiFiSSID)
+	fmt.Fprintf(writer, "channel=%d\n", globalSettings.WiFiChannel)
+	fmt.Fprint(writer, "\n")
+	if globalSettings.WiFiSecurityEnabled {
+		fmt.Fprint(writer, "auth_algs=1\nwpa=3\nwpa_key_mgmt=WPA-PSK\nwpa_pairwise=TKIP\nrsn_pairwise=CCMP\n")
+		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
+	}
+	writer.Flush()
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
@@ -1293,7 +1365,7 @@ func printStats() {
 		runtime.ReadMemStats(&memstats)
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
-		log.Printf(" - CPUTemp=%.02f deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
+		log.Printf(" - CPUTemp=%.02f [%.02f - %.02f] deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, globalStatus.CPUTempMin, globalStatus.CPUTempMax, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
 		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
 		if globalSettings.GPS_Enabled {
@@ -1387,7 +1459,7 @@ func openReplayFile(fn string) ReadCloser {
 var stratuxClock *monotonic
 var sigs = make(chan os.Signal, 1) // Signal catch channel (shutdown).
 
-// Graceful shutdown.
+// Graceful shutdown. Do everything except for kill the process.
 func gracefulShutdown() {
 	// Shut down SDRs.
 	sdrKill()
@@ -1404,13 +1476,34 @@ func gracefulShutdown() {
 
 	// Turn off green ACT LED on the Pi.
 	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
-	os.Exit(1)
+}
+
+// Close log file handle, open new one.
+func handleSIGHUP() {
+	logFileHandle.Close()
+	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
+	} else {
+		// Keep the logfile handle for later use
+		logFileHandle = fp
+		mfp := io.MultiWriter(fp, os.Stdout)
+		log.SetOutput(mfp)
+	}
+	log.Printf("signal caught: SIGHUP, handled.\n")
 }
 
 func signalWatcher() {
-	sig := <-sigs
-	log.Printf("signal caught: %s - shutting down.\n", sig.String())
-	gracefulShutdown()
+	for {
+		sig := <-sigs
+		if sig == syscall.SIGHUP {
+			handleSIGHUP()
+		} else {
+			log.Printf("signal caught: %s - shutting down.\n", sig.String())
+			gracefulShutdown()
+			os.Exit(1)
+		}
+	}
 }
 
 func clearDebugLogFile() {
@@ -1432,7 +1525,7 @@ func clearDebugLogFile() {
 
 func main() {
 	// Catch signals for graceful shutdown.
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
@@ -1571,9 +1664,20 @@ func main() {
 	go printStats()
 
 	// Monitor RPi CPU temp.
+	globalStatus.CPUTempMin = invalidCpuTemp
+	globalStatus.CPUTempMax = invalidCpuTemp
 	go cpuTempMonitor(func(cpuTemp float32) {
 		globalStatus.CPUTemp = cpuTemp
+		if isCPUTempValid(cpuTemp) && ((cpuTemp < globalStatus.CPUTempMin) || !isCPUTempValid(globalStatus.CPUTempMin)) {
+			globalStatus.CPUTempMin = cpuTemp
+		}
+		if isCPUTempValid(cpuTemp) && ((cpuTemp > globalStatus.CPUTempMax) || !isCPUTempValid(globalStatus.CPUTempMax)) {
+			globalStatus.CPUTempMax = cpuTemp
+		}
 	})
+
+	// Start reading from serial UAT radio.
+	initUATRadioSerial()
 
 	reader := bufio.NewReader(os.Stdin)
 
