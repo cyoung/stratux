@@ -48,3 +48,4 @@ Jet tests (high gain antennas):
 * Lear 35
 * Rockwell B-1b
 * Boeing C-17
+* Gulfstream G450
