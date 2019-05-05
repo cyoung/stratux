@@ -342,6 +342,9 @@ func makeOwnshipReport() bool {
 	} else if isTempPressValid() {
 		altf = float64(mySituation.BaroPressureAltitude)
 		validAltf = true
+	} else if isGPSValid() {
+		altf = float64(mySituation.GPSAltitudeMSL)
+		validAltf = true
 	}
 
 	if validAltf {
