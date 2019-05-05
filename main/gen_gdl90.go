@@ -445,7 +445,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
+	msg[0] = 0x0B // Message type "Ownship Geo Alt".
 
 	var GPSalt float32
 	if globalSettings.GDL90MSLAlt_Enabled {
@@ -1192,9 +1192,9 @@ var globalSettings settings
 var globalStatus status
 
 func defaultSettings() {
-	globalSettings.UAT_Enabled = true
+	globalSettings.UAT_Enabled = false
 	globalSettings.ES_Enabled = true
-	globalSettings.FLARM_Enabled = false
+	globalSettings.FLARM_Enabled = true
 	globalSettings.GPS_Enabled = true
 	globalSettings.IMU_Sensor_Enabled = true
 	globalSettings.BMP_Sensor_Enabled = true
@@ -1209,7 +1209,7 @@ func defaultSettings() {
 	globalSettings.AHRSLog = false
 	globalSettings.IMUMapping = [2]int{-1, 0}
 	globalSettings.OwnshipModeS = "F00000"
-	globalSettings.DeveloperMode = false
+	globalSettings.DeveloperMode = true
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.GDL90MSLAlt_Enabled = true
 }

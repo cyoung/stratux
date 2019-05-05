@@ -63,9 +63,9 @@ wget https://dl.google.com/go/go1.12.4.linux-armv6l.tar.gz
 tar xzf go1.12.4.linux-armv6l.tar.gz
 
 if [ "$1" == "dev" ]; then
-    git clone https://github.com/b3nn0/stratux.git
-else
     cp -r $SRCDIR .
+else
+    git clone --recursive https://github.com/b3nn0/stratux.git
 fi
 cd ../..
 
