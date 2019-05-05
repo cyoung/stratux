@@ -74,7 +74,11 @@ chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_de
 umount mnt
 
 mkdir -p $SRCDIR/image/out
-mv $IMGNAME $SRCDIR/image/out
-cd $SRCDIR/image/
+mv $IMGNAME $SRCDIR/image/out/
+cd $SRCDIR/image/out
+outname="stratux-$(git describe --tags --abbrev=0).img"
+mv $IMGNAME $outname
+zip $outname.zip $outname
+
 
 echo "Final image has been placed into $SRCDIR/image/out. Please install and test the image."
