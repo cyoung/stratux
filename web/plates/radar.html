@@ -1,0 +1,24 @@
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Traffic-Radar</span> 
+			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+		         <span ng-show="BaroAltValid == 'Baro'" class="label label-success">Baro-Alt</span>
+		         <span ng-show="BaroAltValid == 'GPS'" class="label label-warning">No Baro-Alt, using GPS-Alt</span>
+		         <span ng-show="BaroAltValid == 'Invalid'" class="label label-danger">No Altitude!</span>
+		         <span ng-show="GPSValid == 'Invalid'" class="label label-danger">No GPS!</span>
+			 <span ng-show="CPUTemp < 70" class="label label-info">{{CPUTemp}}°C</span>
+			 <span ng-hide="(CPUTemp < 70) || (CPUTemp >= 80)" class="label label-warning">{{CPUTemp}}°C</span>
+			 <span ng-hide="CPUTemp < 80" class="label label-danger">{{CPUTemp}}°C</span>
+		</div>
+
+		<div class="panel-body">
+			<div class="row">
+				<span class="col-xs-12">
+				<div id="radar_display"></div>
+				</span>
+			</div>
+		</div>
+	</div>
+</div>
