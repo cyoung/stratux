@@ -275,6 +275,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.UAT_Enabled = val.(bool)
 					case "ES_Enabled":
 						globalSettings.ES_Enabled = val.(bool)
+					case "FLARM_Enabled":
+						globalSettings.FLARM_Enabled = val.(bool)
 					case "Ping_Enabled":
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":
@@ -378,6 +380,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "WiFiPassphrase":
 						globalSettings.WiFiPassphrase = val.(string)
 						resetWiFi = true
+					case "GDL90MSLAlt_Enabled":
+						globalSettings.GDL90MSLAlt_Enabled = val.(bool)
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}

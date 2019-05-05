@@ -1,0 +1,38 @@
+0.2.6 (March 2017)
+- To update ...
+
+0.2.5 (August 2016)
+- Add DDB.ReadFile to read database from a file instead of downloading from internet.
+- RF.FreqCorr accepts float.
+- Spectrogram and raw data from HTTP give back file names with station name and other parameters.
+- For RPI v1, with newer kernel (since 4.1) GPU device driver changed its major number from 100 to 249. It is also replaced by /dev/vcio. This change check if /dev/vcio exist and use it in this case.
+- Source code update to be compatible with GPU of RPI2/3.
+- Average SNR for every individual track: estimate effective Tx power.
+- More reciever stats sent in APRS messages.
+- Fix info frame correction for Flarm firmware v6.06.
+- Traffic rates reported on HTTP.
+- Other minor fixes and enhancement.
+
+0.2.4 (October 2015)
+- Introduce UseAsWhitelist parameter for strict opt-in using data from OGN DDB.
+- Provide hardware and software version of received device.
+- Add more precision to Latitude and Longitude in APRS messages.
+- Add error correction of radio messages.
+- Allow integer as config gain value.
+- Allow float as config GeoidSepar value.
+- Fix bug about incorrect altitude of 65500m.
+- Fix bug about turn rate.
+- Other minor fixes and enhancement.
+
+0.2.3 (June 2015)
+- Bug fixed in default setup which was reducing sensitivity.
+- Introduce adaptive algorithm to send positions to APRS.
+- Send arch info in version to APRS server.
+- Nothing changed on ogn-rf side.
+- Code cleanup.
+
+0.2.2 (April 2015)
+- Source code of public part of receiver is released
+
+0.2.0 (March 2015)
+- First version compatible with Flarm v6 recent changes in radio protocol

@@ -102,6 +102,11 @@
                                    ng-trim="false" placeholder="space-delimited ip's to send network data"
                                    ng-blur="updatestaticips()" />
                         </form>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">GDL90 MSL Altitude</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='GDL90MSLAlt_Enabled' settings-change></ui-switch>
                     </div>
                 </div>
             </div>
@@ -166,11 +171,16 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label class="control-label col-xs-7">868 MHz (FLARM)</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='FLARM_Enabled' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label class="control-label col-xs-7">Ping ADS-B</label>
                         <div class="col-xs-5">
                             <ui-switch ng-model='Ping_Enabled' settings-change></ui-switch>
                         </div>
-                    </div>
                     <div class="form-group">
                         <label class="control-label col-xs-7">GPS</label>
                         <div class="col-xs-5">

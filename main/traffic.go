@@ -63,6 +63,7 @@ AUXSV:
 const (
 	TRAFFIC_SOURCE_1090ES = 1
 	TRAFFIC_SOURCE_UAT    = 2
+	TRAFFIC_SOURCE_FLARM  = 4
 	TARGET_TYPE_MODE_S    = 0
 	TARGET_TYPE_ADSB      = 1
 	TARGET_TYPE_ADSR      = 2
@@ -153,6 +154,14 @@ var trafficMutex *sync.Mutex
 var seenTraffic map[uint32]bool // Historical list of all ICAO addresses seen.
 
 var OwnshipTrafficInfo TrafficInfo
+
+func convertFeetToMeters(feet float32) float32 {
+	return feet * 0.3048
+}
+
+func convertMetersToFeet(meters float32) float32 {
+	return meters / 0.3048
+}
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
@@ -315,15 +324,24 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	//
 	// Algo example at: https://play.golang.org/p/VXCckSdsvT
 	//
-	var alt int16
-	if ti.Alt < -1000 || ti.Alt > 101350 {
-		alt = 0x0FFF
+	// GDL90 expects barometric altitude in traffic reports
+	var baroAlt int32
+	if ti.AltIsGNSS {
+		// Convert from GPS geoid height to barometric altitude
+		baroAlt = ti.Alt - int32(mySituation.GPSGeoidSep)
+		baroAlt = baroAlt - int32(mySituation.GPSAltitudeMSL) + int32(mySituation.BaroPressureAltitude)
+	} else {
+		baroAlt = ti.Alt
+	}
+	var encodedAlt int16
+	if baroAlt < -1000 || baroAlt > 101350 {
+		encodedAlt = 0x0FFF
 	} else {
 		// output guaranteed to be between 0x0000 and 0x0FFE
-		alt = int16((ti.Alt / 25) + 40)
+		encodedAlt = int16((baroAlt / 25) + 40)
 	}
-	msg[11] = byte((alt & 0xFF0) >> 4) // Altitude.
-	msg[12] = byte((alt & 0x00F) << 4)
+	msg[11] = byte((encodedAlt & 0xFF0) >> 4) // Altitude.
+	msg[12] = byte((encodedAlt & 0x00F) << 4)
 
 	// "m" field. Lower four bits define indicator bits:
 	// - - 0 0   "tt" (msg[17]) is not valid
@@ -1344,4 +1362,5 @@ func initTraffic() {
 	seenTraffic = make(map[uint32]bool)
 	trafficMutex = &sync.Mutex{}
 	go esListen()
+	go flarmListen()
 }

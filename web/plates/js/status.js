@@ -99,10 +99,10 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 					tempGpsProtocolString = "Not communicating";
 			}
 			$scope.GPS_protocol = tempGpsProtocolString;
-			
+
 			var MiBFree = status.DiskBytesFree/1048576;
 			$scope.DiskSpace = MiBFree.toFixed(1);
-			
+
 			$scope.UAT_METAR_total = status.UAT_METAR_total;
 			$scope.UAT_TAF_total = status.UAT_TAF_total;
 			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
@@ -152,6 +152,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.DeveloperMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
+			$scope.visible_flarm = settings.FLARM_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
 			if (settings.Ping_Enabled) {
 				$scope.visible_uat = true;
@@ -190,13 +191,13 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
     var clicks = 0;
     var clickSeconds = 0;
     var DeveloperModeClick = 0;
-    
+
     var clickInterval = $interval(function () {
         if ((clickSeconds >= 3))
             clicks=0;
         clickSeconds++;
     }, 1000);
-    
+
 	$state.get('home').onEnter = function () {
 		// everything gets handled correctly by the controller
 	};
@@ -207,7 +208,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		$interval.cancel(updateTowers);
 	};
-    
+
     $scope.VersionClick = function() {
         if (clicks==0)
         {
@@ -223,7 +224,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
             location.reload();
         }
     }
-    
+
     $scope.GetDeveloperModeClick = function() {
         return DeveloperModeClick;
     }

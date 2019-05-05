@@ -1,0 +1,39 @@
+
+RF:
+{
+  Device   =   {{.DeviceIndex}};          # [index]    0 = 1st RTL2832 USB stick, 1 = 2nd USB stick, etc.
+  FreqCorr =  {{.Ppm}};          # [ppm]      "big" R820T sticks have 40-80ppm correction factors, measure it with gsm_scan
+  PipeName = "/var/run/ogn-rf.fifo";
+
+  OGN:
+  {
+    # [0.1dB] Rx gain for OGN reception
+    # Gain = ;
+  };
+
+  GSM:                     # for frequency calibration based on GSM signals
+  {
+    CenterFreq  = 938.4;   # [MHz] find the best GSM frequency with gsm_scan
+    Gain        =  25.0;   # [dB]  RF input gain (beware that GSM signals are very strong !)
+  };
+};
+
+Position:
+{
+  Latitude   =   {{.Latitude}}; # [deg] Antenna coordinates
+  Longitude  =   {{.Longitude}}; # [deg]
+  Altitude   =   {{.Altitude}}; # [m]   Altitude above sea leavel
+  GeoidSepar =          0; # [m]   Geoid separation: FLARM transmits GPS altitude, APRS uses means Sea level altitude
+};
+
+APRS:
+{
+  Call = "Stratux";        # APRS callsign (max. 9 characters)
+                                       # Please refer to http://wiki.glidernet.org/receiver-naming-convention
+  Server = "localhost:14580";
+};
+
+HTTP:
+{
+  Port = 8082;
+};

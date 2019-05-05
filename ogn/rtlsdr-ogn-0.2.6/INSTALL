@@ -1,0 +1,234 @@
+==================================
+ OGN DVB-T receiver version 0.2.2
+==================================
+
+
+ Install guide
+===============
+
+
+ Important change: to comply with open-source licenses
+=======================================================
+
+we split the executable into two parts:
+1. ogn-rf - RF signal acquisition, GSM cablibration, FFT
+2. ogn-decode - packet demodulator and decoder
+
+ogn-rf user open source RTLSDR and FFT code and is now open source,
+while ogn-decode is closed source.
+
+The two executable run in parallel and ogn-rf passes
+Fourier spectra to ogn-decode through the named Unix FIFO: ogn-rf.fifo
+
+You need to create this FIFO with this command:
+
+mkfifo ogn-rf.fifo
+
+in the same directory as the executables.
+
+
+ To run on Raspberry PI with executable using GPU for faster FFT
+=================================================================
+
+For the executables to be able to use GPU the following needs to be done:
+
+sudo chown root ogn-rf
+sudo chmod a+s  ogn-rf
+sudo chown root gsm_scan
+sudo chmod a+s  gsm_scan
+sudo mknod gpu_dev c 100 0
+
+
+ Frequency calibration
+=======================
+
+DVB-T USB dongle use cheap crystals and these are not very accurate.
+They can be off by as much to 100ppm, which at 868MHz is 86kHz away
+- far too much for correct reception of FSK modulation with +/-50kHz deviation
+
+Fortunately, this can be corrected, we only need to know by how much the crystal is off.
+GSM signals are a good reference and not far away in frequency thus they can be used
+for precise frequency calibration.
+
+To measure the frequency offset of your DVB-T stick use the gsm_scan tool, like this:
+
+./gsm_scan --ppm 50 --gain 20
+
+-ppm is your initial guess for the offset and --gain is the RF front end gain.
+
+As you can see using gsm_scan is not fully automatic. You may need to make few guesses
+and the frequency offset and the optimal gain. Too little gain and you don't get any signals.
+Too much gain and the signals get so distorted you get plenty of false readings.
+
+The most popular big black DVB-T sticks with R820T tuner have crystals with offest between 40and 80ppm.
+The tiny black sticks with R820T are around zero.
+
+With a good antenna in a GSM-dense area you may need to go down with the gain to 15-20dB
+while far from civilation you may need to go to maximum 50-60dB.
+
+After few tries you should be able to catch several broadcast channels and get a consistent reading.
+Note that as the DVB-T dongle acquires data, it warms up and frequency offset starts drifting by few ppm
+this is normal. However the small DVB-T sticks can get too hot and then they suddenly jump in frequency.
+If you identify such stick, use it with good cooling - thus don't close it in a small box without ventilation.
+
+Here is sample output of: ./gsm_scan --ppm 40 --gain 40
+
+935.400MHz:  +14.7dB: -25.84 -25.81 -25.71 [ppm]
+936.000MHz:  +14.4dB: -25.68 -25.47 -25.44 -25.63 -25.62 [ppm]
+936.400MHz:   +9.7dB: -25.51 -25.47 -25.38 -25.34 -25.28 -25.22 [ppm]
+938.000MHz:   +6.4dB: -25.18 -25.10 -25.22 -25.17 -25.09 [ppm]
+939.000MHz:   +4.5dB: -24.90 -25.12 -24.38 -25.14 -24.84 [ppm]
+948.000MHz:  +23.1dB: -25.69 -25.77 -25.78 -25.71 -25.72 [ppm]
+949.600MHz:  +14.9dB: -25.32 -25.21 [ppm]
+950.000MHz:  +24.8dB: -25.46 -25.65 [ppm]
+952.000MHz:  +18.1dB: -25.28 -25.36 -25.29 -25.17 -25.34 [ppm]
+952.400MHz:  +24.0dB: -25.90 -25.90 -25.77 -25.87 -25.92 [ppm]
+953.200MHz:  +21.3dB: -24.83 -24.87 [ppm]
+956.400MHz:  +11.6dB: -25.73 -25.28 -25.46 -24.49 -24.89 [ppm]
+956.600MHz:  +30.9dB: -24.70 -25.10 -24.83 -25.19 [ppm]
+957.000MHz:   +9.4dB: -25.20 -25.20 -25.19 -25.35 [ppm]
+957.200MHz:  +23.5dB: -24.56 -14.85 [ppm]
+957.600MHz:  +28.7dB: -25.12 -25.14 -25.12 -25.06 -25.14 [ppm]
+958.200MHz:   +6.5dB: -24.40 -24.61 -24.21 -23.86 -24.30 -24.52 [ppm]
+959.000MHz:  +10.1dB: -25.00 -25.02 -25.22 -24.76 -25.31 -25.08 [ppm]
+959.200MHz:  +28.9dB: -24.72 -24.71 -24.66 -24.69 -24.71 -24.70 [ppm]
+959.800MHz:  +12.3dB: -23.80 -23.65 -24.06 -24.08 -23.88 -23.49 -23.95 [ppm]
+Receiver Xtal correction = 40-25.135 = +14.865 (0.188) ppm [46]
+
+which means we guessed about 25 ppm to high,
+and so we retry: ./gsm_scan --ppm 15 --gain 40
+
+935.400MHz:  +16.0dB:  +0.47  +0.31  +0.24  +0.37  +0.41 [ppm]
+936.000MHz:  +15.3dB:  +0.40  +0.07  +0.63  +0.44  +0.51 [ppm]
+936.400MHz:   +7.9dB:  -0.13  +0.19  -0.08  -0.18  -0.25 [ppm]
+938.000MHz:   +6.2dB:  -0.08  -0.06  -0.06  -0.03  +0.01 [ppm]
+948.000MHz:  +23.3dB:  +0.33  +0.31  +0.33  +0.33  +0.32 [ppm]
+949.600MHz:  +15.0dB:  -0.21  -0.16  -0.15  -0.21  -0.17 [ppm]
+950.000MHz:  +25.1dB:  -0.23  -0.30  -0.08  -0.15  -0.28 [ppm]
+950.800MHz:   +6.8dB:  +0.16  +0.16  +0.10 [ppm]
+952.000MHz:  +16.3dB:  +0.28  +0.28  +0.27  +0.27  +0.26 [ppm]
+952.400MHz:  +24.7dB:  -0.34  -0.31  -0.33  -0.32  -0.29  -0.34 [ppm]
+952.800MHz:  +12.1dB:  -0.21  -0.26  -0.26  -0.28  -0.33 [ppm]
+953.200MHz:  +21.7dB:  -0.25  -0.25  -0.25  -0.24  -0.26 [ppm]
+954.000MHz:  +15.3dB:  -0.26  -0.19  -0.23  -0.21  -0.24 [ppm]
+954.400MHz:   +9.7dB:  +0.10  +0.13  +0.03  +0.07 [ppm]
+955.600MHz:   +4.2dB:  +0.07  +0.59 [ppm]
+956.600MHz:  +31.2dB:  -0.30  -0.38  -0.34  -0.30  -0.32 [ppm]
+957.000MHz:   +8.5dB:  -0.35  -0.53  -0.27  -0.59  -0.19  -0.31 [ppm]
+957.200MHz:  +23.2dB:  -0.31  -0.31  -0.29  -0.28  -0.30 [ppm]
+957.600MHz:  +29.6dB:  -0.29  -0.25  -0.24  -0.28  -0.27 [ppm]
+958.800MHz:  +13.3dB:  +0.11  +0.04  +0.15  +0.08  +0.14  +0.12 [ppm]
+959.200MHz:  +28.1dB:  +0.14  +0.16  +0.18  +0.14  +0.15 [ppm]
+959.800MHz:  +15.6dB:  +0.13  +0.19  +0.17  +0.18  +0.14 [ppm]
+Receiver Xtal correction = 15-0.064 = +14.936 (0.199) ppm [81]
+
+Which means that our guess 15ppm is just correct.
+
+Here we should choose a frequency with several signals within 1MHz,
+for example 952.800MHz is a good choice because there are good calibration signals
+just below and just above.
+
+These three numbers we need to put int he config file:
+1. frequency offset = +15ppm
+2. GSM frequency for fine calibration: 952.800MHz
+3. Optimum RF gain to find the signals but not oversdrive the receiver: 40dB
+
+Whith correct numbers the ogn-rf should output such messages:
+
+GSM freq. calib. =  -1.298 +/- 0.067 ppm, 8 points
+GSM freq. calib. =  -1.231 +/- 0.066 ppm, 6 points
+
+This means the GSM calibration is succesfully receiving the signals and calibrating
+and we are just on the frequency (jus 1.3ppm away, which is unimportant)
+
+
+ Config file
+=============
+
+about ready to make the configuration file, here is a template:
+
+# ------------------------------------------------------------------------------------------------------------------
+
+RF:
+{
+  FreqCorr = +15;          # [ppm]      "big" R820T sticks have 40-80ppm correction factors, measure it with gsm_scan
+
+  GSM:                     # for frequency calibration based on GSM signals
+  { CenterFreq  = 952.8;   # [MHz] find the best GSM frequency with gsm_scan
+    Gain        =  40.0;   # [dB]  RF input gain (beware that GSM signals are very strong !)
+  } ;
+} ;
+
+Position:
+{ Latitude   =   +48.0000; # [deg] Antenna coordinates
+  Longitude  =    +9.0000; # [deg]
+  Altitude   =        100; # [m]   Altitude above sea leavel
+  GeoidSepar =         48; # [m]   Geoid separation: FLARM transmits GPS altitude, APRS uses means Sea level altitude
+} ;
+
+APRS:
+{ Call = "SampleAPRSnameToChange";           # APRS callsign (max. 9 characters)
+} ;
+
+# ------------------------------------------------------------------------------------------------------------------
+
+The elements are:
+1. Station name: up to 9 characters -> replace "SampleAPRSnameToChange" with your station name
+2. Station coordinates
+3. Frequency offset and GSM parameters aspreviously discussed
+
+Station coordinates does not have to be precise, in case you prefere not to disclose your geographical position.
+
+
+ Running the receiver as a service
+===================================
+
+We use shellbox: a tool to run any number of processes in the background with the capability to restart should they crash.
+You need to install two file: rtlsdr-ogn and rtlsdr-ogn.conf like this:
+
+sudo apt-get -y install procserv telnet nano
+sudo cp -v rtlsdr-ogn /etc/init.d/rtlsdr-ogn
+sudo cp -v rtlsdr-ogn.conf /etc/rtlsdr-ogn
+sudo update-rc.d rtlsdr-ogn defaults
+
+then you should edit the rtlsdr-ogn.conf like this:
+
+sudo nano -w /etc/rtlsdr-ogn.conf
+
+which should look like this:
+
+50000 pi /home/pi/rtlsdr-ogn    ./ogn-rf     SampleAPRSnameToChange.conf
+50001 pi /home/pi/rtlsdr-ogn    ./ogn-decode SampleAPRSnameToChange.conf
+
+this is example from Raspberry PI wheere the receiver runs under user "pi" and files are in the directory "rtlsdr-ogn".
+Replace SampleAPRSnameToChange.conf with your configuration file.
+
+To start the service you type:
+
+sudo service rtlsdr-ogn start
+
+and this will start the executables listed in /etc/rtlsdr-ogn.conf
+To stop:
+
+sudo service rtlsdr-ogn stop
+
+
+ Monitoring
+============
+
+To check if things work alright you can watch the output of the executables by telnet'ing to ports 50000 and 50001:
+
+telnet localhost 50000
+
+or
+
+telnet localhost 50001
+
+On the ogn-rf output you should see the GSM caibration messages and on the ogn-decode output there should be
+APRS keep-alive messages and decoded position packets from aircrafts.
+
+
+ Quesions and comments
+=======================
+
+please send to contact@glidernet.org

@@ -5,7 +5,7 @@ After=network.target
 [Service]
 ExecStartPre=/root/stratux-pre-start.sh
 ExecStart=/usr/bin/gen_gdl90
-ExecStop=/usr/bin/pkill dump1090
+ExecStop=/usr/bin/killall dump1090 ogn-rf ogn-decode
 KillMode=process
 Restart=always
 RestartSec=5

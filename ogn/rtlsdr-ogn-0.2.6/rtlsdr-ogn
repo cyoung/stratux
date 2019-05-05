@@ -1,0 +1,245 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          rtlsdr-ogn
+# Required-Start:    $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: OGN receiver
+# Description:       OGN receiver - Open Glider Network - http://glidernet.org/
+### END INIT INFO
+
+# chkconfig: 2345 98 2
+# description: shellbox service for spawning programs
+
+export PATH=$PATH:/usr/local/bin
+
+export HOSTNAME=$(hostname -s)
+
+exe=/usr/bin/procServ
+options="-k ^X --killsig 15 -x ^C -i ^D -c"
+prog=rtlsdr-ogn
+params=
+conf=/etc/rtlsdr-ogn.conf
+logdir=/var/log/$prog
+shells=/var/run/$prog
+chroot=/mnt/ramdisk
+
+if [ -d $chroot ]
+then
+  CHROOT="chroot $chroot"
+fi
+
+fail () {
+  echo $@
+  exit 1
+}
+
+echo_failure () {
+  echo " [failed]"
+}
+
+checkpid () {
+  [ -d /proc/$PID ] 
+}
+
+launch () {
+  if [ "$1" = "-reload" ]
+  then
+    reload=YES
+    shift
+  fi
+  temp=$(mktemp -p $(dirname $shells)) || fail "can't create temporary file"
+  while read PORT USER DIR COMMAND
+  do
+    # check for empty lines and comments
+    [[ $PORT == "" || $PORT == \#* ]] && continue
+    # check if already started shell is still alive
+    if LINE=$(grep "$PORT $USER $DIR $COMMAND" $shells 2> /dev/null)
+    then
+      PID=${LINE%% *}
+      if checkpid $PID
+      then
+        if [ -z "$reload" ] && [ -z "$*" ] || echo "$*" | grep -qE "(^|[[:space:]])$PORT([[:space:]]|$)"
+        then
+          echo "Already running: $PORT $USER $DIR $COMMAND"
+        fi
+        echo "$LINE" >> $temp
+        continue
+      fi
+    fi
+
+    # check if we have to start all shells or only this PORT
+    [ "$*" ] && echo "$*" | grep -qvE "(^|[[:space:]])$PORT([[:space:]]|$)" && continue
+
+    if [ -n "$logdir" ]
+    then
+      [ -d $logdir ] || mkdir -m 777 $logdir
+      LOG=$logdir/$PORT
+      rm -f $LOG
+    else
+      LOG=/dev/null
+    fi
+
+    # Wait for time to be sync before launching
+    while true; do /usr/sbin/ntp-wait -v;  if [ $? -eq 0 ]; then break; fi; sleep 2; done
+
+    # start shellbox as other user
+    echo -n Starting: $PORT $USER $DIR $COMMAND
+    export SHELLBOX=$HOSTNAME:$PORT
+    #pidfile=/var/run/procServ-$PORT.pid
+    pidfile=/tmp/procServ-$PORT.pid
+    rm -f $pidfile
+#    $exe -p $pidfile $options $DIR $params $PORT $COMMAND >> $LOG 2>&1 < /dev/null
+    $CHROOT su $USER -c "$exe -p $pidfile $options $DIR $params $PORT $COMMAND >> $LOG 2>&1 < /dev/null"
+    # check if starting worked or failed
+    sleep 1
+    if [ -e $pidfile ]
+    then
+      PID=$(<$pidfile)
+      echo "$PID $PORT $USER $DIR $COMMAND" >> $temp
+      echo
+    else
+      echo_failure
+      echo
+      cat $LOG
+    fi
+  done < $conf
+  mv $temp $shells
+  chmod 0644 $shells
+}
+
+start () {
+  [ -r $conf ] || fail "$conf not readable"
+  [ -x $exe ] || fail "$exe is not executable"
+  launch $*
+  touch /var/lock/$prog
+}
+
+stopshell() {
+  PID=$1
+  PORT=$2
+  shift
+  echo -n Stopping: $*
+  kill $PID 2> /dev/null || echo_failure
+  echo
+  if [ $logdir ]
+  then
+      echo -e "\n**** stopped ****" >> $logdir/$PORT
+  fi
+}
+
+stop () {
+  # anything to stop?
+  if [ ! -r $shells ]
+  then
+    echo "$prog: No shells started."
+    exit 0
+  fi
+  if [ -z "$1" ]
+  then
+    # kill all shellboxes
+    while read PID PORT ARGS
+    do
+      stopshell $PID $PORT $ARGS
+    done < $shells
+    rm -f $shells
+    rm -f /var/lock/$prog
+  else
+    # kill only selected shellboxes
+    temp=$(mktemp -p $(dirname $shells)) || fail "can't create temporary file"
+    while read PID PORT ARGS
+    do
+      echo "$*" | grep -qE "(^|[[:space:]])$PORT([[:space:]]|$)" && stopshell $PID $PORT $ARGS || echo "$PID $PORT $ARGS" >> $temp
+    done < $shells
+    mv $temp $shells
+    chmod 0644 $shells
+  fi
+}
+
+reload () {
+  echo "Reloading $conf: "
+  [ -r $conf ] || fail "not readable"
+  # anything to stop?
+  if [ -r $shells ]
+  then
+    #first kill all shells that are not configured any more
+    temp=$(mktemp -p $(dirname $shells)) || fail "can't create temporary file"
+    while read PID ARGS
+    do
+      while read PORT USER DIR COMMAND
+      do
+        if [ "$PORT $USER $DIR $COMMAND" = "$ARGS" ]
+        then
+          echo "Keeping: $ARGS"
+          echo "$PID $ARGS" >> $temp
+          continue 2
+        fi
+      done < $conf
+      stopshell $PID $PORT $ARGS
+    done < $shells
+    mv $temp $shells
+    chmod 0644 $shells
+  fi
+  #now start all new shells
+  sleep 1
+  launch -reload
+}
+
+status () {
+  [ -r $conf ] || fail "$conf not readable"
+  if [ "$1" = "-log" ]
+  then
+    log=YES
+    shift
+  fi
+  echo -e "pid\tport\tuser\tdir\t\t\tcommand"
+  while read PORT USER DIR CMD
+  do
+    # check for empty lines and comments
+    [[ $PORT == "" || $PORT == \#* ]] && continue
+
+    # check if we have to report all shells
+    [ "$*" ] &&  echo "$*" | grep -qvE "(^|[[:space:]])$PORT([[:space:]]|$)" && continue
+    
+    if [ "$logdir" -a "$log" ]
+    then
+      echo "-------------------------------------------------------------------"
+    fi
+    
+    if LINE=$(grep "$PORT $USER $DIR $CMD" $shells 2> /dev/null)
+    then 
+      PID=${LINE%% *}
+      if checkpid $PID
+      then
+        echo -n $PID
+      else
+        $SETCOLOR_FAILURE
+        echo -n DEAD
+        $SETCOLOR_NORMAL
+      fi
+    else
+      $SETCOLOR_FAILURE
+      echo -n STOPPED 
+      $SETCOLOR_NORMAL
+    fi
+    echo -e "\t$PORT\t$USER\t$DIR\t$CMD"
+    
+    if [ "$logdir" -a "$log" ]
+    then
+        grep '\*\*\*\*' $logdir/$PORT 2>/dev/null
+    fi
+  done < $conf
+}
+
+CMD=$1
+shift
+case "$CMD" in
+  (start)         start $*;;
+  (stop)          stop $*;;
+  (restart)       stop $*; sleep 1; start $*;; # kill all shells, then start again
+  (reread|reload) reload $*;; # reload shellbox.conf without killing too much
+  (status)        status $*;;
+  (*)             echo "Usage: $0 {start [ports]|stop [ports]|restart [ports]|reload|status [-log] [ports]}" ;;
+esac
+
