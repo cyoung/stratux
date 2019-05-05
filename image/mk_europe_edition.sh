@@ -54,6 +54,7 @@ losetup -d /dev/loop0
 
 
 # Mount image locally, clone our repo, install packages..
+mkdir -p mnt
 mount -t ext4 -o offset=$partoffset $IMGNAME mnt/
 cp $(which qemu-arm-static) mnt/usr/bin
 
