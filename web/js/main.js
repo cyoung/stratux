@@ -1,32 +1,30 @@
 // application constants
-var URL_HOST_BASE           = window.location.hostname + (window.location.port ? ':' + window.location.port : '');
-var URL_HOST_PROTOCOL       = window.location.protocol + "//";
-
-var URL_AHRS_CAGE           = URL_HOST_PROTOCOL + URL_HOST_BASE + "/cageAHRS";
-var URL_AHRS_CAL            = URL_HOST_PROTOCOL + URL_HOST_BASE + "/calibrateAHRS";
-var URL_AHRS_ORIENT         = URL_HOST_PROTOCOL + URL_HOST_BASE + "/orientAHRS";
-var URL_DELETEAHRSLOGFILES  = URL_HOST_PROTOCOL + URL_HOST_BASE + "/deleteahrslogfiles";
-var URL_DELETELOGFILE       = URL_HOST_PROTOCOL + URL_HOST_BASE + "/deletelogfile";
-var URL_DEV_TOGGLE_GET      = URL_HOST_PROTOCOL + URL_HOST_BASE + "/develmodetoggle";
-var URL_DOWNLOADAHRSLOGFILES = URL_HOST_PROTOCOL + URL_HOST_BASE + "/downloadahrslogs";
-var URL_DOWNLOADDB          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/downloaddb";
-var URL_DOWNLOADLOGFILE     = URL_HOST_PROTOCOL + URL_HOST_BASE + "/downloadlog";
-var URL_GMETER_RESET        = URL_HOST_PROTOCOL + URL_HOST_BASE + "/resetGMeter";
-var URL_REBOOT              = URL_HOST_PROTOCOL + URL_HOST_BASE + "/reboot";
-var URL_RESTARTAPP          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/restart";
-var URL_SATELLITES_GET      = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getSatellites";
-var URL_SETTINGS_GET        = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getSettings";
-var URL_SETTINGS_SET        = URL_HOST_PROTOCOL + URL_HOST_BASE + "/setSettings";
-var URL_SHUTDOWN            = URL_HOST_PROTOCOL + URL_HOST_BASE + "/shutdown";
-var URL_STATUS_GET          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getStatus";
-var URL_TOWERS_GET          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getTowers";
-var URL_UPDATE_UPLOAD       = URL_HOST_PROTOCOL + URL_HOST_BASE + "/updateUpload";
-
-var URL_DEVELOPER_WS        = "ws://" + URL_HOST_BASE + "/developer";
-var URL_GPS_WS              = "ws://" + URL_HOST_BASE + "/situation";
-var URL_STATUS_WS           = "ws://" + URL_HOST_BASE + "/status";
-var URL_TRAFFIC_WS          = "ws://" + URL_HOST_BASE + "/traffic";
-var URL_WEATHER_WS          = "ws://" + URL_HOST_BASE + "/weather";
+var URL_HOST_BASE            = window.location.hostname;
+var URL_SETTINGS_GET         = "http://" + URL_HOST_BASE + "/getSettings";
+var URL_SETTINGS_SET         = "http://" + URL_HOST_BASE + "/setSettings";
+var URL_GPS_WS               = "ws://"   + URL_HOST_BASE + "/situation";
+var URL_TOWERS_GET           = "http://" + URL_HOST_BASE + "/getTowers";
+var URL_STATUS_GET           = "http://" + URL_HOST_BASE + "/getStatus";
+var URL_SATELLITES_GET       = "http://" + URL_HOST_BASE + "/getSatellites";
+var URL_STATUS_WS            = "ws://"   + URL_HOST_BASE + "/status";
+var URL_TRAFFIC_WS           = "ws://"   + URL_HOST_BASE + "/traffic";
+var URL_WEATHER_WS           = "ws://"   + URL_HOST_BASE + "/weather";
+var URL_DEVELOPER_GET        = "ws://"   + URL_HOST_BASE + "/developer";
+var URL_UPDATE_UPLOAD        = "http://" + URL_HOST_BASE + "/updateUpload";
+var URL_REBOOT               = "http://" + URL_HOST_BASE + "/reboot";
+var URL_SHUTDOWN             = "http://" + URL_HOST_BASE + "/shutdown";
+var URL_RESTARTAPP           = "http://" + URL_HOST_BASE + "/restart";
+var URL_DEV_TOGGLE_GET       = "http://" + URL_HOST_BASE + "/develmodetoggle";
+var URL_AHRS_ORIENT          = "http://" + URL_HOST_BASE + "/orientAHRS";
+var URL_AHRS_CAL             = "http://" + URL_HOST_BASE + "/calibrateAHRS";
+var URL_AHRS_CAGE            = "http://" + URL_HOST_BASE + "/cageAHRS";
+var URL_GMETER_RESET         = "http://" + URL_HOST_BASE + "/resetGMeter";
+var URL_DELETELOGFILE        = "http://" + URL_HOST_BASE + "/deletelogfile";
+var URL_DOWNLOADLOGFILE      = "http://" + URL_HOST_BASE + "/downloadlog";
+var URL_DELETEAHRSLOGFILES   = "http://" + URL_HOST_BASE + "/deleteahrslogfiles";
+var URL_DOWNLOADAHRSLOGFILES = "http://" + URL_HOST_BASE + "/downloadahrslogs";
+var URL_DOWNLOADDB           = "http://" + URL_HOST_BASE + "/downloaddb";
+var URL_WEBRADAR             = "http://" + URL_HOST_BASE + "/radar";
 
 // define the module with dependency on mobile-angular-ui
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
@@ -82,6 +80,12 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			url: '/developer',
 			templateUrl: 'plates/developer.html',
 			controller: 'DeveloperCtrl',
+			reloadOnSearch: false
+		})
+		.state('radar', {
+			url: '/radar',
+			templateUrl: 'plates/radar.html',
+			controller: 'RadarCtrl',
 			reloadOnSearch: false
 		});
 	$urlRouterProvider.otherwise('/');
