@@ -76,7 +76,7 @@ umount mnt
 mkdir -p $SRCDIR/image/out
 mv $IMGNAME $SRCDIR/image/out/
 cd $SRCDIR/image/out
-outname="stratux-$(git describe --tags --abbrev=0).img"
+outname="stratux-$(git describe --tags --abbrev=0)-$(git log -n 1 --pretty=%H | cut -c 1-8).img"
 mv $IMGNAME $outname
 zip $outname.zip $outname
 
