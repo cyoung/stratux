@@ -112,6 +112,7 @@ app.controller('MainCtrl', function ($scope, $http) {
     .then(function(response) {
 			var settings = angular.fromJson(response.data);
             $scope.DeveloperMode = settings.DeveloperMode;
+            $scope.UAT_Enabled = settings.UAT_Enabled;
     }, function(response) {
         //Second function handles error
     });	
