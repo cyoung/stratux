@@ -1098,6 +1098,8 @@ and speed invalid flag is set for headings 135-150 to allow testing of response 
 */
 func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, offset int32) {
 	var ti TrafficInfo
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
 
 	// Retrieve previous information on this ICAO code.
 	if val, ok := traffic[icao]; ok { // if we've already seen it, copy it in to do updates
@@ -1181,8 +1183,6 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	if hdg < 150 || hdg > 240 {
 		// now insert this into the traffic map...
-		trafficMutex.Lock()
-		defer trafficMutex.Unlock()
 		traffic[ti.Icao_addr] = ti
 		registerTrafficUpdate(ti)
 		seenTraffic[ti.Icao_addr] = true
