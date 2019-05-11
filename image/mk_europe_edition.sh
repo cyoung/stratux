@@ -25,6 +25,8 @@ sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
 partoffset=$(( 512*sector ))
 bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $2}')
 bootoffset=$(( 512*bootoffset ))
+sizelimit=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $4}')
+sizelimit=$(( 512*sizelimit ))
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
@@ -56,11 +58,13 @@ losetup -d /dev/loop0
 # Mount image locally, clone our repo, install packages..
 mkdir -p mnt
 mount -t ext4 -o offset=$partoffset $IMGNAME mnt/
+mount -t vfat -o offset=$bootoffset,sizelimit=$sizelimit $IMGNAME mnt/boot
 cp $(which qemu-arm-static) mnt/usr/bin
 
 cd mnt/root
 wget https://dl.google.com/go/go1.12.4.linux-armv6l.tar.gz
 tar xzf go1.12.4.linux-armv6l.tar.gz
+rm go1.12.4.linux-armv6l.tar.gz
 
 if [ "$1" == "dev" ]; then
     cp -r $SRCDIR .
@@ -71,6 +75,7 @@ cd ../..
 
 # Now download a specific kernel to run raspbian images in qemu and boot it..
 chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup.sh
+umount mnt/boot
 umount mnt
 
 mkdir -p $SRCDIR/image/out

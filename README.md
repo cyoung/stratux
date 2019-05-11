@@ -9,3 +9,6 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * If no pressure sensor is present, report GPS Altitude as pressure altitude to make SkyDemon happy (NOT RECOMENDED!)
 * By default, FLARM and DeveloperMode is enabled, UAT is disabled
 * Merged Stratux Web-Radar for web-based traffic display by TomBric (https://github.com/TomBric/Radar-Stratux)
+* Upgraded the RaspberryPi Debian system to the latest debian packages
+* Hide Weather/Towers page if UAT is disabled
+* Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
