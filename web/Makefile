@@ -34,6 +34,7 @@ all:
 	mkdir -p /var/www/plates/js
 	cp plates/js/*.js /var/www/plates/js
 	cp index.html /var/www
+	cp alert.wav /var/www
 	cp stratux.appcache /var/www
 	# Mark the manifest with the git hash.
 	echo "# build time: " ${buildtime} >>/var/www/stratux.appcache
