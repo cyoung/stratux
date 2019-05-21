@@ -7,7 +7,7 @@
 
 BASE_IMAGE_URL="https://github.com/cyoung/stratux/releases/download/v1.5b1/stratux-v1.5b1-3d168d0c6c.img.zip"
 IMGNAME="stratux-v1.5b1-3d168d0c6c.img"
-TMPDIR="/tmp/stratux-tmp"
+TMPDIR="$HOME/stratux-tmp"
 
 
 # cd to script directory
@@ -75,13 +75,21 @@ cd ../..
 
 # Now download a specific kernel to run raspbian images in qemu and boot it..
 chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup.sh
+mkdir out
+
+
+# Copy the selfupdate file out of there..
+cp mnt/root/stratux/work/*.sh out
+rm -r mnt/root/stratux/work
+
 umount mnt/boot
 umount mnt
 
-mkdir -p $SRCDIR/image/out
-mv $IMGNAME $SRCDIR/image/out/
-cd $SRCDIR/image/out
+mv $IMGNAME out/
+
+cd $SRCDIR
 outname="stratux-$(git describe --tags --abbrev=0)-$(git log -n 1 --pretty=%H | cut -c 1-8).img"
+cd $TMPDIR/out
 mv $IMGNAME $outname
 zip $outname.zip $outname
 

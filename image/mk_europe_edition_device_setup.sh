@@ -37,4 +37,8 @@ make
 make
 make
 make install
-# systemctl daemon-reload doesn't work in qemu because there is no systemd running. Needed?
+
+
+# Now also prepare the update file..
+cd /root/stratux/selfupdate
+./makeupdate.sh
