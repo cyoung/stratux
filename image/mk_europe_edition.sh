@@ -94,4 +94,4 @@ mv $IMGNAME $outname
 zip $outname.zip $outname
 
 
-echo "Final image has been placed into $SRCDIR/image/out. Please install and test the image."
+echo "Final image has been placed into $TMPDIR/out. Please install and test the image."
