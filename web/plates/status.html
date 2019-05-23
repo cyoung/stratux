@@ -46,6 +46,12 @@
 					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style1" ng-attr-style="width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;">{{ES_messages_last_minute}}</div></div></span>
 					<span class="col-xs-2 text-right">{{ES_messages_max}}</span>
 				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_flarm}">
+					<span class="col-xs-1"></span>
+					<label class="col-xs-3">FLARM{{FLARM_connected ? "" : " (disconnected)"}}:</label>
+					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style4" ng-attr-style="width:{{FLARM_messages_max ? 100*FLARM_messages_last_minute / FLARM_messages_max : 0}}%;">{{FLARM_messages_last_minute}}</div></div></span>
+					<span class="col-xs-2 text-right">{{FLARM_messages_max}}</span>
+				</div>
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
 				</div>
