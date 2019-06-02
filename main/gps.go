@@ -1091,6 +1091,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			}
 			tmpSituation.GPSSatellites = uint16(sat) // this seems to be reliable. UBX,03 handles >12 satellites solutions correctly.
 
+			if globalSettings.DEBUG {
+				log.Printf("numSvs: %s navStat: %s HDOP: %s VDOP: %s TDOP: %s hAcc: %s m vAcc: %s m altRef: %s m", x[18], x[8], x[15], x[16], x[17], x[9], x[10], x[7])
+			}
+
 			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 			mySituation = tmpSituation
 			updateGPSPerf = true
