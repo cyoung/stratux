@@ -14,6 +14,15 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
 
+## Building the Europe Edition
+Building the european Edition is practically the same as the official Stratux. More information can be found here:
+http://stratux.me/
+You can also buy a prebuilt unit.
+The only difference: It is highly recommended to purchase a 868 Mhz antenna for FLARM reception. The standard 978 Mhz antenna can receive some FLARM targets, but the range will be very limited.
+Additionally, you will need a PC with an SD Card reader.
+Download the latest image here: https://github.com/b3nn0/stratux/releases
+and use an arbitrary tool to burn the image to your Micro SD Card (e.g. "Etcher", see https://www.raspberrypi.org/documentation/installation/installing-images/).
+
 
 
 ## Notes to SkyDemon Android Users
