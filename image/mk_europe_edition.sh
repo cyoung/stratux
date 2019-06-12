@@ -32,11 +32,11 @@ sizelimit=$(( 512*sizelimit ))
 # Append one GB and truncate to size
 #truncate -s 2600M $IMGNAME
 qemu-img resize $IMGNAME 2500M
-losetup -f
-losetup /dev/loop0 $IMGNAME
-partprobe /dev/loop0
-e2fsck -f /dev/loop0p2
-fdisk /dev/loop0 <<EOF
+lo=$(losetup -f)
+losetup $lo $IMGNAME
+partprobe $lo
+e2fsck -f ${lo}p2
+fdisk $lo <<EOF
 p
 d
 2
@@ -48,9 +48,9 @@ $sector
 p
 w
 EOF
-partprobe /dev/loop0
-resize2fs -p /dev/loop0p2
-losetup -d /dev/loop0
+partprobe $lo
+resize2fs -p ${lo}p2
+losetup -d $lo
 
 
 
