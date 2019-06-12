@@ -303,7 +303,9 @@ func initGPSSerial() bool {
 		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
 		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-			log.Printf("UBX8 device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
+			if globalSettings.DEBUG {
+				log.Printf("UBX8/9/unknown device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
+			}
 			cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
 			gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
 			sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01} // disable SBAS
