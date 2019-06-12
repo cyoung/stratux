@@ -12,3 +12,30 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Upgraded the RaspberryPi Debian system to the latest debian packages
 * Hide Weather/Towers page if UAT is disabled
 * Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
+* Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
+
+
+
+## Notes to SkyDemon Android Users
+SkyDemon is probably the most popular EFB in Europe, and we are trying hard to make Stratux work as good as possible in SkyDemon, which is not always easy. Most notably, with original Stratux on a RaspberryPI 2b, you can often oberve Disconnects, which will show as many red dots in your track log.
+
+Thorough analysis has shown that this is caused by a mix of
+- RaspberryPI's brcmfmac wifi driver and its behaviour when UDP package delivery is slow
+- Androids handling of UDP packets under load - namely the fact that it will delay them
+- A wonky GDL90 implementation in SkyDemon (which is not very error tolerant, even though the UDP RFC explicitly says that applications should expect errors and work around them).
+
+If you will suffer from these problems depends on many factors, but it is certainly possible.
+There are two known ways to get around these errors:
+### 1) Use the workaround
+As of version Stratux 1.5b2eu004, the web interface has a settings switch labeled "SkyDemon Android disconnect bug workaround". Enabling this will cause Stratux to send position reports to the EFB every 150ms instead of every second.
+Experiments show that SkyDemon handles this well and will show disconnects only very rarely, if ever.
+Note that this is an ugly hack and does not conform the GDL90 specification, but it seems to do the job for SkyDemon
+
+### 2) Different WiFi stick for Stratux
+If you want a better solution, you might want to consider investing in a different WiFi chip for your Stratux.
+The EDIMAX EW-7811UN has shown to work decently, is cheap, and small enough to fit nicely in any case.
+Plugging this in and rebooting your Stratux should automatically use this device for the hotspot, instead of the builtin wifi.
+The driver for this chip seems to have a different retransmit behaviour, which will not confuse SkyDemon as much, hence the apparent disconnects are gone.
+Note: If you have the internal GPS with the large antenna, you might have to cut off one edge of your GPS PCB to make it fit.
+
+
