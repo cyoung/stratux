@@ -46,5 +46,6 @@ The EDIMAX EW-7811UN has shown to work decently, is cheap, and small enough to f
 Plugging this in and rebooting your Stratux should automatically use this device for the hotspot, instead of the builtin wifi.
 The driver for this chip seems to have a different retransmit behaviour, which will not confuse SkyDemon as much, hence the apparent disconnects are gone.
 Note: If you have the internal GPS with the large antenna, you might have to cut off one edge of your GPS PCB to make it fit.
+EDIT: More trials have shown that this WiFi stick does not necessarily work better. For some it is better, for some worse, and for some it's just the same.
 
 
