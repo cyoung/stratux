@@ -18,7 +18,8 @@ nice, full featured Stratux-Flarm image that works well for europe.
 Building the european Edition is practically the same as the official Stratux. More information can be found here:
 http://stratux.me/
 You can also buy a prebuilt unit.
-The only difference: It is highly recommended to purchase a 868 Mhz antenna for FLARM reception. The standard 978 Mhz antenna can receive some FLARM targets, but the range will be very limited.
+Notable however: Stratux recently started selling a new "V3 Radio" for UAT reception. This radio does NOT work for flarm reception, so make sure you get the old V2 radios instead.
+Also, it is highly recommended to purchase a 868 Mhz antenna for FLARM reception. The standard 978 Mhz antenna can receive some FLARM targets, but the range will be very limited.
 Additionally, you will need a PC with an SD Card reader.
 Download the latest image here: https://github.com/b3nn0/stratux/releases
 and use an arbitrary tool to burn the image to your Micro SD Card (e.g. "Etcher", see https://www.raspberrypi.org/documentation/installation/installing-images/).
