@@ -29,7 +29,11 @@ rm -r /proc/*
 rm -r /root/fake
 
 # For some reason, qemu build fails unless we use a single compilation thread. Compilation takes quite long...
+# It also rarely crashes with one process, so the important commands are executed multiple times. Once succeeded, execution will be very fast
+# so the performance overhead should be marginal.
 export GOMAXPROCS=1
+go get -u github.com/kidoman/embd/embd
+go get -u github.com/kidoman/embd/embd
 go get -u github.com/kidoman/embd/embd
 make clean
 # Sometimes go build fails for some reason.. we will just try three times and hope for the best

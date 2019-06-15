@@ -14,8 +14,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	humanize "github.com/dustin/go-humanize"
-	"golang.org/x/net/websocket"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,6 +26,9 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+
+	humanize "github.com/dustin/go-humanize"
+	"golang.org/x/net/websocket"
 )
 
 type SettingMessage struct {
@@ -382,6 +383,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						resetWiFi = true
 					case "GDL90MSLAlt_Enabled":
 						globalSettings.GDL90MSLAlt_Enabled = val.(bool)
+					case "SkyDemonAndroidHack":
+						globalSettings.SkyDemonAndroidHack = val.(bool)
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}

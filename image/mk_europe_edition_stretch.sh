@@ -5,8 +5,8 @@
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 
-BASE_IMAGE_URL="https://github.com/cyoung/stratux/releases/download/v1.5b1/stratux-v1.5b1-3d168d0c6c.img.zip"
-IMGNAME="stratux-v1.5b1-3d168d0c6c.img"
+BASE_IMAGE_URL="http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09/2019-04-08-raspbian-stretch-lite.zip"
+IMGNAME="2019-04-08-raspbian-stretch-lite.img"
 TMPDIR="$HOME/stratux-tmp"
 
 
@@ -17,8 +17,8 @@ mkdir -p $TMPDIR
 cd $TMPDIR
 
 # Download/extract image
-wget -c $BASE_IMAGE_URL
-unzip stratux-*.img.zip
+wget -c $BASE_IMAGE_URL -O raspbian.zip
+unzip raspbian.zip
 
 # Check where in the image the root partition begins:
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
@@ -74,7 +74,7 @@ fi
 cd ../..
 
 # Now download a specific kernel to run raspbian images in qemu and boot it..
-chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup.sh
+chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup_stretch.sh
 mkdir out
 
 

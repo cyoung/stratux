@@ -751,12 +751,31 @@ func blinkStatusLED() {
 	}
 }
 
+func sendAllOwnshipInfo() {
+	//log.Printf("Sending ownship info")
+	sendGDL90(makeHeartbeat(), false)
+	if !globalSettings.SkyDemonAndroidHack {
+		// Skydemon ignores these anyway - reduce data rate a bit
+		sendGDL90(makeStratuxHeartbeat(), false)
+		sendGDL90(makeStratuxStatus(), false)
+		sendGDL90(makeFFIDMessage(), false)
+	}
+	makeOwnshipReport()
+	makeOwnshipGeometricAltitudeReport()
+}
+
 func heartBeatSender() {
+	timerFast := time.NewTicker(150 * time.Millisecond)
 	timer := time.NewTicker(1 * time.Second)
 	timerMessageStats := time.NewTicker(2 * time.Second)
 	ledBlinking := false
 	for {
 		select {
+		case <-timerFast.C:
+			// Skydemon Android socket bug workaround: send ownship info every 200ms
+			if globalSettings.SkyDemonAndroidHack {
+				sendAllOwnshipInfo()
+			}
 		case <-timer.C:
 			// Green LED - always on during normal operation.
 			//  Blinking when there is a critical system error (and Stratux is still running).
@@ -772,12 +791,10 @@ func heartBeatSender() {
 				ledBlinking = true
 			}
 
-			sendGDL90(makeHeartbeat(), false)
-			sendGDL90(makeStratuxHeartbeat(), false)
-			sendGDL90(makeStratuxStatus(), false)
-			sendGDL90(makeFFIDMessage(), false)
-			makeOwnshipReport()
-			makeOwnshipGeometricAltitudeReport()
+			// Normal behaviour: Send ownship info once per secopnd
+			if !globalSettings.SkyDemonAndroidHack {
+				sendAllOwnshipInfo()
+			}
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
@@ -1144,6 +1161,7 @@ type settings struct {
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
 	GDL90MSLAlt_Enabled  bool
+	SkyDemonAndroidHack  bool
 }
 
 type status struct {
@@ -1223,6 +1241,7 @@ func defaultSettings() {
 	globalSettings.DeveloperMode = true
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.GDL90MSLAlt_Enabled = true
+	globalSettings.SkyDemonAndroidHack = false
 }
 
 func readSettings() {
