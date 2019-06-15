@@ -23,7 +23,7 @@ apt update
 PATH=/root/fake:$PATH apt dist-upgrade --yes
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0.dev build-essential mercurial build-essential autoconf fftw3 fftw3-dev libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen #libsdl1.2-dev
+    python-pip python-dev python-pil python-daemon screen libsdl1.2-dev
 apt-get clean
 echo y | rpi-update
 
@@ -52,7 +52,7 @@ source /root/.bashrc
 rm -rf /root/librtlsdr
 git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
 mkdir -p /root/librtlsdr/build
-cd /root/librtlsdr/build && cmake .. && make && make install && ldconfig
+cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
 chroot mnt/ 'cd /root/librtlsdr/build && cmake ../ && make && make install && ldconfig'
 
 # Compile stratux
@@ -158,12 +158,12 @@ make
 make install
 
 # TODO: do we need this?
-#cd /root
-#git clone https://github.com/rm-hull/ssd1306
-#cd ssd1306
+cd /root
+git clone https://github.com/rm-hull/ssd1306
+cd ssd1306
 # Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
-#git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
-#python setup.py install
+git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
+echo Y | python setup.py install
 
 
 #disable serial console
