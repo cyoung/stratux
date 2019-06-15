@@ -75,8 +75,11 @@ function ap-start {
 	#get the first 3 octets of the MAC(XX:XX:XX) at wlan0
 	wlan0mac=$(head -c 8 /sys/class/net/wlan0/address)
 
-	# Is there an Edimax Mac Address at wlan0
-	if [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]; then
+	# debian stretch+ will support edimax dongle natively
+	osver=$(cat /etc/debian_version)
+
+	# Is there an Edimax Mac Address at wlan0 and debian version is jessie
+	if [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]  && [[ "$osver" =~ ^8.* ]]; then
         DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
         DAEMON_SBIN=/usr/sbin/hostapd-edimax
         wLog "Edimax Dongle found at WLAN0. Using Edimad conf files $DAEMON_SBIN : $DAEMON_CONF"

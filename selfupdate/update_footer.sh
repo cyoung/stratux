@@ -81,6 +81,9 @@ chmod 755 /usr/bin/fancontrol
 cp -f dump1090 /usr/bin/
 chmod 755 /usr/bin/dump1090
 
+# Install libwiringpi
+cp -f libwiringPi.so /usr/local/lib/
+
 # AHRS approx data.
 cp -f ahrs_table.log /root/
 cp -f ahrs_approx /usr/bin/
