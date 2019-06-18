@@ -612,7 +612,7 @@ func configDevices(count int, esEnabled, uatEnabled, flarmEnabled bool) {
 			createUATDev(i, s, false)
 		} else if esEnabled && ESDev == nil && !rUAT.hasID(s) && !rFLARM.hasID(s) {
 			createESDev(i, s, false)
-		} else if flarmEnabled && FLARMDev == nil && !rUAT.hasID(s) && !rES.hasID(s) {
+		} else if flarmEnabled && FLARMDev == nil {
 			createFLARMDev(i, s, false)
 		}
 	}
