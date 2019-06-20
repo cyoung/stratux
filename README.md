@@ -12,3 +12,32 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Upgraded the RaspberryPi Debian system to the latest debian packages
 * Hide Weather/Towers page if UAT is disabled
 * Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
+* Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
+
+## Building the Europe Edition
+Building the european Edition is practically the same as the official Stratux. More information can be found here:
+http://stratux.me/
+You can also buy a prebuilt unit.
+Notable however: Stratux recently started selling a new "V3 Radio" for UAT reception. This radio does NOT work for flarm reception, so make sure you get the old V2 radios instead.
+Also, it is highly recommended to purchase a 868 Mhz antenna for FLARM reception. The standard 978 Mhz antenna can receive some FLARM targets, but the range will be very limited.
+Additionally, you will need a PC with an SD Card reader.
+Download the latest image here: https://github.com/b3nn0/stratux/releases
+and use an arbitrary tool to burn the image to your Micro SD Card (e.g. "Etcher", see https://www.raspberrypi.org/documentation/installation/installing-images/).
+
+
+
+## Notes to SkyDemon Android/iOS Users
+SkyDemon is probably the most popular EFB in Europe, and we are trying hard to make Stratux work as good as possible in SkyDemon, which is not always easy. Most notably, with original Stratux on a RaspberryPI 2b, you can often observe disconnects, which will show as many red dots in your track log.
+
+Thorough analysis has shown that this is caused by a mix of
+- RaspberryPI's brcmfmac wifi driver and its behaviour when UDP package delivery is slow
+- Androids/iOSs handling of UDP packets under load - namely the fact that it will delay them
+- A wonky GDL90 implementation in SkyDemon (which is not very error tolerant, even though the UDP RFC explicitly says that applications should expect errors and work around them).
+
+If you will suffer from these problems depends on many factors, but it is certainly possible.
+The real solution would be, that SkyDemon behaves more error tolerant, but they seem to be resiliant to do so.
+As of version 1.5b2-eu004, the web interface has a settings switch labeled "SkyDemon Android disconnect bug workaround". Enabling this will cause Stratux to send position reports to the EFB every 150ms instead of every second.
+Experiments show that SkyDemon handles this relatively well and will show disconnects much rarer.
+Note that this is an ugly hack and does not conform the GDL90 specification, but it seems to do the job for SkyDemon.
+
+

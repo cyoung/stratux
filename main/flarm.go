@@ -459,6 +459,7 @@ func handleAprsConnection(conn net.Conn) {
 	if globalSettings.DEBUG {
 		log.Println("FLARM APRS: Incoming connection:", conn.RemoteAddr())
 	}
+	globalStatus.FLARM_connected = true
 
 	// send initial message
 	conn.Write([]byte(fmt.Sprintf("# %s %s\r\n", "stratux", globalStatus.Version)))
@@ -475,6 +476,11 @@ func handleAprsConnection(conn net.Conn) {
 
 			break
 		}
+		var thisMsg msg
+		thisMsg.MessageClass = MSGCLASS_FLARM
+		thisMsg.TimeReceived = stratuxClock.Time
+		thisMsg.Data = message
+		MsgLog = append(MsgLog, thisMsg)
 
 		// check if message is not a receiver beacon
 		if !strings.HasPrefix(string(message), "Stratux") {
@@ -493,6 +499,7 @@ func handleAprsConnection(conn net.Conn) {
 		}
 	}
 
+	globalStatus.FLARM_connected = false
 	// Close the connection when you're done with it.
 	conn.Close()
 }
@@ -540,7 +547,7 @@ func flarmListen() {
 		ognDecoderIsRunning = false
 
 		// set timer for (re-)starting decoding process (to use latest position)
-		flarmDecoderRestartTimer := time.NewTicker(60 * time.Second)
+		flarmDecoderRestartTimer := time.NewTicker(10 * time.Second)
 
 		// initialize last position
 		var lastLon, lastLat float32 = 0.0, 0.0
@@ -560,8 +567,8 @@ func flarmListen() {
 					break decodingLoop
 				}
 
-				// check if position has changes significantly
-				if !ognDecoderIsRunning || math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.001 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.001 {
+				// check if position has changes significantly. 0.3 lat/lon diff is approximately 35km
+				if !ognDecoderIsRunning || math.Abs(float64(mySituation.GPSLongitude-lastLon)) > 0.3 || math.Abs(float64(mySituation.GPSLatitude-lastLat)) > 0.3 {
 					if globalSettings.DEBUG {
 						if !ognDecoderIsRunning {
 							log.Println("FLARM: Decoder is not running")

@@ -104,9 +104,15 @@
                         </form>
                 </div>
                 <div class="form-group reset-flow">
-                    <label class="control-label col-xs-5">GDL90 MSL Altitude</label>
+                    <label class="control-label col-xs-5">GDL90: Use MSL instead of HAE, please disable for ForeFlight and SkyDemon</label>
                     <div class="col-xs-5">
                         <ui-switch ng-model='GDL90MSLAlt_Enabled' settings-change></ui-switch>
+                    </div>
+                </div>
+                <div class="form-group reset-flow">
+                    <label class="control-label col-xs-5">SkyDemon disconnect bug workaround</label>
+                    <div class="col-xs-5">
+                        <ui-switch ng-model='SkyDemonAndroidHack' settings-change></ui-switch>
                     </div>
                 </div>
             </div>
