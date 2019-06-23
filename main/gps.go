@@ -1167,7 +1167,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svStr = fmt.Sprintf("G%d", sv)
 				} else if sv <= 64 {
 					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv) // tbd: conversion
+					svStr = fmt.Sprintf("B%d", sv-32)
 				} else if sv <= 96 {
 					svType = SAT_TYPE_GLONASS
 					svStr = fmt.Sprintf("R%d", sv-64)
@@ -1176,7 +1176,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svStr = fmt.Sprintf("S%d", sv)
 				} else if sv <= 163 {
 					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv) // tbd: conversion
+					svStr = fmt.Sprintf("B%d", sv-126)
 				} else if sv <= 193 {
 					svType = SAT_TYPE_QZSS
 					svStr = fmt.Sprintf("Q%d", sv-192)
