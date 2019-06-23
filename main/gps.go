@@ -302,9 +302,9 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x17}))
 		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
-		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
 			if globalSettings.DEBUG {
-				log.Printf("UBX8/9/unknown device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
+				log.Printf("ublox 8 or unknown device detected on USB, or GPS serial connection in use. Attempting GLONASS and Galelio configuration.\n")
 			}
 			cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
 			gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
@@ -323,7 +323,7 @@ func initGPSSerial() bool {
 			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // SBAS off
 			// p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00})) // SBAS on & Auto Mode
-		} else { // ublox 6,7
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) { // ublox 6,7
 			cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
 			gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}  // enable GPS with 8-16 tracking channels
 			sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 2-3 tracking channels
