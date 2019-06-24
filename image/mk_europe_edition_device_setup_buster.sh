@@ -3,6 +3,7 @@
 # DO NOT CALL ME DIRECTLY!
 # This script is called by mk_europe_edition.sh via qemu
 
+mv /etc/ld.so.preload /etc/ld.so.preload.bak
 cd /root/stratux
 
 # Make sure that the upgrade doesn't restart services in the chroot..
@@ -23,21 +24,25 @@ apt update
 PATH=/root/fake:$PATH apt dist-upgrade --yes
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0.dev build-essential mercurial build-essential autoconf fftw3 fftw3-dev libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen libsdl1.2-dev
-apt-get clean
-echo y | rpi-update
+    python-pip python-dev python-pil python-daemon screen libsdl1.2-dev libsdl2-dev wiringpi
+apt clean
+#echo y | rpi-update
 
 systemctl enable isc-dhcp-server
 systemctl enable ssh
 systemctl disable ntp
 systemctl disable dhcpcd
 systemctl disable hciuart
+systemctl disable hostapd
+
+echo INTERFACESv4=\"wlan0\" >> /etc/default/isc-dhcp-server
+
 
 rm -r /proc/*
 rm -r /root/fake
 
 # Prepare wiringpi for fancontrol and some more tools
-cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
+#cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
 
 
 
@@ -53,7 +58,6 @@ rm -rf /root/librtlsdr
 git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
 mkdir -p /root/librtlsdr/build
 cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
-chroot mnt/ 'cd /root/librtlsdr/build && cmake ../ && make && make install && ldconfig'
 
 # Compile stratux
 cd /root/stratux
@@ -62,7 +66,7 @@ cd /root/stratux
 export GOMAXPROCS=1
 #go get -u github.com/kidoman/embd/embd
 make clean
-# Sometimes go build fails for some reason.. we will just try three times and hope for the best
+# Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
 make
 make
 make
@@ -154,10 +158,10 @@ git clone https://github.com/steve-m/kalibrate-rtl
 cd kalibrate-rtl
 ./bootstrap
 ./configure
-make
+make -j8
 make install
 
-# TODO: do we need this?
+# TODO: not working right now
 cd /root
 git clone https://github.com/rm-hull/ssd1306
 cd ssd1306
@@ -167,7 +171,7 @@ echo Y | python setup.py install
 
 
 #disable serial console
-sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
+sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
@@ -178,3 +182,6 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 # Now also prepare the update file..
 cd /root/stratux/selfupdate
 ./makeupdate.sh
+
+
+mv /etc/ld.so.preload.bak /etc/ld.so.preload

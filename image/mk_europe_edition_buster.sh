@@ -5,8 +5,8 @@
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 
-BASE_IMAGE_URL="http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09/2019-04-08-raspbian-stretch-lite.zip"
-IMGNAME="2019-04-08-raspbian-stretch-lite.img"
+BASE_IMAGE_URL="http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-06-24/2019-06-20-raspbian-buster-lite.zip"
+IMGNAME="2019-06-20-raspbian-buster-lite.img"
 TMPDIR="$HOME/stratux-tmp"
 
 
@@ -17,8 +17,8 @@ mkdir -p $TMPDIR
 cd $TMPDIR
 
 # Download/extract image
-wget -c $BASE_IMAGE_URL -O raspbian.zip
-unzip raspbian.zip
+wget -c $BASE_IMAGE_URL
+unzip 2019-06-20-raspbian-buster-lite.zip
 
 # Check where in the image the root partition begins:
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
