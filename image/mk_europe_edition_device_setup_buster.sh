@@ -25,8 +25,8 @@ PATH=/root/fake:$PATH apt dist-upgrade --yes
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
-    libusb-1.0-0-dev build-essential mercurial build-essential autoconf libfftw3-dev libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen libsdl1.2-dev libsdl2-dev wiringpi
+    libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
+    python-pip python-dev python-pil python-daemon screen wiringpi
 apt clean
 #echo y | rpi-update
 
@@ -47,6 +47,15 @@ rm -r /root/fake
 # Use rtl8192cu module instead, even though raspbian doesn't seem to recommend it.
 rm /etc/modprobe.d/blacklist-rtl8192cu.conf
 echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
+
+# The current libfftw loads extremely slow, causing ogn-rf to take around 2-3 minutes to start up.
+# Revert to older version for now..
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-bin_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-dev_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-double3_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-single3_3.3.5-3_armhf.deb
+dpkg -i libfftw*.deb
+rm libfftw*.deb
 
 # Prepare wiringpi for fancontrol and some more tools
 #cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
