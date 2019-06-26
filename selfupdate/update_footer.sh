@@ -82,7 +82,7 @@ cp -f dump1090 /usr/bin/
 chmod 755 /usr/bin/dump1090
 
 # Install libwiringpi
-cp -f libwiringPi.so /usr/local/lib/
+cp -f libwiringPi.so /usr/lib/
 
 # AHRS approx data.
 cp -f ahrs_table.log /root/

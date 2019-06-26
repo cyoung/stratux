@@ -22,8 +22,10 @@ mkdir -p /proc/sys/vm/
 
 apt update
 PATH=/root/fake:$PATH apt dist-upgrade --yes
+apt clean
+
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
-    libusb-1.0-0.dev build-essential mercurial build-essential autoconf fftw3 fftw3-dev libtool i2c-tools python-smbus \
+    libusb-1.0-0-dev build-essential mercurial build-essential autoconf libfftw3-dev libtool i2c-tools python-smbus \
     python-pip python-dev python-pil python-daemon screen libsdl1.2-dev libsdl2-dev wiringpi
 apt clean
 #echo y | rpi-update
@@ -37,9 +39,14 @@ systemctl disable hostapd
 
 echo INTERFACESv4=\"wlan0\" >> /etc/default/isc-dhcp-server
 
-
 rm -r /proc/*
 rm -r /root/fake
+
+
+# For some reason in buster, the 8192cu module seems to crash the kernel when a client connects to hostapd.
+# Use rtl8192cu module instead, even though raspbian doesn't seem to recommend it.
+rm /etc/modprobe.d/blacklist-rtl8192cu.conf
+echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
 
 # Prepare wiringpi for fancontrol and some more tools
 #cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
@@ -161,13 +168,16 @@ cd kalibrate-rtl
 make -j8
 make install
 
-# TODO: not working right now
-cd /root
-git clone https://github.com/rm-hull/ssd1306
-cd ssd1306
+
+# TODO: not working right now - the pip one seems to at least make stratux-screen runnable (untested)
+#cd /root
+#git clone https://github.com/rm-hull/ssd1306
+#cd ssd1306
 # Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
-git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
-echo Y | python setup.py install
+#git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
+#echo Y | python setup.py install
+pip install luma.core
+pip install luma.oled
 
 
 #disable serial console
