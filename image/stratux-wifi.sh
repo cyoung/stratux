@@ -27,7 +27,7 @@ function hostapd-upgrade {
 	DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
 	HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
 
-    wLog "Moving existing values from $DAEMON_CONF to $DAEMON_USER_PREF if found"
+	wLog "Moving existing values from $DAEMON_CONF to $DAEMON_USER_PREF if found"
 	for i in "${HOSTAPD_VALUES[@]}"
 	do
 		if grep -q "^$i" $DAEMON_CONF
@@ -53,10 +53,14 @@ function hostapd-upgrade {
 function ap-start {
 
 	# Preliminaries. Kill off old services.
+        # For some reason, in buster, hostapd will not start if it was just killed. Wait two seconds..
 	wLog "Killing Hostapd services "
-    /usr/bin/killall -9 hostapd hostapd-edimax
-    wLog "Stopping DHCP services "
+	/usr/bin/killall hostapd hostapd-edimax
+	sleep 1
+	/usr/bin/killall -9 hostapd hostapd-edimax
+	wLog "Stopping DHCP services "
 	/usr/sbin/service isc-dhcp-server stop
+
 
 	#EDIMAX Mac Addresses from http://www.adminsub.net/mac-address-finder/edimax
 	#for logic check all addresses must be lowercase
