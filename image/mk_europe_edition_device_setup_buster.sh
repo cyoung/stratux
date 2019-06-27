@@ -136,7 +136,7 @@ cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #sshd config
 # Do not copy for now. It contains many deprecated options and isn't needed.
-# cp -f sshd_config /etc/ssh/sshd_config
+cp -f sshd_config /etc/ssh/sshd_config
 
 #udev config
 cp -f 10-stratux.rules /etc/udev/rules.d
