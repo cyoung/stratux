@@ -31,7 +31,7 @@ SkyDemon is probably the most popular EFB in Europe, and we are trying hard to m
 
 Thorough analysis has shown that this is caused by a mix of
 - RaspberryPI's brcmfmac wifi driver and its behaviour when UDP package delivery is slow
-- Androids handling of UDP packets under load - namely the fact that it will delay them
+- Androids/iOSs handling of UDP packets under load - namely the fact that it will delay them
 - A wonky GDL90 implementation in SkyDemon (which is not very error tolerant, even though the UDP RFC explicitly says that applications should expect errors and work around them).
 
 If you will suffer from these problems depends on many factors, but it is certainly possible.
