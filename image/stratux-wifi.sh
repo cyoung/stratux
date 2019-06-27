@@ -24,7 +24,6 @@ wLog "Running Stratux WiFI Script."
 
 function hostapd-upgrade {
 	DAEMON_CONF=/etc/hostapd/hostapd.conf
-	DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
 	HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
 
 	wLog "Moving existing values from $DAEMON_CONF to $DAEMON_USER_PREF if found"
@@ -34,7 +33,6 @@ function hostapd-upgrade {
         then
 			grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
 			sed -i '/^'"$i"'/d' $DAEMON_CONF
-			sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
 		fi
 	done
 	sleep 1     #make sure there is time to get the file written before checking for it again
@@ -53,43 +51,30 @@ function hostapd-upgrade {
 function ap-start {
 
 	# Preliminaries. Kill off old services.
-        # For some reason, in buster, hostapd will not start if it was just killed. Wait two seconds..
+	# For some reason, in buster, hostapd will not start if it was just killed. Wait two seconds..
 	wLog "Killing Hostapd services "
-	/usr/bin/killall hostapd hostapd-edimax
+	/usr/bin/killall hostapd
 	sleep 1
-	/usr/bin/killall -9 hostapd hostapd-edimax
+	/usr/bin/killall -9 hostapd
 	wLog "Stopping DHCP services "
-	/usr/sbin/service isc-dhcp-server stop
+	/bin/systemctl stop isc-dhcp-server
 
-
-	#EDIMAX Mac Addresses from http://www.adminsub.net/mac-address-finder/edimax
-	#for logic check all addresses must be lowercase
-	# 74:da:38 is my MAC on my NANO
-	edimaxMac=(80:1f:02 74:da:38 00:50:fc 00:1f:1f 00:0e:2e 00:00:b4)
+	# Sometimes the PID file seems to remain and dhcpd becomes unable to start again?
+	# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=868240
+	sleep 1
+	/usr/bin/killall -9 dhcpd
+	rm /var/run/dhcpd.pid
 
 	#Assume PI3 settings
 	DAEMON_CONF=/etc/hostapd/hostapd.conf
 	DAEMON_SBIN=/usr/sbin/hostapd
 
 	# Location of temporary hostapd.conf built by combining
-	# non-editable /etc/hostapd/hostapd.conf or hostapd-edimax.conf
-	# and the user configurable /etc/hostapd/hostapd.conf
+	# non-editable /etc/hostapd/hostapd.conf
+	# and the user configurable /etc/hostapd/hostapd.user
 	DAEMON_TMP=/tmp/hostapd.conf
 
-	#get the first 3 octets of the MAC(XX:XX:XX) at wlan0
-	wlan0mac=$(head -c 8 /sys/class/net/wlan0/address)
-
-	# debian stretch+ will support edimax dongle natively
-	osver=$(cat /etc/debian_version)
-
-	# Is there an Edimax Mac Address at wlan0 and debian version is jessie
-	if [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]  && [[ "$osver" =~ ^8.* ]]; then
-        DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
-        DAEMON_SBIN=/usr/sbin/hostapd-edimax
-        wLog "Edimax Dongle found at WLAN0. Using Edimad conf files $DAEMON_SBIN : $DAEMON_CONF"
-	fi
-
-	#Make a new hostapd or hostapd-edimax conf file based on logic above
+	#Make a new hostapd conf file based on logic above
 	cat ${DAEMON_USER_PREF} <(echo) ${DAEMON_CONF} > ${DAEMON_TMP}
 
 	${DAEMON_SBIN} -B ${DAEMON_TMP}
@@ -98,7 +83,7 @@ function ap-start {
 
 	wLog "Restarting DHCP services"
 
-	/usr/sbin/service isc-dhcp-server start
+	/bin/systemctl restart isc-dhcp-server
 }
 ##### End Hostapd driver check function #####
 

@@ -99,13 +99,11 @@ cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
 
 #hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
-cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
+
 #hostapd manager script
 cp -f hostapd_manager.sh /usr/sbin/hostapd_manager.sh
 chmod 755 /usr/sbin/hostapd_manager.sh
-#hostapd
-cp -f hostapd-edimax /usr/sbin/hostapd-edimax
-chmod 755 /usr/sbin/hostapd-edimax
+
 #remove hostapd startup scripts
 rm -f /etc/rc*.d/*hostapd /etc/network/if-pre-up.d/hostapd /etc/network/if-post-down.d/hostapd /etc/init.d/hostapd /etc/default/hostapd
 #interface config
@@ -137,7 +135,8 @@ chmod 755 /usr/bin/fancontrol
 cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #sshd config
-cp -f sshd_config /etc/ssh/sshd_config
+# Do not copy for now. It contains many deprecated options and isn't needed.
+# cp -f sshd_config /etc/ssh/sshd_config
 
 #udev config
 cp -f 10-stratux.rules /etc/udev/rules.d
