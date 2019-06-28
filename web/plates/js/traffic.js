@@ -119,7 +119,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		socket.onmessage = function (msg) {
 			
 			
-			console.log('Received traffic update.')
+			//console.log('Received traffic update.')
 			
 			var message = JSON.parse(msg.data);
 			$scope.raw_data = angular.toJson(msg.data, true);
