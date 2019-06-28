@@ -3,9 +3,17 @@ RadarCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; //
 
 var Lat;
 var Long;
+
 var GPSCourse = 0;
+var OldGPSCourse = 0;  //old value 
+
+var GPSTime;    // general time variable for cutoff
+
 var BaroAltitude;   // Barometric Altitude if availabe, else set to GPS Altitude, invalid is -100.000
+var OldBaroAltitude = 0; // Old Value
+
 var DisplayRadius = 10;    // Radius in NM, below this radius targets are displayed
+var OldDisplayRadius = 0;
 
 var MaxAlarms = 5;         // number of times an alarm sound is played, if airplane enters AlarmRadius
 var MaxSpeechAlarms = 1;         // number of times the aircraft is announced, MaxSpeedAlarms needs to be less than MaxAlarms
@@ -14,15 +22,11 @@ var minimalCircle = 25;    //minimal circle in pixel around center ist distance 
 var radar;    // global RadarRenderer
 var posangle = Math.PI;   //global var for angle position of text 
 
-var zoom = [2,5,10,20,40];     // different zooms in nm
-var zoomfactor = 2;   // start with 10 nm
-var speechOn = false;    // speech output
+var soundType = 0;    // speech  and sound output, 0=beep+speech (default) 1=Beep 2=Speech 3=Snd Off
 var synth;   // global speechSynthesis variable
 
-var altDiff = [5,10,20,50,100,500];   // Threshold to display other planes within altitude difference in 100 ft
-var altindex = 2;  // start with 2000 ft
 var AltDiffThreshold;    // in 100 feet display value
-var storageDiff = 20;   // altitude difference in 100 ft below airplane is stored in list (otherwise do not even consider, performance optimization
+var OldAltDiffThreshold = 0;    // in 100 feet display value
 
 var situation = {};
 
@@ -62,9 +66,12 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 	      situation = angular.fromJson(data);
 	      // consider using angular.extend()
 	      $scope.raw_data = angular.toJson(data, true); // makes it pretty
+	      GPSTime = Date.parse(situation.GPSTime);  //set global time variable
 	      Lat = situation.GPSLatitude;
 	      Long = situation.GPSLongitude;
 	      GPSCourse = situation.GPSTrueCourse;
+	      AltDiffThreshold = situation.RadarLimits/100;
+	      DisplayRadius = situation.RadarRange;
 	      var press_time = Date.parse(situation.BaroLastMeasurementTime);
 	      var gps_time = Date.parse(situation.GPSLastGPSTimeStratuxTime);
 	      if (gps_time - press_time < 1000) {    //pressure is ok
@@ -90,13 +97,13 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 	
 	function speaktraffic(altitudeDiff, direction) {
-		if ( speechOn ) {
+		if ( (soundType == 0) || (soundType == 2)) {
 			var feet = altitudeDiff * 100;
 			var sign = "plus";
-			if (altitudeDiff <= 0 ) sign = "minus";
+			if (altitudeDiff < 0 ) sign = "minus";
 			var txt = "Traffic ";
 			if ( direction) txt += direction +" o'clock ";
-			txt += sign + " " + feet + " feet";
+			txt += sign + " " + Math.abs(feet) + " feet";
 			var utterOn = new SpeechSynthesisUtterance(txt);
 			utterOn.lang="en-US";
 			utterOn.rate=1.1;
@@ -130,8 +137,8 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			doUpdate=1;
 			if ( distcirc<=(DisplayRadius/2) ) {
 				if (!traffic.alarms) traffic.alarms = 0;
-				if ( speechOn && (traffic.alarms <MaxSpeechAlarms) && (altDiffValid == 1)) speaktraffic(altDiff, null);
-				if (traffic.alarms <MaxAlarms ) sound_alert.play();  // play alarmtone max times
+				if ((traffic.alarms <MaxSpeechAlarms) && (altDiffValid == 1)) speaktraffic(altDiff, null);
+				if ((traffic.alarms <MaxAlarms) && ((soundType==0)||(soundType==1))) sound_alert.play();  // play alarmtone max times
 				traffic.alarms = traffic.alarms + 1;
 			} else {
 			        if ( distcirc >= (DisplayRadius*0.75) ) {   // implement hysteresis, play tone again only if 3/4 of DisplayRadius outside 
@@ -210,7 +217,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		        doUpdate = 1;	
 			if ( distradius <=(DisplayRadius/2) ) {
 				if (!traffic.alarms) traffic.alarms = 0;
-				if ( speechOn && (traffic.alarms <MaxSpeechAlarms) ) {
+				if (((soundType==0) || (soundType==2)) && (traffic.alarms <MaxSpeechAlarms) ) {
 				  var alpha = 0;
 				  if ( disty >=0 ) { 
 					alpha = Math.PI - Math.atan(distx/disty);
@@ -222,10 +229,10 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 				  if ( alpha<0)  alpha +=360;
 				  var oclock = Math.round(alpha/30);
 				  if (oclock <= 0 ) oclock += 12;
-				  console.log("Distx %d Disty %d GPSCourse %f alpha-Course %f oclock %f\n", distx, disty, GPSCourse, alpha, oclock);
+				  //console.log("Distx %d Disty %d GPSCourse %f alpha-Course %f oclock %f\n", distx, disty, GPSCourse, alpha, oclock);
 				  speaktraffic(altDiff, oclock);
 				}
-				if (traffic.alarms <=MaxAlarms ) sound_alert.play();  // play alarmtone max 5 times
+				if ((traffic.alarms <MaxAlarms) && ((soundType==0)||(soundType==1))) sound_alert.play();  // play alarmtone max times
 				traffic.alarms = traffic.alarms + 1;
 			} else {
 				traffic.alarms = 0;   // reset counter ones outside alarm circle
@@ -286,14 +293,9 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.targettype = obj.TargetType;
 		var timestamp = Date.parse(obj.Timestamp);
 		var timeLack = -1;
-		if (new_traffic.timeVal >0 ) {
+		if (new_traffic.timeVal >0 && timestamp) {
 			timeLack = timestamp - new_traffic.timeVal;
 		} 
-		new_traffic.timeVal = timestamp;
-		new_traffic.time = utcTimeString(timestamp);
-		new_traffic.signal = obj.SignalLevel;
-		new_traffic.ema = expMovingAverage(new_traffic.ema, new_traffic.signal, timeLack);
-
 		new_traffic.lat = obj.Lat;
 		new_traffic.lon = obj.Lng;
 		var n = Math.round(obj.Alt / 25) * 25;
@@ -309,8 +311,8 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
                 new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 
 
-		new_traffic.age = obj.Age;
-		new_traffic.ageLastAlt = obj.AgeLastAlt;
+		new_traffic.Last_seen = Date.parse(obj.Last_seen);
+		new_traffic.Last_alt = Date.parse(obj.Last_alt);
                 new_traffic.dist = (obj.Distance/1852); 
 		new_traffic.tail = obj.Tail;   //registration No
 	}
@@ -362,16 +364,16 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 
 		if ((invalidIdx < 0) && (!message.Position_valid)) {     // new aircraft without position
-			if ( altDiffValid && (Math.abs(altDiff) <= (AltDiffThreshold + storageDiff)) )  { 
-				setAircraft(message, new_traffic);  //store in any case, since EMA needs history of dB
+			if ( altDiffValid && (Math.abs(altDiff) <= AltDiffThreshold ) )  { 
+				setAircraft(message, new_traffic); 
 				checkCollisionVector(new_traffic);
 				$scope.data_list_invalid.unshift(new_traffic); // add to start of invalid array.
 			}    // else not added in list, since not relevant 
 		}
 
 		// Handle the negative cases of those above - where an aircraft moves from "valid" to "invalid" or vice-versa.
-		if ((validIdx >= 0) && (!message.Position_valid)) {    //known valid aircraft now with invalid position
-			// Position is not valid any more. Remove from "valid" table.
+		if ((validIdx >= 0) &&  !message.Position_valid ) {    
+			// Position is not valid any more or outside Threshold. Remove from "valid" table.
 			if ( $scope.data_list[validIdx].planeimg ) { 
 				$scope.data_list[validIdx].planeimg.remove().forget();  // remove plane image
 				$scope.data_list[validIdx].planetext.remove().forget();  // remove plane image
@@ -403,7 +405,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			return; // we are getting called once after clicking away from the status page
 
 		if (($scope.socket === undefined) || ($scope.socket === null)) {
-			socket = new WebSocket(URL_TRAFFIC_WS);
+			socket = new WebSocket(URL_RADAR_WS);
 			$scope.socket = socket; // store socket in scope for enter/exit usage
                         sit_socket = new WebSocket(URL_GPS_WS);  // socket for situation
 			$scope.sit_socket = sit_socket;
@@ -465,6 +467,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			var tempUptimeClock = new Date(Date.parse(globalStatus.UptimeClock));
 			var uptimeClockString = tempUptimeClock.toUTCString();
 			$scope.UptimeClock = uptimeClockString;
+			$scope.StratuxClock = Date.parse(globalStatus.UptimeClock);
 
 			var tempLocalClock = new Date;
 			$scope.LocalClock = tempLocalClock.toUTCString();
@@ -487,12 +490,14 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stale aircraft = anything more than 20 seconds without a position update
+		// remove stale aircraft = anything more than x seconds without a position update
+
 		var cutoff = 59;
+		var cutTime = $scope.StratuxClock-cutoff*1000;
 
 		// Clean up "valid position" table.
 		for (var i = $scope.data_list.length; i > 0; i--) {
-			if ($scope.data_list[i - 1].age >= cutoff) {
+			if ($scope.data_list[i - 1].Last_seen < cutTime) {
 				if ( $scope.data_list[i-1].planeimg ) { 
 					$scope.data_list[i-1].planeimg.remove().forget();  // remove plane image
 					$scope.data_list[i-1].planetext.remove().forget();  // remove plane image
@@ -509,13 +514,15 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		// Clean up "invalid position" table.
 		for (var i = $scope.data_list_invalid.length; i > 0; i--) {
-			if (($scope.data_list_invalid[i - 1].age >= cutoff) || ($scope.data_list_invalid[i - 1].ageLastAlt >= cutoff)) {
+			//if (($scope.data_list_invalid[i - 1].timeVal < cutTime) || ($scope.data_list_invalid[i - 1].ageLastAlt < cutTime)) {
+			if ($scope.data_list_invalid[i - 1].Last_alt < cutTime) {
 				if ( $scope.data_list_invalid[i-1].circ ) {    // is displayed
 				    $scope.data_list_invalid[i-1].circ.remove().forget(); 
 				}
 				$scope.data_list_invalid.splice(i - 1, 1);
 			}
 		}
+		radar.update();
 	}, (1000 * 10), 0, false);
 
 
@@ -533,7 +540,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		$interval.cancel(clearStaleTraffic);
 	};
 
-	radar = new RadarRenderer ("radar_display",$scope);
+	radar = new RadarRenderer ("radar_display",$scope,$http);
 
 	// Traffic Controller tasks
 	connect($scope); // connect - opens a socket and listens for messages
@@ -552,6 +559,11 @@ function clearRadarTraces ($scope) {
 			$scope.data_list[i-1].trace = '';
 		}
 	     }
+	}
+	for (var i = $scope.data_list_invalid.length; i > 0; i--) {   //clear circles
+		if ( $scope.data_list_invalid[i-1].circ ) {    // is displayed
+		    $scope.data_list_invalid[i-1].circ.remove().forget(); 
+		}
 	}
 }
 
@@ -574,7 +586,63 @@ function cancelFullScreen(el) {
    }
 }
 
-function RadarRenderer(locationId,$scope) {
+function displaySoundStatus(speech, soundMode) {
+    switch (soundMode) {
+	case 0:
+       	     	if ( synth ) { 
+			var utterOn = new SpeechSynthesisUtterance("Beep and Speech on");
+			utterOn.lang="en-US";
+			synth.speak(utterOn);
+		}
+		speech.get(0).removeClass('zoom').addClass('zoomInvert');
+    		speech.get(1).removeClass('tSmall').addClass('tSmallInvert').text('BpSp').cx(16).cy(0);
+		break;
+	case 1:
+       	     	if ( synth ) { 
+			var utterOn = new SpeechSynthesisUtterance("Beep only");
+			utterOn.lang="en-US";
+			synth.speak(utterOn);
+		}
+		speech.get(0).removeClass('zoom').addClass('zoomInvert');
+    		speech.get(1).removeClass('tSmall').addClass('tSmallInvert').text('Beep').cx(16).cy(0);
+		break;
+	case 2:
+       	     	if ( synth ) { 
+			var utterOn = new SpeechSynthesisUtterance("Speech only");
+			utterOn.lang="en-US";
+			synth.speak(utterOn);
+		}
+		speech.get(0).removeClass('zoom').addClass('zoomInvert');
+    		speech.get(1).removeClass('tSmall').addClass('tSmallInvert').text('Spch').cx(16).cy(0);
+		break;
+	default:
+       	     	if ( synth ) { 
+			var utterOn = new SpeechSynthesisUtterance("Sound off");
+			utterOn.lang="en-US";
+			synth.speak(utterOn);
+		}
+		speech.get(0).removeClass('zoomInvert').addClass('zoom');
+		speech.get(1).removeClass('tSmallInvert').addClass('tSmall').text('SnOff').cx(18).cy(0);
+    }
+}
+
+function communicateLimits (threshold,radarrange,$http) {    //tell raspi the limits for callback
+       var newsettings = {
+            "RadarLimits": threshold, 
+            "RadarRange": radarrange 
+       };
+       msg = angular.toJson(newsettings);
+       // Simple POST request example (note: response is asynchronous)
+       $http.post(URL_SETTINGS_SET, msg).
+	 then(function (response) {
+            // do nothing
+       }, function (response) {
+            // do nothing
+       });
+}
+
+function RadarRenderer(locationId,$scope,$http) {
+    this.$scope = $scope;
     this.width = -1;
     this.height = -1;
 
@@ -582,8 +650,8 @@ function RadarRenderer(locationId,$scope) {
     this.canvas = document.getElementById(this.locationId);
     this.resize();
 
-    AltDiffThreshold = altDiff[altindex];	
-    DisplayRadius = zoom[zoomfactor];	
+    AltDiffThreshold = 20;	
+    DisplayRadius = 10;	
 
     // Draw the radar using the svg.js library
     var radarAll = SVG(this.locationId).viewbox(-201, -201, 402, 302).group().addClass('radar');
@@ -593,6 +661,8 @@ function RadarRenderer(locationId,$scope) {
     card.circle(200).cx(0).cy(0);  
     this.displayText = radarAll.text(DisplayRadius+' nm').addClass('textOutside').x(-200).cy(-158);  //not rotated
     this.altText = radarAll.text('\xB1'+AltDiffThreshold+'00ft').addClass('textOutsideRight').x(200).cy(-158);  //not rotated
+    communicateLimits(100*AltDiffThreshold,DisplayRadius,$http);  // initially sent Thresholds
+    this.fl = radarAll.text("FL"+Math.round(BaroAltitude/100)).addClass('textSmall').move(7,5); 
     card.text("N").addClass('textDir').center(0,-190);
     card.text("S").addClass('textDir').center(0,190);
     card.text("W").addClass('textDir').center(-190,0);
@@ -607,70 +677,113 @@ function RadarRenderer(locationId,$scope) {
     zoomin.text('Ra-').cx(12).cy(2).addClass('textZoom');
     zoomin.on('click', function () {
 	var animateTime= 200;
-        if (zoomfactor > 0 ) { 
-		zoomfactor--;     
-        } else {  
-		animateTime = 20;
+	var newval = DisplayRadius;
+	switch (DisplayRadius) {
+		case 40:  
+			newval = 20;  
+			break;
+		case 20:  
+			newval = 10;  
+			break;
+		case 10:  
+			newval = 5;  
+			break;
+		case 5:  
+			newval = 2;  
+			break;
+		default:   // keep 2
+			animateTime = 20;
 	}
-        DisplayRadius = zoom[zoomfactor];	
+	communicateLimits(100*AltDiffThreshold,newval,$http);
 	zoomin.animate(animateTime).rotate(90, 0, 0);
-        this.displayText.text(DisplayRadius+' nm');
-	//update();
         zoomin.animate(animateTime).rotate(0, 0, 0);
-	clearRadarTraces($scope);
     }, this);
 
     var zoomout = radarAll.group().cx(-177).cy(-190).addClass('zoom');
     zoomout.circle(45).cx(0).cy(0).addClass('zoom');
     zoomout.text('Ra+').cx(12).cy(2).addClass('textZoom');
     zoomout.on('click', function () {
-	var animateTime= 200;
-        if (zoomfactor < (zoom.length-1) ) { 
-		zoomfactor++;     
-        } else {  
-		animateTime = 20;
+	var animateTime = 200;
+	var newval = DisplayRadius;
+	switch (DisplayRadius) {
+		case 2:  
+			newval = 5;  
+			break;
+		case 5:  
+			newval = 10;  
+			break;
+		case 10:  
+			newval = 20;  
+			break;
+		case 20:  
+			newval = 40;  
+			break;
+		default:   // keep 40
+			animateTime = 20;
 	}
-        DisplayRadius = zoom[zoomfactor];	
+	communicateLimits(100*AltDiffThreshold,newval,$http);
 	zoomout.animate(animateTime).rotate(90, 0, 0);
-        this.displayText.text(DisplayRadius+' nm');
         zoomout.animate(animateTime).rotate(0, 0, 0);
-	clearRadarTraces($scope);
     }, this);
 
     var altmore = radarAll.group().cx(120).cy(-190).addClass('zoom');
     altmore.circle(45).cx(0).cy(0).addClass('zoom');
     altmore.text('Alt+').cx(12).cy(2).addClass('textZoom');
     altmore.on('click', function () {
+	var newval = AltDiffThreshold;
 	var animateTime= 200;
-        if (altindex < (altDiff.length-1) ) { 
-		altindex++;     
-        } else {  
-		animateTime = 20;
-	}
-        AltDiffThreshold = altDiff[altindex];	
+	switch (AltDiffThreshold) {
+		case 5:  
+			newval = 10;  
+			break;
+		case 10:  
+			newval = 20;  
+			break;
+		case 20:  
+			newval = 50;  
+			break;
+		case 50:  
+			newval = 100;  
+			break;
+		case 100:   	
+			newval = 500;  
+			break;
+		default:
+			animateTime = 20;
+        }
+	communicateLimits(100*newval,DisplayRadius,$http);
 	altmore.animate(animateTime).rotate(90, 0, 0);
-        this.altText.text('\xB1'+AltDiffThreshold+'00ft');
-	//update();
         altmore.animate(animateTime).rotate(0, 0, 0);
-	clearRadarTraces($scope);
     }, this);
 
     var altless = radarAll.group().cx(177).cy(-190).addClass('zoom');
     altless.circle(45).cx(0).cy(0).addClass('zoom');
     altless.text('Alt-').cx(12).cy(2).addClass('textZoom');
     altless.on('click', function () {
+	var newval = AltDiffThreshold;
 	var animateTime= 200;
-        if (altindex > 0 ) { 
-		altindex--;     
-        } else {  
-		animateTime = 20;
-	}
-        AltDiffThreshold = altDiff[altindex];	
+	switch (AltDiffThreshold) {
+		case 500:  
+			newval = 100;  
+			break;
+		case 100:  
+			newval = 50;  
+			break;
+		case 50:  
+			newval = 20;  
+			break;
+		case 20:  
+			newval = 10;  
+			break;
+		case 10:   	
+			newval = 5;  
+			break;
+		default:    //5 stays 5
+			animateTime = 20;
+        }
+	communicateLimits(100*newval,DisplayRadius,$http);
 	altless.animate(animateTime).rotate(90, 0, 0);
-        //update();
-        this.altText.text('\xB1'+AltDiffThreshold+'00ft');
         altless.animate(animateTime).rotate(0, 0, 0);
-	clearRadarTraces($scope);
     }, this);
 
     var fullscreen = radarAll.group().cx(185).cy(-125).addClass('zoom');
@@ -692,30 +805,28 @@ function RadarRenderer(locationId,$scope) {
     }, this);
 
 
-    var speech = radarAll.group().cx(-185).cy(-125).addClass('zoom');
+    var speech = radarAll.group().cx(-185).cy(-125);
     speech.rect(40,35).radius(10).cx(0).cy(0).addClass('zoom');
-    speech.text('Spk').cx(12).cy(2).addClass('textZoom');
+    speech.text('Undef').cx(16).cy(0).addClass('tSmall');
     synth = window.speechSynthesis;
+    if (!synth) soundType=1;    // speech function not working, default now beep
+    displaySoundStatus(speech,soundType);
 
     speech.on('click', function () {
-	if (!synth) return;    // speech function not working
-	if ( ! speechOn ) {
-    		var utterOn = new SpeechSynthesisUtterance("Speech on");
-		utterOn.lang="en-US";
-		utterOn.rate=1.1;
-		speech.get(0).removeClass('zoom').addClass('zoomInvert');
-		speech.get(1).removeClass('textZoom').addClass('textZoomInvert');
-		synth.speak(utterOn);
-		speechOn = true;
-	} else {
-    		var utterOff = new SpeechSynthesisUtterance("Speech off");
-		utterOff.lang="en-US";
-    		utterOff.rate=1.1;
-		speech.get(0).removeClass('zoomInvert').addClass('zoom');
-		speech.get(1).removeClass('textZoomInvert').addClass('textZoom');
-		synth.speak(utterOff);
-		speechOn = false;
+	switch (soundType) {
+		case 0:   //speech and beep
+			soundType = 1;   // beep only
+			break;
+		case 1:   //beep only
+			if (synth) { soundType=2; } else { soundType=3 };
+			break;
+		case 2:   //speech only	
+			soundType = 3;  //Sound off
+			break;
+		default:
+			soundType = 0;  //speech and beep
         }
+	displaySoundStatus(speech,soundType);
     }, this);
 
 
@@ -740,8 +851,23 @@ RadarRenderer.prototype = {
     },
 
     update: function () {
-	 if (this.fl) this.fl.remove();
-	 this.rScreen.rotate(-GPSCourse,0,0);    // rotate conforming to GPSCourse
-	 this.fl = this.allScreen.text("FL"+Math.round(BaroAltitude/100)).addClass('textSmall').move(7,5); 
+	if ( BaroAltitude != OldBaroAltitude ) {
+		this.fl.text("FL"+Math.round(BaroAltitude/100));  // just update text
+		OldBaroAltitude = BaroAltitude;
+	}
+	if ( AltDiffThreshold != OldAltDiffThreshold ) {
+                this.altText.text('\xB1'+AltDiffThreshold+'00ft');
+		clearRadarTraces(this.$scope);
+		OldAltDiffThreshold = AltDiffThreshold;
+	}
+	if ( DisplayRadius != OldDisplayRadius ) {
+        	this.displayText.text(DisplayRadius+' nm');
+		clearRadarTraces(this.$scope);
+		OldDisplayRadius = DisplayRadius;
+	}
+	if ( GPSCourse != OldGPSCourse ) {
+		this.rScreen.rotate(-GPSCourse,0,0);    // rotate conforming to GPSCourse
+		OldGPSCourse = GPSCourse;
+	}
     }
 };
