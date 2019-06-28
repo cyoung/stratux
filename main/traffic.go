@@ -223,6 +223,20 @@ func sendTrafficUpdates() {
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
+			var currAlt float32
+			currAlt = mySituation.BaroPressureAltitude
+			if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
+			     currAlt = mySituation.GPSAltitudeMSL
+			}
+                        if float32(ti.Alt) <= currAlt+float32(mySituation.RadarLimits)*1.3 {   //take 30% more to see moving outs
+				// altitude lower than upper boundary
+				if float32(ti.Alt) >= currAlt-float32(mySituation.RadarLimits)*1.3 { 
+				// altitude higher than upper boundary 
+					if !ti.BearingDist_valid || ti.Distance<float64(mySituation.RadarRange)*1852.0*1.3 {    //allow more so that aircraft moves out
+						radarUpdate.SendJSON(ti)
+					}
+				}
+			}
 		}
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB.
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
@@ -263,6 +277,21 @@ func registerTrafficUpdate(ti TrafficInfo) {
 		}
 	*/ // Send all traffic to the websocket and let JS sort it out. This will provide user indication of why they see 1000 ES messages and no traffic.
 	trafficUpdate.SendJSON(ti)
+
+	var currAlt float32
+	currAlt = mySituation.BaroPressureAltitude
+	if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
+             currAlt = mySituation.GPSAltitudeMSL
+	}
+        if float32(ti.Alt) <= currAlt+float32(mySituation.RadarLimits)*1.3 {   //take 30% more to see moving outs
+		// altitude lower than upper boundary
+		if float32(ti.Alt) >= currAlt-float32(mySituation.RadarLimits)*1.3 { 
+	        // altitude higher than upper boundary 
+			if !ti.BearingDist_valid || ti.Distance<float64(mySituation.RadarRange)*1852.0*1.3 {    //allow more if aircraft moves out
+				radarUpdate.SendJSON(ti)
+			}
+		}
+	}
 }
 
 func isTrafficAlertable(ti TrafficInfo) bool {

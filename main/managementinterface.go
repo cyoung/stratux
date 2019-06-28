@@ -39,6 +39,7 @@ type SettingMessage struct {
 // Weather updates channel.
 var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
+var radarUpdate *uibroadcaster
 var gdl90Update *uibroadcaster
 
 func handleGDL90WS(conn *websocket.Conn) {
@@ -97,6 +98,7 @@ func handleJsonIo(conn *websocket.Conn) {
 	}
 	// Subscribe the socket to receive updates.
 	trafficUpdate.AddSocket(conn)
+	radarUpdate.AddSocket(conn)
 	weatherRawUpdate.AddSocket(conn)
 	situationUpdate.AddSocket(conn)
 
@@ -144,6 +146,35 @@ func handleTrafficWS(conn *websocket.Conn) {
 		time.Sleep(1 * time.Second)
 	}
 }
+
+func handleRadarWS(conn *websocket.Conn) {
+	log.Printf("RadarWS client connected.\n")
+	trafficMutex.Lock()
+	for _, traf := range traffic {
+		if !traf.Position_valid { // Don't send unless a valid position exists.
+			continue
+		}
+		trafficJSON, _ := json.Marshal(&traf)
+		conn.Write(trafficJSON)
+	}
+	// Subscribe the socket to receive updates.
+	radarUpdate.AddSocket(conn)
+	trafficMutex.Unlock()
+
+	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
+	for {
+		buf := make([]byte, 1024)
+		_, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		if buf[0] != 0 { // Dummy.
+			continue
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 
 func handleStatusWS(conn *websocket.Conn) {
 	//	log.Printf("Web client connected.\n")
@@ -313,6 +344,12 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "RadarLimits":
+						mySituation.RadarLimits = int(val.(float64))
+				                log.Printf("handleSettingsSetRequest RadarLimit:%d\n", mySituation.RadarLimits)
+					case "RadarRange":
+						mySituation.RadarRange = int(val.(float64))
+				                log.Printf("handleSettingsSetRequest RadarRange:%d\n", mySituation.RadarRange)
 					case "Baud":
 						if serialOut, ok := globalSettings.SerialOutputs["/dev/serialout0"]; ok { //FIXME: Only one device for now.
 							newBaud := int(val.(float64))
@@ -795,6 +832,7 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
+	radarUpdate = NewUIBroadcaster()
 	situationUpdate = NewUIBroadcaster()
 	weatherRawUpdate = NewUIBroadcaster()
 	gdl90Update = NewUIBroadcaster()
@@ -833,6 +871,13 @@ func managementInterface() {
 				Handler: websocket.Handler(handleTrafficWS)}
 			s.ServeHTTP(w, req)
 		})
+	http.HandleFunc("/radar",
+		func(w http.ResponseWriter, req *http.Request) {
+			s := websocket.Server{
+				Handler: websocket.Handler(handleRadarWS)}
+			s.ServeHTTP(w, req)
+		})
+
 
 	http.HandleFunc("/jsonio",
 		func(w http.ResponseWriter, req *http.Request) {

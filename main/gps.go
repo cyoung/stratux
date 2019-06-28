@@ -99,6 +99,8 @@ type SituationData struct {
 	AHRSGLoadMax         float64
 	AHRSLastAttitudeTime time.Time
 	AHRSStatus           uint8
+	RadarLimits	     int
+        RadarRange           int
 }
 
 /*
