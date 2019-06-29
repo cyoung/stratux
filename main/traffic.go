@@ -232,7 +232,7 @@ func sendTrafficUpdates() {
 				// altitude lower than upper boundary
 				if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
 					// altitude higher than upper boundary 
-					if !ti.BearingDist_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more so that aircraft moves out
+					if !ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more so that aircraft moves out
 						radarUpdate.SendJSON(ti)
 					}
 				}
@@ -287,7 +287,7 @@ func registerTrafficUpdate(ti TrafficInfo) {
 		// altitude lower than upper boundary
 		if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
 			// altitude higher than upper boundary 
-			if !ti.BearingDist_valid || ti.Distance < float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more if aircraft moves out
+			if !ti.Position_valid || ti.Distance < float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more if aircraft moves out
 				radarUpdate.SendJSON(ti)
 			}
 		}

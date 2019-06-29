@@ -527,6 +527,8 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 
 	$state.get('radar').onEnter = function() {
+		//reset OldRotatingValue
+		OldGPSCourse = 0;
 		// everything gets handled correctly by the controller
 	};
 
