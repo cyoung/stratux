@@ -161,6 +161,8 @@ func handleRadarWS(conn *websocket.Conn) {
 	radarUpdate.AddSocket(conn)
 	trafficMutex.Unlock()
 
+	radarUpdate.SendJSON(globalSettings);
+
 	// Connection closes when function returns. Since uibroadcast is writing and we don't need to read anything (for now), just keep it busy.
 	for {
 		buf := make([]byte, 1024)
@@ -345,11 +347,11 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "RadarLimits":
-						mySituation.RadarLimits = int(val.(float64))
-				                log.Printf("handleSettingsSetRequest RadarLimit:%d\n", mySituation.RadarLimits)
+						globalSettings.RadarLimits = int(val.(float64))
+						radarUpdate.SendJSON(globalSettings)
 					case "RadarRange":
-						mySituation.RadarRange = int(val.(float64))
-				                log.Printf("handleSettingsSetRequest RadarRange:%d\n", mySituation.RadarRange)
+						globalSettings.RadarRange = int(val.(float64))
+						radarUpdate.SendJSON(globalSettings)
 					case "Baud":
 						if serialOut, ok := globalSettings.SerialOutputs["/dev/serialout0"]; ok { //FIXME: Only one device for now.
 							newBaud := int(val.(float64))

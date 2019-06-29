@@ -85,6 +85,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 8:
 					tempGpsHardwareString = "USB u-blox 8 GNSS receiver";
 					break;
+				case 9:
+					tempGpsHardwareString = "USB u-blox 9 GNSS receiver";
+					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}
@@ -134,7 +137,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				/* boardtemp is celcius to tenths */
 				$scope.CPUTemp = String(boardtemp.toFixed(1) + '°C / ' + ((boardtemp * 9 / 5) + 32.0).toFixed(1) + '°F');
 				$scope.CPUTempMin = String(status.CPUTempMin.toFixed(1)) + '°C';
-				$scope.CPUTempMax = String(status.CPUTempMax.toFixed(1)) + '°C';				
+				$scope.CPUTempMax = String(status.CPUTempMax.toFixed(1)) + '°C';
 			} else {
 				// $('#CPUTemp').text('unavailable');
 			}

@@ -226,13 +226,13 @@ func sendTrafficUpdates() {
 			var currAlt float32
 			currAlt = mySituation.BaroPressureAltitude
 			if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
-			     currAlt = mySituation.GPSAltitudeMSL
+				currAlt = mySituation.GPSAltitudeMSL
 			}
-                        if float32(ti.Alt) <= currAlt+float32(mySituation.RadarLimits)*1.3 {   //take 30% more to see moving outs
+			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 {   //take 30% more to see moving outs
 				// altitude lower than upper boundary
-				if float32(ti.Alt) >= currAlt-float32(mySituation.RadarLimits)*1.3 { 
-				// altitude higher than upper boundary 
-					if !ti.BearingDist_valid || ti.Distance<float64(mySituation.RadarRange)*1852.0*1.3 {    //allow more so that aircraft moves out
+				if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
+					// altitude higher than upper boundary 
+					if !ti.BearingDist_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more so that aircraft moves out
 						radarUpdate.SendJSON(ti)
 					}
 				}
@@ -281,13 +281,13 @@ func registerTrafficUpdate(ti TrafficInfo) {
 	var currAlt float32
 	currAlt = mySituation.BaroPressureAltitude
 	if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
-             currAlt = mySituation.GPSAltitudeMSL
+		currAlt = mySituation.GPSAltitudeMSL
 	}
-        if float32(ti.Alt) <= currAlt+float32(mySituation.RadarLimits)*1.3 {   //take 30% more to see moving outs
+    if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 {   //take 30% more to see moving outs
 		// altitude lower than upper boundary
-		if float32(ti.Alt) >= currAlt-float32(mySituation.RadarLimits)*1.3 { 
-	        // altitude higher than upper boundary 
-			if !ti.BearingDist_valid || ti.Distance<float64(mySituation.RadarRange)*1852.0*1.3 {    //allow more if aircraft moves out
+		if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
+			// altitude higher than upper boundary 
+			if !ti.BearingDist_valid || ti.Distance < float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more if aircraft moves out
 				radarUpdate.SendJSON(ti)
 			}
 		}
