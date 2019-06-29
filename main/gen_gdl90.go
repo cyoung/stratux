@@ -1162,6 +1162,8 @@ type settings struct {
 	WiFiPassphrase       string
 	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool
+	RadarLimits          int
+	RadarRange           int
 }
 
 type status struct {
@@ -1242,6 +1244,9 @@ func defaultSettings() {
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
+
+	globalSettings.RadarLimits = 2000
+	globalSettings.RadarRange = 10
 }
 
 func readSettings() {
