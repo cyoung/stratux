@@ -291,6 +291,9 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (new_traffic.timeVal > 0 && timestamp) {
 			timeLack = timestamp - new_traffic.timeVal;
 		}
+		new_traffic.signal = obj.SignalLevel;
+		new_traffic.ema = expMovingAverage(new_traffic.ema, new_traffic.signal, timeLack);
+
 		new_traffic.lat = obj.Lat;
 		new_traffic.lon = obj.Lng;
 		var n = Math.round(obj.Alt / 25) * 25;

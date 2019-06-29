@@ -231,7 +231,7 @@ func sendTrafficUpdates() {
 			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 {   //take 30% more to see moving outs
 				// altitude lower than upper boundary
 				if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
-				// altitude higher than upper boundary 
+					// altitude higher than upper boundary 
 					if !ti.BearingDist_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3 {    //allow more so that aircraft moves out
 						radarUpdate.SendJSON(ti)
 					}
