@@ -638,7 +638,6 @@ function communicateLimits(threshold, radarrange, $http) {  //tell raspi the lim
 }
 
 function onSettingsMessage(message) {
-	console.log('GOT SETTINGS');
 	AltDiffThreshold = message.RadarLimits / 100;
 	DisplayRadius = message.RadarRange;
 }
