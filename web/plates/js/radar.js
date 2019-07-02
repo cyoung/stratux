@@ -406,34 +406,44 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (($scope === undefined) || ($scope === null))
 			return;  // we are getting called once after clicking away from the status page
 
-		if (($scope.socket === undefined) || ($scope.socket === null)) {
-			socket = new WebSocket(URL_RADAR_WS);
-			$scope.socket = socket;                  // store socket in scope for enter/exit usage
+		if (($scope.rsocket === undefined) || ($scope.rsocket === null)) {
+			rsocket = new WebSocket(URL_RADAR_WS);
+		        //console.log("rsocket created %x\n",rsocket);
+			$scope.rsocket = rsocket;                  // store socket in scope for enter/exit usage
+		}
+		if (($scope.sit_socket === undefined) || ($scope.sit_socket === null)) {
 			sit_socket = new WebSocket(URL_GPS_WS);  // socket for situation
+		        //console.log("sit_socket created %x\n",sit_socket);
 			$scope.sit_socket = sit_socket;
 		}
 
 		$scope.ConnectState = 'Disconnected';
 
-		socket.onopen = function(msg) {
+		rsocket.onopen = function(msg) {
 			// $scope.ConnectStyle = "label-success";
 			$scope.ConnectState = 'Connected';
 		};
 
-		socket.onclose = function(msg) {
+		rsocket.onclose = function(msg) {
 			// $scope.ConnectStyle = "label-danger";
+		        //console.log("rsocket.onclose\n");
 			$scope.ConnectState = 'Disconnected';
 			$scope.$apply();
-			setTimeout(connect, 1000);
+			if ($scope.rsocket === null ) {
+				//console.log("rsocket.onclose, no timeout\n");
+			} else {
+				setTimeout(connect, 1000);   // do not set timeout after exit
+				//console.log("rsocket.onclose, timeout\n");
+			}
 		};
 
-		socket.onerror = function(msg) {
+		rsocket.onerror = function(msg) {
 			// $scope.ConnectStyle = "label-danger";
 			$scope.ConnectState = 'Problem';
 			$scope.$apply();
 		};
 
-		socket.onmessage = function(msg) {
+		rsocket.onmessage = function(msg) {
 			//ownSituation($scope);   move to getclock
 			onMessageNew(msg);
 			//radar.update();   moved to changes
@@ -444,7 +454,8 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 
 		sit_socket.onclose = function(msg) {
-			setTimeout(connect, 1000);
+		        //console.log("sit_socket.onclose\n");
+			//nothing, status is set with traffic port
 		};
 
 		sit_socket.onerror = function(msg) {
@@ -527,24 +538,37 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 
 	$state.get('radar').onEnter = function() {
+		$scope.data_list = [];
+		$scope.data_list_invalid = [];
 		//reset OldRotatingValue
 		OldGPSCourse = 0;
+		OldBaroAltitude = 0;
+		OldAltDiffThreshold = 0;
+		OldDisplayRadius = 0;
 		// everything gets handled correctly by the controller
 	};
 
 	$state.get('radar').onExit = function() {
 		// disconnect from the socket
-		if (($scope.socket !== undefined) && ($scope.socket !== null)) {
-			$scope.socket.close();
-			$scope.socket = null;
+		//console.log("OnExit\n");
+		if (($scope.rsocket !== undefined) && ($scope.rsocket !== null)) {
+			//console.log("Closing rsocket\n");
+			$scope.rsocket.close();
+			$scope.rsocket = null;
+		}
+		if (($scope.sit_socket !== undefined) && ($scope.sit_socket !== null)) {
+			//console.log("Closing sit_socket\n");
+			$scope.sit_socket.close();
+			$scope.sit_socket = null;
 		}
 		// stop stale traffic cleanup
 		$interval.cancel(clearStaleTraffic);
+		$interval.cancel(getClock);
 	};
 
 	radar = new RadarRenderer('radar_display', $scope, $http);
 
-	// Traffic Controller tasks
+	// Radar Controller tasks
 	connect($scope);  // connect - opens a socket and listens for messages
 }
 
@@ -862,21 +886,21 @@ RadarRenderer.prototype = {
 	},
 
 	update: function() {
-		if (BaroAltitude != OldBaroAltitude) {
+		if (BaroAltitude !== OldBaroAltitude) {
 			this.fl.text('FL' + Math.round(BaroAltitude / 100));  // just update text
 			OldBaroAltitude = BaroAltitude;
 		}
-		if (AltDiffThreshold != OldAltDiffThreshold) {
+		if (AltDiffThreshold !== OldAltDiffThreshold) {
 			this.altText.text('\xB1' + AltDiffThreshold + '00ft');
 			clearRadarTraces(this.$scope);
 			OldAltDiffThreshold = AltDiffThreshold;
 		}
-		if (DisplayRadius != OldDisplayRadius) {
+		if (DisplayRadius !== OldDisplayRadius) {
 			this.displayText.text(DisplayRadius + ' nm');
 			clearRadarTraces(this.$scope);
 			OldDisplayRadius = DisplayRadius;
 		}
-		if (GPSCourse != OldGPSCourse) {
+		if (GPSCourse !== OldGPSCourse) {
 			this.rScreen.rotate(-GPSCourse, 0, 0);  // rotate conforming to GPSCourse
 			OldGPSCourse = GPSCourse;
 		}

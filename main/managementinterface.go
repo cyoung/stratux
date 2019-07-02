@@ -148,9 +148,9 @@ func handleTrafficWS(conn *websocket.Conn) {
 }
 
 func handleRadarWS(conn *websocket.Conn) {
-	log.Printf("RadarWS client connected.\n")
 	trafficMutex.Lock()
-	for _, traf := range traffic {
+        log.Printf("Radar WS client connected. # of sockets: %d\n", len(radarUpdate.sockets));	
+        for _, traf := range traffic {
 		if !traf.Position_valid { // Don't send unless a valid position exists.
 			continue
 		}
