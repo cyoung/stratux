@@ -190,6 +190,12 @@ func sendTrafficUpdates() {
 		}
 	}
 
+	var currAlt float32
+	currAlt = mySituation.BaroPressureAltitude
+	if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
+		currAlt = mySituation.GPSAltitudeMSL
+	}
+
 	msgs := make([][]byte, 1)
 	msgFLARM := ""
 	msgFlarmCount := 0
@@ -212,10 +218,12 @@ func sendTrafficUpdates() {
 			ti.Bearing = 0
 			ti.BearingDist_valid = false
 		}
-
+		
 		// TODO: also filter by altitude. +- >2000ft is not relevant
 		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
-			bestEstimate = ti
+			if bestEstimate.Alt > 0 && math.Abs(bestEstimate.Alt - currAlt) < 2000 {
+				bestEstimate = ti
+			}
 		}
 
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
@@ -235,11 +243,6 @@ func sendTrafficUpdates() {
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
-			var currAlt float32
-			currAlt = mySituation.BaroPressureAltitude
-			if currAlt == 99999 {   // no valid BaroAlt, take GPS instead, better than nothing
-				currAlt = mySituation.GPSAltitudeMSL
-			}
 			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 {   //take 30% more to see moving outs
 				// altitude lower than upper boundary
 				if float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 { 
@@ -312,9 +315,9 @@ func sendTrafficUpdates() {
 
 // Used to tune to our radios. We compare our estimate to real values for ADS-B Traffic.
 // If we tend to estimate too high, we reduce this value, otherwise we increase it
-var estimatedDistFactor = 100.0
+var estimatedDistFactor = 3000.0
 func estimateDistance(ti *TrafficInfo) {
-	dist := (-ti.SignalLevel - 6) * (-ti.SignalLevel - 6) * estimatedDistFactor;  //distance approx. in nm, 6dB for double distance
+	dist := math.Pow(2.0, -ti.SignalLevel / 6.0) * estimatedDistFactor;  // distance approx. in meters, 6dB for double distance
 
 	lambda := 0.2;
 	timeDiff := ti.Timestamp.Sub(ti.DistanceEstimatedLastTs).Seconds() * 1000
