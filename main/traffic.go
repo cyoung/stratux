@@ -115,6 +115,8 @@ type TrafficInfo struct {
 	BearingDist_valid    bool      // set when bearing and distance information is valid
 	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated. Units: degrees.
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated. Units: meters.
+	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
+	DistanceEstimatedLastTs time.Time // Used to compute moving average
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
@@ -189,6 +191,10 @@ func sendTrafficUpdates() {
 	}
 
 	msgs := make([][]byte, 1)
+	msgFLARM := ""
+	msgFlarmCount := 0
+	var bestEstimate TrafficInfo
+
 	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
@@ -206,6 +212,12 @@ func sendTrafficUpdates() {
 			ti.Bearing = 0
 			ti.BearingDist_valid = false
 		}
+
+		// TODO: also filter by altitude. +- >2000ft is not relevant
+		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
+			bestEstimate = ti
+		}
+
 		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
@@ -256,6 +268,16 @@ func sendTrafficUpdates() {
 					msgs = append(msgs, make([]byte, 0))
 				}
 				msgs[cur_n] = append(msgs[cur_n], makeTrafficReportMsg(ti)...)
+				thisMsgFLARM, validFLARM := makeFlarmPFLAAString(ti)
+				//log.Printf(thisMsgFLARM)
+				if validFLARM {
+					//sendNetFLARM(thisMsgFLARM)
+					msgFLARM += thisMsgFLARM
+					msgFlarmCount++
+					//log.Printf("%v\n",[]byte(thisMsgFLARM))
+				} else {
+					//log.Printf("FLARM output: Traffic %X couldn't be translated\n", ti.Icao_addr)
+				}
 			}
 		}
 	}
@@ -265,6 +287,67 @@ func sendTrafficUpdates() {
 		if len(msg) > 0 {
 			sendGDL90(msg, false)
 		}
+	}
+
+	sendNetFLARM(msgFLARM)
+	// Also send the nearest best bearingless
+	if bestEstimate.DistanceEstimated > 0 {
+		msg, valid := makeFlarmPFLAAString(bestEstimate)
+		if valid { 
+			sendNetFLARM(msg)
+		}
+	}
+
+	// syntax: PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
+	/*msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,0,,0,,", msgFlarmCount)
+	// to-do: update <gps> field with flight / ground status
+
+	checksumPFLAU := byte(0x00)
+	for i := range msgPFLAU {
+		checksumPFLAU = checksumPFLAU ^ byte(msgPFLAU[i])
+	}
+	msgPFLAU = (fmt.Sprintf("$%s*%02X\r\n", msgPFLAU, checksumPFLAU))
+	sendNetFLARM(msgPFLAU)*/
+}
+
+// Used to tune to our radios. We compare our estimate to real values for ADS-B Traffic.
+// If we tend to estimate too high, we reduce this value, otherwise we increase it
+var estimatedDistFactor = 100.0
+func estimateDistance(ti *TrafficInfo) {
+	dist := (-ti.SignalLevel - 6) * (-ti.SignalLevel - 6) * estimatedDistFactor;  //distance approx. in nm, 6dB for double distance
+
+	lambda := 0.2;
+	timeDiff := ti.Timestamp.Sub(ti.DistanceEstimatedLastTs).Seconds() * 1000
+	ti.DistanceEstimatedLastTs = ti.Timestamp
+	if timeDiff < 0.0 {
+		return
+	}
+	
+
+	expon := math.Exp(-timeDiff / 100 * lambda);
+	//log.Printf("timediff: %f, expon: %f", timeDiff, expon)
+	ti.DistanceEstimated = ti.DistanceEstimated * expon + dist * (1 - expon);
+
+	if ti.BearingDist_valid && ti.Distance < 50000 {
+		var errorFactor float64
+		if ti.DistanceEstimated > ti.Distance {
+			errorFactor = -(ti.DistanceEstimated / ti.Distance)
+		} else {
+			errorFactor = ti.Distance / ti.DistanceEstimated
+		}
+		estimatedDistFactor += errorFactor
+		if (estimatedDistFactor < 1.0) {
+			estimatedDistFactor = 1.0
+		}
+	}
+
+}
+
+func postProcessTraffic(ti *TrafficInfo) {
+	estimateDistance(ti)
+	if ti.Distance < 40000 && ti.Distance > 0 {
+		msg := fmt.Sprintf("Estimated factor: %f, distance for %d (%f): %fm, real: %fm", estimatedDistFactor, ti.Icao_addr, ti.SignalLevel, ti.DistanceEstimated, ti.Distance)
+		log.Printf(msg)
 	}
 }
 
@@ -780,7 +863,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 	ti.Timestamp = time.Now()
 
 	ti.Last_source = TRAFFIC_SOURCE_UAT
-
+	postProcessTraffic(&ti)
 	traffic[ti.Icao_addr] = ti
 	registerTrafficUpdate(ti)
 	seenTraffic[ti.Icao_addr] = true // Mark as seen.
@@ -1101,7 +1184,7 @@ func esListen() {
 					log.Printf("%X (DF%d) => %s\n", ti.Icao_addr, newTi.DF, string(s_out))
 				}
 			*/
-
+			postProcessTraffic(&ti)
 			traffic[ti.Icao_addr] = ti // Update information on this ICAO code.
 			registerTrafficUpdate(ti)
 			seenTraffic[ti.Icao_addr] = true // Mark as seen.
@@ -1212,6 +1295,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 
 	if hdg < 150 || hdg > 240 {
 		// now insert this into the traffic map...
+		postProcessTraffic(&ti)
 		traffic[ti.Icao_addr] = ti
 		registerTrafficUpdate(ti)
 		seenTraffic[ti.Icao_addr] = true

@@ -796,6 +796,10 @@ func heartBeatSender() {
 				sendAllOwnshipInfo()
 			}
 
+			sendNetFLARM(makeGPRMCString())
+			sendNetFLARM(makeGPGGAString())
+			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n")
+
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
 			/*
@@ -1232,6 +1236,7 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
+		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.DEBUG = false
@@ -1698,6 +1703,7 @@ func main() {
 
 	// Initialize the (out) network handler.
 	initNetwork()
+	tcpNMEAListener()
 
 	// Start printing stats periodically to the logfiles.
 	go printStats()
