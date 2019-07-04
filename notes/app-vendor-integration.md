@@ -241,17 +241,17 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
   "BaroPressureAltitude": 153.32,
   "BaroVerticalSpeed": 1.3123479,
   "BaroLastMeasurementTime": "0001-01-01T00:06:44.23Z",
-  "AHRSPitch": -0.97934145732801,
-  "AHRSRoll": -2.2013729217108,
-  "AHRSGyroHeading": 187741.08073052,
-  "AHRSMagHeading": 3276.7,
-  "AHRSSlipSkid": 0.52267604604907,
-  "AHRSTurnRate": 3276.7,
-  "AHRSGLoad": 0.99847599584255,
-  "AHRSGLoadMin": 0.99815989027411,
-  "AHRSGLoadMax": 1.0043409597397,
-  "AHRSLastAttitudeTime": "0001-01-01T00:06:44.28Z",
-  "AHRSStatus": 7
+  "AHRSPitch": -0.97934145732801,                     // Degrees. 3276.7 = Invalid.
+  "AHRSRoll": -2.2013729217108,                       // Degrees. 3276.7 = Invalid.
+  "AHRSGyroHeading": 187741.08073052,                 // Degrees. Process mod 360. 3276.7 = Invalid.
+  "AHRSMagHeading": 3276.7,                           // Degrees. Process mod 360. 3276.7 = Invalid.
+  "AHRSSlipSkid": 0.52267604604907,                   // Degrees. 3276.7 = Invalid.
+  "AHRSTurnRate": 3276.7,                             // Degrees per second. 3276.7 = Invalid.
+  "AHRSGLoad": 0.99847599584255,                      // Current G load, in G's. Reads 1 G at rest.
+  "AHRSGLoadMin": 0.99815989027411,                   // Minimum recorded G load, in G's.
+  "AHRSGLoadMax": 1.0043409597397,                    // Maximum recorded G load, in G's.
+  "AHRSLastAttitudeTime": "0001-01-01T00:06:44.28Z",  // Stratux clock ticks since last attitude update. Reference against /getStatus -> UptimeClock.
+  "AHRSStatus": 7                                     // Status bitmask. See main/sensors.go -> updateAHRSStatus().
 }
 ```
 
