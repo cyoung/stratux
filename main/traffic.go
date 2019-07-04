@@ -348,10 +348,10 @@ func estimateDistance(ti *TrafficInfo) {
 
 func postProcessTraffic(ti *TrafficInfo) {
 	estimateDistance(ti)
-	if ti.Distance < 40000 && ti.Distance > 0 {
-		msg := fmt.Sprintf("Estimated factor: %f, distance for %d (%f): %fm, real: %fm", estimatedDistFactor, ti.Icao_addr, ti.SignalLevel, ti.DistanceEstimated, ti.Distance)
-		log.Printf(msg)
-	}
+	//if ti.Distance < 40000 && ti.Distance > 0 {
+	//	msg := fmt.Sprintf("Estimated factor: %f, distance for %d (%f): %fm, real: %fm", estimatedDistFactor, ti.Icao_addr, ti.SignalLevel, ti.DistanceEstimated, ti.Distance)
+	//	log.Printf(msg)
+	//}
 }
 
 // Send update to attached JSON client.
