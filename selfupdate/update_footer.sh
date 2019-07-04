@@ -90,9 +90,11 @@ chmod 755 /usr/bin/ahrs_approx
 
 # DHCPD Config.
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 # Interfaces file.
 cp -f interfaces /etc/network/interfaces
+cp -f interfaces.template /etc/network/interfaces.template
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}

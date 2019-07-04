@@ -96,6 +96,7 @@ cp -f motd /etc/motd
 
 #dhcpd config
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 #hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
@@ -108,6 +109,8 @@ chmod 755 /usr/sbin/hostapd_manager.sh
 rm -f /etc/rc*.d/*hostapd /etc/network/if-pre-up.d/hostapd /etc/network/if-post-down.d/hostapd /etc/init.d/hostapd /etc/default/hostapd
 #interface config
 cp -f interfaces /etc/network/interfaces
+cp -f interfaces.template /etc/network/interfaces.template
+
 #custom hostapd start script
 cp stratux-wifi.sh /usr/sbin/
 chmod 755 /usr/sbin/stratux-wifi.sh

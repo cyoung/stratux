@@ -1,0 +1,59 @@
+auto lo
+
+iface lo inet loopback
+
+allow-hotplug eth0
+iface eth0 inet dhcp
+
+allow-hotplug wlan0
+
+iface wlan0 inet static
+  address {{.IpAddr}}
+  netmask 255.255.255.0
+  post-up /usr/sbin/stratux-wifi.sh
+  wireless-power off
+
+
+#####################################################################
+##               Custom settings not for novice users!!!!!!  
+##               Modify at your own risk!!!!!!!!!!!!!!!!!!!
+##
+##   Second Wifi Dongle for local work and internet access
+##   This template is for adding a second wifi dongle to your PI for internet access while debugging
+##     Modify /etc/wpa_supplicant/wpa_supplicant.conf with your settings also( see below )
+##
+##  Uncomment the following lines as needed. 
+
+# allow-hotplug wlan1
+# iface wlan1 inet manual
+#     wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+# iface name_of_WPA_Config inet dhcp
+# iface name_of_other_WPA_Config inet dhcp
+
+
+## End of interfaces
+
+
+#contents of wpa_supplicant.conf
+#############################################################
+# ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+# update_config=1
+
+# network={
+#     ssid="SSID_1"
+#     id_str="name_of_WPA_Config"
+#     scan_ssid=1
+#     key_mgmt=WPA-PSK
+#     psk="mypassword"
+#     priority=1
+# }
+
+# network={
+#     ssid="SSID_2"
+#     id_str="name_of_other_WPA_Config"
+#     scan_ssid=1
+#     key_mgmt=WPA-PSK
+#     psk="mypassword"
+#     priority=3
+# }
+#############################################################

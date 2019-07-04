@@ -1164,6 +1164,7 @@ type settings struct {
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
+	WiFiIPAddress        string
 	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool
 	RadarLimits          int
@@ -1249,6 +1250,12 @@ func defaultSettings() {
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
+
+	globalSettings.WiFiChannel = 1
+	globalSettings.WiFiIPAddress = "192.168.10.1"
+	globalSettings.WiFiPassphrase = ""
+	globalSettings.WiFiSSID = "stratux"
+	globalSettings.WiFiSecurityEnabled = false
 
 	globalSettings.RadarLimits = 2000
 	globalSettings.RadarRange = 10

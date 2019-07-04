@@ -221,7 +221,7 @@ func sendTrafficUpdates() {
 		
 		// TODO: also filter by altitude. +- >2000ft is not relevant
 		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
-			if bestEstimate.Alt > 0 && math.Abs(bestEstimate.Alt - currAlt) < 2000 {
+			if bestEstimate.Alt > 0 && math.Abs(float64(bestEstimate.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
 		}

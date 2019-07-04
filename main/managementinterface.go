@@ -291,7 +291,6 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		// raw, _ := httputil.DumpRequest(r, true)
 		// log.Printf("handleSettingsSetRequest:raw: %s\n", raw)
 
-		var resetWiFi bool
 		decoder := json.NewDecoder(r.Body)
 		for {
 			var msg map[string]interface{} // support arbitrary JSON
@@ -409,17 +408,15 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 						globalSettings.StaticIps = ips
 					case "WiFiSSID":
-						globalSettings.WiFiSSID = val.(string)
-						resetWiFi = true
+						setWifiSSID(val.(string))
 					case "WiFiChannel":
-						globalSettings.WiFiChannel = int(val.(float64))
-						resetWiFi = true
+						setWifiChannel(int(val.(float64)))
 					case "WiFiSecurityEnabled":
-						globalSettings.WiFiSecurityEnabled = val.(bool)
-						resetWiFi = true
+						setWifiSecurityEnabled(val.(bool))
 					case "WiFiPassphrase":
-						globalSettings.WiFiPassphrase = val.(string)
-						resetWiFi = true
+						setWifiPassphrase(val.(string))
+					case "WiFiIPAddress":
+						setWifiIPAddress(val.(string))
 					case "GDL90MSLAlt_Enabled":
 						globalSettings.GDL90MSLAlt_Enabled = val.(bool)
 					case "SkyDemonAndroidHack":
@@ -429,26 +426,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 				saveSettings()
-				if resetWiFi {
-					saveWiFiUserSettings()
-					go func() {
-						time.Sleep(time.Second)
-						cmd := exec.Command("ifdown", "wlan0")
-						if err := cmd.Start(); err != nil {
-							log.Printf("Error shutting down WiFi: %s\n", err.Error())
-						}
-						if err = cmd.Wait(); err != nil {
-							log.Printf("Error shutting down WiFi: %s\n", err.Error())
-						}
-						cmd = exec.Command("ifup", "wlan0")
-						if err := cmd.Start(); err != nil {
-							log.Printf("Error starting WiFi: %s\n", err.Error())
-						}
-						if err = cmd.Wait(); err != nil {
-							log.Printf("Error starting WiFi: %s\n", err.Error())
-						}
-					}()
-				}
+				applyNetworkSettings(false)
 			}
 		}
 

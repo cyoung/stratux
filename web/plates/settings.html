@@ -146,6 +146,10 @@
                                     ng-model="WiFiChannel" ng-options="x for x in Channels"></select>
                         </div>
                         <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Stratux IP Address</label>
+                            <input class="col-xs-7" type="text" ip-addr-input ng-model="WiFiIPAddress" placeholder="192.168.10.1" />
+                        </div>
+                        <div class="form-group reset-flow">
                             <button class="btn btn-primary btn-block" ng-click="updateWiFi()">Submit WiFi Changes</button>
                         </div>
                     </form>
@@ -399,6 +403,7 @@
                         <p>WiFi Security: <b>{{WiFiSecurityEnabled}}</b></p>
                         <p>WiFi Passphrase: <b>{{WiFiPassphrase}}</b></p>
                         <p>WiFi Channel: <b>{{WiFiChannel}}</b></p>
+                        <p>Stratux IP: <b>{{WiFiIPAddress}}</b></p>
                         <p>Your Stratux's WiFi services are now restarting to apply the new settings. This could take up to 30 seconds.<br/>
                            You might have to reconnect to your new WiFi SSID. </p>
                     </div>

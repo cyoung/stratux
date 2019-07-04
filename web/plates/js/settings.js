@@ -50,6 +50,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.WiFiPassphrase = settings.WiFiPassphrase;
         $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
         $scope.WiFiChannel = settings.WiFiChannel;
+		$scope.WiFiIPAddress = settings.WiFiIPAddress;
 
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 	}
@@ -290,7 +291,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
                 "WiFiSSID" :  $scope.WiFiSSID,
                 "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
                 "WiFiPassphrase" : $scope.WiFiPassphrase,
-                "WiFiChannel" : parseInt($scope.WiFiChannel)
+                "WiFiChannel" : parseInt($scope.WiFiChannel),
+				"WiFiIPAddress" : $scope.WiFiIPAddress
             };
 
             // console.log(angular.toJson(newsettings));
@@ -385,6 +387,24 @@ angular.module('appControllers')
                     var r = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
                     var valid = (new RegExp("^(" + r + "( " + r + ")*|)$", "g")).test(value);
                     ctrl.$setValidity('ipList', valid);
+                    if (valid) {
+                        return value;
+                    } else {
+                        return "";
+                    }
+                }
+                ctrl.$parsers.push(ipListValidation);
+            }
+        };
+    })
+	.directive('ipAddrInput', function() { // directive for validation of a single IP address
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function ipListValidation(value) {
+                    var r = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+                    var valid = (new RegExp(r, "g")).test(value);
+                    ctrl.$setValidity('ipAddr', valid);
                     if (valid) {
                         return value;
                     } else {
