@@ -72,7 +72,7 @@ else
     git clone --recursive https://github.com/b3nn0/stratux.git
     # TODO: remove me
     cd stratux
-    git checkout bplustesting
+    git checkout flarm-nmea
     git submodule sync
     git submodule update --remote dump1090
     cd ..
