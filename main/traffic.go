@@ -219,9 +219,9 @@ func sendTrafficUpdates() {
 			ti.BearingDist_valid = false
 		}
 		
-		// TODO: also filter by altitude. +- >2000ft is not relevant
+		// As bearingless targets, we show the closest estimated traffic that is between +-3000ft
 		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
-			if bestEstimate.Alt > 0 && math.Abs(float64(bestEstimate.Alt) - float64(currAlt)) < 2000 {
+			if bestEstimate.Alt > 0 && math.Abs(float64(bestEstimate.Alt) - float64(currAlt)) < 3000 {
 				bestEstimate = ti
 			}
 		}
@@ -294,7 +294,7 @@ func sendTrafficUpdates() {
 
 	sendNetFLARM(msgFLARM)
 	// Also send the nearest best bearingless
-	if bestEstimate.DistanceEstimated > 0 {
+	if bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 30000 {
 		msg, valid := makeFlarmPFLAAString(bestEstimate)
 		if valid { 
 			sendNetFLARM(msg)
@@ -339,6 +339,7 @@ func estimateDistance(ti *TrafficInfo) {
 			errorFactor = ti.Distance / ti.DistanceEstimated
 		}
 		estimatedDistFactor += errorFactor
+		//log.Printf("Estimate off: %f, new factor: %f", errorFactor, estimatedDistFactor)
 		if (estimatedDistFactor < 1.0) {
 			estimatedDistFactor = 1.0
 		}

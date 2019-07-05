@@ -652,4 +652,5 @@ func initNetwork() {
 	go networkStatsCounter()
 	go serialOutWatcher()
 	go networkOutWatcher()
+	go tcpNMEAListener()
 }
