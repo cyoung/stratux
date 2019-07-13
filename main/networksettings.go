@@ -146,4 +146,5 @@ func writeTemplate(tplFile string, outFile string, settings NetworkTemplateParam
 		log.Printf("Network Settings: Unable to execute template substitution %s: %s", outFile, err)
 		return
 	}
+	outputFile.Sync()
 }

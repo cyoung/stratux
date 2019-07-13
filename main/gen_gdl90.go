@@ -1316,6 +1316,7 @@ func saveSettings() {
 	defer fd.Close()
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
+	fd.Sync()
 	log.Printf("wrote settings.\n")
 }
 
@@ -1369,6 +1370,7 @@ func saveWiFiUserSettings() {
 		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
 	}
 	writer.Flush()
+	fd.Sync()
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
