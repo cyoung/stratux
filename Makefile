@@ -15,11 +15,11 @@ all:
 
 xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
-	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/flarm.go
+	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/flarm.go main/flarm-nmea.go main/networksettings.go
 
 fancontrol:
 	go get -t -d -v ./main
-	go build $(BUILDINFO_STATIC) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
+	go build $(BUILDINFO) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
 	git submodule update --init
@@ -45,7 +45,6 @@ install:
 	/usr/bin/fancontrol install
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
 	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
-	cp image/dhcpd.conf /etc/dhcp/dhcpd.conf
 	rm -f /etc/init.d/stratux
 	cp __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
 	cp __root__stratux-pre-start.sh /root/stratux-pre-start.sh

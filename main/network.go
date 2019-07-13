@@ -69,6 +69,7 @@ const (
 	NETWORK_GDL90_STANDARD = 1
 	NETWORK_AHRS_FFSIM     = 2
 	NETWORK_AHRS_GDL90     = 4
+	NETWORK_FLARM_NMEA     = 8
 	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
 	dhcp_lease_dir         = "/var/lib/dhcp"
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
@@ -651,4 +652,5 @@ func initNetwork() {
 	go networkStatsCounter()
 	go serialOutWatcher()
 	go networkOutWatcher()
+	go tcpNMEAListener()
 }

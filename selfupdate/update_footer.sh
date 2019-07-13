@@ -21,7 +21,6 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
-cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
 
 #rsyslog config
 cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
@@ -81,6 +80,9 @@ chmod 755 /usr/bin/fancontrol
 cp -f dump1090 /usr/bin/
 chmod 755 /usr/bin/dump1090
 
+# Install libwiringpi
+cp -f libwiringPi.so /usr/lib/
+
 # AHRS approx data.
 cp -f ahrs_table.log /root/
 cp -f ahrs_approx /usr/bin/
@@ -88,9 +90,11 @@ chmod 755 /usr/bin/ahrs_approx
 
 # DHCPD Config.
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 # Interfaces file.
 cp -f interfaces /etc/network/interfaces
+cp -f interfaces.template /etc/network/interfaces.template
 
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}

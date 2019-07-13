@@ -3,6 +3,7 @@
 # DO NOT CALL ME DIRECTLY!
 # This script is called by mk_europe_edition.sh via qemu
 
+mv /etc/ld.so.preload /etc/ld.so.preload.bak
 cd /root/stratux
 
 # Make sure that the upgrade doesn't restart services in the chroot..
@@ -21,23 +22,43 @@ mkdir -p /proc/sys/vm/
 
 apt update
 PATH=/root/fake:$PATH apt dist-upgrade --yes
+apt clean
+
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
-    libusb-1.0-0.dev build-essential mercurial build-essential autoconf fftw3 fftw3-dev libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen libsdl1.2-dev
-apt-get clean
-echo y | rpi-update
+    libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
+    python-pip python-dev python-pil python-daemon screen wiringpi
+apt clean
+#echo y | rpi-update
 
 systemctl enable isc-dhcp-server
 systemctl enable ssh
 systemctl disable ntp
 systemctl disable dhcpcd
 systemctl disable hciuart
+systemctl disable hostapd
+
+echo INTERFACESv4=\"wlan0\" >> /etc/default/isc-dhcp-server
 
 rm -r /proc/*
 rm -r /root/fake
 
+
+# For some reason in buster, the 8192cu module seems to crash the kernel when a client connects to hostapd.
+# Use rtl8192cu module instead, even though raspbian doesn't seem to recommend it.
+rm /etc/modprobe.d/blacklist-rtl8192cu.conf
+echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
+
+# The current libfftw loads extremely slow, causing ogn-rf to take around 2-3 minutes to start up.
+# Revert to older version for now..
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-bin_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-dev_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-double3_3.3.5-3_armhf.deb
+wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-single3_3.3.5-3_armhf.deb
+dpkg -i libfftw*.deb
+rm libfftw*.deb
+
 # Prepare wiringpi for fancontrol and some more tools
-cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
+#cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
 
 
 
@@ -53,7 +74,6 @@ rm -rf /root/librtlsdr
 git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
 mkdir -p /root/librtlsdr/build
 cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
-chroot mnt/ 'cd /root/librtlsdr/build && cmake ../ && make && make install && ldconfig'
 
 # Compile stratux
 cd /root/stratux
@@ -62,7 +82,7 @@ cd /root/stratux
 export GOMAXPROCS=1
 #go get -u github.com/kidoman/embd/embd
 make clean
-# Sometimes go build fails for some reason.. we will just try three times and hope for the best
+# Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
 make
 make
 make
@@ -76,20 +96,21 @@ cp -f motd /etc/motd
 
 #dhcpd config
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 #hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
-cp -f hostapd-edimax.conf /etc/hostapd/hostapd-edimax.conf
+
 #hostapd manager script
 cp -f hostapd_manager.sh /usr/sbin/hostapd_manager.sh
 chmod 755 /usr/sbin/hostapd_manager.sh
-#hostapd
-cp -f hostapd-edimax /usr/sbin/hostapd-edimax
-chmod 755 /usr/sbin/hostapd-edimax
+
 #remove hostapd startup scripts
 rm -f /etc/rc*.d/*hostapd /etc/network/if-pre-up.d/hostapd /etc/network/if-post-down.d/hostapd /etc/init.d/hostapd /etc/default/hostapd
 #interface config
 cp -f interfaces /etc/network/interfaces
+cp -f interfaces.template /etc/network/interfaces.template
+
 #custom hostapd start script
 cp stratux-wifi.sh /usr/sbin/
 chmod 755 /usr/sbin/stratux-wifi.sh
@@ -117,6 +138,7 @@ chmod 755 /usr/bin/fancontrol
 cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #sshd config
+# Do not copy for now. It contains many deprecated options and isn't needed.
 cp -f sshd_config /etc/ssh/sshd_config
 
 #udev config
@@ -154,20 +176,23 @@ git clone https://github.com/steve-m/kalibrate-rtl
 cd kalibrate-rtl
 ./bootstrap
 ./configure
-make
+make -j8
 make install
 
-# TODO: do we need this?
-cd /root
-git clone https://github.com/rm-hull/ssd1306
-cd ssd1306
+
+# TODO: not working right now - the pip one seems to at least make stratux-screen runnable (untested)
+#cd /root
+#git clone https://github.com/rm-hull/ssd1306
+#cd ssd1306
 # Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
-git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
-echo Y | python setup.py install
+#git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
+#echo Y | python setup.py install
+pip install luma.core
+pip install luma.oled
 
 
 #disable serial console
-sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
+sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
@@ -178,3 +203,6 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 # Now also prepare the update file..
 cd /root/stratux/selfupdate
 ./makeupdate.sh
+
+
+mv /etc/ld.so.preload.bak /etc/ld.so.preload

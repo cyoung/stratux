@@ -83,6 +83,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
 		new_traffic.dist = (obj.Distance/1852); // nautical miles
+		new_traffic.distEst = obj.DistanceEstimated / 1852;
 		// return new_aircraft;
 	}
 

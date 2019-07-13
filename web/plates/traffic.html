@@ -14,7 +14,7 @@
 					<span class="col-xs-2" ng-hide="showSquawk"><strong>Code</strong></span>
 					<span class="col-xs-2" ng-show="showSquawk"><strong>Squawk</strong></span>
 					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
-					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist"><strong>Dist</strong></span>
+					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist"><strong>Dist (estimated)</strong></span>
 					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
 				</div>
 				
@@ -44,7 +44,7 @@
 						<span ng-show="showSquawk"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
 					</span>
 					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
-					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}<span style="font-size:50%">NM</span></span>
+					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}} ({{aircraft.distEst.toFixed(1)}})<span style="font-size:50%">NM</span></span>
 					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
 
 				</div>
@@ -99,8 +99,9 @@
 				<div class="col-sm-6">
 					<span class="col-xs-4" ng-hide="showReg"><strong>Callsign</strong></span>
 					<span class="col-xs-4" ng-show="showReg"><strong>Tail Num</strong></span>
-					<span class="col-xs-3"><strong>Code</strong></span>
-					<span class="col-xs-3"><strong>Squawk</strong></span>
+					<span class="col-xs-2"><strong>Code</strong></span>
+					<span class="col-xs-2"><strong>Squawk</strong></span>
+					<span class="col-xs-2"><strong>Dist est.</strong></span>
 				</div>
 				
 				<div class="col-sm-6">
@@ -123,8 +124,9 @@
 						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
 						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
-					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
-					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+					<span class="col-xs-2" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
+					<span class="col-xs-2"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+					<span class="col-xs-2">{{aircraft.distEst.toFixed(1)}}<span style="font-size:50%">NM</span></span>
 				</div>
 
 				<div class="col-sm-6">

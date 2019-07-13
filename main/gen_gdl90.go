@@ -796,6 +796,10 @@ func heartBeatSender() {
 				sendAllOwnshipInfo()
 			}
 
+			sendNetFLARM(makeGPRMCString())
+			sendNetFLARM(makeGPGGAString())
+			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n")
+
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
 			/*
@@ -1160,6 +1164,7 @@ type settings struct {
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
+	WiFiIPAddress        string
 	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool
 	RadarLimits          int
@@ -1232,6 +1237,7 @@ func defaultSettings() {
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
+		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
 		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.DEBUG = false
@@ -1245,6 +1251,12 @@ func defaultSettings() {
 	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
 
+	globalSettings.WiFiChannel = 1
+	globalSettings.WiFiIPAddress = "192.168.10.1"
+	globalSettings.WiFiPassphrase = ""
+	globalSettings.WiFiSSID = "stratux"
+	globalSettings.WiFiSecurityEnabled = false
+
 	globalSettings.RadarLimits = 2000
 	globalSettings.RadarRange = 10
 }
@@ -1257,7 +1269,7 @@ func readSettings() {
 		return
 	}
 	defer fd.Close()
-	buf := make([]byte, 1024)
+	buf := make([]byte, 2048)
 	count, err := fd.Read(buf)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
@@ -1304,6 +1316,7 @@ func saveSettings() {
 	defer fd.Close()
 	jsonSettings, _ := json.Marshal(&globalSettings)
 	fd.Write(jsonSettings)
+	fd.Sync()
 	log.Printf("wrote settings.\n")
 }
 
@@ -1357,6 +1370,7 @@ func saveWiFiUserSettings() {
 		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
 	}
 	writer.Flush()
+	fd.Sync()
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
