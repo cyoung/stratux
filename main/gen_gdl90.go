@@ -1269,7 +1269,7 @@ func readSettings() {
 		return
 	}
 	defer fd.Close()
-	buf := make([]byte, 1024)
+	buf := make([]byte, 2048)
 	count, err := fd.Read(buf)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
