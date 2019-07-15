@@ -106,7 +106,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 	//}
 
 	altf := mySituation.BaroPressureAltitude
-	if !isTempPressValid() { // if no pressure altitude available, use GPS altitude
+	if !isTempPressValid() || ti.AltIsGNSS { // if no pressure altitude available, use GPS altitude
 		altf = mySituation.GPSAltitudeMSL
 	}
 	relativeVertical = int32(float32(ti.Alt)*0.3048 - altf*0.3048) // convert to meters
