@@ -1,8 +1,6 @@
 [submodule "dump1090"]
         path = dump1090
-        #url = https://github.com/stratux/dump1090
-        url = https://github.com/b3nn0/dump1090.git
-        branch = gcc7-fixes
+        url = https://github.com/stratux/dump1090
 [submodule "goflying"]
 	path = goflying
 	url = https://github.com/cyoung/goflying
