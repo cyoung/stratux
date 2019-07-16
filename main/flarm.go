@@ -389,8 +389,16 @@ func processAprsData(aprsData string) {
 		ti.Last_source = TRAFFIC_SOURCE_FLARM
 
 		// set altitude
-		ti.Alt = int32(data.Altitude)
-		ti.AltIsGNSS = true
+		// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
+		// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
+		if isGPSValid() && isTempPressValid() {
+			ti.Alt = int32(float32(data.Altitude) - mySituation.GPSHeightAboveEllipsoid + mySituation.BaroPressureAltitude)
+		} else {
+			ti.Alt = int32(data.Altitude)
+			ti.AltIsGNSS = true
+		}
+
+
 		ti.Last_alt = stratuxClock.Time
 
 		// set vertical speed

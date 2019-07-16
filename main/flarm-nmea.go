@@ -106,10 +106,10 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool) {
 	//}
 
 	altf := mySituation.BaroPressureAltitude
-	if !isTempPressValid() { // if no pressure altitude available, use GPS altitude
+	if !isTempPressValid() && isGPSValid() { // if no pressure altitude available, use GPS altitude
 		altf = mySituation.GPSAltitudeMSL
 	}
-	if ti.AltIsGNSS {
+	if ti.AltIsGNSS && isGPSValid() {
 		// Altitude coming from OGN. We set the geoid separation to 0 in the OGN config, so OGN reports ellipsoid alt - we need to compare to that
 		altf = mySituation.GPSHeightAboveEllipsoid
 	}
