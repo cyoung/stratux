@@ -287,8 +287,8 @@ func initGPSSerial() bool {
 				log.Printf("ublox 9 detected\n")
 			}
 			// ublox 9: use default GNSS configuration
-			} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-				if globalSettings.DEBUG {
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+			if globalSettings.DEBUG {
 				log.Printf("ublox 8 detected\n")
 			}
 			// ublox 8
@@ -307,8 +307,8 @@ func initGPSSerial() bool {
 			cfgGnss = append(cfgGnss, galileo...)
 			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // SBAS off
-			} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
-				if globalSettings.DEBUG {
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
+			if globalSettings.DEBUG {
 				log.Printf("ublox 6 or 7 detected\n")
 			}
 			// ublox 6,7

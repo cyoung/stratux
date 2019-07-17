@@ -311,9 +311,9 @@ func makeGPGGAString() string {
 	lng = deg*100 + min
 
 	numSV := thisSituation.GPSSatellites
-	if numSV > 12 {
-		numSV = 12
-	}
+	//if numSV > 12 {
+	//	numSV = 12
+	//}
 
 	//hdop := float32(thisSituation.Accuracy / 4.0)
 	//if hdop < 0.7 {hdop = 0.7}
@@ -327,9 +327,7 @@ func makeGPGGAString() string {
 	if isGPSValid() {
 		msg = fmt.Sprintf("GPGGA,%02.f%02.f%05.2f,%010.5f,%s,%011.5f,%s,%d,%d,%.2f,%.1f,M,%.1f,M,,", hr, mins, sec, lat, ns, lng, ew, thisSituation.GPSFixQuality, numSV, hdop, alt, geoidSep)
 	} else {
-		msg = fmt.Sprintf("GPTXT,Nope")
-
-		//msg = fmt.Sprintf("GPRMC,,%s,,,,,,,%02d%02d%02d,%s,%s,%s", status, dd, mm, yy, magVar, mvEW, mode) // return null lat-lng and velocity if invalid GPS
+		msg = fmt.Sprintf("GPGGA,,,,,,0,%d,,,,,,,", numSV)
 	}
 
 	var checksum byte
