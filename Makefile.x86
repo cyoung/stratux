@@ -57,6 +57,10 @@ install:
 	mkfifo /var/run/ogn-rf.fifo
 	chmod a+s /usr/bin/ogn-rf
 
+	# make sure we have a user-writabel stratux.conf
+	touch /etc/stratux.conf
+	chmod a+rw /etc/stratux.conf
+
 clean:
 	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean

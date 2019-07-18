@@ -64,10 +64,6 @@ install:
 	chmod a+s /usr/bin/ogn-rf
 	cp -f ogn/rtlsdr-ogn/ogn-decode /usr/bin/
 
-	# make sure we have a user-writabel stratux.conf
-	touch /etc/stratux.conf
-	chmod a+rw /etc/stratux.conf
-
 clean:
 	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean
