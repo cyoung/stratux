@@ -893,7 +893,7 @@ func managementInterface() {
 	usr, _ := user.Current()
 	addr := managementAddr
 	if usr.Username != "root" {
-		addr = ":8080" // Make sure we can run without root priviledges on different port
+		addr = ":8000" // Make sure we can run without root priviledges on different port
 	}
 	err := http.ListenAndServe(addr, nil)
 
