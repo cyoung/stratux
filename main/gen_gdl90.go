@@ -1702,7 +1702,9 @@ func main() {
 	initDataLog()
 
 	// Start the AHRS sensor monitoring.
-	initI2CSensors()
+	if runtime.GOARCH != "i386" && runtime.GOARCH != "amd64" {
+		initI2CSensors()
+	}
 
 	// Start the GPS external sensor monitoring.
 	initGPS()

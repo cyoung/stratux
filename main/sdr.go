@@ -181,8 +181,8 @@ func (f *FLARM) read() {
 	log.Println("Entered FLARM read() ...")
 
 	// generate OGN configuration file
-	configTemplateFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf.template"
-	configFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf"
+	configTemplateFileName := "/etc/stratux-ogn.conf.template"
+	configFileName := "/tmp/stratux-ogn.conf"
 	OGNConfigDataCache.DeviceIndex = strconv.Itoa(f.indexID)
 	OGNConfigDataCache.Ppm = strconv.Itoa(f.ppm)
 	OGNConfigDataCache.Longitude = "0.0"

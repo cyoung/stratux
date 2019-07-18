@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user" 
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -889,7 +890,12 @@ func managementInterface() {
 	http.HandleFunc("/downloadahrslogs", handleDownloadAHRSLogsRequest)
 	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
 
-	err := http.ListenAndServe(managementAddr, nil)
+	usr, _ := user.Current()
+	addr := managementAddr
+	if usr.Username != "root" {
+		addr = ":8080" // Make sure we can run without root priviledges on different port
+	}
+	err := http.ListenAndServe(addr, nil)
 
 	if err != nil {
 		log.Printf("managementInterface ListenAndServe: %s\n", err.Error())

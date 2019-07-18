@@ -546,8 +546,8 @@ func flarmListen() {
 		go aprsServer()
 
 		// set OGN configuration file path
-		configTemplateFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf.template"
-		configFileName := "/root/stratux/ogn/rtlsdr-ogn/stratux.conf"
+		configTemplateFileName := "/etc/stratux-ogn.conf.template"
+		configFileName := "/tmp/stratux-ogn.conf"
 
 		// initialize decoding infrastructure
 		var decodingProcess *os.Process
