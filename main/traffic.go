@@ -294,10 +294,19 @@ func sendTrafficUpdates() {
 
 	sendNetFLARM(msgFLARM)
 	// Also send the nearest best bearingless
-	if bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
+	if globalSettings.EstimateBearinglessDist && bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
 		msg, valid := makeFlarmPFLAAString(bestEstimate)
 		if valid { 
 			sendNetFLARM(msg)
+		}
+
+		if isGPSValid() {
+			fakeTargets := calculateModeSFakeTargets(bestEstimate)
+			fakeMsg :=  make([]byte, 0)
+			for _, ti := range fakeTargets {
+				fakeMsg = append(fakeMsg, makeTrafficReportMsg(ti)...)
+			}
+			sendGDL90(fakeMsg, false)
 		}
 	}
 
@@ -345,6 +354,41 @@ func estimateDistance(ti *TrafficInfo) {
 		}
 	}
 
+}
+
+ // calculates coordinates of a point defined by a location, a bearing, and a distance, thanks to 0x74-0x62
+func calcLocationForBearingDistance(lat1, lon1, bearingDeg, distanceNm float64) (lat2, lon2 float64) {
+	lat1Rad := radians(lat1)
+	lon1Rad := radians(lon1)
+	bearingRad := radians(bearingDeg)
+	distanceRad := distanceNm / (180 * 60 / math.Pi)
+
+	lat2Rad := math.Asin(math.Sin(lat1Rad)*math.Cos(distanceRad) + math.Cos(lat1Rad)*math.Sin(distanceRad)*math.Cos(bearingRad))
+	distanceLon := math.Atan2(math.Sin(bearingRad)*math.Sin(distanceRad)*math.Cos(lat1Rad), math.Cos(distanceRad)-math.Sin(lat1Rad)*math.Sin(lat2Rad))
+	lon2Rad := math.Mod(lon1Rad-distanceLon+math.Pi, 2.0*math.Pi) - math.Pi
+
+	lat2 = degrees(lat2Rad)
+	lon2 = degrees(lon2Rad)
+
+	return
+}
+
+func calculateModeSFakeTargets(bearinglessTi TrafficInfo) []TrafficInfo {
+	result := make([]TrafficInfo, 8)
+	for i := 0; i < 8; i++ {
+		ti := bearinglessTi
+		lat, lon := calcLocationForBearingDistance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(i * 45), bearinglessTi.DistanceEstimated / 1852.0)
+		ti.Lat = float32(lat)
+		ti.Lng = float32(lon)
+		ti.Icao_addr = uint32(i) // So that the EFB shows it as a different aircraft
+		ti.Track = 0
+		ti.Speed = 0
+		ti.Speed_valid = true
+
+		ti.Tail = "MODEC"
+		result[i] = ti
+	}
+	return result
 }
 
 func postProcessTraffic(ti *TrafficInfo) {

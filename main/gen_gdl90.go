@@ -1167,6 +1167,7 @@ type settings struct {
 	WiFiIPAddress        string
 	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool
+	EstimateBearinglessDist bool
 	RadarLimits          int
 	RadarRange           int
 }
@@ -1250,6 +1251,7 @@ func defaultSettings() {
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
+	globalSettings.EstimateBearinglessDist = true
 
 	globalSettings.WiFiChannel = 1
 	globalSettings.WiFiIPAddress = "192.168.10.1"
@@ -1576,6 +1578,10 @@ func clearDebugLogFile() {
 	}
 }
 
+func isX86DebugMode() bool {
+	return runtime.GOARCH == "i386" || runtime.GOARCH == "amd64"
+}
+
 func main() {
 	// Catch signals for graceful shutdown.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -1702,7 +1708,7 @@ func main() {
 	initDataLog()
 
 	// Start the AHRS sensor monitoring.
-	if runtime.GOARCH != "i386" && runtime.GOARCH != "amd64" {
+	if !isX86DebugMode() {
 		initI2CSensors()
 	}
 
@@ -1768,3 +1774,4 @@ func main() {
 		select {}
 	}
 }
+

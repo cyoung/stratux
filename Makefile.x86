@@ -57,6 +57,10 @@ install:
 	mkfifo /var/run/ogn-rf.fifo
 	chmod a+s /usr/bin/ogn-rf
 
+	# Make sure dhcp leases exists..
+	mkdir -p /var/lib/dhcp
+	touch /var/lib/dhcp/dhcpd.leases
+
 	# make sure we have a user-writabel stratux.conf
 	touch /etc/stratux.conf
 	chmod a+rw /etc/stratux.conf

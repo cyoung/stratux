@@ -146,6 +146,10 @@ func getDHCPLeases() (map[string]string, error) {
 	 ***WARNING***: netMutex must be locked before calling this function.
 */
 func isSleeping(k string) bool {
+	// Unable to listen to ICMP without root - send to everything. Just for debugging.
+	if isX86DebugMode() {
+		return false
+	}
 	ipAndPort := strings.Split(k, ":")
 	// No ping response. Assume disconnected/sleeping device.
 	if lastPing, ok := pingResponse[ipAndPort[0]]; !ok || stratuxClock.Since(lastPing) > (10*time.Second) {
