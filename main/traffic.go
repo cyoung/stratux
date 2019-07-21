@@ -381,11 +381,9 @@ func calculateModeSFakeTargets(bearinglessTi TrafficInfo) []TrafficInfo {
 		ti.Lat = float32(lat)
 		ti.Lng = float32(lon)
 		ti.Icao_addr = uint32(i) // So that the EFB shows it as a different aircraft
-		ti.Track = 0
 		ti.Speed = 0
 		ti.Speed_valid = true
-
-		ti.Tail = "MODEC"
+		ti.Tail = "MODE S"
 		result[i] = ti
 	}
 	return result
