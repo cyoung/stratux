@@ -111,7 +111,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		var doUpdate = 0;                                             //1 if update has to be done;
 		var altDiff;                                                  //difference of altitude to my altitude
 		var altDiffValid = 3;                                         // 1 = valid difference 2 = absolute height 3 = u/s
-		var distcirc = (-traffic.ema - 6) * (-traffic.ema - 6) / 30;  //distance approx. in nm, 6dB for double distance
+		var distcirc = traffic.distance_estimated / 1852.0;
 		var distx = Math.round(200 / DisplayRadius * distcirc);       // x position for circle
 		var ctxt;
 
@@ -270,19 +270,6 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (doUpdate == 1) radar.update();  // only necessary if changes were done
 	}
 
-	function expMovingAverage(oldema, newsignal, timelack) {
-		var lambda = 0.5;
-		if (!newsignal) {  //sometimes newsign=NaN
-			return oldema;
-		}
-		if (timelack < 0) {
-			return newsignal;
-		}
-		var expon = Math.exp(-timelack / 100 * lambda);
-		//console.log("Signal %f oldema %f timelack %f new_ema %f\n", newsignal, oldema, timelack, oldema*expon + newsignal*(1-expon));
-		return oldema * expon + newsignal * (1 - expon);
-	}
-
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
@@ -294,7 +281,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.timeVal = timestamp;
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.signal = obj.SignalLevel;
-		new_traffic.ema = expMovingAverage(new_traffic.ema, new_traffic.signal, timeLack);
+		new_traffic.distance_estimated = obj.DistanceEstimated;
 
 		new_traffic.lat = obj.Lat;
 		new_traffic.lon = obj.Lng;
