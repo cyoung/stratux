@@ -220,7 +220,7 @@ func sendTrafficUpdates() {
 		}
 		
 		// As bearingless targets, we show the closest estimated traffic that is between +-3000ft
-		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
+		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && ti.Icao_addr != uint32(code) {
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
