@@ -200,6 +200,8 @@ func sendTrafficUpdates() {
 	msgFLARM := ""
 	msgFlarmCount := 0
 	var bestEstimate TrafficInfo
+	var highestAlarmLevel uint8
+	var highestAlarmTraffic TrafficInfo
 
 	if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
 		log.Printf("List of all aircraft being tracked:\n")
@@ -271,7 +273,11 @@ func sendTrafficUpdates() {
 					msgs = append(msgs, make([]byte, 0))
 				}
 				msgs[cur_n] = append(msgs[cur_n], makeTrafficReportMsg(ti)...)
-				thisMsgFLARM, validFLARM := makeFlarmPFLAAString(ti)
+				thisMsgFLARM, validFLARM, alarmLevel := makeFlarmPFLAAString(ti)
+				if alarmLevel > highestAlarmLevel {
+					highestAlarmLevel = alarmLevel
+					highestAlarmTraffic = ti
+				}
 				//log.Printf(thisMsgFLARM)
 				if validFLARM {
 					//sendNetFLARM(thisMsgFLARM)
@@ -295,7 +301,7 @@ func sendTrafficUpdates() {
 	sendNetFLARM(msgFLARM)
 	// Also send the nearest best bearingless
 	if globalSettings.EstimateBearinglessDist && bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
-		msg, valid := makeFlarmPFLAAString(bestEstimate)
+		msg, valid, _ := makeFlarmPFLAAString(bestEstimate)
 		if valid { 
 			sendNetFLARM(msg)
 		}
@@ -310,23 +316,20 @@ func sendTrafficUpdates() {
 		}
 	}
 
-	// syntax: PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
-	/*msgPFLAU := fmt.Sprintf("PFLAU,%d,1,2,1,0,,0,,", msgFlarmCount)
-	// to-do: update <gps> field with flight / ground status
-
-	checksumPFLAU := byte(0x00)
-	for i := range msgPFLAU {
-		checksumPFLAU = checksumPFLAU ^ byte(msgPFLAU[i])
-	}
-	msgPFLAU = (fmt.Sprintf("$%s*%02X\r\n", msgPFLAU, checksumPFLAU))
-	sendNetFLARM(msgPFLAU)*/
+	msgPFLAU := makeFlarmPFLAUString(highestAlarmTraffic)
+	sendNetFLARM(msgPFLAU)
 }
 
 // Used to tune to our radios. We compare our estimate to real values for ADS-B Traffic.
-// If we tend to estimate too high, we reduce this value, otherwise we increase it
-var estimatedDistFactor = 3000.0
+// If we tend to estimate too high, we reduce this value, otherwise we increase it.
+// We also try to correct for different transponder transmit power, by assuming that aircraft that fly high are bigger aircraft
+// and have a stronger transponder. Low aircraft are small aircraft with weak transmission power.
+// This is only a wild guess, but seems to help a bit. To do so, we use different estimatedDistFactors for different
+// altitude buckets: <5000ft, 5000-10000ft, >10000ft
+var estimatedDistFactors [3]float64 = [3]float64{2500.0, 2800.0, 3000.0}
 func estimateDistance(ti *TrafficInfo) {
-	dist := math.Pow(2.0, -ti.SignalLevel / 6.0) * estimatedDistFactor;  // distance approx. in meters, 6dB for double distance
+	altClass := int32(math.Max(0.0, math.Min(float64(ti.Alt / 5000), 2.0)))
+	dist := math.Pow(2.0, -ti.SignalLevel / 6.0) * estimatedDistFactors[altClass];  // distance approx. in meters, 6dB for double distance
 
 	lambda := 0.2;
 	timeDiff := ti.Timestamp.Sub(ti.DistanceEstimatedLastTs).Seconds() * 1000
@@ -347,10 +350,10 @@ func estimateDistance(ti *TrafficInfo) {
 		} else {
 			errorFactor = ti.Distance / ti.DistanceEstimated
 		}
-		estimatedDistFactor += errorFactor
+		estimatedDistFactors[altClass] += errorFactor
 		//log.Printf("Estimate off: %f, new factor: %f", errorFactor, estimatedDistFactor)
-		if (estimatedDistFactor < 1.0) {
-			estimatedDistFactor = 1.0
+		if (estimatedDistFactors[altClass] < 1.0) {
+			estimatedDistFactors[altClass] = 1.0
 		}
 	}
 
