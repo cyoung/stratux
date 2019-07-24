@@ -9,6 +9,10 @@ BASE_IMAGE_URL="http://director.downloads.raspberrypi.org/raspbian_lite/images/r
 IMGNAME="2019-07-10-raspbian-buster-lite.img"
 TMPDIR="$HOME/stratux-tmp"
 
+if [ "$#" -ne 2 ]; then
+    echo "Usage: " $0 " dev|prod branch"
+    exit 1
+fi
 
 # cd to script directory
 cd "$(dirname "$0")"
@@ -68,14 +72,9 @@ rm go1.12.4.linux-armv6l.tar.gz
 
 if [ "$1" == "dev" ]; then
     cp -ra $SRCDIR .
+    cd stratux && git checkout $2 && cd ..
 else
-    git clone --recursive https://github.com/b3nn0/stratux.git
-    # TODO: remove me
-    #cd stratux
-    #git checkout flarm-nmea
-    #git submodule sync
-    #git submodule update --remote dump1090
-    #cd ..
+    git clone --recursive -b $2 https://github.com/b3nn0/stratux.git
 fi
 cd ../..
 
