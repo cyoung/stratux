@@ -13,7 +13,8 @@
             "program": "${workspaceRoot}/gen_gdl90",
             "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
             "args": ["-log_dir", "/tmp/", "-logtostderr"],
-            "preLaunchTask": "Build"
+            "preLaunchTask": "Build",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
