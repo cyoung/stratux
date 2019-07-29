@@ -246,6 +246,13 @@ func sendTrafficUpdates() {
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
 		}
+		if ti.Age < 6 && ti.Icao_addr != uint32(code) {
+			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 && //take 30% more to see moving outs
+			   float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 && // altitude lower than upper boundary
+			   (!ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3) {    //allow more so that aircraft moves out
+				radarUpdate.SendJSON(ti)
+			}
+		}
 		if ti.Position_valid && ti.Age < 6 { // ... but don't pass stale data to the EFB.
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
@@ -256,11 +263,6 @@ func sendTrafficUpdates() {
 				}
 				OwnshipTrafficInfo = ti
 			} else {
-				if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 && //take 30% more to see moving outs
-				  float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 && // altitude lower than upper boundary
-				  (!ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3) {    //allow more so that aircraft moves out
-					radarUpdate.SendJSON(ti)
-				}
 				cur_n := len(msgs) - 1
 				if len(msgs[cur_n]) >= 35 {
 					// Batch messages into packets with at most 35 traffic reports
