@@ -13,6 +13,9 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Hide Weather/Towers page if UAT is disabled
 * Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
+* Support for FLARM NMEA Output via TCP Port 2000
+* Estimation of Mode C/S target distance by signal strength, transmission of bearingless targets via Flarm-NMEA and GDL90
+* Support for changing the Stratux's IP address
 
 ## Building the Europe Edition
 Building the european Edition is practically the same as the official Stratux. More information can be found here:
