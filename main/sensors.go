@@ -33,7 +33,7 @@ var (
 )
 
 func initI2CSensors() {
-	i2cbus = embd.NewI2CBus(1)
+	i2cbus = embd.NewI2CBus(0)
 
 	go pollSensors()
 	go sensorAttitudeSender()
@@ -124,7 +124,7 @@ func tempAndPressureSender() {
 }
 
 func initIMU() (ok bool) {
-	imu, err := sensors.NewMPU9250()
+	imu, err := sensors.NewMPU9250(&i2cbus)
 	if err == nil {
 		myIMUReader = imu
 		return true
