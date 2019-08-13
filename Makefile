@@ -11,7 +11,7 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 endif
 
 all:
-	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
+	make xdump978 xdump1090 xgen_gdl90
 
 xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
@@ -39,10 +39,6 @@ www:
 install:
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
-	cp -f fancontrol /usr/bin/fancontrol
-	chmod 755 /usr/bin/fancontrol
-	-/usr/bin/fancontrol remove
-	/usr/bin/fancontrol install
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
 	cp image/99-uavionix.rules /etc/udev/rules.d/99-uavionix.rules
 	rm -f /etc/init.d/stratux
@@ -58,6 +54,6 @@ install:
 	cp -f image/stratux-wifi.sh /usr/sbin/
 
 clean:
-	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
+	rm -f gen_gdl90 libdump978.so ahrs_approx
 	cd dump1090 && make clean
 	cd dump978 && make clean
