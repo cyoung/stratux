@@ -218,7 +218,9 @@ func initGPSSerial() bool {
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
 	} else {
-		log.Printf("No suitable device found.\n")
+		if globalSettings.DEBUG {
+			log.Printf("No GPS device found.\n")
+		}
 		return false
 	}
 	if globalSettings.DEBUG {
