@@ -1290,6 +1290,18 @@ func readSettings() {
 	readWiFiUserSettings()
 }
 
+func isOwnshipCode(code uint32) bool {
+	codes := strings.Split(globalSettings.OwnshipModeS, ",")
+
+	for _, ownCode := range codes {
+		ownCodeInt, _ := strconv.ParseInt(strings.Trim(ownCode, " "), 16, 32)
+		if uint32(ownCodeInt) == code {
+			return true
+		}
+	}
+	return false
+}
+
 func addSystemError(err error) {
 	globalStatus.Errors = append(globalStatus.Errors, err.Error())
 }

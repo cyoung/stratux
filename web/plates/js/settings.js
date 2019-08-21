@@ -314,7 +314,7 @@ angular.module('appControllers')
             require: 'ngModel',
             link: function(scope, element, attr, ctrl) {
                 function hexValidation(value) {
-                    var valid = /^$|^[0-9A-Fa-f]{6}$/.test(value);
+                    var valid = /^$|^([0-9A-Fa-f]{6},?)*$/.test(value);
                     ctrl.$setValidity('FAAHex', valid);
                     if (valid) {
                         return value;

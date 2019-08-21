@@ -373,21 +373,27 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "GLimits":
 						globalSettings.GLimits = val.(string)
 					case "OwnshipModeS":
-						// Expecting a hex string less than 6 characters (24 bits) long.
-						if len(val.(string)) > 6 { // Too long.
-							continue
+						codes := strings.Split(val.(string), ",")
+						codesFinal :=  make([]string, 0)
+						for _, code := range codes {
+							code = strings.Trim(code, " ")
+							// Expecting a hex string less than 6 characters (24 bits) long.
+							if len(code) > 6 { // Too long.
+								continue
+							}
+							// Pad string, must be 6 characters long.
+							vals := strings.ToUpper(code)
+							for len(vals) < 6 {
+								vals = "0" + vals
+							}
+							hexn, err := hex.DecodeString(vals)
+							if err != nil { // Number not valid.
+								log.Printf("handleSettingsSetRequest:OwnshipModeS: %s\n", err.Error())
+								continue
+							}
+							codesFinal = append(codesFinal, fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2]))
 						}
-						// Pad string, must be 6 characters long.
-						vals := strings.ToUpper(val.(string))
-						for len(vals) < 6 {
-							vals = "0" + vals
-						}
-						hexn, err := hex.DecodeString(vals)
-						if err != nil { // Number not valid.
-							log.Printf("handleSettingsSetRequest:OwnshipModeS: %s\n", err.Error())
-							continue
-						}
-						globalSettings.OwnshipModeS = fmt.Sprintf("%02X%02X%02X", hexn[0], hexn[1], hexn[2])
+						globalSettings.OwnshipModeS = strings.Join(codesFinal, ",")
 					case "StaticIps":
 						ipsStr := val.(string)
 						ips := strings.Split(ipsStr, " ")

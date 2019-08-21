@@ -17,7 +17,6 @@ import (
 	"log"
 	"math"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -207,7 +206,6 @@ func sendTrafficUpdates() {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
-	code, _ := strconv.ParseInt(globalSettings.OwnshipModeS, 16, 32)
 	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
@@ -222,7 +220,7 @@ func sendTrafficUpdates() {
 		}
 		
 		// As bearingless targets, we show the closest estimated traffic that is between +-3000ft
-		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && ti.Icao_addr != uint32(code) {
+		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && !isOwnshipCode(ti.Icao_addr){
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
@@ -246,7 +244,7 @@ func sendTrafficUpdates() {
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
 		}
-		if ti.Age < 6 && ti.Icao_addr != uint32(code) {
+		if ti.Age < 6 && !isOwnshipCode(ti.Icao_addr) {
 			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 && //take 30% more to see moving outs
 			   float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 && // altitude lower than upper boundary
 			   (!ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3) {    //allow more so that aircraft moves out
@@ -257,9 +255,9 @@ func sendTrafficUpdates() {
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
 
-			if ti.Icao_addr == uint32(code) {
+			if isOwnshipCode(ti.Icao_addr) {
 				if globalSettings.DEBUG {
-					log.Printf("Ownship target detected for code %X\n", code)
+					log.Printf("Ownship target detected for code %X\n", ti.Icao_addr)
 				}
 				OwnshipTrafficInfo = ti
 			} else {
