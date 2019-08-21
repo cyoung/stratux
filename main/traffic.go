@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"fmt"
 	"log"
 	"math"
@@ -172,6 +173,34 @@ func cleanupOldEntries() {
 	}
 }
 
+func isOwnshipTrafficInfo(ti TrafficInfo) bool {
+	codes := strings.Split(globalSettings.OwnshipModeS, ",")
+
+	for _, ownCode := range codes {
+		ownCodeInt, _ := strconv.ParseInt(strings.Trim(ownCode, " "), 16, 32)
+		if uint32(ownCodeInt) == ti.Icao_addr {
+			// User might have specified the address of another airplane that he regularly flys.
+			// If this airplane is currently in the air and we receive it, it gets priority over our ownship information.
+			// This is a sanity check to filter out such cases - only accept the ownship data if 
+			// it somewhat matches our real data
+			if isGPSValid() && ti.Position_valid {
+				dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+				if dist > 300 {
+					//log.Printf("Skipping ownship %s because it's too far away (%fm)", ownCode, dist)
+					continue
+				}
+			}
+			if isTempPressValid() && ti.Alt != 0 && math.Abs(float64(mySituation.BaroPressureAltitude - float32(ti.Alt))) > 300 {
+				//log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
+				continue
+			}
+			//log.Printf("Using ownshp %s", ownCode)
+			return true
+		}
+	}
+	return false
+}
+
 func sendTrafficUpdates() {
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
@@ -218,9 +247,10 @@ func sendTrafficUpdates() {
 			ti.Bearing = 0
 			ti.BearingDist_valid = false
 		}
+		isOwnshipTi := isOwnshipTrafficInfo(ti)
 		
 		// As bearingless targets, we show the closest estimated traffic that is between +-3000ft
-		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && !isOwnshipCode(ti.Icao_addr){
+		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && !isOwnshipTi {
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
@@ -244,7 +274,7 @@ func sendTrafficUpdates() {
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
 		}
-		if ti.Age < 6 && !isOwnshipCode(ti.Icao_addr) {
+		if ti.Age < 6 && !isOwnshipTi {
 			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 && //take 30% more to see moving outs
 			   float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 && // altitude lower than upper boundary
 			   (!ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3) {    //allow more so that aircraft moves out
@@ -255,7 +285,7 @@ func sendTrafficUpdates() {
 			//TODO: Coast old traffic? Need to determine how FF, WingX, etc deal with stale targets.
 			logTraffic(ti) // only add to the SQLite log if it's not stale
 
-			if isOwnshipCode(ti.Icao_addr) {
+			if isOwnshipTi {
 				if globalSettings.DEBUG {
 					log.Printf("Ownship target detected for code %X\n", ti.Icao_addr)
 				}
