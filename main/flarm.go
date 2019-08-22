@@ -421,8 +421,18 @@ func processAprsData(aprsData string) {
 		ti.SignalLevel = data.SignalStrength
 
 		// add timestamp
-		// TODO use timestamp from FLARM message
-		ti.Timestamp = stratuxClock.Time
+		ti.Timestamp = time.Now().UTC()
+		var age time.Duration
+		if len(data.Timestamp) == 6 {
+			// 112233 (hour/min/sec)
+			currTs := time.Now().UTC()
+			hour, _ := strconv.Atoi(data.Timestamp[0:2])
+			min, _ := strconv.Atoi(data.Timestamp[2:4])
+			sec, _ := strconv.Atoi(data.Timestamp[4:6])
+			signalTs := time.Date(currTs.Year(), currTs.Month(), currTs.Day(), hour, min, sec, 0, time.UTC)
+			age = ti.Timestamp.Sub(signalTs)
+			ti.Timestamp = signalTs
+		}
 
 		if isGPSValid() {
 			ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
@@ -431,8 +441,8 @@ func processAprsData(aprsData string) {
 
 		ti.Position_valid = true
 		ti.ExtrapolatedPosition = false
-		ti.Last_seen = stratuxClock.Time
-		ti.Last_alt = stratuxClock.Time
+		ti.Last_seen = stratuxClock.Time.Add(-age)
+		ti.Last_alt = stratuxClock.Time.Add(-age)
 
 		// update traffic database
 		traffic[ti.Icao_addr] = ti
