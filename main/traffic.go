@@ -173,8 +173,13 @@ func cleanupOldEntries() {
 	}
 }
 
-func isOwnshipTrafficInfo(ti TrafficInfo) bool {
+// Checks if the given TrafficInfo is our ownship. As the user can specify multiple ownship
+// hex codes, this is able to smartly identify if it really is our ownship.
+// If the ti is very close and at same altitude, it is considered to be us
+// If it has no position information, we will not take it as ownship, but ignore its data (no mode-s detection for everything that is configured as ownship)
+func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool) {
 	codes := strings.Split(globalSettings.OwnshipModeS, ",")
+	shouldIgnore = false
 
 	for _, ownCode := range codes {
 		ownCodeInt, _ := strconv.ParseInt(strings.Trim(ownCode, " "), 16, 32)
@@ -185,7 +190,14 @@ func isOwnshipTrafficInfo(ti TrafficInfo) bool {
 			// it somewhat matches our real data
 			if isGPSValid() && ti.Position_valid {
 				dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
-				if dist > 300 {
+				// Check if the distance to and the course of the ti is plausible
+				timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds())
+				speed := mySituation.GPSGroundSpeed
+				if ti.Speed_valid {
+					speed = math.Max(float64(ti.Speed), mySituation.GPSGroundSpeed)
+				}
+				maxDistMeters := math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 2, 30)
+				if dist > maxDistMeters {
 					//log.Printf("Skipping ownship %s because it's too far away (%fm)", ownCode, dist)
 					continue
 				}
@@ -194,11 +206,20 @@ func isOwnshipTrafficInfo(ti TrafficInfo) bool {
 				//log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
 				continue
 			}
+
+			if !ti.Position_valid {
+				// Can't verify the ownship, ignore it for bearingless display
+				shouldIgnore = true
+				continue
+			}
 			//log.Printf("Using ownshp %s", ownCode)
-			return true
+			isOwnshipInfo = true
+			shouldIgnore = true
+			return
 		}
 	}
-	return false
+	isOwnshipInfo = false
+	return
 }
 
 func sendTrafficUpdates() {
@@ -247,17 +268,20 @@ func sendTrafficUpdates() {
 			ti.Bearing = 0
 			ti.BearingDist_valid = false
 		}
-		isOwnshipTi := isOwnshipTrafficInfo(ti)
+		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
+		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
+
+		isOwnshipTi, shouldIgnore := isOwnshipTrafficInfo(ti)
+		if !isOwnshipTi && shouldIgnore {
+			continue // User set this to ownship hex, but we can't verify it...
+		}
 		
-		// As bearingless targets, we show the closest estimated traffic that is between +-3000ft
+		// As bearingless targets, we show the closest estimated traffic that is between +-2000ft
 		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && !isOwnshipTi {
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
 		}
-
-		ti.Age = stratuxClock.Since(ti.Last_seen).Seconds()
-		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
 		// DEBUG: Print the list of all tracked targets (with data) to the log every 15 seconds if "DEBUG" option is enabled
 		if globalSettings.DEBUG && (stratuxClock.Time.Second()%15) == 0 {
