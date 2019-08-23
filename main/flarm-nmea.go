@@ -169,25 +169,22 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 		groundSpeed = int32(float32(ti.Speed) * 0.5144) // convert to m/s
 	}
 
-	acType := 0
+	acType := "0"
 	switch ti.Emitter_category {
-	case 9:
-		acType = 1 // glider
-	case 7:
-		acType = 3 // rotorcraft
-	case 1:
-		acType = 8 // assume all light aircraft are piston
-	case 2, 3, 4, 5, 6:
-		acType = 9 // assume all heavier aircraft are jets
-	default:
-		acType = 0
+	case 1: acType = "8" // light = piston
+	case 2, 3, 4, 5, 6: acType = "9" // heavy = jet
+	case 7: acType = "3" // helicopter = helicopter
+	case 9: acType = "1" // glider = glider
+	case 10: acType = "B" // lighter than air = balloon
+	case 11: acType = "4" // skydiver/parachute = sky diver
+	case 12: acType = "7" // paraglider, hanglider
 	}
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 	if ti.Position_valid {
-		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
+		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
 	} else {
-		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X!%s,,,,%0.1f,%d", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, ti.Icao_addr, ti.Tail, climbRate, acType) // prototype for bearingless traffic
+		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X!%s,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, ti.Icao_addr, ti.Tail, climbRate, acType) // prototype for bearingless traffic
 	}
 	//msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
 	

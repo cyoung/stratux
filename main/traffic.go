@@ -539,7 +539,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	//
 	// GDL90 expects barometric altitude in traffic reports
 	var baroAlt int32
-	if ti.AltIsGNSS {
+	if ti.AltIsGNSS && isTempPressValid() {
 		// Convert from GPS geoid height to barometric altitude
 		baroAlt = ti.Alt - int32(mySituation.GPSGeoidSep)
 		baroAlt = baroAlt - int32(mySituation.GPSAltitudeMSL) + int32(mySituation.BaroPressureAltitude)
