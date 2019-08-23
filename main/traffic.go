@@ -184,36 +184,53 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 	for _, ownCode := range codes {
 		ownCodeInt, _ := strconv.ParseInt(strings.Trim(ownCode, " "), 16, 32)
 		if uint32(ownCodeInt) == ti.Icao_addr {
-			// User might have specified the address of another airplane that he regularly flys.
-			// If this airplane is currently in the air and we receive it, it gets priority over our ownship information.
-			// This is a sanity check to filter out such cases - only accept the ownship data if 
-			// it somewhat matches our real data
-			if isGPSValid() && ti.Position_valid {
-				dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
-				// Check if the distance to and the course of the ti is plausible
-				timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds())
-				speed := mySituation.GPSGroundSpeed
-				if ti.Speed_valid {
-					speed = math.Max(float64(ti.Speed), mySituation.GPSGroundSpeed)
-				}
-				maxDistMeters := math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 2, 30)
-				if dist > maxDistMeters {
-					//log.Printf("Skipping ownship %s because it's too far away (%fm)", ownCode, dist)
-					continue
-				}
-			}
-			if isTempPressValid() && ti.Alt != 0 && math.Abs(float64(mySituation.BaroPressureAltitude - float32(ti.Alt))) > 300 {
-				//log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
-				continue
-			}
-
 			if !ti.Position_valid {
 				// Can't verify the ownship, ignore it for bearingless display
 				shouldIgnore = true
 				continue
 			}
+
+			// User might have specified the address of another airplane that he regularly flys.
+			// If this airplane is currently in the air and we receive it, it gets priority over our ownship information.
+			// This is a sanity check to filter out such cases - only accept the ownship data if 
+			// it somewhat matches our real data
+			timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds())
+			speed := mySituation.GPSGroundSpeed
+			if ti.Speed_valid {
+				speed = math.Max(float64(ti.Speed), mySituation.GPSGroundSpeed)
+			}
+			trafficDist := 0.0
+			if isGPSValid() {
+				trafficDist, _, _, _ = distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+			}
+			altDiff := 99999.0
+			if isTempPressValid() && ti.Alt != 0 {
+				altDiff = math.Abs(float64(mySituation.BaroPressureAltitude - float32(ti.Alt)))
+			} else if isGPSValid() {
+				altDiff = math.Abs(float64(mySituation.GPSAltitudeMSL - float32(ti.Alt)))
+			}
+
+
+			// Check if the distance to and the course of the ti is plausible
+			maxDistMeters := math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 2, 30)
+			if trafficDist > maxDistMeters {
+				log.Printf("Skipping ownship %s because it's too far away (%fm, speed=%f, max=%f)", ownCode, trafficDist, speed, maxDistMeters)
+				continue
+			}
+			
+			// If we have a pressure sensor, and the pressure altitude of traffic and ownship is too big, skip...
+			if altDiff > 300 {
+				log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
+				continue
+			}
+
+			// To really use the information from the ownship traffic info, we have much more
+			// strict requirements. At most 5s old and must be much closer
+			maxDist :=  math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 1.4, 20)
+			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDist) {
+				isOwnshipInfo = true
+			}
 			//log.Printf("Using ownshp %s", ownCode)
-			isOwnshipInfo = true
 			shouldIgnore = true
 			return
 		}
