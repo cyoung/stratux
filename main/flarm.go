@@ -396,6 +396,12 @@ R?\s*
 		sec, _ := strconv.Atoi(ts[4:6])
 		signalTs := time.Date(currTs.Year(), currTs.Month(), currTs.Day(), hour, min, sec, 0, time.UTC)
 		age = ti.Timestamp.Sub(signalTs)
+		if age.Seconds() > 30 || age.Seconds() < -1 {
+			// Sometimes we get some invalid traffic that is wrongly detected by OGN. Make sure that
+			// at least the timestamp makes some sense, so our new traffic info does not time out immediately (or never if far in the future)
+			log.Printf("Discarding likely invalid OGN target: %s", message)
+			return 
+		}
 		ti.Timestamp = signalTs
 	}
 
