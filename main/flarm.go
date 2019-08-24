@@ -13,8 +13,10 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -128,6 +130,44 @@ func decodeFLARMAddressType(addressType byte) string {
 	default:
 		return "UNKNOWN"
 	}
+}
+
+var ognTailNumberCache = make(map[string]string)
+func lookupOgnTailNumber(flarmid string) string {
+	if len(ognTailNumberCache) == 0 {
+		log.Printf("Parsing OGN device db")
+		ddb, err := ioutil.ReadFile("/etc/ddb.json")
+		if err != nil {
+			log.Printf("Failed to read OGN device db")
+			return flarmid
+		}
+		var data map[string]interface{}
+		err = json.Unmarshal(ddb, &data)
+		if err != nil {
+			log.Printf("Failed to parse OGN device db")
+			return flarmid
+		}
+		devlist := data["devices"].([]interface{})
+		for i := 0; i < len(devlist); i++ {
+			dev := devlist[i].(map[string]interface{})
+			flarmid := dev["device_id"].(string)
+			tail := dev["registration"].(string)
+			ognTailNumberCache[flarmid] = tail
+		}
+		log.Printf("Successfully parsed OGN device db")
+	}
+	if tail, ok := ognTailNumberCache[flarmid]; ok {
+		return tail
+	}
+	return flarmid
+}
+
+func getTailNumber(flarmid string) string {
+	tail := lookupOgnTailNumber(flarmid)
+	if globalSettings.DisplayTrafficSource {
+		tail = "fl" + tail
+	}
+	return tail
 }
 
 func watchCommand(command *exec.Cmd) {
@@ -341,7 +381,7 @@ R?\s*
 	}
 	ti.Icao_addr = address
 	if len(ti.Tail) == 0 {
-		ti.Tail = attrMap["address"] // Might have better tail from ADS-B. Don't overwrite.
+		ti.Tail = getTailNumber(attrMap["address"]) // Might have better tail from ADS-B. Don't overwrite.
 	}
 	ti.Last_source = TRAFFIC_SOURCE_FLARM
 

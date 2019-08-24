@@ -52,6 +52,7 @@ install:
 	cp rtlsdr-ogn-0.2.6/ogn-decode /usr/bin
 	mkdir -p  /var/lib/stratux/ogn
 	cp -f ogn/rtlsdr-ogn/stratux.conf.template /etc/stratux-ogn.conf.template
+	cp -f ogn/ddb.json /etc/
 
 	rm -f /var/run/ogn-rf.fifo
 	mkfifo /var/run/ogn-rf.fifo

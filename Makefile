@@ -63,6 +63,7 @@ install:
 	cp -f ogn/rtlsdr-ogn/ogn-rf /usr/bin/
 	chmod a+s /usr/bin/ogn-rf
 	cp -f ogn/rtlsdr-ogn/ogn-decode /usr/bin/
+	cp -f ogn/ddb.json /etc/
 
 clean:
 	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx

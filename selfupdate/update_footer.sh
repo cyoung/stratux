@@ -83,6 +83,9 @@ chmod 755 /usr/bin/dump1090
 # Install libwiringpi
 cp -f libwiringPi.so /usr/lib/
 
+# OGN stuff
+cp -f ogn/ddb.json /etc/
+
 # AHRS approx data.
 cp -f ahrs_table.log /root/
 cp -f ahrs_approx /usr/bin/
