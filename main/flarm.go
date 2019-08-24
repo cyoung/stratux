@@ -385,6 +385,21 @@ R?\s*
 	}
 	ti.Last_source = TRAFFIC_SOURCE_FLARM
 
+	ti.Timestamp = time.Now().UTC()
+	var age time.Duration
+	ts := attrMap["timestamp"]
+	if len(ts) == 6 {
+		// 112233 (hour/min/sec)
+		currTs := time.Now().UTC()
+		hour, _ := strconv.Atoi(ts[0:2])
+		min, _ := strconv.Atoi(ts[2:4])
+		sec, _ := strconv.Atoi(ts[4:6])
+		signalTs := time.Date(currTs.Year(), currTs.Month(), currTs.Day(), hour, min, sec, 0, time.UTC)
+		age = ti.Timestamp.Sub(signalTs)
+		ti.Timestamp = signalTs
+	}
+
+
 	// set altitude
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
@@ -395,8 +410,6 @@ R?\s*
 		ti.Alt = int32(alt)
 		ti.AltIsGNSS = true
 	}
-
-	ti.Last_alt = stratuxClock.Time
 
 	// set vertical speed
 	vVel, _ := strconv.ParseFloat(attrMap["climb_rate"], 32)
@@ -426,8 +439,8 @@ R?\s*
 
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
-	ti.Last_seen = stratuxClock.Time
-	ti.Last_alt = stratuxClock.Time
+	ti.Last_seen = stratuxClock.Time.Add(-age)
+	ti.Last_alt = stratuxClock.Time.Add(-age)
 
 	if acType, ok := attrMap["aircraft_type"]; ok {
 		switch(acType) {
