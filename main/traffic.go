@@ -194,7 +194,8 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			// If this airplane is currently in the air and we receive it, it gets priority over our ownship information.
 			// This is a sanity check to filter out such cases - only accept the ownship data if 
 			// it somewhat matches our real data
-			timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds())
+			 // because of second-resolution in flarm we assume worst case of +1 second
+			timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds()) + 1
 			speed := mySituation.GPSGroundSpeed
 			if ti.Speed_valid {
 				speed = math.Max(float64(ti.Speed), mySituation.GPSGroundSpeed)
@@ -212,9 +213,9 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 
 
 			// Check if the distance to and the course of the ti is plausible
-			maxDistMeters := math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 2, 30)
-			if trafficDist > maxDistMeters {
-				log.Printf("Skipping ownship %s because it's too far away (%fm, speed=%f, max=%f)", ownCode, trafficDist, speed, maxDistMeters)
+			maxDistMetersIgnore := (timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy) + 50) * 2
+			if trafficDist > maxDistMetersIgnore {
+				log.Printf("Skipping ownship %s because it's too far away (%fm, speed=%f, max=%f)", ownCode, trafficDist, speed, maxDistMetersIgnore)
 				continue
 			}
 			
@@ -226,11 +227,12 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 
 			// To really use the information from the ownship traffic info, we have much more
 			// strict requirements. At most 5s old and must be much closer
-			maxDist :=  math.Max((timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy)) * 1.4, 20)
-			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDist) {
+			maxDistMetersOwnship :=  (timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy) + 20) * 1.4
+			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDistMetersOwnship) {
 				isOwnshipInfo = true
 			}
-			//log.Printf("Using ownshp %s", ownCode)
+			log.Printf("Using ownship %s. MaxDistIgnore: %f, maxDistOwnShip: %f, dist: %f, altDiff: %f, speed: %f, timeDiffS: %f",
+				ownCode, maxDistMetersIgnore, maxDistMetersOwnship, trafficDist, altDiff, speed, timeDiff)
 			shouldIgnore = true
 			return
 		}
