@@ -167,7 +167,7 @@ func convertMetersToFeet(meters float32) float32 {
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen) > 60*time.Second { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
+		if stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
 			delete(traffic, icao_addr)
 		}
 	}
@@ -205,14 +205,17 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 				trafficDist, _, _, _ = distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			}
 			altDiff := 99999.0
-			if isTempPressValid() && ti.Alt != 0 {
+			if ti.AltIsGNSS && ti.Alt != 0 {
+				altDiff = math.Abs(float64(mySituation.GPSHeightAboveEllipsoid) - float64(ti.Alt))
+			} else if isTempPressValid() && ti.Alt != 0 {
 				altDiff = math.Abs(float64(mySituation.BaroPressureAltitude - float32(ti.Alt)))
-			} else if isGPSValid() {
-				altDiff = math.Abs(float64(mySituation.GPSAltitudeMSL - float32(ti.Alt)))
+			} else {
+				// Cant verify relative altitude.. ignore it but don't use
+				shouldIgnore = true
+				continue
 			}
 
-
-			// Check if the distance to and the course of the ti is plausible
+			// Check if the distance to the ti is plausible
 			maxDistMetersIgnore := (timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy) + 50) * 2
 			if trafficDist > maxDistMetersIgnore {
 				log.Printf("Skipping ownship %s because it's too far away (%fm, speed=%f, max=%f)", ownCode, trafficDist, speed, maxDistMetersIgnore)
@@ -220,7 +223,7 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			}
 			
 			// If we have a pressure sensor, and the pressure altitude of traffic and ownship is too big, skip...
-			if altDiff > 300 {
+			if altDiff > 500 {
 				log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
 				continue
 			}
@@ -228,11 +231,11 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			// To really use the information from the ownship traffic info, we have much more
 			// strict requirements. At most 5s old and must be much closer
 			maxDistMetersOwnship :=  (timeDiff * speed * 0.514444 + float64(mySituation.GPSHorizontalAccuracy) + 20) * 1.4
-			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDistMetersOwnship) {
+			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDistMetersOwnship) && !ti.AltIsGNSS {
 				isOwnshipInfo = true
 			}
-			log.Printf("Using ownship %s. MaxDistIgnore: %f, maxDistOwnShip: %f, dist: %f, altDiff: %f, speed: %f, timeDiffS: %f",
-				ownCode, maxDistMetersIgnore, maxDistMetersOwnship, trafficDist, altDiff, speed, timeDiff)
+			log.Printf("Using ownship %s. MaxDistIgnore: %f, maxDistOwnShip: %f, dist: %f, altDiff: %f, speed: %f, timeDiffS: %f, useForInfo: %t",
+				ownCode, maxDistMetersIgnore, maxDistMetersOwnship, trafficDist, altDiff, speed, timeDiff, isOwnshipInfo)
 			shouldIgnore = true
 			return
 		}
@@ -463,10 +466,6 @@ func calculateModeSFakeTargets(bearinglessTi TrafficInfo) []TrafficInfo {
 
 func postProcessTraffic(ti *TrafficInfo) {
 	estimateDistance(ti)
-	//if ti.Distance < 40000 && ti.Distance > 0 {
-	//	msg := fmt.Sprintf("Estimated factor: %f, distance for %d (%f): %fm, real: %fm", estimatedDistFactor, ti.Icao_addr, ti.SignalLevel, ti.DistanceEstimated, ti.Distance)
-	//	log.Printf(msg)
-	//}
 }
 
 // Send update to attached JSON client.

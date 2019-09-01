@@ -281,7 +281,7 @@ func makeLatLng(v float32) []byte {
 }
 
 func isDetectedOwnshipValid() bool {
-	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen) < 10*time.Second
+	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen).Seconds() < 10
 }
 
 func makeOwnshipReport() bool {
@@ -845,7 +845,7 @@ func updateMessageStats() {
 	}
 
 	for i := 0; i < m; i++ {
-		if stratuxClock.Since(MsgLog[i].TimeReceived) < 1*time.Minute {
+		if stratuxClock.Since(MsgLog[i].TimeReceived).Minutes() < 1 {
 			t = append(t, MsgLog[i])
 			if MsgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
