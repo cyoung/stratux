@@ -294,12 +294,9 @@ func sendTrafficUpdates() {
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
 		isOwnshipTi, shouldIgnore := isOwnshipTrafficInfo(ti)
-		if !isOwnshipTi && shouldIgnore {
-			continue // User set this to ownship hex, but we can't verify it...
-		}
-		
+
 		// As bearingless targets, we show the closest estimated traffic that is between +-2000ft
-		if !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) && !isOwnshipTi {
+		if !shouldIgnore && !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
@@ -320,7 +317,7 @@ func sendTrafficUpdates() {
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
 		}
-		if ti.Age < 6 && !isOwnshipTi {
+		if ti.Age < 6 && !shouldIgnore {
 			if float32(ti.Alt) <= currAlt + float32(globalSettings.RadarLimits) * 1.3 && //take 30% more to see moving outs
 			   float32(ti.Alt) >= currAlt - float32(globalSettings.RadarLimits) * 1.3 && // altitude lower than upper boundary
 			   (!ti.Position_valid || ti.Distance<float64(globalSettings.RadarRange) * 1852.0 * 1.3) {    //allow more so that aircraft moves out
@@ -336,7 +333,7 @@ func sendTrafficUpdates() {
 					log.Printf("Ownship target detected for code %X\n", ti.Icao_addr)
 				}
 				OwnshipTrafficInfo = ti
-			} else {
+			} else if !shouldIgnore {
 				cur_n := len(msgs) - 1
 				if len(msgs[cur_n]) >= 35 {
 					// Batch messages into packets with at most 35 traffic reports

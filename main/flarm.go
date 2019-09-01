@@ -436,6 +436,11 @@ R?\s*
 
 	ti.SignalLevel = float64(atof32(attrMap["decode_quality"]))
 
+	// TODO: The timestamp of the position might actually be older (see signalTs computed above)
+	// However, that would result in a jumping "age" column (older from flarm, newer from ads-b overwriting each other)
+	// We can also not skip the flarm signal if it's older than the old ti's Timestamp, because that way,
+	// we would throw away flarm data, even if the older ti is only from Mode-S and has no position info.
+	// For now, we just live with it and set the timestamp to current.
 	ti.Timestamp = time.Now().UTC()
 
 	if isGPSValid() {
