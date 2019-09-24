@@ -123,7 +123,7 @@ func tempAndPressureSender() {
 }
 
 func initIMU() (ok bool) {
-	imu, err := sensors.NewMPU9250()
+	imu, err := sensors.NewMPU9250(&i2cbus)
 	if err == nil {
 		myIMUReader = imu
 		return true
