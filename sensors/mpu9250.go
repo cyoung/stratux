@@ -3,6 +3,7 @@ package sensors
 
 import (
 	"../goflying/mpu9250"
+	"github.com/kidoman/embd"
 )
 
 const (
@@ -19,14 +20,14 @@ type MPU9250 struct {
 
 // NewMPU9250 returns an instance of the MPU9250 IMUReader, connected to an
 // MPU9250 attached on the I2C bus with either valid address.
-func NewMPU9250() (*MPU9250, error) {
+func NewMPU9250(i2cbus *embd.I2CBus) (*MPU9250, error) {
 	var (
 		m   MPU9250
 		mpu *mpu9250.MPU9250
 		err error
 	)
 
-	mpu, err = mpu9250.NewMPU9250(gyroRange, accelRange, updateFreq, true, false)
+	mpu, err = mpu9250.NewMPU9250(i2cbus, gyroRange, accelRange, updateFreq, true, false)
 	if err != nil {
 		return nil, err
 	}

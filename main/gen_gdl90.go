@@ -296,7 +296,10 @@ func makeOwnshipReport() bool {
 	// See p.16.
 	msg[0] = 0x0A // Message type "Ownship".
 
-	msg[1] = 0x01 // Alert status, address type.
+	// Ownship Target Identify (see 3.5.1.2 of GDL-90 Specifications)
+ 	// First half of byte is 0 for 'No Traffic Alert'
+	// Second half of byte is 0 for 'ADS-B with ICAO' 
+	msg[1] = 0x00 // Alert status, address type.
 
 	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
 	if len(code) != 3 {
