@@ -3,7 +3,7 @@ This is a fork of the original Stratux version, incorperating many contributions
 nice, full featured Stratux-Flarm image that works well for europe.
 ## Difference to original Stratux
 * Original Stratux: https://github.com/cyoung/stratux
-* Merged devel/flarm_receiver from PepperJo, which enables flarm reception based on the OpenGliderNetwork decoding stack (https://github.com/PepperJo/stratux)
+* Merged devel/flarm_receiver from PepperJo, which enables flarm reception based on the OpenGliderNetwork decoding stack (https://github.com/PepperJo/stratux) + some improvements to the flarm handling code and OGN Device DB inclusion for callsign lookup
 * Merged VirusPilot's fixes and improvements for U-Blox 8 devices and Galileo/Glonass reception (https://github.com/VirusPilot/stratux)
 * Changed DHCP Settings to not set a DNS server - this fixes the hangs that can be observed with current SkyDemon versions when not having an internet connection
 * If no pressure sensor is present, report GPS Altitude as pressure altitude to make SkyDemon happy (NOT RECOMENDED!)
@@ -16,6 +16,7 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Support for FLARM NMEA Output via TCP Port 2000
 * Estimation of Mode C/S target distance by signal strength, transmission of bearingless targets via Flarm-NMEA and GDL90
 * Support for changing the Stratux's IP address
+* Possibility to enter multiple ownship transponder HEX codes, Stratux will automatically decide which of these are actually you. This is useful if you have multiple aircraft that you regularly fly with (e.g. add all club aircraft)
 
 ## Building the Europe Edition
 Building the european Edition is practically the same as the official Stratux. More information can be found here:
