@@ -1316,6 +1316,7 @@ func saveWiFiUserSettings() {
 	if globalSettings.WiFiSmartEnabled {
 		dhcpd_config = "/etc/dhcp/dhcpd-smart.conf"
 	}
+	os.Remove("/etc/dhcp/dhcpd.conf")
 	os.Symlink(dhcpd_config, "/etc/dhcp/dhcpd.conf")
 }
 
