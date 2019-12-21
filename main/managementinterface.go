@@ -378,6 +378,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "WiFiPassphrase":
 						globalSettings.WiFiPassphrase = val.(string)
 						resetWiFi = true
+					case "WiFiSmartEnabled":
+						globalSettings.WiFiSmartEnabled = val.(bool)
+						resetWiFi = true
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
