@@ -576,7 +576,7 @@ func calcGPSAttitude() bool {
 	// If all of the bounds checks pass, begin processing the GPS data.
 
 	// local variables
-	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept, dt_avg float64
+	var headingAvg, dh, v_x, v_z, a_c, omega, slope, intercept float64
 	var tempHdg, tempHdgUnwrapped, tempHdgTime, tempSpeed, tempVV, tempSpeedTime, tempRegWeights []float64 // temporary arrays for regression calculation
 	var valid bool
 	var lengthHeading, lengthSpeed int
@@ -584,7 +584,7 @@ func calcGPSAttitude() bool {
 
 	center := float64(myGPSPerfStats[index].nmeaTime) // current time for calculating regression weights
 
-	// frequency detection
+/*	// frequency detection
 	tempSpeedTime = make([]float64, 0)
 	for i := 1; i < length; i++ {
 		dt = myGPSPerfStats[i].nmeaTime - myGPSPerfStats[i-1].nmeaTime
@@ -613,6 +613,8 @@ func calcGPSAttitude() bool {
 	} else if halfwidth < 1.5 {
 		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
 	}
+*/
+	halfwidth = calculateNavRate()
 
 	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
 		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
@@ -872,6 +874,42 @@ func registerSituationUpdate() {
 	logSituation()
 	situationUpdate.SendJSON(mySituation)
 }
+
+func calculateNavRate() float64 {
+ 	length := len(myGPSPerfStats)
+ 	tempSpeedTime := make([]float64, 0)
+
+ 	for i := 1; i < length; i++ {
+ 		dt := myGPSPerfStats[i].nmeaTime - myGPSPerfStats[i-1].nmeaTime
+ 		if dt > 0.05 { // avoid double counting messages with same / similar timestamps
+ 			tempSpeedTime = append(tempSpeedTime, float64(dt))
+ 		}
+ 	}
+
+ 	var halfwidth float64
+ 	dt_avg, valid := mean(tempSpeedTime)
+ 	if valid && dt_avg > 0 {
+ 		if globalSettings.DEBUG {
+ 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
+ 		}
+ 		halfwidth = 9 * dt_avg
+ 		mySituation.GPSPositionSampleRate = 1 / dt_avg
+ 	} else {
+ 		if globalSettings.DEBUG {
+ 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
+ 		}
+ 		halfwidth = 3.5
+ 		mySituation.GPSPositionSampleRate = 0
+ 	}
+
+ 	if halfwidth > 3.5 {
+ 		halfwidth = 3.5 // limit calculation window to 3.5 seconds of data for 1 Hz or slower samples
+ 	} else if halfwidth < 1.5 {
+ 		halfwidth = 1.5 // use minimum of 1.5 seconds for sample rates faster than 5 Hz
+ 	}
+
+ 	return halfwidth
+ }
 
 /*
 processNMEALine parses NMEA-0183 formatted strings against several message types.
@@ -2031,7 +2069,7 @@ func makeAHRSGDL90Report() {
 	msg[19] = byte(palt & 0xFF)
 
 	// Vertical Speed
-	msg[20] = byte((vs >> 8) & 0xFF)
+		msg[20] = byte((vs >> 8) & 0xFF)
 	msg[21] = byte(vs & 0xFF)
 
 	// Reserved
@@ -2045,7 +2083,12 @@ func gpsAttitudeSender() {
 	timer := time.NewTicker(100 * time.Millisecond) // ~10Hz update.
 	for {
 		<-timer.C
-		myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
+		if !(globalStatus.GPS_connected || globalStatus.IMUConnected) {
+ 			myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
+ 		} else {
+ 			calculateNavRate()
+ 		}
+
 		for !(globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {
 			<-timer.C
 

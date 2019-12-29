@@ -111,6 +111,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.GPS_satellites_tracked = situation.GPSSatellitesTracked;
         $scope.GPS_satellites_seen = situation.GPSSatellitesSeen;
         $scope.Quality = situation.GPSFixQuality;
+        $scope.GPS_PositionSampleRate = situation.GPSPositionSampleRate.toFixed(1);
 
         var solutionText = "No Fix";
         if (situation.GPSFixQuality === 2) {
