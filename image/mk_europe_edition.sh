@@ -1,14 +1,19 @@
 #!/bin/bash
 
 # To run this, make sure that this is installed:
-# sudo apt install --yes qemu-user-static gparted qemu-system-arm
+# sudo apt install --yes qemu-user-static qemu-system-arm
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 
-BASE_IMAGE_URL="https://github.com/cyoung/stratux/releases/download/v1.5b1/stratux-v1.5b1-3d168d0c6c.img.zip"
-IMGNAME="stratux-v1.5b1-3d168d0c6c.img"
+BASE_IMAGE_URL="https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-09-30/2019-09-26-raspbian-buster-lite.zip"
+ZIPNAME="2019-09-26-raspbian-buster-lite.zip"
+IMGNAME="${ZIPNAME%.*}.img"
 TMPDIR="$HOME/stratux-tmp"
 
+if [ "$#" -ne 2 ]; then
+    echo "Usage: " $0 " dev|prod branch"
+    exit 1
+fi
 
 # cd to script directory
 cd "$(dirname "$0")"
@@ -18,7 +23,7 @@ cd $TMPDIR
 
 # Download/extract image
 wget -c $BASE_IMAGE_URL
-unzip stratux-*.img.zip
+unzip $ZIPNAME
 
 # Check where in the image the root partition begins:
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
@@ -67,14 +72,15 @@ tar xzf go1.12.4.linux-armv6l.tar.gz
 rm go1.12.4.linux-armv6l.tar.gz
 
 if [ "$1" == "dev" ]; then
-    cp -r $SRCDIR .
+    cp -ra $SRCDIR .
+    cd stratux && git checkout $2 && cd ..
 else
-    git clone --recursive https://github.com/b3nn0/stratux.git
+    git clone --recursive -b $2 https://github.com/b3nn0/stratux.git
 fi
 cd ../..
 
 # Now download a specific kernel to run raspbian images in qemu and boot it..
-chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup.sh
+chroot mnt qemu-arm-static /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup_buster.sh
 mkdir out
 
 
