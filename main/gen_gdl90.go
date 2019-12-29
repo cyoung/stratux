@@ -297,8 +297,8 @@ func makeOwnshipReport() bool {
 	msg[0] = 0x0A // Message type "Ownship".
 
 	// Ownship Target Identify (see 3.5.1.2 of GDL-90 Specifications)
- 	// First half of byte is 0 for 'No Traffic Alert'
-	// Second half of byte is 0 for 'ADS-B with ICAO' 
+	// First half of byte is 0 for 'No Traffic Alert'
+	// Second half of byte is 0 for 'ADS-B with ICAO'
 	msg[1] = 0x00 // Alert status, address type.
 
 	code, _ := hex.DecodeString(globalSettings.OwnshipModeS)
@@ -1167,6 +1167,7 @@ type settings struct {
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
+	WiFiSmartEnabled     bool // "Smart WiFi" - disables the default gateway for iOS.
 	WiFiIPAddress        string
 	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool

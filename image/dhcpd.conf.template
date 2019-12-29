@@ -6,9 +6,16 @@ log-facility local7;
 subnet {{.IpPrefix}}.0 netmask 255.255.255.0 {
 	range {{.DhcpRangeStart}} {{.DhcpRangeEnd}};
 	option broadcast-address {{.IpPrefix}}.255;
-	option routers {{.IpAddr}};
 	default-lease-time 12000;
 	max-lease-time 12000;
+	
+	# Note: this is different from original stratux dhcpd.conf.
+	# We do not use domain settings - it will make DNS requests time out, which
+	# can make buggy EFB software hang
+	{{if .WiFiSmartEnabled}}
 	#option domain-name "stratux.local";
 	#option domain-name-servers 4.2.2.2;
+	{{else}}
+	option routers {{.IpAddr}};
+	{{end}}
 }

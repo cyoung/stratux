@@ -27,6 +27,7 @@ type NetworkTemplateParams struct {
 	IpPrefix string
 	DhcpRangeStart string
 	DhcpRangeEnd string
+	WiFiSmartEnabled bool
 }
 
 var hasChanged bool
@@ -41,6 +42,13 @@ func setWifiSSID(ssid string) {
 func setWifiPassphrase(passphrase string) {
 	if passphrase != globalSettings.WiFiPassphrase {
 		globalSettings.WiFiPassphrase = passphrase
+		hasChanged = true
+	}
+}
+
+func setWifiSmartEnabled(enabled bool) {
+	if enabled != globalSettings.WiFiSmartEnabled {
+		globalSettings.WiFiSmartEnabled = enabled
 		hasChanged = true
 	}
 }
@@ -99,6 +107,7 @@ func applyNetworkSettings(force bool) {
 	tplSettings.IpPrefix = ipPrefix
 	tplSettings.DhcpRangeStart = dhcpRangeStart
 	tplSettings.DhcpRangeEnd = dhcpRangeEnd
+	tplSettings.WiFiSmartEnabled = globalSettings.WiFiSmartEnabled
 
 	writeTemplate("/etc/dhcp/dhcpd.conf.template", "/etc/dhcp/dhcpd.conf", tplSettings)
 	writeTemplate("/etc/network/interfaces.template", "/etc/network/interfaces", tplSettings)

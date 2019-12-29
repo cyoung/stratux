@@ -422,6 +422,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						setWifiSecurityEnabled(val.(bool))
 					case "WiFiPassphrase":
 						setWifiPassphrase(val.(string))
+					case "WiFiSmartEnabled":
+						setWifiSmartEnabled(val.(bool))
 					case "WiFiIPAddress":
 						setWifiIPAddress(val.(string))
 					case "GDL90MSLAlt_Enabled":

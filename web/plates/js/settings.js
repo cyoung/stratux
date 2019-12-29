@@ -51,6 +51,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.WiFiPassphrase = settings.WiFiPassphrase;
         $scope.WiFiSecurityEnabled = settings.WiFiSecurityEnabled;
         $scope.WiFiChannel = settings.WiFiChannel;
+		$scope.WiFiSmartEnabled = settings.WiFiSmartEnabled;
 		$scope.WiFiIPAddress = settings.WiFiIPAddress;
 
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -293,6 +294,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
                 "WiFiSecurityEnabled" : $scope.WiFiSecurityEnabled,
                 "WiFiPassphrase" : $scope.WiFiPassphrase,
                 "WiFiChannel" : parseInt($scope.WiFiChannel),
+				"WiFiSmartEnabled": $scope.WiFiSmartEnabled,
 				"WiFiIPAddress" : $scope.WiFiIPAddress
             };
 
