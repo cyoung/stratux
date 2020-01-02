@@ -311,6 +311,103 @@ func atof32(val string) float32 {
 	return float32(res)
 }
 
+// Read data from a raw $PFLAU/$PFLAA message (i.e. when serial flarm device is connected)
+func parseFlarmNmeaMessage(message []string) {
+	if message[0] == "PFLAU" {
+		parseFlarmPFLAU(message)
+	} else if message[0] == "PFLAA" {
+		parseFlarmPFLAA(message)
+	}
+}
+
+func parseFlarmPFLAU(message []string) {
+	// $PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
+	// TODO: do we really need this?
+	// I think not - we get everything from PFLAA
+}
+
+func parseFlarmPFLAA(message []string) {
+	// $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>
+	relNorth := atof32(message[2])
+	relEast := atof32(message[3])
+	relVert := atof32(message[4])
+	flarmID := message[6]
+	flarmID = strings.Split(flarmID, "!")[0] // for OGNTP targets it's xxxxxx!yyyyyy
+	track := atof32(message[7])
+	speed := atof32(message[9])
+	vspeed := atof32(message[10])
+	acType := message[11]
+
+	var ti TrafficInfo
+	addressBytes, _ := hex.DecodeString(flarmID)
+	addressBytes = append([]byte{0}, addressBytes...)
+	address := binary.BigEndian.Uint32(addressBytes)
+	address += 1 // TODO: remove me
+
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	
+	// check if traffic is already known
+	if existingTi, ok := traffic[address]; ok {
+		ti = existingTi
+	}
+	ti.Icao_addr = address
+	if len(ti.Tail) == 0 {
+		ti.Tail = getTailNumber(flarmID) // Might have better tail from ADS-B. Don't overwrite.
+	}
+	ti.Timestamp = time.Now().UTC()
+
+
+	if isTempPressValid() {
+		ti.Alt = int32(mySituation.BaroPressureAltitude + relVert * 3.28084)
+		ti.AltIsGNSS = false
+	} else if isGPSValid() {
+		ti.Alt = int32(mySituation.GPSAltitudeMSL + relVert * 3.28084)
+		ti.AltIsGNSS = true
+	}
+
+	// lat dist = 60nm = 111,12km
+	ti.Lat = mySituation.GPSLatitude + (relNorth / 111120.0)
+	lngFactor := float32(111120.0 * math.Cos(radians(float64(mySituation.GPSLatitude))))
+	ti.Lng = mySituation.GPSLongitude + (relEast / lngFactor)
+
+	if isGPSValid() {
+		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		ti.BearingDist_valid = true
+	}
+	
+	ti.Track = uint16(track)
+	ti.Speed = uint16(speed * 1.94384) // m/s to knots
+	ti.Speed_valid = true
+	ti.Vvel = int16(vspeed * 196.85) // m/s to feet/min
+
+	ti.Position_valid = true
+	ti.ExtrapolatedPosition = false
+	ti.Last_seen = stratuxClock.Time
+	ti.Last_alt = stratuxClock.Time
+
+	switch(acType) {
+	case "1": ti.Emitter_category = 9 // glider = glider
+	case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
+	case "3": ti.Emitter_category = 7 // helicopter = helicopter
+	case "4": ti.Emitter_category = 11 // skydiver
+	case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
+	case "9": ti.Emitter_category = 3 // jet = large
+	case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
+	}
+
+	// update traffic database
+	traffic[ti.Icao_addr] = ti
+
+	// notify
+	registerTrafficUpdate(ti)
+
+	// mark traffic as seen
+	seenTraffic[ti.Icao_addr] = true
+}
+
+
+
 // Traffic messages look like this
 // 0.458sec:868.188MHz:   8:2:AABBCC 085804: [ +45.5312, +8.1234]deg  123m  +0.0m/s   0.0m/s 000.0deg  +0.0deg/sec 0 03x05m 00f_-12.36kHz 45.2/61.0dB/0  0e    0.0km 000.0deg +69.4deg   ?
 func parseOgnStdoutMessage(message string) {

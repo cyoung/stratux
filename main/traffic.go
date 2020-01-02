@@ -234,8 +234,10 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			if !isGPSValid() || (ti.Age <= 5 && trafficDist < maxDistMetersOwnship) && !ti.AltIsGNSS {
 				isOwnshipInfo = true
 			}
-			log.Printf("Using ownship %s. MaxDistIgnore: %f, maxDistOwnShip: %f, dist: %f, altDiff: %f, speed: %f, timeDiffS: %f, useForInfo: %t",
-				ownCode, maxDistMetersIgnore, maxDistMetersOwnship, trafficDist, altDiff, speed, timeDiff, isOwnshipInfo)
+			if globalSettings.DEBUG {
+				log.Printf("Using ownship %s. MaxDistIgnore: %f, maxDistOwnShip: %f, dist: %f, altDiff: %f, speed: %f, timeDiffS: %f, useForInfo: %t",
+					ownCode, maxDistMetersIgnore, maxDistMetersOwnship, trafficDist, altDiff, speed, timeDiff, isOwnshipInfo)
+			}
 			shouldIgnore = true
 			return
 		}

@@ -217,7 +217,11 @@ func initGPSSerial() bool {
 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
-	} else {
+	} else if _, err := os.Stat("/dev/flarm"); err == nil {
+		device = "/dev/flarm"
+		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
+		baudrate = 38400
+ 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("No GPS device found.\n")
 		}
@@ -1839,6 +1843,10 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		return true
+	}
+
+	if x[0] == "PFLAU" || x[0] == "PFLAA" {
+		parseFlarmNmeaMessage(x)
 	}
 
 	// If we've gotten this far, the message isn't one that we can use.

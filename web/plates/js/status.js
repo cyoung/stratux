@@ -88,6 +88,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 9:
 					tempGpsHardwareString = "USB u-blox 9 GNSS receiver";
 					break;
+				case 10:
+					tempGpsHardwareString = "FLARM";
+					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}
