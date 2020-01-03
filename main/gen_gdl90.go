@@ -1126,6 +1126,7 @@ type settings struct {
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
 	WiFiSmartEnabled     bool // "Smart WiFi" - disables the default gateway for iOS.
+	NoSleep              bool
 }
 
 type status struct {
@@ -1200,6 +1201,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
+	globalSettings.NoSleep = false
 }
 
 func readSettings() {
