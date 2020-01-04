@@ -56,6 +56,9 @@ install:
 	cp -f dump1090/dump1090 /usr/bin/
 	cp -f image/hostapd_manager.sh /usr/sbin/
 	cp -f image/stratux-wifi.sh /usr/sbin/
+	cp -f image/hostapd.conf.template /etc/hostapd/
+	cp -f image/interfaces.template /etc/network/
+	cp -f image/wpa_supplicant.conf.template /etc/wpa_supplicant/
 	mkdir -p  /var/lib/stratux/
 	cp -f ogn/rtlsdr-ogn/stratux.conf.template /etc/stratux-ogn.conf.template
 	rm -f /var/run/ogn-rf.fifo

@@ -273,7 +273,6 @@ func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	readWiFiUserSettings()
 	settingsJSON, _ := json.Marshal(&globalSettings)
 	fmt.Fprintf(w, "%s\n", settingsJSON)
 }
@@ -426,6 +425,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						setWifiSmartEnabled(val.(bool))
 					case "WiFiIPAddress":
 						setWifiIPAddress(val.(string))
+					case "WiFiMode":
+						setWiFiMode(int(val.(float64)))
+					case "WiFiDirectPin":
+						setWifiDirectPin(val.(string))
 					case "GDL90MSLAlt_Enabled":
 						globalSettings.GDL90MSLAlt_Enabled = val.(bool)
 					case "SkyDemonAndroidHack":

@@ -21,13 +21,23 @@ import (
 	"os/exec"
 )
 
+const (
+	WifiModeAp = 0
+	WifiModeDirect = 1
+)
+
 // NetworkTemplateParams is passed to the template engine to write settings
 type NetworkTemplateParams struct {
-	IpAddr string
-	IpPrefix string
-	DhcpRangeStart string
-	DhcpRangeEnd string
+	WiFiMode         int
+	IpAddr           string
+	IpPrefix         string
+	DhcpRangeStart   string
+	DhcpRangeEnd     string
 	WiFiSmartEnabled bool
+	WiFiSSID         string
+	WiFiChannel      int
+	WiFiDirectPin    string
+	WiFiPassPhrase   string
 }
 
 var hasChanged bool
@@ -69,13 +79,31 @@ func setWifiSecurityEnabled(enabled bool) {
 
 func setWifiIPAddress(ip string) {
 	match, err := regexp.MatchString(`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`, ip)
-	if err == nil && match && globalSettings.WiFiIPAddress != ip {
-		globalSettings.WiFiIPAddress = ip
-		hasChanged = true
+	if err == nil && match {
+		if globalSettings.WiFiIPAddress != ip {
+			globalSettings.WiFiIPAddress = ip
+			hasChanged = true
+		}
 	} else {
 		log.Printf("Ignoring invalid IP Address: " + ip)
 	}
 }
+
+func setWiFiMode(mode int) {
+	if globalSettings.WiFiMode != mode {
+		globalSettings.WiFiMode = mode
+		hasChanged = true
+	}
+}
+
+func setWifiDirectPin(pin string) {
+	if globalSettings.WiFiDirectPin != pin {
+		globalSettings.WiFiDirectPin = pin
+		hasChanged = true
+	}
+}
+
+
 
 func applyNetworkSettings(force bool) {
 	if !hasChanged && !force {
@@ -103,17 +131,33 @@ func applyNetworkSettings(force bool) {
 	}
 
 	var tplSettings NetworkTemplateParams
+	tplSettings.WiFiMode = globalSettings.WiFiMode
 	tplSettings.IpAddr = ipAddr
 	tplSettings.IpPrefix = ipPrefix
 	tplSettings.DhcpRangeStart = dhcpRangeStart
 	tplSettings.DhcpRangeEnd = dhcpRangeEnd
 	tplSettings.WiFiSmartEnabled = globalSettings.WiFiSmartEnabled
+	tplSettings.WiFiChannel = globalSettings.WiFiChannel
+	tplSettings.WiFiSSID = globalSettings.WiFiSSID
+	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
+	
+	if tplSettings.WiFiChannel == 0 {
+		tplSettings.WiFiChannel = 1
+	}
+	if globalSettings.WiFiSecurityEnabled || tplSettings.WiFiMode == WifiModeDirect {
+		tplSettings.WiFiPassPhrase = globalSettings.WiFiPassphrase
+	}
+	
+	if tplSettings.WiFiSSID == "" {
+		tplSettings.WiFiSSID = "stratux"
+	}
+
 
 	writeTemplate("/etc/dhcp/dhcpd.conf.template", "/etc/dhcp/dhcpd.conf", tplSettings)
 	writeTemplate("/etc/network/interfaces.template", "/etc/network/interfaces", tplSettings)
+	writeTemplate("/etc/hostapd/hostapd.conf.template", "/etc/hostapd/hostapd.conf", tplSettings)
+	writeTemplate("/etc/wpa_supplicant/wpa_supplicant.conf.template", "/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
 
-	// todo: it would be much cleaner to do the hostapd mods here aswell, but we don't want to do too many changes from original stratux..
-	saveWiFiUserSettings()
 	go func() {
 		time.Sleep(time.Second)
 		cmd := exec.Command("ifdown", "wlan0")

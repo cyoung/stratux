@@ -100,6 +100,10 @@ cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 #hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
+cp -f hostapd.conf.template /etc/hostapd/hostapd.conf.template
+
+#WPA supplicant config for wifi direct
+cp -f wpa_supplicant.conf.template /etc/wpa_supplicant/wpa_supplicant.conf.template
 
 #hostapd manager script
 cp -f hostapd_manager.sh /usr/sbin/hostapd_manager.sh

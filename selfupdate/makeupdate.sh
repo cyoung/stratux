@@ -23,6 +23,8 @@ cp __root__stratux-pre-start.sh work/bin/
 cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
 cp image/hostapd.conf work/bin/
+cp image/hostapd.conf.template work/bin/
+cp image/wpa_supplicant.conf.template work/bin/
 cp image/config.txt work/bin/
 cp image/rtl-sdr-blacklist.conf work/bin/
 cp image/bashrc.txt work/bin/

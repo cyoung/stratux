@@ -7,11 +7,20 @@ iface eth0 inet dhcp
 
 allow-hotplug wlan0
 
+
 iface wlan0 inet static
   address 192.168.10.1
   netmask 255.255.255.0
-  post-up /usr/sbin/stratux-wifi.sh
+
+  post-up /usr/sbin/stratux-wifi.sh 0
   wireless-power off
+
+allow-hotplug p2p-wlan0-0
+iface p2p-wlan0-0 inet static
+  address 192.168.1.1
+  netmask 255.255.255.0
+  post-up /bin/systemctl restart isc-dhcp-server
+  post-down killall wpa_supplicant
 
 
 #####################################################################

@@ -131,11 +131,19 @@
                 <div class="panel-body">
                     <form name="WiFiSettings">
                         <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">WiFi Mode</label>
+                            <select class="custom-select" mode-input ng-model="WiFiMode"
+                                ng-change="WiFiSecurityEnabled=(WiFiSecurityEnabled || WiFiMode=='1')">
+                                <option value="0" ng-selected="WiFiMode=='0'">AccessPoint</option>
+                                <option value="1" ng-selected="WiFiMode=='1'">WiFi-Direct</option>
+                            </select>
+                        </div>
+                        <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi SSID</label>
                             <input class="col-xs-7" type="text" ssid-input ng-model="WiFiSSID"
                                    placeholder="WiFi Network Name" />
                         </div>
-                        <div class="form-group reset-flow">
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
                             <label class="control-label col-xs-7">Network Security</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSecurityEnabled" settings-change></ui-switch>
@@ -147,7 +155,12 @@
                                    ng-disabled="!WiFiSecurityEnabled" ng-class="{grayout: !WiFiSecurityEnabled}"
                                    ng-required="WiFiSecurityEnabled" placeholder="WiFi Passphrase" />
                         </div>
-                        <div class="form-group reset-flow">
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='1'">
+                            <label class="control-label col-xs-5">WiFi-Direct Pin</label>
+                            <input class="col-xs-7" type="text" pin-input ng-model="WiFiDirectPin"
+                                    placeholder="WiFi-Direct PIN" ng-required="WiFiMode=='1'" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
                             <label class="control-label col-xs-7">WiFi Channel</label>
                             <select id="WiFiChannel" class="input-small col-sm-2 form-control-sm"
                                     ng-model="WiFiChannel" ng-options="x for x in Channels"></select>
@@ -412,9 +425,11 @@
                         <h4 class="modal-title">Your WiFi settings were successfully changed.</h4>
                     </div>
                     <div class="modal-body">
+                        <p>WiFi Mode: <b>{{WiFiMode=='0'?'AccessPoint':'WiFi-Direct'}}</b></p>
                         <p>WiFi SSID: <b>{{WiFiSSID}}</b></p>
                         <p>WiFi Security: <b>{{WiFiSecurityEnabled}}</b></p>
                         <p>WiFi Passphrase: <b>{{WiFiPassphrase}}</b></p>
+                        <p ng-if="WiFiMode==1">WiFi-Direct PIN: <b>{{WiFiDirectPin}}</b></p>
                         <p>WiFi Channel: <b>{{WiFiChannel}}</b></p>
                         <p>Smart mode: <b>{{WiFiSmartEnabled}}</b></p>
                         <p>Stratux IP: <b>{{WiFiIPAddress}}</b></p>

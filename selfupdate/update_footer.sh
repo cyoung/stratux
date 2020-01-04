@@ -21,6 +21,8 @@ ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target
 
 #wifi config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
+cp -f hostapd.conf.template /etc/hostapd/hostapd.conf.template
+cp -f wpa_supplicant.conf.template /etc/wpa_supplicant/wpa_supplicant.conf.template
 
 #rsyslog config
 cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
