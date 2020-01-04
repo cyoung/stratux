@@ -20,7 +20,7 @@ iface wlan0 inet manual
 
 allow-hotplug p2p-wlan0-0
 iface p2p-wlan0-0 inet static
-  address 192.168.1.1
+  address {{.IpAddr}}
   netmask 255.255.255.0
   post-up /bin/systemctl restart isc-dhcp-server
   post-down wpa_cli -i wlan0 terminate
