@@ -224,7 +224,7 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			
 			// If we have a pressure sensor, and the pressure altitude of traffic and ownship is too big, skip...
 			if altDiff > 500 {
-				log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, mySituation.BaroPressureAltitude - float32(ti.Alt))
+				log.Printf("Skipping ownship %s because the altitude is off (%f ft)", ownCode, altDiff)
 				continue
 			}
 

@@ -313,6 +313,11 @@ func atof32(val string) float32 {
 
 // Read data from a raw $PFLAU/$PFLAA message (i.e. when serial flarm device is connected)
 func parseFlarmNmeaMessage(message []string) {
+	if !globalSettings.FLARM_Enabled {
+		return
+	}
+	globalStatus.FLARM_connected = true
+
 	if message[0] == "PFLAU" {
 		parseFlarmPFLAU(message)
 	} else if message[0] == "PFLAA" {
@@ -328,6 +333,13 @@ func parseFlarmPFLAU(message []string) {
 
 func parseFlarmPFLAA(message []string) {
 	// $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>
+	// Append flarm message to message log
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_FLARM
+	thisMsg.TimeReceived = stratuxClock.Time
+	// thisMsg.Data = ...?
+	MsgLog = append(MsgLog, thisMsg)
+	
 	relNorth := atof32(message[2])
 	relEast := atof32(message[3])
 	relVert := atof32(message[4])
@@ -342,13 +354,19 @@ func parseFlarmPFLAA(message []string) {
 	addressBytes, _ := hex.DecodeString(flarmID)
 	addressBytes = append([]byte{0}, addressBytes...)
 	address := binary.BigEndian.Uint32(addressBytes)
-	address += 1 // TODO: remove me
+	// address += 1 // TODO: for range testing - will make SDR and FLARM traffic appear seperately
 
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 	
 	// check if traffic is already known
 	if existingTi, ok := traffic[address]; ok {
+		if existingTi.Last_source == TRAFFIC_SOURCE_1090ES && existingTi.Age < 5 {
+			// traffic has FLARM and 1090ES and was seen via 1090ES recently?
+			// -> ignore the flarm message. 1090ES has much less delay, so we prefer that.
+			return 
+		}
+
 		ti = existingTi
 	}
 	ti.Icao_addr = address
@@ -356,6 +374,7 @@ func parseFlarmPFLAA(message []string) {
 		ti.Tail = getTailNumber(flarmID) // Might have better tail from ADS-B. Don't overwrite.
 	}
 	ti.Timestamp = time.Now().UTC()
+	ti.Last_source = TRAFFIC_SOURCE_FLARM
 
 
 	if isTempPressValid() {
@@ -368,7 +387,8 @@ func parseFlarmPFLAA(message []string) {
 
 	// lat dist = 60nm = 111,12km
 	ti.Lat = mySituation.GPSLatitude + (relNorth / 111120.0)
-	lngFactor := float32(111120.0 * math.Cos(radians(float64(mySituation.GPSLatitude))))
+	avgLat := ti.Lat / 2.0 + mySituation.GPSLatitude / 2.0
+	lngFactor := float32(111120.0 * math.Cos(radians(float64(avgLat))))
 	ti.Lng = mySituation.GPSLongitude + (relEast / lngFactor)
 
 	if isGPSValid() {

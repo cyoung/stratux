@@ -214,14 +214,14 @@ func initGPSSerial() bool {
 		baudrate = 4800
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
-	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
-		device = "/dev/ttyAMA0"
-		globalStatus.GPS_detected_type = GPS_TYPE_UART
 	} else if _, err := os.Stat("/dev/flarm"); err == nil {
 		device = "/dev/flarm"
 		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
 		baudrate = 38400
- 	} else {
+ 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
+		device = "/dev/ttyAMA0"
+		globalStatus.GPS_detected_type = GPS_TYPE_UART
+	} else {
 		if globalSettings.DEBUG {
 			log.Printf("No GPS device found.\n")
 		}
