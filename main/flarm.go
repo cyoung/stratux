@@ -878,7 +878,7 @@ func aprsServer() {
 
 func flarmListen() {
 	for {
-		if !globalSettings.FLARM_Enabled {
+		if !globalSettings.FLARM_Enabled || FLARMDev == nil {
 			// wait until FLARM is enabled
 			time.Sleep(10 * time.Second)
 			continue
