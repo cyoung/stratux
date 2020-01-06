@@ -529,6 +529,7 @@ R?\s*
 	alt := atof32(attrMap["altitude"]) * 3.28084 // m in ft
 	if isGPSValid() && isTempPressValid() {
 		ti.Alt = int32(float32(alt) - mySituation.GPSHeightAboveEllipsoid + mySituation.BaroPressureAltitude)
+		ti.AltIsGNSS = false
 	} else {
 		ti.Alt = int32(alt)
 		ti.AltIsGNSS = true
@@ -723,6 +724,7 @@ func processAprsData(aprsData string) {
 		// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
 		if isGPSValid() && isTempPressValid() {
 			ti.Alt = int32(float32(data.Altitude) - mySituation.GPSHeightAboveEllipsoid + mySituation.BaroPressureAltitude)
+			ti.AltIsGNSS = false
 		} else {
 			ti.Alt = int32(data.Altitude)
 			ti.AltIsGNSS = true
