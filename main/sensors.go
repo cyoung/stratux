@@ -19,6 +19,12 @@ const (
 	numRetries uint8 = 5
 	calCLimit        = 0.15
 	calDLimit        = 10.0
+
+	// WHO_AM_I values to differentiate between the different IMUs.
+	MPUREG_WHO_AM_I     = 0x75
+	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
+	ICMREG_WHO_AM_I     = 0x00
+	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
 )
 
 var (
@@ -123,13 +129,36 @@ func tempAndPressureSender() {
 }
 
 func initIMU() (ok bool) {
-	imu, err := sensors.NewMPU9250(&i2cbus)
-	if err == nil {
-		myIMUReader = imu
-		return true
+	// Check if the chip is the ICM-20948 or MPU-9250.
+	v, err := i2cbus.ReadByteFromReg(0x68, ICMREG_WHO_AM_I)
+	if err != nil {
+		log.Printf("Error identifying IMU: %s\n", err.Error())
+		return false
+	}
+	v2, err := i2cbus.ReadByteFromReg(0x68, MPUREG_WHO_AM_I)
+	if err != nil {
+		log.Printf("Error identifying IMU: %s\n", err.Error())
+		return false
 	}
 
-	// TODO westphae: try to connect to MPU9150 or other IMUs.
+	if v == ICMREG_WHO_AM_I_VAL {
+		log.Println("ICM-20948 detected.")
+		imu, err := sensors.NewICM20948(&i2cbus)
+		if err == nil {
+			myIMUReader = imu
+			return true
+		}
+	} else if v2 == MPUREG_WHO_AM_I_VAL {
+		log.Println("MPU-9250 detected.")
+		imu, err := sensors.NewMPU9250(&i2cbus)
+		if err == nil {
+			myIMUReader = imu
+			return true
+		}
+	} else {
+		log.Printf("Could not identify MPU. v=%02x, v2=%02x.\n", v, v2)
+		return false
+	}
 
 	return false
 }
