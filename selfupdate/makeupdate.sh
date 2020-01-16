@@ -36,7 +36,8 @@ cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
 cp image/stratux-wifi.sh work/bin/
 cp image/rc.local work/bin/
-cp image/dhcpd.conf work/bin/
+cp image/dhcpd-not_smart.conf work/bin/
+cp image/dhcpd-smart.conf work/bin/
 cp image/interfaces work/bin/
 cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
