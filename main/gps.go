@@ -1663,31 +1663,31 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err == nil {
 				sat++
 
-                                if sv <= 32 {
-                                        svType = SAT_TYPE_GPS
-                                        svStr = fmt.Sprintf("G%d", sv)
-                                } else if sv <= 64 {
-                                        svType = SAT_TYPE_BEIDOU
-                                        svStr = fmt.Sprintf("B%d", sv-32)
-                                } else if sv <= 96 {
-                                        svType = SAT_TYPE_GLONASS
-                                        svStr = fmt.Sprintf("R%d", sv-64)
-                                } else if (sv >= 120) && (sv <= 158) {
-                                        svType = SAT_TYPE_SBAS
-                                        svStr = fmt.Sprintf("S%d", sv)
-                                } else if sv <= 163 {
-                                        svType = SAT_TYPE_BEIDOU
-                                        svStr = fmt.Sprintf("B%d", sv-126)
-                                } else if sv <= 193 {
-                                        svType = SAT_TYPE_QZSS
-                                        svStr = fmt.Sprintf("Q%d", sv-192)
-                                } else if sv >= 211 {
-                                        svType = SAT_TYPE_GALILEO
-                                        svStr = fmt.Sprintf("E%d", sv-210)
-                                } else {
-                                        svType = SAT_TYPE_UNKNOWN
-                                        svStr = fmt.Sprintf("U%d", sv)
-                                }
+				if sv <= 32 {
+					svType = SAT_TYPE_GPS
+					svStr = fmt.Sprintf("G%d", sv)
+				} else if sv <= 64 {
+					svType = SAT_TYPE_BEIDOU
+					svStr = fmt.Sprintf("B%d", sv-32)
+				} else if sv <= 96 {
+					svType = SAT_TYPE_GLONASS
+					svStr = fmt.Sprintf("R%d", sv-64)
+				} else if (sv >= 120) && (sv <= 158) {
+					svType = SAT_TYPE_SBAS
+					svStr = fmt.Sprintf("S%d", sv)
+				} else if sv <= 163 {
+					svType = SAT_TYPE_BEIDOU
+					svStr = fmt.Sprintf("B%d", sv-126)
+				} else if sv <= 193 {
+					svType = SAT_TYPE_QZSS
+					svStr = fmt.Sprintf("Q%d", sv-192)
+				} else if sv >= 211 {
+					svType = SAT_TYPE_GALILEO
+					svStr = fmt.Sprintf("E%d", sv-210)
+				} else {
+					svType = SAT_TYPE_UNKNOWN
+					svStr = fmt.Sprintf("U%d", sv)
+				}
 
 				var thisSatellite SatelliteInfo
 
@@ -1809,22 +1809,22 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv <= 96 {
 				svType = SAT_TYPE_GLONASS
 				svStr = fmt.Sprintf("R%d", sv-64)
-                        } else if (sv >= 120) && (sv <= 158) {
-                                svType = SAT_TYPE_SBAS
-                                svStr = fmt.Sprintf("S%d", sv)
-                        } else if sv <= 163 {
-                                svType = SAT_TYPE_BEIDOU
-                                svStr = fmt.Sprintf("B%d", sv-126)
-                        } else if sv <= 193 {
-                                svType = SAT_TYPE_QZSS
-                                svStr = fmt.Sprintf("Q%d", sv-192)
-                        } else if sv >= 211 {
-                                svType = SAT_TYPE_GALILEO
-                                svStr = fmt.Sprintf("E%d", sv-210)
-                        } else {
-                                svType = SAT_TYPE_UNKNOWN
-                                svStr = fmt.Sprintf("U%d", sv)
-                        }
+			} else if (sv >= 120) && (sv <= 158) {
+				svType = SAT_TYPE_SBAS
+				svStr = fmt.Sprintf("S%d", sv)
+			} else if sv <= 163 {
+				svType = SAT_TYPE_BEIDOU
+				svStr = fmt.Sprintf("B%d", sv-126)
+			} else if sv <= 193 {
+				svType = SAT_TYPE_QZSS
+				svStr = fmt.Sprintf("Q%d", sv-192)
+			} else if sv >= 211 {
+				svType = SAT_TYPE_GALILEO
+				svStr = fmt.Sprintf("E%d", sv-210)
+			} else {
+				svType = SAT_TYPE_UNKNOWN
+				svStr = fmt.Sprintf("U%d", sv)
+			}
 
 			var thisSatellite SatelliteInfo
 
