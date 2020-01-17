@@ -314,26 +314,25 @@ func makeOwnshipReport() bool {
 		msg[4] = code[2] // Mode S address.
 	}
 
-	var tmp []byte
+	var lat float32
+	var lon float32
 	if selfOwnshipValid {
-		tmp = makeLatLng(curOwnship.Lat)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(curOwnship.Lng)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
+		lat = curOwnship.Lat
+		lon = curOwnship.Lng
 	} else {
-		tmp = makeLatLng(mySituation.GPSLatitude)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(mySituation.GPSLongitude)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
+		lat = mySituation.GPSLatitude
+		lon = mySituation.GPSLongitude
 	}
+
+	var tmp []byte
+	tmp = makeLatLng(lat)
+	msg[5] = tmp[0] // Latitude.
+	msg[6] = tmp[1] // Latitude.
+	msg[7] = tmp[2] // Latitude.
+	tmp = makeLatLng(lon)
+	msg[8] = tmp[0]  // Longitude.
+	msg[9] = tmp[1]  // Longitude.
+	msg[10] = tmp[2] // Longitude.
 
 	// This is **PRESSURE ALTITUDE**
 	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
@@ -441,6 +440,8 @@ func makeOwnshipReport() bool {
 	}
 
 	sendGDL90(prepareMessage(msg), false)
+	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL, groundTrack, float32(gdSpeed)), false)
+
 	return true
 }
 
@@ -1248,7 +1249,7 @@ func defaultSettings() {
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
-		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
+		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_POSITION_FFSIM | NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false

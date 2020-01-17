@@ -358,6 +358,16 @@ func sendTrafficUpdates() {
 				} else {
 					//log.Printf("FLARM output: Traffic %X couldn't be translated\n", ti.Icao_addr)
 				}
+
+				var trafficCallsign string
+				if len(ti.Tail) > 0 {
+					trafficCallsign = ti.Tail
+				} else {
+					trafficCallsign = fmt.Sprintf("%X_%d", ti.Icao_addr, ti.Squawk)
+				}
+
+				// send traffic message to X-Plane
+				sendXPlane(createXPlaneTrafficMsg(ti.Icao_addr, ti.Lat, ti.Lng, ti.Alt, uint32(ti.Speed), int32(ti.Vvel), ti.OnGround, uint32(ti.Track), trafficCallsign), false)
 			}
 		}
 	}
