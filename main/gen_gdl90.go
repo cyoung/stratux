@@ -319,26 +319,19 @@ func makeOwnshipReport() bool {
 	if selfOwnshipValid {
 		lat = curOwnship.Lat
 		lon = curOwnship.Lng
-		tmp = makeLatLng(curOwnship.Lat)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(curOwnship.Lng)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
 	} else {
 		lat = mySituation.GPSLatitude
 		lon = mySituation.GPSLongitude
-		tmp = makeLatLng(mySituation.GPSLatitude)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(mySituation.GPSLongitude)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
 	}
+
+	tmp = makeLatLng(lat)
+	msg[5] = tmp[0] // Latitude.
+	msg[6] = tmp[1] // Latitude.
+	msg[7] = tmp[2] // Latitude.
+	tmp = makeLatLng(lon)
+	msg[8] = tmp[0]  // Longitude.
+	msg[9] = tmp[1]  // Longitude.
+	msg[10] = tmp[2] // Longitude.
 
 	// This is **PRESSURE ALTITUDE**
 	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
