@@ -1663,25 +1663,31 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err == nil {
 				sat++
 
-				if sv < 33 { // indicates GPS
-					svType = SAT_TYPE_GPS
-					svStr = fmt.Sprintf("G%d", sv)
-				} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
-					svType = SAT_TYPE_SBAS
-					svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
-					svSBAS = true
-				} else if sv < 97 { // GLONASS
-					svType = SAT_TYPE_GLONASS
-					svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-					svGLONASS = true
-				} else if sv < 210 { // Galileo
-					svType = SAT_TYPE_GALILEO
-					svStr = fmt.Sprintf("E%d", sv-210) // subtract 300 to convert from NMEA to PRN
-					svGalileo = true
-				} else {
-					svType = SAT_TYPE_UNKNOWN
-					svStr = fmt.Sprintf("U%d", sv)
-				}
+                                if sv <= 32 {
+                                        svType = SAT_TYPE_GPS
+                                        svStr = fmt.Sprintf("G%d", sv)
+                                } else if sv <= 64 {
+                                        svType = SAT_TYPE_BEIDOU
+                                        svStr = fmt.Sprintf("B%d", sv-32)
+                                } else if sv <= 96 {
+                                        svType = SAT_TYPE_GLONASS
+                                        svStr = fmt.Sprintf("R%d", sv-64)
+                                } else if (sv >= 120) && (sv <= 158) {
+                                        svType = SAT_TYPE_SBAS
+                                        svStr = fmt.Sprintf("S%d", sv)
+                                } else if sv <= 163 {
+                                        svType = SAT_TYPE_BEIDOU
+                                        svStr = fmt.Sprintf("B%d", sv-126)
+                                } else if sv <= 193 {
+                                        svType = SAT_TYPE_QZSS
+                                        svStr = fmt.Sprintf("Q%d", sv-192)
+                                } else if sv >= 211 {
+                                        svType = SAT_TYPE_GALILEO
+                                        svStr = fmt.Sprintf("E%d", sv-210)
+                                } else {
+                                        svType = SAT_TYPE_UNKNOWN
+                                        svStr = fmt.Sprintf("U%d", sv)
+                                }
 
 				var thisSatellite SatelliteInfo
 
@@ -1793,22 +1799,32 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			if err != nil {
 				return false
 			}
-			if sv < 33 { // indicates GPS
+
+			if sv <= 32 {
 				svType = SAT_TYPE_GPS
 				svStr = fmt.Sprintf("G%d", sv)
-			} else if sv < 65 { // indicates SBAS: WAAS, EGNOS, MSAS, etc.
-				svType = SAT_TYPE_SBAS
-				svStr = fmt.Sprintf("S%d", sv+87) // add 87 to convert from NMEA to PRN.
-			} else if sv < 97 { // GLONASS
+			} else if sv <= 64 {
+				svType = SAT_TYPE_BEIDOU
+				svStr = fmt.Sprintf("B%d", sv-32)
+			} else if sv <= 96 {
 				svType = SAT_TYPE_GLONASS
-				svStr = fmt.Sprintf("R%d", sv-64) // subtract 64 to convert from NMEA to PRN.
-			} else if sv < 210 { // Galileo
-				svType = SAT_TYPE_GALILEO
-				svStr = fmt.Sprintf("E%d", sv-210) // subtract 300 to convert from NMEA to PRN
-			} else {
-				svType = SAT_TYPE_UNKNOWN
-				svStr = fmt.Sprintf("U%d", sv)
-			}
+				svStr = fmt.Sprintf("R%d", sv-64)
+                        } else if (sv >= 120) && (sv <= 158) {
+                                svType = SAT_TYPE_SBAS
+                                svStr = fmt.Sprintf("S%d", sv)
+                        } else if sv <= 163 {
+                                svType = SAT_TYPE_BEIDOU
+                                svStr = fmt.Sprintf("B%d", sv-126)
+                        } else if sv <= 193 {
+                                svType = SAT_TYPE_QZSS
+                                svStr = fmt.Sprintf("Q%d", sv-192)
+                        } else if sv >= 211 {
+                                svType = SAT_TYPE_GALILEO
+                                svStr = fmt.Sprintf("E%d", sv-210)
+                        } else {
+                                svType = SAT_TYPE_UNKNOWN
+                                svStr = fmt.Sprintf("U%d", sv)
+                        }
 
 			var thisSatellite SatelliteInfo
 
