@@ -1751,7 +1751,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	}
 
-	if (x[0] == "GPGSV") || (x[0] == "GLGSV") || (x[0] == "GAGSV") { // GPS + SBAS or GLONASS or Galileo satellites in view message.
+	if (x[0] == "GPGSV") || (x[0] == "GLGSV") || (x[0] == "GAGSV") || (x[0] == "GBGSV") { // GPS + SBAS or GLONASS or Galileo or Beidou satellites in view message.
 		if len(x) < 4 {
 			return false
 		}
