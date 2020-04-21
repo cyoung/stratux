@@ -11,16 +11,18 @@ allow-hotplug wlan0
 iface wlan0 inet static
   address 192.168.10.1
   netmask 255.255.255.0
+  pre-up /usr/sbin/rfkill unblock wifi
 
-  post-up /usr/sbin/stratux-wifi.sh 0
+  post-up /usr/sbin/stratux-wifi.sh 0 
   wireless-power off
 
 allow-hotplug p2p-wlan0-0
 iface p2p-wlan0-0 inet static
-  address 192.168.1.1
+  address 192.168.10.1
+  pre-up /usr/sbin/rfkill unblock wifi
   netmask 255.255.255.0
   post-up /bin/systemctl restart isc-dhcp-server
-  post-down killall wpa_supplicant
+  post-down wpa_cli -i wlan0 terminate
 
 
 #####################################################################

@@ -11,6 +11,7 @@ allow-hotplug wlan0
 iface wlan0 inet static
   address {{.IpAddr}}
   netmask 255.255.255.0
+  pre-up /usr/sbin/rfkill unblock wifi
 {{else}}
 iface wlan0 inet manual
   pre-down ifdown p2p-wlan0-0
@@ -21,6 +22,7 @@ iface wlan0 inet manual
 allow-hotplug p2p-wlan0-0
 iface p2p-wlan0-0 inet static
   address {{.IpAddr}}
+  pre-up /usr/sbin/rfkill unblock wifi
   netmask 255.255.255.0
   post-up /bin/systemctl restart isc-dhcp-server
   post-down wpa_cli -i wlan0 terminate
