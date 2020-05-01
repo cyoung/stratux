@@ -11,12 +11,16 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Merged Stratux Web-Radar for web-based traffic display by TomBric (https://github.com/TomBric/Radar-Stratux)
 * Upgraded the RaspberryPi Debian system to the latest debian packages
 * Hide Weather/Towers page if UAT is disabled
-* Added a simple Flarm Status page, loading the ogn-rf and ogn-decode web pages as iFrames
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
 * Support for FLARM NMEA Output via TCP Port 2000
 * Estimation of Mode C/S target distance by signal strength, transmission of bearingless targets via Flarm-NMEA and GDL90
 * Support for changing the Stratux's IP address
 * Possibility to enter multiple ownship transponder HEX codes, Stratux will automatically decide which of these are actually you. This is useful if you have multiple aircraft that you regularly fly with (e.g. add all club aircraft)
+* X-Plane 11 compatible output for EFBs that support simulator input (experimental, unsupported. Might make it possible to connect Garmin Pilot). Based on original work by 0x74-0x62
+* Support for external FLARM/OGN/PilotAware devices, like a flarm mouse or SoftRF (only tested with some devices. Your milage may vary)
+* Support for WiFi Direct connection to make it possible to let Android have mobile data connection while connected to the Stratux
+
+
 
 ## Building the Europe Edition
 Building the european Edition is practically the same as the official Stratux. More information can be found here:
