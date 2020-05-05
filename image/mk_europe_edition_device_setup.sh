@@ -79,7 +79,15 @@ cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
 cd /root/stratux
 
 # For some reason, qemu build fails unless we use a single compilation thread. Compilation takes quite long...
-export GOMAXPROCS=1
+#export GOMAXPROCS=1
+# TODO: this libary's latest version seems to be incomaptible. Force to 0.0.11.
+# Only an ugly hack - we should upgrade to go modules instead...
+go get github.com/prometheus/procfs
+cd $GOPATH/src/github.com/prometheus/procfs/
+git checkout tags/v0.0.11
+
+cd /root/stratux
+
 #go get -u github.com/kidoman/embd/embd
 make clean
 # Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
