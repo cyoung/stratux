@@ -4,13 +4,25 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build",
+            "label": "Build x86",
             "type": "shell",
             "command": "make -f Makefile.x86 xgen_gdl90",
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build rPI debug",
+            "type": "shell",
+            "command": "make xgen_gdl90 debug=true",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$go"
+            ]
         }
     ]
 }

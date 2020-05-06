@@ -10,6 +10,10 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
 
+ifeq "$(debug)" "true"
+	BUILDINFO+=-gcflags '-N -l' -ldflags=-compressdwarf=false
+endif
+
 all:
 	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 

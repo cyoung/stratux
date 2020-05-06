@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
+            "name": "Launch x86",
             "type": "go",
             "request": "launch",
             "mode": "exec",
@@ -13,8 +13,25 @@
             "program": "${workspaceRoot}/gen_gdl90",
             "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
             "args": ["-log_dir", "/tmp/", "-logtostderr"],
-            "preLaunchTask": "Build",
+            "preLaunchTask": "Build x86",
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            // delve debugger doesn't work on ARM32. To use this:
+            // 1. Install and configure VSCode remote-ssh extension and use it to connect to the RPI
+            // 2. install gdb on the RPI if not installed already
+            // 3. run "make clean" to make sure a debug build will be done before running
+            // 4. Install VSCode Native Debug extension (on the connected RPI, "Install in: ...")
+            "name": "Launch rPI",
+            "type": "gdb",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "target": "${workspaceRoot}/gen_gdl90",
+            "arguments": "-logtostderr",
+            "preLaunchTask": "Build rPI debug",
+            "internalConsoleOptions": "openOnSessionStart",
+            "showDevDebugOutput": false,
+            "printCalls": false,
         }
     ]
 }
