@@ -286,6 +286,11 @@ func createOGNConfigFile(templateFileName string, outputFileName string) {
 		return
 	}
 
+	OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)
+	OGNConfigDataCache.Latitude = fmt.Sprintf("%.4f", mySituation.GPSLatitude)
+	OGNConfigDataCache.Altitude = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSAltitudeMSL))
+	OGNConfigDataCache.GeoidSep = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSGeoidSep))
+
 	err = configTemplate.Execute(outputFile, OGNConfigDataCache)
 	if err != nil {
 		log.Printf("FLARM: Problem while executing OGN config file template: %s", err)
@@ -930,10 +935,6 @@ func flarmListen() {
 					}
 
 					// generate OGN configuration file
-					OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)
-					OGNConfigDataCache.Latitude = fmt.Sprintf("%.4f", mySituation.GPSLatitude)
-					OGNConfigDataCache.Altitude = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSAltitudeMSL))
-					OGNConfigDataCache.GeoidSep = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSGeoidSep))
 					createOGNConfigFile(configTemplateFileName, configFileName)
 
 					// start new decoding process

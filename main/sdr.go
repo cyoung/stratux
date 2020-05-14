@@ -185,9 +185,6 @@ func (f *FLARM) read() {
 	configFileName := "/tmp/stratux-ogn.conf"
 	OGNConfigDataCache.DeviceIndex = strconv.Itoa(f.indexID)
 	OGNConfigDataCache.Ppm = strconv.Itoa(f.ppm)
-	OGNConfigDataCache.Longitude = "0.0"
-	OGNConfigDataCache.Latitude = "0.0"
-	OGNConfigDataCache.Altitude = "0"
 	createOGNConfigFile(configTemplateFileName, configFileName)
 
 	cmd := exec.Command("ogn-rf", configFileName)
