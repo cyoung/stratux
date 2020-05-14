@@ -56,6 +56,8 @@ wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-double3_3.3.5-3_arm
 wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-single3_3.3.5-3_armhf.deb
 dpkg -i libfftw*.deb
 rm libfftw*.deb
+apt-mark hold libfftw3-bin libfftw3-dev libfftw3-double3 libfftw3-single3
+
 
 # Prepare wiringpi for fancontrol and some more tools
 #cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
