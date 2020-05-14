@@ -933,7 +933,7 @@ func flarmListen() {
 					OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)
 					OGNConfigDataCache.Latitude = fmt.Sprintf("%.4f", mySituation.GPSLatitude)
 					OGNConfigDataCache.Altitude = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSAltitudeMSL))
-					OGNConfigDataCache.GeoidSep = fmt.Sprintf("%.2f", mySituation.GPSGeoidSep)
+					OGNConfigDataCache.GeoidSep = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSGeoidSep))
 					createOGNConfigFile(configTemplateFileName, configFileName)
 
 					// start new decoding process
