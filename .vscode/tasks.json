@@ -7,6 +7,7 @@
             "label": "Build x86",
             "type": "shell",
             "command": "make -f Makefile.x86 xgen_gdl90",
+            "problemMatcher": "$go",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -16,13 +17,11 @@
             "label": "Build rPI debug",
             "type": "shell",
             "command": "make xgen_gdl90 debug=true",
+            "problemMatcher": "$go",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": [
-                "$go"
-            ]
+            }
         }
     ]
 }
