@@ -23,7 +23,7 @@ Position:
   Latitude   =   {{.Latitude}}; # [deg] Antenna coordinates
   Longitude  =   {{.Longitude}}; # [deg]
   Altitude   =   {{.Altitude}}; # [m]   Altitude above sea leavel
-  GeoidSepar =          0; # [m]   Geoid separation: FLARM transmits GPS altitude, APRS uses means Sea level altitude
+  GeoidSepar =   {{.GeoidSep}}; # [m]   Geoid separation: FLARM transmits GPS altitude, APRS uses means Sea level altitude
 };
 
 APRS:

@@ -31,7 +31,7 @@ import (
 
 // OGNConfigData stores the data required for generating the OGN configuration file
 type OGNConfigData struct {
-	DeviceIndex, Ppm, Longitude, Latitude, Altitude string
+	DeviceIndex, Ppm, Longitude, Latitude, Altitude, GeoidSep string
 }
 
 // OGNConfigDataCache is the global data structure for storing the latest OGN configuration
@@ -528,7 +528,7 @@ R?\s*
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
 	alt := atof32(attrMap["altitude"]) * 3.28084 // m in ft
 	if isGPSValid() && isTempPressValid() {
-		ti.Alt = int32(float32(alt) - mySituation.GPSHeightAboveEllipsoid + mySituation.BaroPressureAltitude)
+		ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
 		ti.AltIsGNSS = false
 	} else {
 		ti.Alt = int32(alt)
@@ -932,7 +932,8 @@ func flarmListen() {
 					// generate OGN configuration file
 					OGNConfigDataCache.Longitude = fmt.Sprintf("%.4f", mySituation.GPSLongitude)
 					OGNConfigDataCache.Latitude = fmt.Sprintf("%.4f", mySituation.GPSLatitude)
-					OGNConfigDataCache.Altitude = fmt.Sprintf("%.0f", convertFeetToMeters(mySituation.GPSAltitudeMSL))
+					OGNConfigDataCache.Altitude = fmt.Sprintf("%.2f", convertFeetToMeters(mySituation.GPSAltitudeMSL))
+					OGNConfigDataCache.GeoidSep = fmt.Sprintf("%.2f", mySituation.GPSGeoidSep)
 					createOGNConfigFile(configTemplateFileName, configFileName)
 
 					// start new decoding process
