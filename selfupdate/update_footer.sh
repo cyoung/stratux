@@ -87,7 +87,9 @@ cp -f ahrs_approx /usr/bin/
 chmod 755 /usr/bin/ahrs_approx
 
 # DHCPD Config.
-cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f dhcpd-not_smart.conf /etc/dhcp/
+cp -f dhcpd-smart.conf /etc/dhcp/
+ln -s /etc/dhcp/dhcpd-not_smart.conf /etc/dhcp/dhcpd.conf
 
 # Interfaces file.
 cp -f interfaces /etc/network/interfaces

@@ -43,3 +43,6 @@ SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout%n"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="DIY SoftRF", SYMLINK+="softrf"
 # TTGO T-Beam (ESP32 with OTP CP2104 chip)
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="CP2104 USB to UART Bridge Controller", SYMLINK+="softrf"
+# Dongle Edition (LilyGO & SoftRF T-Motion. USB CDC ACM output)
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="softrf"
+# end of SoftRF section

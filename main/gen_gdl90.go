@@ -1128,6 +1128,8 @@ type settings struct {
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
+	WiFiSmartEnabled     bool // "Smart WiFi" - disables the default gateway for iOS.
+	NoSleep              bool
 }
 
 type status struct {
@@ -1202,6 +1204,7 @@ func defaultSettings() {
 	globalSettings.OwnshipModeS = "F00000"
 	globalSettings.DeveloperMode = false
 	globalSettings.StaticIps = make([]string, 0)
+	globalSettings.NoSleep = false
 }
 
 func readSettings() {
@@ -1312,6 +1315,14 @@ func saveWiFiUserSettings() {
 		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
 	}
 	writer.Flush()
+
+	// "Smart WiFi". Just use one of two pre-made dhcpd config files.
+	dhcpd_config := "/etc/dhcp/dhcpd-not_smart.conf"
+	if globalSettings.WiFiSmartEnabled {
+		dhcpd_config = "/etc/dhcp/dhcpd-smart.conf"
+	}
+	os.Remove("/etc/dhcp/dhcpd.conf")
+	os.Symlink(dhcpd_config, "/etc/dhcp/dhcpd.conf")
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
