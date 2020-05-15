@@ -25,6 +25,7 @@ Apps with stratux recognition/support:
 * iFly GPS 9.4+.
 * DroidEFB 2.1.1+.
 * kwikEFIS
+* Pilots Atlas
 
 Tested weather/traffic displays:
 * Avare
