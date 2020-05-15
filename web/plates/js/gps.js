@@ -165,6 +165,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.gps_lat = situation.GPSLatitude.toFixed(5); // result is string
         $scope.gps_lon = situation.GPSLongitude.toFixed(5); // result is string
         $scope.gps_alt = situation.GPSAltitudeMSL.toFixed(1);
+        $scope.gps_height_above_ellipsoid = situation.GPSHeightAboveEllipsoid.toFixed(1);
         $scope.gps_track = situation.GPSTrueCourse.toFixed(1);
         $scope.gps_speed = situation.GPSGroundSpeed.toFixed(1);
         $scope.gps_vert_speed = situation.GPSVerticalSpeed.toFixed(1);
@@ -172,6 +173,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             $scope.gps_lat = "--";
             $scope.gps_lon = "--";
             $scope.gps_alt = "--";
+            $scope.gps_height_above_ellipsoid = "--";
             $scope.gps_track = "--";
             $scope.gps_speed = "--";
             $scope.gps_vert_speed = "--";
