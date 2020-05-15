@@ -1,15 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"../uatparse"
-	"strconv"
-	"os"
 	"bufio"
-	"github.com/kellydunn/golang-geo"
+	"fmt"
 	"math"
-	)
+	"os"
+	"strconv"
 
+	"github.com/cyoung/stratux/uatparse"
+	"github.com/kellydunn/golang-geo"
+)
 
 // Most adapted from extract_nexrad.c
 

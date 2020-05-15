@@ -14,11 +14,9 @@ all:
 	make xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
-	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
 	go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go
 
 fancontrol:
-	go get -t -d -v ./main
 	go build $(BUILDINFO_STATIC) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
