@@ -149,7 +149,7 @@ func getDHCPLeases() (map[string]string, error) {
 */
 func isSleeping(k string) bool {
 	// Unable to listen to ICMP without root - send to everything. Just for debugging.
-	if isX86DebugMode() {
+	if isX86DebugMode() || globalSettings.NoSleep == true {
 		return false
 	}
 	ipAndPort := strings.Split(k, ":")
