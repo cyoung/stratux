@@ -242,16 +242,10 @@ func replaceFlarmDecodingProcess(lonDeg float32, latDeg float32, oldDecodingProc
 
 	// show stdout
 	go func() {
-		for {
-			line, err := bufio.NewReader(decoderOutput).ReadString('\n')
+		scanner := bufio.NewScanner(decoderOutput)
+		for scanner.Scan() {
+			line := scanner.Text()
 			parseOgnStdoutMessage(line)
-			if err == nil {
-				if globalSettings.DEBUG {
-					log.Println("FLARM: ogn-decode stdout:", strings.TrimSpace(line))
-				}
-			} else {
-				return
-			}
 		}
 	}()
 
@@ -434,7 +428,10 @@ func parseFlarmPFLAA(message []string) {
 
 
 // Traffic messages look like this
+// OGN 2.6.0:
 // 0.458sec:868.188MHz:   8:2:AABBCC 085804: [ +45.5312, +8.1234]deg  123m  +0.0m/s   0.0m/s 000.0deg  +0.0deg/sec 0 03x05m 00f_-12.36kHz 45.2/61.0dB/0  0e    0.0km 000.0deg +69.4deg   ?
+// OGN 2.7.0:
+// 0.401sec:868.198MHz:   8:2:3B0528 190127: [ +45.53120, +8.12346]deg   488m  +0.0m/s   0.2m/s 067.5deg  +0.0deg/s 8m4 03x05m Fn:00f__ -1.65kHz 46.5/60.0dB/0  0e     0.0km 180.0deg  +1.7deg
 func parseOgnStdoutMessage(message string) {
 	// See https://github.com/glidernet/python-ogn-client/blob/master/ogn/parser/pattern.py
 	// PATTERN_TELNET_50001
@@ -446,18 +443,17 @@ func parseOgnStdoutMessage(message string) {
 (?P<climb_rate>[+-]\d+\.\d+)m/s\s*
 (?P<ground_speed>\d+\.\d+)m/s\s*
 (?P<track>\d+\.\d+)deg\s*
-(?P<turn_rate>[+-]\d+\.\d+)deg/sec\s*
-(?P<magic_number>\d+)\s*
+(?P<turn_rate>[+-]\d+\.\d+)deg/se?c?\s*
+(?P<magic_number>[a-z0-9]+)\s*
 (?P<gps_status>[0-9x]+)m\s*
-(?P<channel>\d+)(?P<flarm_timeslot>[f_])(?P<ogn_timeslot>[o_])\s*
-(?P<frequency_offset>[+-]\d+\.\d+)kHz\s*
+(?P<timeslots_frequency_offset>.*kHz)\s*
 (?P<decode_quality>\d+\.\d+)/(?P<signal_quality>\d+\.\d+)dB/(?P<demodulator_type>\d+)\s+
 (?P<error_count>\d+)e\s*
 (?P<distance>\d+\.\d+)km\s*
 (?P<bearing>\d+\.\d+)deg\s*
 (?P<phi>[+-]\d+\.\d+)deg\s*
 (?P<multichannel>\+)?\s*
-\?\s*
+\??\s*
 R?\s*
 (B(?P<baro_altitude>\d+))?`
 	rx = strings.Replace(rx, "\n", "", -1)
@@ -890,6 +886,7 @@ func flarmListen() {
 		}
 
 		// start APRS server
+		// TODO: doesn't seem to be needed any more as of OGN 2.7?
 		go aprsServer()
 
 		// set OGN configuration file path
