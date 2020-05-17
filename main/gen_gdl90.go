@@ -98,6 +98,7 @@ const (
 	GPS_TYPE_PROLIFIC = 0x02
 	GPS_TYPE_UART     = 0x01
 	GPS_TYPE_FLARM    = 0x0A
+	GPS_TYPE_SOFTRF_DONGLE = 0x0B
 	GPS_PROTOCOL_NMEA = 0x10
 	GPS_PROTOCOL_UBX  = 0x30
 	// other GPS types to be defined as needed

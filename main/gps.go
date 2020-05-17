@@ -218,6 +218,10 @@ func initGPSSerial() bool {
 		device = "/dev/flarm"
 		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
 		baudrate = 38400
+ 	} else if _, err := os.Stat("/dev/softrf_dongle"); err == nil {
+		device = "/dev/softrf_dongle"
+		globalStatus.GPS_detected_type = GPS_TYPE_SOFTRF_DONGLE
+		baudrate = 38400
  	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
@@ -268,7 +272,8 @@ func initGPSSerial() bool {
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
-	} else {
+	} else if globalStatus.GPS_detected_type == GPS_TYPE_UBX6 || globalStatus.GPS_detected_type == GPS_TYPE_UBX7 ||
+	          globalStatus.GPS_detected_type == GPS_TYPE_UBX8 || globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
 
 		// Byte order for UBX configuration is little endian.
 
@@ -413,6 +418,9 @@ func initGPSSerial() bool {
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 		}
+	} else if globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE {
+		p.Write([]byte("@BSSL 0x2D\r\n")) // enable GNGSV
+		p.Write([]byte("@GNS 0x7\r\n")) // enable SBAS
 	}
 	p.Close()
 
