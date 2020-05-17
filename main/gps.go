@@ -217,11 +217,11 @@ func initGPSSerial() bool {
 	} else if _, err := os.Stat("/dev/flarm"); err == nil {
 		device = "/dev/flarm"
 		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
-		baudrate = 38400
+		baudrate = 115200
  	} else if _, err := os.Stat("/dev/softrf_dongle"); err == nil {
 		device = "/dev/softrf_dongle"
 		globalStatus.GPS_detected_type = GPS_TYPE_SOFTRF_DONGLE
-		baudrate = 38400
+		baudrate = 115200
  	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART

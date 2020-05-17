@@ -91,6 +91,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 10:
 					tempGpsHardwareString = "FLARM";
 					break;
+				case 11:
+					tempGpsHardwareString = "SoftRF Dongle";
+					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}
