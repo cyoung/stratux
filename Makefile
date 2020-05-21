@@ -3,15 +3,18 @@ ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 	PLATFORMDEPENDENT=
 else
-	LDFLAGS_VERSION=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`
-	BUILDINFO=-ldflags "$(LDFLAGS_VERSION)"
-	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LDFLAGS_VERSION)"
-$(if $(GOROOT),,$(error GOROOT is not set!))
-	PLATFORMDEPENDENT=fancontrol
-endif
+	LFLAGS=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`
+	BUILDINFO=
 
 ifeq "$(debug)" "true"
-	BUILDINFO+=-gcflags '-N -l' -ldflags=-compressdwarf=false
+	LFLAGS+=-compressdwarf=false
+	BUILDINFO+=-gcflags '-N -l'
+endif
+
+	BUILDINFO+=-ldflags "$(LFLAGS)"
+	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LFLAGS)"
+$(if $(GOROOT),,$(error GOROOT is not set!))
+	PLATFORMDEPENDENT=fancontrol
 endif
 
 all:
