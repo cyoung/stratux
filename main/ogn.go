@@ -30,12 +30,14 @@ type OgnMessage struct {
 	Lat_deg float32
 	Lon_deg float32
 	Alt_msl_m float32
+	Alt_hae_m float32
 	Alt_std_m float32
 	Track_deg float64
 	Speed_mps float64
 	Climb_mps float64
 	Turn_dps float64
 	DOP float64
+	SNR_dB float64
 }
 
 
@@ -64,6 +66,7 @@ func ognListen() {
 			continue
 		}
 		log.Printf("ogn-rx-eu successfully connected")
+		globalStatus.OGN_connected = true
 		ognReadWriter = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 		for globalSettings.OGN_Enabled {
 			buf, err := ognReadWriter.ReadBytes('\n')
@@ -71,6 +74,14 @@ func ognListen() {
 				log.Printf("ogn-rx-eu connection lost.")
 				break
 			}
+
+			var thisMsg msg
+			thisMsg.MessageClass = MSGCLASS_OGN
+			thisMsg.TimeReceived = stratuxClock.Time
+			thisMsg.Data = string(buf)
+			MsgLog = append(MsgLog, thisMsg)
+
+
 			var msg OgnMessage
 			json.Unmarshal(buf, &msg)
 			if msg.Addr == "" {
@@ -80,10 +91,9 @@ func ognListen() {
 
 			importOgnMessage(msg)
 
-
 			//log.Printf(string(buf))
-			// TODO: parse buf
 		}
+		globalStatus.OGN_connected = false
 		ognReadWriter = nil
 		conn.Close()
 		
@@ -115,6 +125,9 @@ func importOgnMessage(msg OgnMessage) {
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
 	alt := msg.Alt_msl_m * 3.28084
+	if alt == 0 {
+		alt = msg.Alt_hae_m * 3.28084 - mySituation.GPSGeoidSep
+	}
 	if isGPSValid() && isTempPressValid() {
 		ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
 		ti.AltIsGNSS = false
@@ -129,7 +142,7 @@ func importOgnMessage(msg OgnMessage) {
 	ti.Track = uint16(msg.Track_deg)
 	ti.Speed = uint16(msg.Speed_mps * 1.94384)
 	ti.Speed_valid = true
-	ti.SignalLevel = msg.DOP
+	ti.SignalLevel = msg.SNR_dB
 
 	if isGPSValid() {
 		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))

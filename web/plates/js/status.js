@@ -164,7 +164,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.DeveloperMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
-			$scope.visible_OGN = settings.OGN_Enabled;
+			$scope.visible_ogn = settings.OGN_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
 			if (settings.Ping_Enabled) {
 				$scope.visible_uat = true;
