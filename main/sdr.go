@@ -226,7 +226,7 @@ func (f *OGN) read() {
 				return
 			default:
 				line, err := bufio.NewReader(stdout).ReadString('\n')
-				if err == nil {
+				if err == nil && globalSettings.DEBUG {
 					log.Println("OGN: ogn-rx-eu stdout: ", strings.TrimSpace(line))
 				}
 			}

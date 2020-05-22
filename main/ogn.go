@@ -91,7 +91,9 @@ func ognListen() {
 
 			importOgnMessage(msg)
 
-			//log.Printf(string(buf))
+			if globalSettings.DEBUG {
+				log.Printf(string(buf))
+			}
 		}
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
@@ -124,16 +126,21 @@ func importOgnMessage(msg OgnMessage) {
 	// set altitude
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
-	alt := msg.Alt_msl_m * 3.28084
-	if alt == 0 {
-		alt = msg.Alt_hae_m * 3.28084 - mySituation.GPSGeoidSep
-	}
-	if isGPSValid() && isTempPressValid() {
-		ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
+	if msg.Alt_std_m != 0 {
+		ti.Alt = int32(msg.Alt_std_m)
 		ti.AltIsGNSS = false
 	} else {
-		ti.Alt = int32(alt)
-		ti.AltIsGNSS = true
+		alt := msg.Alt_msl_m * 3.28084
+		if alt == 0 {
+			alt = msg.Alt_hae_m * 3.28084 - mySituation.GPSGeoidSep
+		}
+		if isGPSValid() && isTempPressValid() {
+			ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
+			ti.AltIsGNSS = false
+		} else {
+			ti.Alt = int32(alt)
+			ti.AltIsGNSS = true
+		}
 	}
 
 	ti.Vvel = int16(msg.Climb_mps * 196.85)
