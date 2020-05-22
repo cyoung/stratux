@@ -1,23 +1,27 @@
 /*
-	Copyright (c) 2016 Keith Tschohl
+	Copyright (c) 2020 Keith Tschohl, Adrian Batzill
 	Distributable under the terms of The "BSD New"" License
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 	flarm-nmea.go: Functions for generating FLARM-related NMEA sentences
 		to communicate traffic bearing / distance to glider computers
 		and UK / EU oriented EFBs.
+	Additional functions to parse NMEA from external Flarm GPS Mouse/SoftRF
 */
 
 package main
 
 import (
-	//"bufio"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"net"
 	"time"
+	"strconv"
+	"strings"
 )
 
 /*
@@ -498,4 +502,124 @@ func handleMessages(msgchan <-chan string, addchan <-chan tcpClient, rmchan <-ch
 			delete(clients, client.conn)
 		}
 	}
+}
+
+func atof32(val string) float32 {
+	res, _ := strconv.ParseFloat(val, 32)
+	return float32(res)
+}
+
+// Read data from a raw $PFLAU/$PFLAA message (i.e. when serial flarm device is connected)
+func parseFlarmNmeaMessage(message []string) {
+	if !globalSettings.OGN_Enabled {
+		return
+	}
+	globalStatus.OGN_connected = true
+
+	if message[0] == "PFLAU" {
+		parseFlarmPFLAU(message)
+	} else if message[0] == "PFLAA" {
+		parseFlarmPFLAA(message)
+	}
+}
+
+func parseFlarmPFLAU(message []string) {
+	// $PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
+	// TODO: do we really need this?
+	// I think not - we get everything from PFLAA
+}
+
+func parseFlarmPFLAA(message []string) {
+	// $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>
+	// Append flarm message to message log
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_OGN
+	thisMsg.TimeReceived = stratuxClock.Time
+	// thisMsg.Data = ...?
+	MsgLog = append(MsgLog, thisMsg)
+	
+	relNorth := atof32(message[2])
+	relEast := atof32(message[3])
+	relVert := atof32(message[4])
+	flarmID := message[6]
+	flarmID = strings.Split(flarmID, "!")[0] // for OGNTP targets it's xxxxxx!yyyyyy
+	track := atof32(message[7])
+	speed := atof32(message[9])
+	vspeed := atof32(message[10])
+	acType := message[11]
+
+	var ti TrafficInfo
+	addressBytes, _ := hex.DecodeString(flarmID)
+	addressBytes = append([]byte{0}, addressBytes...)
+	address := binary.BigEndian.Uint32(addressBytes)
+	// address += 1 // TODO: for range testing - will make SDR and FLARM traffic appear seperately
+
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	
+	// check if traffic is already known
+	if existingTi, ok := traffic[address]; ok {
+		if existingTi.Last_source == TRAFFIC_SOURCE_1090ES && existingTi.Age < 5 {
+			// traffic has FLARM and 1090ES and was seen via 1090ES recently?
+			// -> ignore the flarm message. 1090ES has much less delay, so we prefer that.
+			return 
+		}
+
+		ti = existingTi
+	}
+	ti.Icao_addr = address
+	if len(ti.Tail) == 0 {
+		ti.Tail = getTailNumber(flarmID) // Might have better tail from ADS-B. Don't overwrite.
+	}
+	ti.Timestamp = time.Now().UTC()
+	ti.Last_source = TRAFFIC_SOURCE_OGN
+
+
+	if isTempPressValid() {
+		ti.Alt = int32(mySituation.BaroPressureAltitude + relVert * 3.28084)
+		ti.AltIsGNSS = false
+	} else if isGPSValid() {
+		ti.Alt = int32(mySituation.GPSAltitudeMSL + relVert * 3.28084)
+		ti.AltIsGNSS = true
+	}
+
+	// lat dist = 60nm = 111,12km
+	ti.Lat = mySituation.GPSLatitude + (relNorth / 111120.0)
+	avgLat := ti.Lat / 2.0 + mySituation.GPSLatitude / 2.0
+	lngFactor := float32(111120.0 * math.Cos(radians(float64(avgLat))))
+	ti.Lng = mySituation.GPSLongitude + (relEast / lngFactor)
+
+	if isGPSValid() {
+		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		ti.BearingDist_valid = true
+	}
+	
+	ti.Track = uint16(track)
+	ti.Speed = uint16(speed * 1.94384) // m/s to knots
+	ti.Speed_valid = true
+	ti.Vvel = int16(vspeed * 196.85) // m/s to feet/min
+
+	ti.Position_valid = true
+	ti.ExtrapolatedPosition = false
+	ti.Last_seen = stratuxClock.Time
+	ti.Last_alt = stratuxClock.Time
+
+	switch(acType) {
+	case "1": ti.Emitter_category = 9 // glider = glider
+	case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
+	case "3": ti.Emitter_category = 7 // helicopter = helicopter
+	case "4": ti.Emitter_category = 11 // skydiver
+	case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
+	case "9": ti.Emitter_category = 3 // jet = large
+	case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
+	}
+
+	// update traffic database
+	traffic[ti.Icao_addr] = ti
+
+	// notify
+	registerTrafficUpdate(ti)
+
+	// mark traffic as seen
+	seenTraffic[ti.Icao_addr] = true
 }

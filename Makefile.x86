@@ -14,7 +14,7 @@ all: xdump978 xdump1090 xgen_gdl90 $(PLATFORMDEPENDENT)
 
 xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
-	export CGO_CFLAGS_ALLOW="-L$(CURDIR)" && go build $(BUILDINFO) -gcflags '-N -l' -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/flarm.go main/flarm-nmea.go main/networksettings.go main/xplane.go
+	export CGO_CFLAGS_ALLOW="-L$(CURDIR)" && go build $(BUILDINFO) -gcflags '-N -l' -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/ogn.go main/flarm-nmea.go main/networksettings.go main/xplane.go
 
 fancontrol:
 	go get -t -d -v ./main
@@ -44,19 +44,8 @@ install:
 	cp -f libdump978.so /usr/lib/libdump978.so
 	cp -f dump1090/dump1090 /usr/bin/
 
-	# Do this last!
-	cd /tmp && \
-	rm -f rtlsdr-ogn-bin-x64-0.2.6.tgz && \
-	wget http://download.glidernet.org/x64/rtlsdr-ogn-bin-x64-0.2.6.tgz && tar xzf rtlsdr-ogn-bin-x64-0.2.6.tgz && \
-	cp rtlsdr-ogn-0.2.6/ogn-rf /usr/bin && \
-	cp rtlsdr-ogn-0.2.6/ogn-decode /usr/bin
-	mkdir -p  /var/lib/stratux/ogn
-	cp -f ogn/rtlsdr-ogn/stratux.conf.template /etc/stratux-ogn.conf.template
+	cp -f ogn/ogn-rx-eu_x86 /usr/bin/ogn-rx-eu
 	cp -f ogn/ddb.json /etc/
-
-	rm -f /var/run/ogn-rf.fifo
-	mkfifo /var/run/ogn-rf.fifo
-	chmod a+s /usr/bin/ogn-rf
 
 	# Make sure dhcp leases exists..
 	mkdir -p /var/lib/dhcp

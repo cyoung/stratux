@@ -955,6 +955,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		return false
 	}
+	ognPublishNmea(l)
 	x := strings.Split(l_valid, ",")
 
 	mySituation.GPSLastValidNMEAMessageTime = stratuxClock.Time

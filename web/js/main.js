@@ -85,12 +85,6 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			controller: 'RadarCtrl',
 			reloadOnSearch: false
 		})
-		.state('flarm', {
-			url: '/flarm',
-			templateUrl: 'plates/flarm.html',
-			controller: 'FlarmCtrl',
-			reloadOnSearch: false
-		})
         .state('developer', {
 			url: '/developer',
 			templateUrl: 'plates/developer.html',

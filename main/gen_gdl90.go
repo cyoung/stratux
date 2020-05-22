@@ -77,7 +77,7 @@ const (
 
 	MSGCLASS_UAT   = 0
 	MSGCLASS_ES    = 1
-	MSGCLASS_FLARM = 2
+	MSGCLASS_OGN = 2
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -840,7 +840,7 @@ func updateMessageStats() {
 	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
-	FLARM_messages_last_minute := uint(0)
+	OGN_messages_last_minute := uint(0)
 
 	ADSBTowerMutex.Lock()
 	defer ADSBTowerMutex.Unlock()
@@ -880,15 +880,15 @@ func updateMessageStats() {
 				}
 			} else if MsgLog[i].MessageClass == MSGCLASS_ES {
 				ES_messages_last_minute++
-			} else if MsgLog[i].MessageClass == MSGCLASS_FLARM {
-				FLARM_messages_last_minute++
+			} else if MsgLog[i].MessageClass == MSGCLASS_OGN {
+				OGN_messages_last_minute++
 			}
 		}
 	}
 	MsgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
-	globalStatus.FLARM_messages_last_minute = FLARM_messages_last_minute
+	globalStatus.OGN_messages_last_minute = OGN_messages_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -897,8 +897,8 @@ func updateMessageStats() {
 	if globalStatus.ES_messages_max < ES_messages_last_minute {
 		globalStatus.ES_messages_max = ES_messages_last_minute
 	}
-	if globalStatus.FLARM_messages_max < FLARM_messages_last_minute {
-		globalStatus.FLARM_messages_max = FLARM_messages_last_minute
+	if globalStatus.OGN_messages_max < OGN_messages_last_minute {
+		globalStatus.OGN_messages_max = OGN_messages_last_minute
 	}
 
 	// Update average signal strength over last minute for all ADSB towers.
@@ -1148,7 +1148,7 @@ func getProductNameFromId(product_id int) string {
 type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
-	FLARM_Enabled        bool
+	OGN_Enabled        bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	BMP_Sensor_Enabled   bool
@@ -1197,9 +1197,9 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
-	FLARM_messages_last_minute                 uint
-	FLARM_messages_max                         uint
-	FLARM_connected                            bool
+	OGN_messages_last_minute                 uint
+	OGN_messages_max                         uint
+	OGN_connected                            bool
 	UAT_traffic_targets_tracking               uint16
 	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
@@ -1245,7 +1245,7 @@ var globalStatus status
 func defaultSettings() {
 	globalSettings.UAT_Enabled = false
 	globalSettings.ES_Enabled = true
-	globalSettings.FLARM_Enabled = true
+	globalSettings.OGN_Enabled = true
 	globalSettings.GPS_Enabled = true
 	globalSettings.IMU_Sensor_Enabled = true
 	globalSettings.BMP_Sensor_Enabled = true
@@ -1685,6 +1685,9 @@ func main() {
 
 	// Start printing stats periodically to the logfiles.
 	go printStats()
+
+	// Extrapolate traffic when no signal is received.
+	go trafficInfoExtrapolator()
 
 	// Monitor RPi CPU temp.
 	globalStatus.CPUTempMin = invalidCpuTemp
