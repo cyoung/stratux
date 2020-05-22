@@ -1353,6 +1353,9 @@ func extrapolateTraffic(ti *TrafficInfo) {
 	lat, lng := calcLocationForBearingDistance(float64(ti.Lat_fix), float64(ti.Lng_fix), float64(ti.Track), travelDist)
 	ti.Lat = float32(lat)
 	ti.Lng = float32(lng)
+	// TODO: should we call registerTrafficUpdate() to send this traffic to the web interface?
+	// Pro: web interface also shows interpolated position
+	// Con: it doesn't show the really received position with the age any more (i.e. age gets older but position updates)
 }
 
 /*
