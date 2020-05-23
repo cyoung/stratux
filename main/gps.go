@@ -121,6 +121,7 @@ type gpsPerfStats struct {
 
 var gpsPerf gpsPerfStats
 var myGPSPerfStats []gpsPerfStats
+var gpsTimeOffsetPpsMs = 100.0 * time.Millisecond
 
 var serialConfig *serial.Config
 var serialPort *serial.Port
@@ -202,6 +203,7 @@ func initGPSSerial() bool {
 	} else if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
 		device = "/dev/ublox8"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
+		gpsTimeOffsetPpsMs = 80 * time.Millisecond // Ublox 8 seems to have higher delay
 	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
 		device = "/dev/ublox7"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX7
@@ -1323,6 +1325,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
 				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
+				gpsTime = gpsTime.Add(gpsTimeOffsetPpsMs) // rough estimate for PPS offset
 				if err == nil {
 					// We only update ANY of the times if all of the time parsing is complete.
 					mySituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
@@ -1330,7 +1333,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					stratuxClock.SetRealTimeReference(gpsTime)
 					mySituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
-					if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
+					if time.Since(gpsTime) > 50*time.Millisecond || time.Since(gpsTime) < -50*time.Millisecond {
 						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 						log.Printf("setting system time to: '%s'\n", setStr)
 						if err := exec.Command("date", "-s", setStr).Run(); err != nil {
@@ -1538,11 +1541,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
 			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
+			gpsTime = gpsTime.Add(gpsTimeOffsetPpsMs) // rough estimate for PPS offset
 			if err == nil && gpsTime.After(time.Date(2016, time.January, 0, 0, 0, 0, 0, time.UTC)) { // Ignore dates before 2016-JAN-01.
 				tmpSituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
 				stratuxClock.SetRealTimeReference(gpsTime)
-				if time.Since(gpsTime) > 3*time.Second || time.Since(gpsTime) < -3*time.Second {
+				if time.Since(gpsTime) > 50*time.Millisecond || time.Since(gpsTime) < -50*time.Millisecond {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time to: '%s'\n", setStr)
 					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
