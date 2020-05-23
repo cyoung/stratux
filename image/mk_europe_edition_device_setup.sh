@@ -81,16 +81,22 @@ source /root/.bashrc
 #mkdir -p /root/librtlsdr/build
 #cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
 
+# Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
+sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
+sed -i -e 's/libdir=/libdir=${prefix}\/lib\/arm-linux-gnueabihf/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
+
+
 # Compile stratux
 cd /root/stratux
 
 # For some reason, qemu build fails unless we use a single compilation thread. Compilation takes quite long...
 #export GOMAXPROCS=1
+
 # TODO: this libary's latest version seems to be incomaptible. Force to 0.0.11.
 # Only an ugly hack - we should upgrade to go modules instead...
-go get github.com/prometheus/procfs
-cd $GOPATH/src/github.com/prometheus/procfs/
-git checkout tags/v0.0.11
+#go get github.com/prometheus/procfs
+#cd $GOPATH/src/github.com/prometheus/procfs/
+#git checkout tags/v0.0.11
 
 cd /root/stratux
 
