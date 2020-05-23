@@ -202,9 +202,9 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			// it somewhat matches our real data
 			// because of second-resolution in flarm we assume worst case of +1 second
 			timeDiff := math.Abs(ti.Age - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds()) + 1
-			if ti.ExtrapolatedPosition {
-				timeDiff = math.Abs(ti.AgeExtrapolation - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds()) + 1
-			}
+			//if ti.ExtrapolatedPosition {
+			//	timeDiff = math.Abs(ti.AgeExtrapolation - stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds()) + 1
+			//}
 			speed := mySituation.GPSGroundSpeed
 			if ti.Speed_valid {
 				speed = math.Max(float64(ti.Speed), mySituation.GPSGroundSpeed)

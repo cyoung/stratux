@@ -24,6 +24,7 @@ import (
 // {"sys":"OGN","addr":"395F39","addr_type":3,"acft_type":"1","lat_deg":51.7657533,"lon_deg":-1.1918533,"alt_msl_m":124,"alt_std_m":63,"track_deg":0.0,"speed_mps":0.3,"climb_mps":-0.5,"turn_dps":0.0,"DOP":1.5}
 type OgnMessage struct {
 	Sys string
+	Time int64
 	Addr string
 	Addr_type int32
 	Acft_type string
@@ -80,6 +81,7 @@ func ognListen() {
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = string(buf)
 			MsgLog = append(MsgLog, thisMsg)
+			logMsg(thisMsg) // writes to replay logs
 
 
 			var msg OgnMessage
@@ -89,7 +91,7 @@ func ognListen() {
 				continue
 			}
 
-			importOgnMessage(msg)
+			importOgnMessage(msg, buf)
 
 			if globalSettings.DEBUG {
 				log.Printf(string(buf))
@@ -102,7 +104,7 @@ func ognListen() {
 	}
 }
 
-func importOgnMessage(msg OgnMessage) {
+func importOgnMessage(msg OgnMessage, buf []byte) {
 	var ti TrafficInfo
 	addressBytes, _ := hex.DecodeString(msg.Addr)
 	addressBytes = append([]byte{0}, addressBytes...)
@@ -120,7 +122,16 @@ func importOgnMessage(msg OgnMessage) {
 		ti.Tail = getTailNumber(msg.Addr)
 	}
 	ti.Last_source = TRAFFIC_SOURCE_OGN
-	ti.Timestamp = time.Now().UTC()
+	if msg.Time > 0 {
+		ti.Timestamp = time.Unix(msg.Time, 0)
+	} else {
+		ti.Timestamp = time.Now().UTC()
+	}
+	ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
+	if ti.Age > 30 || ti.Age < -2 {
+		log.Printf("Discarding likely invalid OGN target: %s", string(buf))
+		return
+	}
 	// TODO: timestamp from sender?
 
 	// set altitude
@@ -157,8 +168,8 @@ func importOgnMessage(msg OgnMessage) {
 	}
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
-	ti.Last_seen = stratuxClock.Time
-	ti.Last_alt = stratuxClock.Time
+	ti.Last_seen = ti.Timestamp // stratuxClock.Time
+	ti.Last_alt = ti.Timestamp // stratuxClock.Time
 
 	switch(msg.Acft_type) {
 		case "1": ti.Emitter_category = 9 // glider = glider
@@ -208,7 +219,7 @@ func lookupOgnTailNumber(flarmid string) string {
 func getTailNumber(flarmid string) string {
 	tail := lookupOgnTailNumber(flarmid)
 	if globalSettings.DisplayTrafficSource {
-		tail = "fl" + tail
+		tail = "og" + tail
 	}
 	return tail
 }
