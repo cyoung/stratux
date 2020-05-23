@@ -26,7 +26,7 @@ apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen wiringpi
+    python-pip python-dev python-pil python-daemon screen wiringpi librtlsdr-dev
 apt clean
 #echo y | rpi-update
 
@@ -71,11 +71,11 @@ cd /root/stratux
 cp image/bashrc.txt /root/.bashrc
 source /root/.bashrc
 
-# Prepare librtlsdr
-rm -rf /root/librtlsdr
-git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
-mkdir -p /root/librtlsdr/build
-cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
+# Prepare librtlsdr. TODO: not needed any more with buster?
+#rm -rf /root/librtlsdr
+#git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
+#mkdir -p /root/librtlsdr/build
+#cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
 
 # Compile stratux
 cd /root/stratux
