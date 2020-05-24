@@ -168,8 +168,10 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	}
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
-	ti.Last_seen = ti.Timestamp // stratuxClock.Time
-	ti.Last_alt = ti.Timestamp // stratuxClock.Time
+	ti.Last_seen = stratuxClock.Time
+	ageMs := int64(ti.Age * 1000)
+	ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
+	ti.Last_alt = ti.Last_seen
 
 	switch(msg.Acft_type) {
 		case "1": ti.Emitter_category = 9 // glider = glider
