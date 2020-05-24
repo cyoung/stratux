@@ -1914,8 +1914,38 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 	}
 
+	// OGN Tracker pressure data:
+	// $POGNB,22.0,+29.1,100972.3,3.8,+29.4,+87.2,-0.04,+32.6,*6B
+	if x[0] == "POGNB" {
+		if len(x) < 5 {
+			return false
+		}
+		var vspeed float64
+
+		pressureAlt, err := strconv.ParseFloat(x[5], 32)
+		if err != nil {
+			return false
+		}
+		
+		vspeed, err = strconv.ParseFloat(x[7], 32)
+		if err != nil {
+			return false
+		}
+
+		if !globalSettings.BMP_Sensor_Enabled || !globalStatus.BMPConnected {
+			mySituation.muBaro.Lock()
+			mySituation.BaroPressureAltitude = float32(pressureAlt * 3.28084) // meters to feet
+			mySituation.BaroVerticalSpeed = float32(vspeed * 196.85) // m/s in ft/min
+			mySituation.BaroLastMeasurementTime = stratuxClock.Time
+			mySituation.muBaro.Unlock()
+		}
+		return true
+	}
+
+	// Flarm NMEA traffic data
 	if x[0] == "PFLAU" || x[0] == "PFLAA" {
 		parseFlarmNmeaMessage(x)
+		return true
 	}
 
 	// If we've gotten this far, the message isn't one that we can use.
