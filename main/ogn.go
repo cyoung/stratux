@@ -85,17 +85,17 @@ func ognListen() {
 
 
 			var msg OgnMessage
-			json.Unmarshal(buf, &msg)
-			if msg.Addr == "" {
+			err = json.Unmarshal(buf, &msg)
+			if err != nil {
 				log.Printf("Invalid Data from OGN: " + string(buf))
 				continue
 			}
 
 			importOgnMessage(msg, buf)
 
-			//if globalSettings.DEBUG {
+			if globalSettings.DEBUG {
 				log.Printf(string(buf))
-			//}
+			}
 		}
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
@@ -109,6 +109,13 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	addressBytes, _ := hex.DecodeString(msg.Addr)
 	addressBytes = append([]byte{0}, addressBytes...)
 	address := binary.BigEndian.Uint32(addressBytes)
+
+	// Basic plausibility check:
+	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
+	if dist >= 50000 {
+		// more than 50km away? Ignore. Most likely invalid data
+		return
+	}
 	
 
 	trafficMutex.Lock()

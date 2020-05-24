@@ -222,26 +222,29 @@ func (f *OGN) read() {
 	}()
 
 	go func() {
+		reader := bufio.NewReader(stdout)
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				line, err := bufio.NewReader(stdout).ReadString('\n')
-				if err == nil && globalSettings.DEBUG {
-					log.Println("OGN: ogn-rx-eu stdout: ", strings.TrimSpace(line))
+				line, err := reader.ReadString('\n')
+				line = strings.TrimSpace(line)
+				if err == nil  && len(line) > 0 /*&& globalSettings.DEBUG*/ {
+					log.Println("OGN: ogn-rx-eu stdout: ", line)
 				}
 			}
 		}
 	}()
 
 	go func() {
+		reader := bufio.NewReader(stderr)
 		for {
 			select {
 			case <-done:
 				return
 			default:
-				line, err := bufio.NewReader(stderr).ReadString('\n')
+				line, err := reader.ReadString('\n')
 				if err == nil {
 					log.Println("OGN: ogn-rx-eu stderr: ", strings.TrimSpace(line))
 				}
