@@ -261,6 +261,7 @@ func (f *OGN) read() {
 	close(done)
 
 	if autoRestart && !shutdownOGN{
+		time.Sleep(5 * time.Second)
 		log.Println("OGN: restarting crashed ogn-rx-eu")
 		f.wg.Add(1)
 		go f.read()

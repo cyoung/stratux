@@ -63,7 +63,7 @@ func ognListen() {
 		ognAddr := "127.0.0.1:30010"
 		conn, err := net.Dial("tcp", ognAddr)
 		if err != nil { // Local connection failed.
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
 		log.Printf("ogn-rx-eu successfully connected")
@@ -93,9 +93,9 @@ func ognListen() {
 
 			importOgnMessage(msg, buf)
 
-			if globalSettings.DEBUG {
+			//if globalSettings.DEBUG {
 				log.Printf(string(buf))
-			}
+			//}
 		}
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
