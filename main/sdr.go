@@ -181,6 +181,7 @@ func (f *OGN) read() {
 	cmd := exec.Command("/usr/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
+	autoRestart := true // automatically restart crashing child process
 
 	err := cmd.Start()
 	if err != nil {
@@ -208,6 +209,7 @@ func (f *OGN) read() {
 				return
 			case <-f.closeCh:
 				log.Println("OGN read(): shutdown msg received, calling cmd.Process.Kill() ...")
+				autoRestart = false
 				err := cmd.Process.Kill()
 				if err == nil {
 					log.Println("kill successful...")
@@ -257,6 +259,12 @@ func (f *OGN) read() {
 	// the "done" channel, which ensures we don't leak
 	// goroutines...
 	close(done)
+
+	if autoRestart && !shutdownOGN{
+		log.Println("OGN: restarting crashed ogn-rx-eu")
+		f.wg.Add(1)
+		go f.read()
+	}
 }
 
 func getPPM(serial string) int {
