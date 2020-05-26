@@ -1945,7 +1945,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 	// Only evaluate PGRMZ for SoftRF/Flarm, where we know that it is standard barometric pressure.
 	// might want to add more types if applicable.
 	// $PGRMZ,1089,f,3*2B
-	if x[0] == "PGRMZ" && (globalStatus.GPS_detected_type == GPS_TYPE_FLARM || globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE) {
+	if x[0] == "PGRMZ" && ((globalStatus.GPS_detected_type & 0x0f) ==  GPS_TYPE_FLARM || (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_SOFTRF_DONGLE) {
 		if len(x) < 3 {
 			return false
 		}

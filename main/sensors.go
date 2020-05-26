@@ -124,8 +124,8 @@ func tempAndPressureSender() {
 		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}
-	mySituation.BaroPressureAltitude = 99999
-	mySituation.BaroVerticalSpeed = 99999
+	//mySituation.BaroPressureAltitude = 99999
+	//mySituation.BaroVerticalSpeed = 99999
 }
 
 func initIMU() (ok bool) {
