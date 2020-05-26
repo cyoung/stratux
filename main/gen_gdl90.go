@@ -1670,9 +1670,7 @@ func main() {
 	initDataLog()
 
 	// Start the AHRS sensor monitoring.
-	if !isX86DebugMode() {
-		initI2CSensors()
-	}
+	initI2CSensors()
 
 	// Start the GPS external sensor monitoring.
 	initGPS()

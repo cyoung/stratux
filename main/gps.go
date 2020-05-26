@@ -1942,6 +1942,30 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 	}
 
+	// Only evaluate PGRMZ for SoftRF/Flarm, where we know that it is standard barometric pressure.
+	// might want to add more types if applicable.
+	// $PGRMZ,1089,f,3*2B
+	if x[0] == "PGRMZ" && (globalStatus.GPS_detected_type == GPS_TYPE_FLARM || globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE) {
+		if len(x) < 3 {
+			return false
+		}
+		// Assume pressure altitude in PGRMZ if we don't have any other baro (SoftRF style)
+		pressureAlt, err := strconv.ParseFloat(x[1], 32)
+		if err != nil {
+			return false
+		}
+		unit := x[2]
+		if unit == "m" {
+			pressureAlt *= 3.28084
+		}
+		if !globalSettings.BMP_Sensor_Enabled || !globalStatus.BMPConnected {
+			mySituation.muBaro.Lock()
+			mySituation.BaroPressureAltitude = float32(pressureAlt) // meters to feet
+			mySituation.BaroLastMeasurementTime = stratuxClock.Time
+			mySituation.muBaro.Unlock()
+		}
+	}
+
 	// Flarm NMEA traffic data
 	if x[0] == "PFLAU" || x[0] == "PFLAA" {
 		parseFlarmNmeaMessage(x)
