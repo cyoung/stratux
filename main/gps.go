@@ -1932,7 +1932,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 
-		if !globalSettings.BMP_Sensor_Enabled || !globalStatus.BMPConnected {
+		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
 			mySituation.muBaro.Lock()
 			mySituation.BaroPressureAltitude = float32(pressureAlt * 3.28084) // meters to feet
 			mySituation.BaroVerticalSpeed = float32(vspeed * 196.85) // m/s in ft/min
@@ -1958,7 +1958,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if unit == "m" {
 			pressureAlt *= 3.28084
 		}
-		if !globalSettings.BMP_Sensor_Enabled || !globalStatus.BMPConnected {
+		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
 			mySituation.muBaro.Lock()
 			mySituation.BaroPressureAltitude = float32(pressureAlt) // meters to feet
 			mySituation.BaroLastMeasurementTime = stratuxClock.Time
