@@ -888,8 +888,6 @@ func registerSituationUpdate() {
 }
 
 func calculateNavRate() float64 {
-	mySituation.muGPSPerformance.Lock()
-	defer mySituation.muGPSPerformance.Unlock()
  	length := len(myGPSPerfStats)
  	tempSpeedTime := make([]float64, 0)
 
@@ -2147,7 +2145,9 @@ func gpsAttitudeSender() {
 		if !(globalStatus.GPS_connected || globalStatus.IMUConnected) {
  			myGPSPerfStats = make([]gpsPerfStats, 0) // reinitialize statistics on disconnect / reconnect
  		} else {
- 			calculateNavRate()
+			mySituation.muGPSPerformance.Lock()
+			calculateNavRate()
+			mySituation.muGPSPerformance.Unlock()
  		}
 
 		for !(globalSettings.IMU_Sensor_Enabled && globalStatus.IMUConnected) && (globalSettings.GPS_Enabled && globalStatus.GPS_connected) {

@@ -39,6 +39,10 @@ type OgnMessage struct {
 	Turn_dps float64
 	DOP float64
 	SNR_dB float64
+
+	// TODO: only for debug. Maybe remove in the future
+	Dist_m float64
+	Bearing_deg float64
 }
 
 
@@ -172,6 +176,12 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	if isGPSValid() {
 		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		ti.BearingDist_valid = true
+
+		// TODO: remove me
+		msg.Dist_m = ti.Distance
+		msg.Bearing_deg = ti.Bearing
+		j, _ := json.Marshal(msg)
+		log.Printf("Traffic: %s", string(j))
 	}
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
