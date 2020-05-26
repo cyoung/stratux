@@ -39,6 +39,7 @@ type OgnMessage struct {
 	Turn_dps float64
 	DOP float64
 	SNR_dB float64
+	Rx_err int32
 
 	// TODO: only for debug. Maybe remove in the future
 	Dist_m float64
