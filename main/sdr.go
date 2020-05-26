@@ -256,7 +256,7 @@ func (f *OGN) read() {
 
 	log.Println("OGN: ogn-rx-eu terminated...")
 
-	// we get here if A) the dump1090 process died
+	// we get here if A) the ogn-rx-eu process died
 	// on its own or B) cmd.Process.Kill() was called
 	// from within the goroutine, either way close
 	// the "done" channel, which ensures we don't leak

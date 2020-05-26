@@ -888,6 +888,8 @@ func registerSituationUpdate() {
 }
 
 func calculateNavRate() float64 {
+	mySituation.muGPSPerformance.Lock()
+	defer mySituation.muGPSPerformance.Unlock()
  	length := len(myGPSPerfStats)
  	tempSpeedTime := make([]float64, 0)
 
