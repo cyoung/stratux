@@ -98,6 +98,17 @@ func ognListen() {
 
 			importOgnMessage(msg, buf)
 
+			// TODO: remove me
+			if isGPSValid() {
+				var j map[string]interface{}
+				json.Unmarshal(buf, &j)
+				dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
+				j["dist_m"] = dist
+				j["bearing_deg"] = bearing
+				txt, _ := json.Marshal(j)
+				log.Printf("Traffic: %s", txt)
+			}
+
 			if globalSettings.DEBUG {
 				log.Printf(string(buf))
 			}
@@ -177,12 +188,6 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	if isGPSValid() {
 		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		ti.BearingDist_valid = true
-
-		// TODO: remove me
-		msg.Dist_m = ti.Distance
-		msg.Bearing_deg = ti.Bearing
-		j, _ := json.Marshal(msg)
-		log.Printf("Traffic: %s", string(j))
 	}
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
