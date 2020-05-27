@@ -177,6 +177,18 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 		}
 	}
 
+	// Maybe the sender has baro AND GNS altitude.. in that case we can use that to estimage GnssBaroDiff to guess our own baro altitude
+	if msg.Alt_msl_m != 0 && msg.Alt_std_m != 0 {
+		ti.Last_GnssDiffAlt = ti.Alt
+		hae := msg.Alt_msl_m + mySituation.GPSGeoidSep
+		ti.GnssDiffFromBaroAlt = int32((hae - msg.Alt_std_m) * 3.28084)
+		ti.Last_GnssDiff = stratuxClock.Time
+	} else if msg.Alt_hae_m != 0 && msg.Alt_std_m != 0 {
+		ti.Last_GnssDiffAlt = ti.Alt
+		ti.GnssDiffFromBaroAlt = int32((msg.Alt_hae_m - msg.Alt_std_m) * 3.28084)
+		ti.Last_GnssDiff = stratuxClock.Time
+	}
+
 	ti.Vvel = int16(msg.Climb_mps * 196.85)
 	ti.Lat = msg.Lat_deg
 	ti.Lng = msg.Lon_deg

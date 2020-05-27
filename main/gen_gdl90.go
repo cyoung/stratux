@@ -1687,6 +1687,9 @@ func main() {
 	// Extrapolate traffic when no signal is received.
 	go trafficInfoExtrapolator()
 
+	// Guesses barometric altitude if we don't have our own baro source by using GnssBaroDiff from other traffic at similar altitude
+	go baroAltGuesser()
+
 	// Monitor RPi CPU temp.
 	globalStatus.CPUTempMin = invalidCpuTemp
 	globalStatus.CPUTempMax = invalidCpuTemp

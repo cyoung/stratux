@@ -36,6 +36,14 @@ const (
 	SAT_TYPE_SBAS    = 10 // NMEA IDs 33-54
 )
 
+const (
+	BARO_TYPE_NONE         = 0 // No baro present
+	BARO_TYPE_BMP280       = 1 // Stratux AHRS module or similar internal baro
+	BARO_TYPE_OGNTRACKER   = 2 // OGN Tracker with baro pressure
+	BARO_TYPE_NMEA         = 3 // Other NMEA provider that reports $PGRMZ (SoftRF)
+	BARO_TYPE_ADSBESTIMATE = 4 // If we have no baro, we will try to estimate baro pressure from ADS-B targets reporting GnssDiffFromBaroAlt (HAE<->Baro difference)
+)
+
 type SatelliteInfo struct {
 	SatelliteNMEA    uint8     // NMEA ID of the satellite. 1-32 is GPS, 33-54 is SBAS, 65-88 is Glonass.
 	SatelliteID      string    // Formatted code indicating source and PRN code. e.g. S138==WAAS satellite 138, G2==GPS satellites 2
@@ -85,6 +93,7 @@ type SituationData struct {
 	BaroPressureAltitude    float32
 	BaroVerticalSpeed       float32
 	BaroLastMeasurementTime time.Time
+	BaroSourceType          uint8
 
 	// From AHRS source.
 	muAttitude           *sync.Mutex
@@ -1932,11 +1941,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 
-		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
+		if !isTempPressValid() || mySituation.BaroSourceType != BARO_TYPE_BMP280 {
 			mySituation.muBaro.Lock()
 			mySituation.BaroPressureAltitude = float32(pressureAlt * 3.28084) // meters to feet
 			mySituation.BaroVerticalSpeed = float32(vspeed * 196.85) // m/s in ft/min
 			mySituation.BaroLastMeasurementTime = stratuxClock.Time
+			mySituation.BaroSourceType = BARO_TYPE_OGNTRACKER
 			mySituation.muBaro.Unlock()
 		}
 		return true
@@ -1958,10 +1968,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if unit == "m" {
 			pressureAlt *= 3.28084
 		}
-		if globalSettings.BMP_Sensor_Enabled && !globalStatus.BMPConnected {
+		// Prefer internal sensor and OGN tracker over this...
+		if !isTempPressValid() || (mySituation.BaroSourceType != BARO_TYPE_BMP280 && mySituation.BaroSourceType != BARO_TYPE_OGNTRACKER) {
 			mySituation.muBaro.Lock()
 			mySituation.BaroPressureAltitude = float32(pressureAlt) // meters to feet
 			mySituation.BaroLastMeasurementTime = stratuxClock.Time
+			mySituation.BaroSourceType = BARO_TYPE_NMEA
 			mySituation.muBaro.Unlock()
 		}
 	}
@@ -1974,6 +1986,75 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	// If we've gotten this far, the message isn't one that we can use.
 	return false
+}
+
+
+// Maps 1000ft bands to gnssBaroAltDiffs of known traffic.
+// This will then be used to estimate our own baro altitude from GNSS if we don't have a pressure sensor connected...
+// Data will receive exponential smoothing so outliers hopefully don't have too much effect
+var gnssBaroAltDiffs = make(map [int]int)
+func baroAltGuesser() {
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		<-ticker.C
+		trafficMutex.Lock()
+		for _, ti := range traffic {
+			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || !ti.Position_valid {
+				continue // already considered this value or we don't have a value - skip
+			}
+			bucket := int(ti.Alt / 1000)
+			if val, ok := gnssBaroAltDiffs[bucket]; ok {
+				// weighted average - don't tune too quickly...
+				gnssBaroAltDiffs[bucket] = (val * 9 + int(ti.GnssDiffFromBaroAlt) * 1) / 10
+			} else {
+				gnssBaroAltDiffs[bucket] = int(ti.GnssDiffFromBaroAlt)
+			}
+		}
+		trafficMutex.Unlock()
+
+
+		if isGPSValid() /*&& (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE)*/ {
+			// We have no real baro source.. try to estimate baro altitude with the help of closeby ADS-B aircraft that define BaroGnssDiff...
+
+			myAlt := mySituation.GPSAltitudeMSL
+			if isTempPressValid() {
+				myAlt = mySituation.BaroPressureAltitude // we have something better than GPS from a previous run or something
+			}
+			alts := make([]float64, 0, len(gnssBaroAltDiffs))
+			diffs := make([]float64, 0, len(gnssBaroAltDiffs))
+			weights := make([]float64, 0, len(gnssBaroAltDiffs)) // Weigh close altitudes higher than far altitudes for linreg
+			for k, v := range gnssBaroAltDiffs {
+				bucketAlt := float64(k * 1000 + 500)
+				alts = append(alts, bucketAlt) // Compute back from bucket to "real" altitude (+500 to be in the center of the bucket)
+				diffs = append(diffs, float64(v))
+				// Weight: 1 / altitudeDifference / 1000
+				weight:= math.Abs(float64(myAlt) - bucketAlt)
+				if weight == 0 {
+					weight = 1
+				} else {
+					weight = math.Min(1 / (weight / 1000), 1)
+				}
+				weights = append(weights, weight)
+			}
+			if len(gnssBaroAltDiffs) >= 2 {
+				slope, intercept, valid := linRegWeighted(alts, diffs, weights)
+				if valid {
+					gnssBaroDiff := float64(myAlt) * slope + intercept
+					// TODO move this if to the top - for now we compute always for logging
+					if  (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE) {
+						mySituation.muBaro.Lock()
+						mySituation.BaroLastMeasurementTime = stratuxClock.Time
+						mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
+						mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
+						mySituation.muBaro.Unlock()
+					} else {
+						log.Printf("Baro pressure real: %f, from regression: %f, values. %d", mySituation.BaroPressureAltitude, mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff), len(alts))
+					}
+				}
+			}
+		}
+
+	}
 }
 
 func gpsSerialReader() {

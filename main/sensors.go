@@ -121,6 +121,7 @@ func tempAndPressureSender() {
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
 		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*float32(altitude-altLast)/(float32(dt)/60)
+		mySituation.BaroSourceType = BARO_TYPE_BMP280
 		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}

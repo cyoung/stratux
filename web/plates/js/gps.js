@@ -260,8 +260,12 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         if (situation.AHRSStatus & 0x04) {
             statusBMP.classList.remove("off");
-            statusBMP.classList.add("on");
+            if (situation.BaroSourceType == 4)
+                statusBMP.classList.add("warn");
+            else
+                statusBMP.classList.add("on");
         } else {
+            statusBMP.classList.remove("warn")
             statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
         }
