@@ -260,14 +260,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         if (situation.AHRSStatus & 0x04) {
             statusBMP.classList.remove("off");
+            statusBMP.classList.remove("on");
+            statusBMP.classList.remove("warn");
             if (situation.BaroSourceType == 4)
                 statusBMP.classList.add("warn");
             else
                 statusBMP.classList.add("on");
         } else {
             statusBMP.classList.remove("warn")
-            statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
+            statusBMP.classList.add("off");
         }
         if (situation.AHRSStatus & 0x08) {
             statusCal.classList.add("blink");
@@ -323,6 +325,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         statusIMU.classList.remove("on");
         statusBMP.classList.add("off");
         statusBMP.classList.remove("on");
+        statusBMP.classList.remove("warn");
         statusLog.classList.add("off");
         statusLog.classList.remove("on");
         statusCal.classList.add("off");
