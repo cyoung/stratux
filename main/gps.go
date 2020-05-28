@@ -1997,15 +1997,28 @@ func baroAltGuesser() {
 	ticker := time.NewTicker(1 * time.Second)
 	for {
 		<-ticker.C
+
+		avgDiff := 0
+		for _, v := range gnssBaroAltDiffs {
+			avgDiff += v
+		}
+		if len(gnssBaroAltDiffs) > 0 {
+			avgDiff /= len(gnssBaroAltDiffs)
+		}
+
 		trafficMutex.Lock()
 		for _, ti := range traffic {
-			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || !ti.Position_valid {
+			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt == 0 {
 				continue // already considered this value or we don't have a value - skip
+			}
+			if len(gnssBaroAltDiffs) >= 5 && math.Abs(float64(ti.GnssDiffFromBaroAlt - int32(avgDiff))) > 1000 {
+				// For a simple outlier detection, disregard traffic who's gnssBaroAltDiff is more than 1000ft from the average
+				continue
 			}
 			bucket := int(ti.Alt / 1000)
 			if val, ok := gnssBaroAltDiffs[bucket]; ok {
-				// weighted average - don't tune too quickly...
-				gnssBaroAltDiffs[bucket] = (val * 9 + int(ti.GnssDiffFromBaroAlt) * 1) / 10
+				// weighted average - don't tune too quickly... smooth over one minute (for one aircraft, half a minute for two, etc).
+				gnssBaroAltDiffs[bucket] = (val * 59 + int(ti.GnssDiffFromBaroAlt) * 1) / 60
 			} else {
 				gnssBaroAltDiffs[bucket] = int(ti.GnssDiffFromBaroAlt)
 			}
@@ -2013,7 +2026,7 @@ func baroAltGuesser() {
 		trafficMutex.Unlock()
 
 
-		if isGPSValid() /*&& (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE)*/ {
+		if isGPSValid() && (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE) {
 			// We have no real baro source.. try to estimate baro altitude with the help of closeby ADS-B aircraft that define BaroGnssDiff...
 
 			myAlt := mySituation.GPSAltitudeMSL
@@ -2040,16 +2053,11 @@ func baroAltGuesser() {
 				slope, intercept, valid := linRegWeighted(alts, diffs, weights)
 				if valid {
 					gnssBaroDiff := float64(myAlt) * slope + intercept
-					// TODO move this if to the top - for now we compute always for logging
-					if  (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE) {
-						mySituation.muBaro.Lock()
-						mySituation.BaroLastMeasurementTime = stratuxClock.Time
-						mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
-						mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
-						mySituation.muBaro.Unlock()
-					} else {
-						log.Printf("Baro pressure real: %f, from regression: %f, values. %d", mySituation.BaroPressureAltitude, mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff), len(alts))
-					}
+					mySituation.muBaro.Lock()
+					mySituation.BaroLastMeasurementTime = stratuxClock.Time
+					mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
+					mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
+					mySituation.muBaro.Unlock()
 				}
 			}
 		}
