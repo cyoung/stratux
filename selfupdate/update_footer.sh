@@ -86,7 +86,8 @@ chmod 755 /usr/bin/dump1090
 cp -f libwiringPi.so /usr/lib/
 
 # OGN stuff
-cp -f ogn/ddb.json /etc/
+cp -f ddb.json /etc/
+cp -f ogn-rx-eu /usr/bin/
 
 # AHRS approx data.
 cp -f ahrs_table.log /root/

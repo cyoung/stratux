@@ -44,6 +44,7 @@ cp image/rsyslog_d_stratux work/bin/
 cp image/dhcpd.conf.template work/bin/
 cp image/interfaces.template work/bin/
 cp ogn/ddb.json work/bin
+cp ogn/ogn-rx-eu_arm work/bin/ogn-rx-eu
 
 # WiringPi doesn't allow static linking any more, so we deploy the shared library aswell
 cp /usr/lib/libwiringPi.so work/bin/
