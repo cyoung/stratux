@@ -368,7 +368,7 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GSV - GNSS Satellites in View
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // RMC - Recommended Minimum data
+		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // RMC - Recommended Minimum data
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VGT - Course over ground and Ground speed
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
@@ -1286,13 +1286,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					//log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr) // DEBUG
 				}
 
-				if globalSettings.DEBUG {
-					inSolnStr := " "
-					if thisSatellite.InSolution {
-						inSolnStr = "+"
-					}
-					log.Printf("UBX: Satellite %s%s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", inSolnStr, svStr, i, svType, sv, elev, az, cno) // remove later?
-				}
+				//if globalSettings.DEBUG {
+				//	inSolnStr := " "
+				//	if thisSatellite.InSolution {
+				//		inSolnStr = "+"
+				//	}
+				//	log.Printf("UBX: Satellite %s%s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", inSolnStr, svStr, i, svType, sv, elev, az, cno) // remove later?
+				//}
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
 				updateConstellation()

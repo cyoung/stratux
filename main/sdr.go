@@ -230,7 +230,7 @@ func (f *OGN) read() {
 			default:
 				line, err := reader.ReadString('\n')
 				line = strings.TrimSpace(line)
-				if err == nil  && len(line) > 0 /*&& globalSettings.DEBUG*/ {
+				if err == nil  && len(line) > 0 && globalSettings.DEBUG {
 					log.Println("OGN: ogn-rx-eu stdout: ", line)
 				}
 			}

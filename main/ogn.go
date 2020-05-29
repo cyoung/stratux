@@ -52,8 +52,11 @@ var ognReadWriter *bufio.ReadWriter
 func ognPublishNmea(nmea string) {
 	if ognReadWriter != nil {
 		// TODO: we could filter a bit more to only send RMC/GGA, but for now it's just everything
-		ognReadWriter.Write([]byte(nmea + "\r\n"))
-		ognReadWriter.Flush()
+		if len(nmea) > 5 && nmea[3:6] == "GGA" || nmea[3:6] == "RMC" {
+			//log.Printf(nmea)
+			ognReadWriter.Write([]byte(nmea + "\r\n"))
+			ognReadWriter.Flush()
+		}
 	}
 }
 
@@ -99,14 +102,14 @@ func ognListen() {
 			importOgnMessage(msg, buf)
 
 			// TODO: remove me
-			if isGPSValid() {
+			if globalSettings.DEBUG && isGPSValid() {
 				var j map[string]interface{}
 				json.Unmarshal(buf, &j)
 				dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
 				j["dist_m"] = dist
 				j["bearing_deg"] = bearing
 				txt, _ := json.Marshal(j)
-				log.Printf("Traffic: %s", txt)
+				log.Printf("ogn-rx-eu traffic: %s", txt)
 			}
 
 			if globalSettings.DEBUG {
