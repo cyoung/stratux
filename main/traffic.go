@@ -93,7 +93,8 @@ type TrafficInfo struct {
 	AltIsGNSS           bool      // Pressure alt = 0; GNSS alt = 1
 	NIC                 int       // Navigation Integrity Category.
 	NACp                int       // Navigation Accuracy Category for Position.
-	Track               uint16    // degrees true
+	Track               float32   // degrees true
+	TurnRate            float32   // Turn rate in deg/sec (negative = turning left, positive = right)
 	Speed               uint16    // knots
 	Speed_valid         bool      // set when speed report received.
 	Vvel                int16     // feet per minute
@@ -616,7 +617,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	msg[16] = byte(vvel & 0x00FF)
 
 	// Track.
-	trk := uint8(float32(ti.Track) / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+	trk := uint8(ti.Track / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
 	msg[17] = byte(trk)
 
 	msg[18] = ti.Emitter_category
@@ -874,7 +875,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 
 	ns_vel := int32(0) // int16 won't work. Worst case (supersonic), we need 26 bits (25 bits + sign) for root sum of squares speed calculation
 	ew_vel := int32(0)
-	track := uint16(0)
+	track := float32(0)
 	speed_valid := false
 	speed := uint16(0)
 	vvel := int16(0)
@@ -910,7 +911,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		if ns_vel_valid && ew_vel_valid {
 			if ns_vel != 0 || ew_vel != 0 {
 				//TODO: Track type
-				track = uint16((360 + 90 - (int16(math.Atan2(float64(ns_vel), float64(ew_vel)) * 180 / math.Pi))) % 360)
+				track = float32((360 + 90 - (int16(math.Atan2(float64(ns_vel), float64(ew_vel)) * 180 / math.Pi))) % 360)
 			}
 			speed_valid = true
 			speed = uint16(math.Sqrt(float64((ns_vel * ns_vel) + (ew_vel * ew_vel))))
@@ -936,7 +937,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		raw_track := ((uint16(frame[13]) & 0x03) << 9) | (uint16(frame[14]) << 1) | ((uint16(frame[15]) & 0x80) >> 7)
 		//tt := ((raw_track & 0x0600) >> 9)
 		//FIXME: tt == 1 TT_TRACK. tt == 2 TT_MAG_HEADING. tt == 3 TT_TRUE_HEADING.
-		track = uint16((raw_track & 0x1ff) * 360 / 512)
+		track = float32((raw_track & 0x1ff) * 360 / 512)
 
 		// Dimensions of vehicle - skip.
 	}
@@ -1160,10 +1161,11 @@ func esListen() {
 
 			if newTi.Speed_valid { // i.e. DF17 or DF18, TC 19 message decoded successfully by dump1090
 				valid_speed := true
-				var speed, track uint16
+				var speed uint16
+				var track float32
 
 				if newTi.Track != nil {
-					track = uint16(*newTi.Track)
+					track = float32(*newTi.Track)
 				} else { // dump1090 send a valid message, but Stratux couldn't figure it out for some reason.
 					valid_speed = false
 					//log.Printf("Missing track in DF=17/18 TC19 airborne velocity message\n")
@@ -1324,7 +1326,7 @@ func trafficInfoExtrapolator() {
 		time.Sleep(1 * time.Second)
 		trafficMutex.Lock()
 		for icao, ti := range traffic {
-			if ti.Age < 3 || !ti.Position_valid || !ti.Speed_valid {
+			if ti.Age < 2 || !ti.Position_valid || !ti.Speed_valid {
 				continue
 			}
 			extrapolateTraffic(&ti)
@@ -1337,22 +1339,35 @@ func trafficInfoExtrapolator() {
 }
 
 func extrapolateTraffic(ti *TrafficInfo) {
-	age := stratuxClock.Since(ti.Last_seen).Minutes()
-	travelDist := float64(ti.Speed) * (age / 60)
-	//log.Printf("age: %f, dist: %f", age, travelDist)
-
 	if !ti.ExtrapolatedPosition {
 		ti.Lat_fix = ti.Lat
 		ti.Lng_fix = ti.Lng
 		ti.Alt_fix = ti.Alt
+		ti.Last_extrapolation = ti.Last_seen // to make computation below simpler
 	}
+
+	seconds := stratuxClock.Since(ti.Last_extrapolation).Seconds()
+	travelDist := float64(ti.Speed) * (seconds / 60 / 60) // speed is knots=nm per hour. /60/60 = nm per second
+
+	// Estimate alt
+	ti.Alt = int32(float64(ti.Alt) + (float64(ti.Vvel) * seconds))
+	// Estimate position
+	lat, lng := calcLocationForBearingDistance(float64(ti.Lat), float64(ti.Lng), float64(ti.Track), travelDist)
+	ti.Lat = float32(lat)
+	ti.Lng = float32(lng)
+	// Estimate track
+	ti.Track += float32(seconds) * ti.TurnRate
+	for ti.Track < 0 {
+		ti.Track += 360
+	}
+	for ti.Track > 360 {
+		ti.Track -= 360
+	}
+	// ti.Track = ti.Track % 360
 
 	ti.ExtrapolatedPosition = true
 	ti.Last_extrapolation = stratuxClock.Time
-	ti.Alt = int32(float64(ti.Alt_fix) + (float64(ti.Vvel) * age))
-	lat, lng := calcLocationForBearingDistance(float64(ti.Lat_fix), float64(ti.Lng_fix), float64(ti.Track), travelDist)
-	ti.Lat = float32(lat)
-	ti.Lng = float32(lng)
+	
 	// TODO: should we call registerTrafficUpdate() to send this traffic to the web interface?
 	// Pro: web interface also shows interpolated position
 	// Con: it doesn't show the really received position with the age any more (i.e. age gets older but position updates)
@@ -1431,7 +1446,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Position_valid = true
 	ti.ExtrapolatedPosition = false
 	ti.Alt = int32(mySituation.GPSAltitudeMSL + relAlt)
-	ti.Track = uint16(hdg)
+	ti.Track = float32(hdg)
 	ti.Speed = uint16(gs)
 	if hdg >= 240 && hdg < 270 {
 		ti.OnGround = true

@@ -186,7 +186,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 	if ti.Position_valid {
-		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
+		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,%d,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, ti.TurnRate, groundSpeed, climbRate, acType)
 	} else {
 		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X!%s,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, ti.Icao_addr, ti.Tail, climbRate, acType) // prototype for bearingless traffic
 	}
@@ -544,6 +544,7 @@ func parseFlarmPFLAA(message []string) {
 	flarmID := message[6]
 	flarmID = strings.Split(flarmID, "!")[0] // for OGNTP targets it's xxxxxx!yyyyyy
 	track := atof32(message[7])
+	turn := atof32(message[8])
 	speed := atof32(message[9])
 	vspeed := atof32(message[10])
 	acType := message[11]
@@ -594,7 +595,8 @@ func parseFlarmPFLAA(message []string) {
 		ti.BearingDist_valid = true
 	}
 	
-	ti.Track = uint16(track)
+	ti.Track = track
+	ti.TurnRate = turn
 	ti.Speed = uint16(speed * 1.94384) // m/s to knots
 	ti.Speed_valid = true
 	ti.Vvel = int16(vspeed * 196.85) // m/s to feet/min

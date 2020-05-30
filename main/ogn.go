@@ -49,6 +49,26 @@ type OgnMessage struct {
 
 var ognReadWriter *bufio.ReadWriter
 
+func predTest() {
+	ticker := time.NewTicker(19 * time.Second)
+	for {
+		
+		var msg OgnMessage
+		msg.Sys="FLR"
+		msg.Time = 0
+		msg.Addr="AAAAAA"
+		msg.Acft_type="1"
+		msg.Lat_deg = 48.35208
+		msg.Lon_deg = 10.21165
+		msg.Speed_mps = 50
+		msg.Alt_msl_m = 1000
+		msg.Turn_dps = 3
+		msg.Track_deg = 350
+		importOgnMessage(msg, []byte(""))
+		<-ticker.C
+	}
+}
+
 func ognPublishNmea(nmea string) {
 	if ognReadWriter != nil {
 		// TODO: we could filter a bit more to only send RMC/GGA, but for now it's just everything
@@ -61,6 +81,7 @@ func ognPublishNmea(nmea string) {
 }
 
 func ognListen() {
+	go predTest()
 	for {
 		if !globalSettings.OGN_Enabled || OGNDev == nil {
 			// wait until OGN is enabled
@@ -158,7 +179,6 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 		log.Printf("Discarding likely invalid OGN target: %s", string(buf))
 		return
 	}
-	// TODO: timestamp from sender?
 
 	// set altitude
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
@@ -192,10 +212,14 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 		ti.Last_GnssDiff = stratuxClock.Time
 	}
 
+	ti.TurnRate = float32(msg.Turn_dps)
+	if ti.TurnRate > 360 || ti.TurnRate < -360 {
+		ti.TurnRate = 0
+	}
 	ti.Vvel = int16(msg.Climb_mps * 196.85)
 	ti.Lat = msg.Lat_deg
 	ti.Lng = msg.Lon_deg
-	ti.Track = uint16(msg.Track_deg)
+	ti.Track = float32(msg.Track_deg)
 	ti.Speed = uint16(msg.Speed_mps * 1.94384)
 	ti.Speed_valid = true
 	ti.SignalLevel = msg.SNR_dB
