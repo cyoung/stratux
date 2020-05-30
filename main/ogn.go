@@ -49,7 +49,7 @@ type OgnMessage struct {
 
 var ognReadWriter *bufio.ReadWriter
 
-func predTest() {
+/*func predTest() {
 	ticker := time.NewTicker(19 * time.Second)
 	for {
 		
@@ -67,7 +67,7 @@ func predTest() {
 		importOgnMessage(msg, []byte(""))
 		<-ticker.C
 	}
-}
+}*/
 
 func ognPublishNmea(nmea string) {
 	if ognReadWriter != nil {
@@ -81,7 +81,7 @@ func ognPublishNmea(nmea string) {
 }
 
 func ognListen() {
-	go predTest()
+	//go predTest()
 	for {
 		if !globalSettings.OGN_Enabled || OGNDev == nil {
 			// wait until OGN is enabled
