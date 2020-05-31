@@ -178,7 +178,7 @@ func (u *UAT) read() {
 func (f *OGN) read() {
 	defer f.wg.Done()
 	log.Println("Entered OGN read() ...")
-	cmd := exec.Command("/usr/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm))
+	cmd := exec.Command("/usr/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/")
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 	autoRestart := true // automatically restart crashing child process
@@ -230,7 +230,7 @@ func (f *OGN) read() {
 			default:
 				line, err := reader.ReadString('\n')
 				line = strings.TrimSpace(line)
-				if err == nil  && len(line) > 0 && globalSettings.DEBUG {
+				if err == nil  && len(line) > 0 /* && globalSettings.DEBUG */ {
 					log.Println("OGN: ogn-rx-eu stdout: ", line)
 				}
 			}
