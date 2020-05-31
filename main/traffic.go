@@ -13,11 +13,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"encoding/json"
-	"strconv"
 	"fmt"
 	"log"
 	"math"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1350,7 +1350,7 @@ func extrapolateTraffic(ti *TrafficInfo) {
 	travelDist := float64(ti.Speed) * (seconds / 60 / 60) // speed is knots=nm per hour. /60/60 = nm per second
 
 	// Estimate alt
-	ti.Alt = int32(float64(ti.Alt) + (float64(ti.Vvel) * seconds))
+	ti.Alt = int32(float64(ti.Alt) + (float64(ti.Vvel) * (seconds / 60)))
 	// Estimate position
 	lat, lng := calcLocationForBearingDistance(float64(ti.Lat), float64(ti.Lng), float64(ti.Track), travelDist)
 	ti.Lat = float32(lat)
