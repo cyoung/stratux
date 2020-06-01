@@ -11,7 +11,7 @@ This repository offers code and binaries that can help you to build your own tra
 * Merged VirusPilot's fixes and improvements for U-Blox 8 devices and Galileo/Glonass reception (https://github.com/VirusPilot/stratux)
 * Changed DHCP Settings to not set a DNS server - this fixes the hangs that can be observed with current SkyDemon versions when not having an internet connection
 * If no pressure sensor is present, Stratux EU will try to estimate your pressure altitude with atmospheric information received from other aircraft. We still recommend using some kind of barometric sensor (e.g. Stratux AHRS module). See here: https://github.com/b3nn0/stratux/wiki/Altitudes-in-Stratux-EU
-* By default, FLARM and DeveloperMode is enabled, UAT is disabled
+* By default, OGN and DeveloperMode is enabled, UAT is disabled
 * Merged Stratux Web-Radar for web-based traffic display by TomBric (https://github.com/TomBric/Radar-Stratux)
 * Upgraded the RaspberryPi Debian system to the latest debian packages
 * Hide Weather/Towers page if UAT is disabled
@@ -30,8 +30,8 @@ This repository offers code and binaries that can help you to build your own tra
 Building the european Edition is practically the same as the official Stratux. More information can be found here:
 http://stratux.me/
 You can also buy a prebuilt unit.
-Notable however: Stratux recently started selling a new "V3 Radio" for UAT reception. This radio does NOT work for flarm reception, so make sure you get the old V2 radios instead.
-Also, it is highly recommended to purchase a 868 Mhz antenna for FLARM reception. The standard 978 Mhz antenna can receive some FLARM targets, but the range will be very limited.
+Notable however: Stratux recently started selling a new "V3 Radio" for UAT reception. This radio does NOT work for OGN reception, so make sure you get the old V2 radios instead.
+Also, it is highly recommended to purchase a 868 Mhz antenna for OGN reception. The standard 978 Mhz antenna can receive some OGN targets, but the range will be very limited.
 Additionally, you will need a PC with an SD Card reader.
 Download the latest image here: https://github.com/b3nn0/stratux/releases
 and use an arbitrary tool to burn the image to your Micro SD Card (e.g. "Etcher", see https://www.raspberrypi.org/documentation/installation/installing-images/).

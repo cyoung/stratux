@@ -307,7 +307,7 @@ func sendTrafficUpdates() {
 		ti.AgeLastAlt = stratuxClock.Since(ti.Last_alt).Seconds()
 
 		// Keep non-extrapolated traffic for 6 seconds, but extrapolate for 20
-		isCurrent := (ti.ExtrapolatedPosition && ti.AgeExtrapolation < 2 && ti.Age < 20) || (!ti.ExtrapolatedPosition && ti.Age < 6)
+		isCurrent := (ti.ExtrapolatedPosition && ti.AgeExtrapolation < 2 && ti.Age < 25) || (!ti.ExtrapolatedPosition && ti.Age < 6)
 
 		isOwnshipTi, shouldIgnore := isOwnshipTrafficInfo(ti)
 
