@@ -1,12 +1,16 @@
 # Stratux - European edition
 This is a fork of the original Stratux version, incorperating many contributions by the community to create a
-nice, full featured Stratux-Flarm image that works well for europe.
+nice, full featured Stratux-OGN image that works well for europe.
+
+## Disclaimer
+This repository offers code and binaries that can help you to build your own traffic awareness device. We do not take any responsibility for what you do with this code. When you build a device, you are responsible for what it does. There is no warrenty of any kind provided with the information, code and binaries you can find here. You are solely responsible for the device you build.
+
 ## Difference to original Stratux
 * Original Stratux: https://github.com/cyoung/stratux
-* Merged devel/flarm_receiver from PepperJo, which enables flarm reception based on the OpenGliderNetwork decoding stack (https://github.com/PepperJo/stratux) + some improvements to the flarm handling code and OGN Device DB inclusion for callsign lookup
+* Added OGN receiver functionality to receive several protocols on the 868Mhz frequency band
 * Merged VirusPilot's fixes and improvements for U-Blox 8 devices and Galileo/Glonass reception (https://github.com/VirusPilot/stratux)
 * Changed DHCP Settings to not set a DNS server - this fixes the hangs that can be observed with current SkyDemon versions when not having an internet connection
-* If no pressure sensor is present, report GPS Altitude as pressure altitude to make SkyDemon happy (NOT RECOMENDED!)
+* If no pressure sensor is present, Stratux EU will try to estimate your pressure altitude with atmospheric information received from other aircraft. We still recommend using some kind of barometric sensor (e.g. Stratux AHRS module). See here: https://github.com/b3nn0/stratux/wiki/Altitudes-in-Stratux-EU
 * By default, FLARM and DeveloperMode is enabled, UAT is disabled
 * Merged Stratux Web-Radar for web-based traffic display by TomBric (https://github.com/TomBric/Radar-Stratux)
 * Upgraded the RaspberryPi Debian system to the latest debian packages
@@ -17,7 +21,7 @@ nice, full featured Stratux-Flarm image that works well for europe.
 * Support for changing the Stratux's IP address
 * Possibility to enter multiple ownship transponder HEX codes, Stratux will automatically decide which of these are actually you. This is useful if you have multiple aircraft that you regularly fly with (e.g. add all club aircraft)
 * X-Plane 11 compatible output for EFBs that support simulator input (experimental, unsupported. Might make it possible to connect Garmin Pilot). Based on original work by 0x74-0x62
-* Support for external FLARM/OGN/PilotAware devices, like a flarm mouse or SoftRF (only tested with some devices. Your milage may vary)
+* Support for external FLARM/OGN/PilotAware devices, like a flarm mouse, OGN tracker or SoftRF (only tested with some devices. Your milage may vary)
 * Support for WiFi Direct connection to make it possible to let Android have mobile data connection while connected to the Stratux
 
 
