@@ -438,7 +438,8 @@ func estimateDistance(ti *TrafficInfo) {
 	//log.Printf("timediff: %f, expon: %f", timeDiff, expon)
 	ti.DistanceEstimated = ti.DistanceEstimated * expon + dist * (1 - expon);
 
-	if ti.BearingDist_valid && ti.Distance < 50000 {
+	// Only learn from 1090ES targets
+	if ti.BearingDist_valid && ti.Distance < 50000 && ti.Last_source == TRAFFIC_SOURCE_1090ES && ti.SignalLevel > -100 && ti.SignalLevel < 0 {
 		var errorFactor float64
 		if ti.DistanceEstimated > ti.Distance {
 			errorFactor = -(ti.DistanceEstimated / ti.Distance)
