@@ -1,6 +1,16 @@
 angular.module('appControllers').controller('RadarCtrl', RadarCtrl);           // get the main module contollers set
 RadarCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval'];  // Inject my dependencies
 
+//------------------   General Options ------------
+var soundType = 3;  // speech  and sound output, 0=beep+speech (default) 1=Beep 2=Speech 3=Snd Off
+
+const showTraces = 1;   // show traces of planes
+// const showTraces = 0;   // do not show trace route  of planes
+
+const cutoff = 20;    // time in seconds how long a plane is displayed after last packet, 
+		      // stratux uses 59 secs in traffic display
+
+//-------------------------------------------------
 var Lat;
 var Long;
 
@@ -22,7 +32,6 @@ var minimalCircle = 25;  //minimal circle in pixel around center ist distance is
 var radar;               // global RadarRenderer
 var posangle = Math.PI;  //global var for angle position of text
 
-var soundType = 0;  // speech  and sound output, 0=beep+speech (default) 1=Beep 2=Speech 3=Snd Off
 var synth;          // global speechSynthesis variable
 
 var AltDiffThreshold;         // in 100 feet display value
@@ -252,12 +261,14 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			traffic.planetext = radar.rScreen.text(vorzeichen + Math.abs(altDiff) + pfeil).move(distx + 17, disty - 10).rotate(GPSCourse, distx, disty).addClass('textPlane');
 			traffic.planespeed = radar.rScreen.text(traffic.nspeed + 'kts').move(distx + 17, disty).rotate(GPSCourse, distx, disty).addClass('textPlaneSmall');
 			traffic.planetail = radar.rScreen.text(traffic.tail).move(distx + 17, disty + 10).rotate(GPSCourse, distx, disty).addClass('textPlaneReg');
-			if (!traffic.trace) {
+			if ( showTraces ) {
+			  if (!traffic.trace) {
 				traffic.trace = radar.rScreen.polyline([[distx, disty]]).addClass('trace');
-			} else {
+			  } else {
 				var points = traffic.trace.attr('points');
 				points += ' ' + [distx, disty];
 				traffic.trace.attr('points', points);
+			  }
 			}
 		} else {                      // if airplane is outside of radarscreen
 			if (traffic.trace) {  //remove trace when aircraft gets out of range
@@ -451,7 +462,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		sit_socket.onmessage = function(msg) {
 			ownSituation(msg.data);
-			radar.update();
+			if (radar) radar.update();
 		};
 	}
 
@@ -478,9 +489,9 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 				/* boardtemp is celcius to tenths */
 				$scope.CPUTemp = boardtemp.toFixed(1);
 			}
-			radar.update();
+			if (radar) radar.update();
 		}, function(response) {
-			radar.update();  // just update, if status gets error
+			if (radar) radar.update();  // just update, if status gets error
 		});
 	}, 500, 0, false);
 
@@ -490,7 +501,6 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 	var clearStaleTraffic = $interval(function() {
 		// remove stale aircraft = anything more than x seconds without a position update
 
-		var cutoff = 59;
 		var cutTime = $scope.StratuxClock - cutoff * 1000;
 
 		// Clean up "valid position" table.
@@ -512,7 +522,6 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		// Clean up "invalid position" table.
 		for (var i = $scope.data_list_invalid.length; i > 0; i--) {
-			//if (($scope.data_list_invalid[i - 1].timeVal < cutTime) || ($scope.data_list_invalid[i - 1].ageLastAlt < cutTime)) {
 			if ($scope.data_list_invalid[i - 1].Last_alt < cutTime) {
 				if ($scope.data_list_invalid[i - 1].circ) {  // is displayed
 					$scope.data_list_invalid[i - 1].circ.remove().forget();
@@ -520,7 +529,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 				$scope.data_list_invalid.splice(i - 1, 1);
 			}
 		}
-		radar.update();
+		if (radar) radar.update();
 	}, (1000 * 10), 0, false);
 
 
@@ -552,7 +561,6 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		$interval.cancel(clearStaleTraffic);
 		$interval.cancel(getClock);
 	};
-
 	radar = new RadarRenderer('radar_display', $scope, $http);
 
 	// Radar Controller tasks
@@ -826,9 +834,10 @@ function RadarRenderer(locationId, $scope, $http) {
 	var speech = radarAll.group().cx(-185).cy(-125);
 	speech.rect(40, 35).radius(10).cx(0).cy(0).addClass('zoom');
 	speech.text('Undef').cx(16).cy(0).addClass('tSmall');
+
+	displaySoundStatus(speech, soundType);  //first time activation without synth speak
 	synth = window.speechSynthesis;
 	if (!synth) soundType = 1;  // speech function not working, default now beep
-	displaySoundStatus(speech, soundType);
 
 	speech.on('click', function() {
 		switch (soundType) {
