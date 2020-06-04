@@ -140,7 +140,7 @@ func ognListen() {
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
 		conn.Close()
-		
+		time.Sleep(3*time.Second)
 	}
 }
 
@@ -152,7 +152,7 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 
 	// Basic plausibility check:
 	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
-	if dist >= 50000 {
+	if dist >= 50000  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
 		// more than 50km away? Ignore. Most likely invalid data
 		return
 	}
