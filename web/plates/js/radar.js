@@ -81,15 +81,24 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		var gps_time = Date.parse(situation.GPSLastGPSTimeStratuxTime);
 		if (gps_time - press_time < 1000) {  //pressure is ok
 			BaroAltitude = Math.round(situation.BaroPressureAltitude.toFixed(0));
-			$scope.BaroAltValid = 'Baro';
+			if (situation.BaroSourceType != 4 ) {   //not estimated, but from valid source 
+				$scope.BaroAltValid = 'Baro';
+			} else {				// adsb estimated
+				$scope.BaroAltValid = 'AdsbEstimated';
+			}
 		} else {
 			var gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
 			if (gps_horizontal_accuracy > 19999) {  //no valid gps signal
 				$scope.BaroAltValid = 'Invalid';
 				BaroAltitude = -100000;  // marks invalid value
 			} else {
-				$scope.BaroAltValid = 'GPS';
-				BaroAltitude = situation.GPSAltitudeMSL.toFixed(1);
+				if (situation.BaroSourceType == 4 ) {   //no pressure, but ADSB estimated
+					$scope.BaroAltValid = 'AdsbEstimated';
+					BaroAltitude = Math.round(situation.BaroPressureAltitude.toFixed(0));
+				} else {
+					$scope.BaroAltValid = 'GPS';
+					BaroAltitude = situation.GPSAltitudeMSL.toFixed(1);
+				}
 			}
 		}
 		var gps_horizontal_accuracy = situation.GPSHorizontalAccuracy.toFixed(1);
