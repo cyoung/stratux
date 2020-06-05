@@ -54,6 +54,7 @@ type networkConnection struct {
 type serialConnection struct {
 	DeviceString string
 	Baud         int
+	Protocol     uint8
 	serialPort   *serial.Port
 }
 
@@ -175,9 +176,9 @@ func isThrottled(k string) bool {
 }
 
 func sendToAllConnectedClients(msg networkMessage) {
+	serialOutputChan <- msg
 	if (msg.msgType & NETWORK_GDL90_STANDARD) != 0 {
 		// It's a GDL90 message. Send to serial output channel (which may or may not cause something to happen).
-		serialOutputChan <- msg.msg
 		networkGDL90Chan <- msg.msg
 	}
 
@@ -227,7 +228,7 @@ func sendToAllConnectedClients(msg networkMessage) {
 	}
 }
 
-var serialOutputChan chan []byte
+var serialOutputChan chan networkMessage
 var networkGDL90Chan chan []byte
 
 func networkOutWatcher() {
@@ -242,51 +243,65 @@ func serialOutWatcher() {
 	// Check every 30 seconds for a serial output device.
 	serialTicker := time.NewTicker(30 * time.Second)
 
-	serialDev := "/dev/serialout0" //FIXME: This is temporary. Only one serial output device for now.
+	//FIXME: This is temporary. Only one serial output device for each protocol for now.
+	serialDevs := []string{"/dev/serialout0", "/dev/serialout_nmea0"}
 
 	for {
 		select {
 		case <-serialTicker.C:
-			if _, err := os.Stat(serialDev); !os.IsNotExist(err) { // Check if the device file exists.
-				var thisSerialConn serialConnection
-				// Check if we need to start handling a new device.
-				if val, ok := globalSettings.SerialOutputs[serialDev]; !ok {
-					newSerialOut := serialConnection{DeviceString: serialDev, Baud: 38400}
-					log.Printf("detected new serial output, setting up now: %s. Default baudrate 38400.\n", serialDev)
-					if globalSettings.SerialOutputs == nil {
-						globalSettings.SerialOutputs = make(map[string]serialConnection)
-					}
-					globalSettings.SerialOutputs[serialDev] = newSerialOut
-					saveSettings()
-					thisSerialConn = newSerialOut
-				} else {
-					thisSerialConn = val
-				}
-				// Check if we need to open the connection now.
-				if thisSerialConn.serialPort == nil {
-					cfg := &serial.Config{Name: thisSerialConn.DeviceString, Baud: thisSerialConn.Baud}
-					p, err := serial.OpenPort(cfg)
-					if err != nil {
-						log.Printf("serialout port (%s) err: %s\n", thisSerialConn.DeviceString, err.Error())
-						break // We'll attempt again in 30 seconds.
+			for _, serialDev := range serialDevs {
+				if _, err := os.Stat(serialDev); !os.IsNotExist(err) { // Check if the device file exists.
+					var thisSerialConn serialConnection
+					// Check if we need to start handling a new device.
+					if val, ok := globalSettings.SerialOutputs[serialDev]; !ok {
+						proto := uint8(NETWORK_GDL90_STANDARD)
+						if strings.Contains(serialDev, "_nmea") {
+							proto = NETWORK_FLARM_NMEA
+						}
+						newSerialOut := serialConnection{DeviceString: serialDev, Baud: 38400, Protocol: proto}
+						log.Printf("detected new serial output, setting up now: %s. Default baudrate 38400.\n", serialDev)
+						if globalSettings.SerialOutputs == nil {
+							globalSettings.SerialOutputs = make(map[string]serialConnection)
+						}
+						globalSettings.SerialOutputs[serialDev] = newSerialOut
+						saveSettings()
+						thisSerialConn = newSerialOut
 					} else {
-						log.Printf("opened serialout: Name: %s, Baud: %d\n", thisSerialConn.DeviceString, thisSerialConn.Baud)
+						thisSerialConn = val
+						if thisSerialConn.Protocol == 0 {
+							thisSerialConn.Protocol = NETWORK_GDL90_STANDARD // Fix old serial conns that didn't have protocol set
+						}
 					}
-					// Save the serial port connection.
-					thisSerialConn.serialPort = p
-					globalSettings.SerialOutputs[serialDev] = thisSerialConn
+					// Check if we need to open the connection now.
+					if thisSerialConn.serialPort == nil {
+						cfg := &serial.Config{Name: thisSerialConn.DeviceString, Baud: thisSerialConn.Baud}
+						p, err := serial.OpenPort(cfg)
+						if err != nil {
+							log.Printf("serialout port (%s) err: %s\n", thisSerialConn.DeviceString, err.Error())
+							break // We'll attempt again in 30 seconds.
+						} else {
+							log.Printf("opened serialout: Name: %s, Baud: %d\n", thisSerialConn.DeviceString, thisSerialConn.Baud)
+						}
+						// Save the serial port connection.
+						thisSerialConn.serialPort = p
+						globalSettings.SerialOutputs[serialDev] = thisSerialConn
+					}
 				}
 			}
 
 		case b := <-serialOutputChan:
-			if val, ok := globalSettings.SerialOutputs[serialDev]; ok {
-				if val.serialPort != nil {
-					_, err := val.serialPort.Write(b)
+			if globalSettings.SerialOutputs != nil {
+				for dev, val := range globalSettings.SerialOutputs {
+					// Is this serial port for this specific protocol?
+					if val.serialPort == nil || val.Protocol & b.msgType == 0 {
+						continue
+					}
+					_, err := val.serialPort.Write(b.msg)
 					if err != nil { // Encountered an error in writing to the serial port. Close it and set Serial_out_enabled.
 						log.Printf("serialout (%s) port err: %s. Closing port.\n", val.DeviceString, err.Error())
 						val.serialPort.Close()
 						val.serialPort = nil
-						globalSettings.SerialOutputs[serialDev] = val
+						globalSettings.SerialOutputs[dev] = val
 					}
 				}
 			}
@@ -650,7 +665,7 @@ func ffMonitor() {
 
 func initNetwork() {
 	messageQueue = make(chan networkMessage, 1024) // Buffered channel, 1024 messages.
-	serialOutputChan = make(chan []byte, 1024)     // Buffered channel, 1024 GDL90 messages.
+	serialOutputChan = make(chan networkMessage, 1024)     // Buffered channel, 1024 GDL90 messages.
 	networkGDL90Chan = make(chan []byte, 1024)
 	outSockets = make(map[string]networkConnection)
 	pingResponse = make(map[string]time.Time)
