@@ -22,7 +22,6 @@ cp __lib__systemd__system__stratux.service work/bin/
 cp __root__stratux-pre-start.sh work/bin/
 cp dump1090/dump1090 work/bin/
 cp -r web work/bin/
-cp image/hostapd.conf work/bin/
 cp image/hostapd.conf.template work/bin/
 cp image/wpa_supplicant.conf.template work/bin/
 cp image/config.txt work/bin/
@@ -37,7 +36,6 @@ cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
 cp image/stratux-wifi.sh work/bin/
 cp image/rc.local work/bin/
-cp image/interfaces work/bin/
 cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
 cp image/rsyslog_d_stratux work/bin/
