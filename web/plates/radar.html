@@ -6,6 +6,7 @@
 			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
 		         <span ng-show="BaroAltValid == 'Baro'" class="label label-success">Baro-Alt</span>
 		         <span ng-show="BaroAltValid == 'GPS'" class="label label-warning">No Baro-Alt, using GPS-Alt</span>
+		         <span ng-show="BaroAltValid == 'AdsbEstimated'" class="label label-warning">No Baro-Alt, using ADSB</span>
 		         <span ng-show="BaroAltValid == 'Invalid'" class="label label-danger">No Altitude!</span>
 		         <span ng-show="GPSValid == 'Invalid'" class="label label-danger">No GPS!</span>
 			 <span ng-show="CPUTemp < 70" class="label label-info">{{CPUTemp}}°C</span>
