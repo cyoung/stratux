@@ -7,8 +7,8 @@ var soundType = 3;  // speech  and sound output, 0=beep+speech (default) 1=Beep 
 const showTraces = 1;   // show traces of planes
 // const showTraces = 0;   // do not show trace route  of planes
 
-const cutoff = 20;    // time in seconds how long a plane is displayed after last packet, 
-		      // stratux uses 59 secs in traffic display
+const radarCutoff = 29;    // time in seconds how long a plane is displayed after last packet, 
+		      // keep in sync with cutoff (just below) value in traffic.go and traffic.js 
 
 //-------------------------------------------------
 var Lat;
@@ -510,11 +510,11 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 	var clearStaleTraffic = $interval(function() {
 		// remove stale aircraft = anything more than x seconds without a position update
 
-		var cutTime = $scope.StratuxClock - cutoff * 1000;
+		var cutTime = $scope.StratuxClock - radarCutoff * 1000;
 
 		// Clean up "valid position" table.
 		for (var i = $scope.data_list.length; i > 0; i--) {
-			if ($scope.data_list[i - 1].Last_seen < cutTime) {
+			if ($scope.data_list[i - 1].Last_seen <= cutTime) {
 				if ($scope.data_list[i - 1].planeimg) {
 					$scope.data_list[i - 1].planeimg.remove().forget();    // remove plane image
 					$scope.data_list[i - 1].planetext.remove().forget();   // remove plane image
@@ -531,7 +531,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		// Clean up "invalid position" table.
 		for (var i = $scope.data_list_invalid.length; i > 0; i--) {
-			if ($scope.data_list_invalid[i - 1].Last_alt < cutTime) {
+			if ($scope.data_list_invalid[i - 1].Last_seen <= cutTime) {
 				if ($scope.data_list_invalid[i - 1].circ) {  // is displayed
 					$scope.data_list_invalid[i - 1].circ.remove().forget();
 				}

@@ -1,6 +1,10 @@
 angular.module('appControllers').controller('TrafficCtrl', TrafficCtrl); // get the main module contollers set
 TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
+var cutoff = 29;   //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
+
+
+
 // create our controller function with all necessary logic
 function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
@@ -204,8 +208,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
-		// remove stale aircraft = anything more than 59 seconds without a position update
-		var cutoff = 59;
+		// remove stale aircraft = anything more than cutoff seconds without a position update
 
 		// Clean up "valid position" table.
 		for (var i = $scope.data_list.length; i > 0; i--) {
