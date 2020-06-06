@@ -234,6 +234,7 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	ageMs := int64(ti.Age * 1000)
 	ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
 	ti.Last_alt = ti.Last_seen
+	ti.Last_speed = ti.Last_seen
 
 	switch(msg.Acft_type) {
 		case "1": ti.Emitter_category = 9 // glider = glider
