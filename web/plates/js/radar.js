@@ -7,8 +7,7 @@ var soundType = 3;  // speech  and sound output, 0=beep+speech (default) 1=Beep 
 const showTraces = 1;   // show traces of planes
 // const showTraces = 0;   // do not show trace route  of planes
 
-const radarCutoff = 29;    // time in seconds how long a plane is displayed after last packet, 
-		      // keep in sync with cutoff (just below) value in traffic.go and traffic.js 
+const radarCutoff = 29;    // time in seconds how long a plane is displayed after last packet
 
 //-------------------------------------------------
 var Lat;
