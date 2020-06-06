@@ -1,7 +1,7 @@
 angular.module('appControllers').controller('TrafficCtrl', TrafficCtrl); // get the main module contollers set
 TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
-var cutoff = 29;   //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries
+var cutoff = 29;   //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
 
 
 
