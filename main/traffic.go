@@ -104,9 +104,9 @@ type TrafficInfo struct {
 	// Parameters starting at 'Age' are calculated from last message receipt on each call of sendTrafficUpdates().
 	// Mode S transmits position and track in separate messages, and altitude can also be
 	// received from interrogations.
-	Age                  float64   // Age of last valid position fix, seconds ago.
+	Age                  float64   // Age of last valid position fix or last Mode-S transmission, seconds ago.
 	AgeLastAlt           float64   // Age of last altitude message, seconds ago.
-	Last_seen            time.Time // Time of last position update (stratuxClock). Used for timing out expired data.
+	Last_seen            time.Time // Time of last position update (stratuxClock) or Mode-S transmission. Used for timing out expired data.
 	Last_alt             time.Time // Time of last altitude update (stratuxClock).
 	Last_GnssDiff        time.Time // Time of last GnssDiffFromBaroAlt update (stratuxClock).
 	Last_GnssDiffAlt     int32     // Altitude at last GnssDiffFromBaroAlt update.
@@ -174,7 +174,7 @@ func convertMetersToFeet(meters float32) float32 {
 
 func cleanupOldEntries() {
 	for icao_addr, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
+		if stratuxClock.Since(ti.Last_seen).Seconds() > 29 { // keep it in the database for up to 30 seconds, so we don't lose tail number, etc...
 			delete(traffic, icao_addr)
 		}
 	}
