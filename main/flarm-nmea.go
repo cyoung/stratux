@@ -53,11 +53,16 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 	if alarmLevel > 0 {
 		alarmType = 2
 	}
+
+	idstr := fmt.Sprintf("%X", ti.Icao_addr)
+	if len(ti.Tail) > 0 {
+		idstr += "!" + ti.Tail
+	}
 	// TODO: we are always airbourne for now
 	if alarmLevel > 0 {
-		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,%d,%d,%d,%d,%d", len(traffic), gpsStatus, alarmLevel, int32(bearing), alarmType, relativeVertical, int32(math.Abs(dist)))
+		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,%d,%d,%d,%d,%d,%s", len(traffic), gpsStatus, alarmLevel, int32(bearing), alarmType, relativeVertical, int32(math.Abs(dist)), idstr)
 	} else {
-		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,0,,0,,", len(traffic), gpsStatus)
+		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,0,,0,,,", len(traffic), gpsStatus)
 	}
 
 	checksumPFLAU := byte(0x00)

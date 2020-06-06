@@ -1158,6 +1158,11 @@ func esListen() {
 					ti.ExtrapolatedPosition = false
 					ti.Last_seen = stratuxClock.Time // only update "last seen" data on position updates
 				}
+			} else {
+				// Old traffic had no position and update doesn't have a position either -> assume Mode-S only
+				if !ti.Position_valid {
+					ti.Last_seen = ti.Last_alt
+				}
 			}
 
 			if newTi.Speed_valid { // i.e. DF17 or DF18, TC 19 message decoded successfully by dump1090
