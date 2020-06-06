@@ -251,37 +251,37 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 }
 
 var ognTailNumberCache = make(map[string]string)
-func lookupOgnTailNumber(flarmid string) string {
+func lookupOgnTailNumber(ognid string) string {
 	if len(ognTailNumberCache) == 0 {
 		log.Printf("Parsing OGN device db")
 		ddb, err := ioutil.ReadFile("/etc/ddb.json")
 		if err != nil {
 			log.Printf("Failed to read OGN device db")
-			return flarmid
+			return ognid
 		}
 		var data map[string]interface{}
 		err = json.Unmarshal(ddb, &data)
 		if err != nil {
 			log.Printf("Failed to parse OGN device db")
-			return flarmid
+			return ognid
 		}
 		devlist := data["devices"].([]interface{})
 		for i := 0; i < len(devlist); i++ {
 			dev := devlist[i].(map[string]interface{})
-			flarmid := dev["device_id"].(string)
+			ognid := dev["device_id"].(string)
 			tail := dev["registration"].(string)
-			ognTailNumberCache[flarmid] = tail
+			ognTailNumberCache[ognid] = tail
 		}
 		log.Printf("Successfully parsed OGN device db")
 	}
-	if tail, ok := ognTailNumberCache[flarmid]; ok {
+	if tail, ok := ognTailNumberCache[ognid]; ok {
 		return tail
 	}
-	return flarmid
+	return ""
 }
 
-func getTailNumber(flarmid string) string {
-	tail := lookupOgnTailNumber(flarmid)
+func getTailNumber(ognid string) string {
+	tail := lookupOgnTailNumber(ognid)
 	if globalSettings.DisplayTrafficSource {
 		tail = "og" + tail
 	}

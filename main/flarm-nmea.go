@@ -186,9 +186,9 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 	if ti.Position_valid {
-		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,%d,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, uint16(ti.Track), uint16(ti.TurnRate), groundSpeed, climbRate, acType)
+		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X,%d,%d,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, uint16(ti.Track), uint16(ti.TurnRate), groundSpeed, climbRate, acType)
 	} else {
-		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X!%s,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, ti.Icao_addr, ti.Tail, climbRate, acType) // prototype for bearingless traffic
+		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%X,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, ti.Icao_addr, climbRate, acType) // prototype for bearingless traffic
 	}
 	//msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
 	
