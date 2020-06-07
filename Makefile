@@ -69,7 +69,6 @@ install: ogn/ddb.json
 	cp -f image/hostapd.conf.template /etc/hostapd/
 	cp -f image/interfaces.template /etc/network/
 	cp -f image/wpa_supplicant.conf.template /etc/wpa_supplicant/
-	mkdir -p  /var/lib/stratux/
 	cp -f ogn/ogn-rx-eu_arm /usr/bin/ogn-rx-eu
 	cp -f ogn/ddb.json /etc/
 
