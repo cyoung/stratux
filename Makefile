@@ -43,7 +43,10 @@ test:
 www:
 	cd web && make
 
-install:
+ogn/ddb.json:
+	cd ogn && ./fetch_ddb.sh
+
+install: ogn/ddb.json
 	cp -f gen_gdl90 /usr/bin/gen_gdl90
 	chmod 755 /usr/bin/gen_gdl90
 	cp -f fancontrol /usr/bin/fancontrol

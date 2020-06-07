@@ -6,6 +6,7 @@ dump978/uat2text
 gen_gdl90
 libdump978.so
 fancontrol
+ogn/ddb.json
 
 *.mp4
 
