@@ -26,7 +26,7 @@ apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon screen librtlsdr-dev rtl-sdr libfftw-dev
+    python-pip python-dev python-pil python-daemon screen librtlsdr-dev rtl-sdr libfftw3-dev
 apt clean
 #echo y | rpi-update
 
