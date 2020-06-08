@@ -54,7 +54,58 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
 		new_traffic.signal = obj.SignalLevel;
-		new_traffic.addr_symb ='\u2708';
+	        //console.log('Emitter Category:' + obj.Emitter_category);
+		switch(obj.Emitter_category) {
+  			case 1:		// piston or up to 15500 lbs
+				new_traffic.category="Light";   
+    				break;
+  			case 2: 	// small up to 75500lbs
+				new_traffic.category="Small";   
+    				break;
+			case 3:		// up to 300000 lbs
+				new_traffic.category="Large";   
+    				break;
+			case 4:		// high vortex
+				new_traffic.category="VLarge";   
+    				break;
+			case 5:		// heavy aircraft  
+				new_traffic.category="Heavy";   
+    				break;
+			case 6:		// >5G and 400 kts, fighter
+				new_traffic.category="Fight";   
+    				break;
+  			case 7:		//Helicopter  according to GDL90
+				new_traffic.category="Helic";   
+    				break;
+  			case 9:		//glider
+				new_traffic.category="Glide";   
+    				break;
+			case 10:	//balloon
+				new_traffic.category="Ballo";   
+    				break;
+  			case 11:		//Skydiver
+				new_traffic.category="Parac";   
+    				break;
+  			case 12:	// ultralight
+				new_traffic.category="Ultrl";   
+    				break;
+			case 14:	// unmanned 
+				new_traffic.category="Drone";   
+    				break;
+			case 15:	// space aircraft
+				new_traffic.category="Space";   
+    				break;
+			case 17:	// emgn vehicle
+			case 18:	// surface vehicle 
+				new_traffic.category="Vehic";   
+    				break;
+			case 19:	// surface vehicle 
+				new_traffic.category="Obstc";   
+    				break;
+  			default:
+				new_traffic.category="----";   
+		}
+		new_traffic.addr_symb ='\u2708';    // undefined, use aircraft as default
 		if (new_traffic.targettype > 3) {
 			new_traffic.addr_symb ='\ud83d\udce1';
 		}
@@ -84,7 +135,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.age = obj.Age;
 		new_traffic.ageLastAlt = obj.AgeLastAlt;
-		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT
+		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT, 4=OGN
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
 		new_traffic.dist = (obj.Distance/1852); // nautical miles
 		new_traffic.distEst = obj.DistanceEstimated / 1852;
