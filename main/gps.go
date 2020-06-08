@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -202,7 +203,8 @@ func makeNMEACmd(cmd string) []byte {
 
 func initGPSSerial() bool {
 	var device string
-	baudrate := int(9600)
+	// Possible baud rates for this device. We will try to auto detect the correct one
+	baudrates := []int{int(9600)}
 	isSirfIV := bool(false)
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
@@ -222,17 +224,18 @@ func initGPSSerial() bool {
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
-		baudrate = 4800
+		baudrates[0] = 4800
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
 	} else if _, err := os.Stat("/dev/flarm"); err == nil {
 		device = "/dev/flarm"
 		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
-		baudrate = 115200
+		// OGN Tracker uses 115200, SoftRF 38400
+		baudrates = []int{115200, 38400, 9600}
  	} else if _, err := os.Stat("/dev/softrf_dongle"); err == nil {
 		device = "/dev/softrf_dongle"
 		globalStatus.GPS_detected_type = GPS_TYPE_SOFTRF_DONGLE
-		baudrate = 115200
+		baudrates[0] = 115200
  	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
@@ -247,7 +250,7 @@ func initGPSSerial() bool {
 	}
 
 	// Open port at default baud for config.
-	serialConfig = &serial.Config{Name: device, Baud: baudrate}
+	serialConfig = &serial.Config{Name: device, Baud: baudrates[0]}
 	p, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -258,12 +261,12 @@ func initGPSSerial() bool {
 		log.Printf("Using SiRFIV config.\n")
 		// Enable 38400 baud.
 		p.Write(makeNMEACmd("PSRF100,1,38400,8,1,0"))
-		baudrate = 38400
+		baudrates[0] = 38400
 		p.Close()
 
 		time.Sleep(250 * time.Millisecond)
 		// Re-open port at newly configured baud so we can configure 5Hz messages.
-		serialConfig = &serial.Config{Name: device, Baud: baudrate}
+		serialConfig = &serial.Config{Name: device, Baud: baudrates[0]}
 		p, err = serial.OpenPort(serialConfig)
 
 		// Enable 5Hz. (To switch back to 1Hz: $PSRF103,00,7,00,0*22)
@@ -424,7 +427,7 @@ func initGPSSerial() bool {
 		// UBX-CFG-PRT (Port Configuration for UART)
 		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
-		baudrate = 38400
+		baudrates[0] = 38400
 
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
@@ -439,9 +442,11 @@ func initGPSSerial() bool {
 	p.Close()
 
 	time.Sleep(250 * time.Millisecond)
+
 	// Re-open port at newly configured baud so we can read messages. ReadTimeout is set to keep from blocking the gpsSerialReader() on misconfigures or ttyAMA disconnects
-	serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
-	p, err = serial.OpenPort(serialConfig)
+	// serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
+	// serial.OpenPort(serialConfig)
+	p, err = detectOpenSerialPort(device, baudrates)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
 		return false
@@ -449,6 +454,37 @@ func initGPSSerial() bool {
 
 	serialPort = p
 	return true
+}
+
+func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error) {
+	if len(baudrates) == 1 {
+		serialConfig := &serial.Config{Name: device, Baud: baudrates[0], ReadTimeout: time.Millisecond * 2500}
+		return serial.OpenPort(serialConfig)
+	} else {
+		for _, baud := range baudrates {
+			serialConfig := &serial.Config{Name: device, Baud: baud, ReadTimeout: time.Millisecond * 2500}
+			p, err := serial.OpenPort(serialConfig)
+			if err != nil {
+				return p, err
+			}
+			// Check if we get any data...
+			time.Sleep(3 * time.Second)
+			buffer := make([]byte, 10000)
+			p.Read(buffer)
+			splitted := strings.Split(string(buffer), "\n")
+			for _, line := range splitted {
+				_, validNMEAcs := validateNMEAChecksum(line)
+				if validNMEAcs {
+					// looks a lot like NMEA.. use it
+					log.Printf("Detected serial port %s with baud %d", device, baud)
+					return p, nil
+				}
+			}
+			p.Close()
+			time.Sleep(250 * time.Millisecond)
+		}
+		return nil, errors.New("Failed to open GPS serial port")
+	}
 }
 
 // func validateNMEAChecksum determines if a string is a properly formatted NMEA sentence with a valid checksum.
