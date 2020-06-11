@@ -16,6 +16,7 @@ import (
 	"encoding/binary"
 	"net"
 	"bufio"
+	"strconv"
 	"time"
 	"log"
 	"io/ioutil"
@@ -28,6 +29,7 @@ type OgnMessage struct {
 	Addr string
 	Addr_type int32
 	Acft_type string
+	Acft_cat string
 	Lat_deg float32
 	Lon_deg float32
 	Alt_msl_m float32
@@ -236,14 +238,19 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	ti.Last_alt = ti.Last_seen
 	ti.Last_speed = ti.Last_seen
 
-	switch(msg.Acft_type) {
-		case "1": ti.Emitter_category = 9 // glider = glider
-		case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
-		case "3": ti.Emitter_category = 7 // helicopter = helicopter
-		case "4": ti.Emitter_category = 11 // skydiver
-		case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
-		case "9": ti.Emitter_category = 3 // jet = large
-		case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
+	emitter, err := strconv.ParseInt(msg.Acft_cat, 16, 8)
+	if len(msg.Acft_cat) == 2 && err == nil {
+		ti.Emitter_category = uint8(emitter)
+	} else {
+		switch(msg.Acft_type) {
+			case "1": ti.Emitter_category = 9 // glider = glider
+			case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
+			case "3": ti.Emitter_category = 7 // helicopter = helicopter
+			case "4": ti.Emitter_category = 11 // skydiver
+			case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
+			case "9": ti.Emitter_category = 3 // jet = large
+			case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
+		}
 	}
 
 	traffic[ti.Icao_addr] = ti
