@@ -477,13 +477,16 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 				if validNMEAcs {
 					// looks a lot like NMEA.. use it
 					log.Printf("Detected serial port %s with baud %d", device, baud)
+					// Make sure the NMEA is immediately parsed once, so updateStatus() doesn't see the GPS as disconnected before
+					// first msg arrives
+					processNMEALine(line)
 					return p, nil
 				}
 			}
 			p.Close()
 			time.Sleep(250 * time.Millisecond)
 		}
-		return nil, errors.New("Failed to open GPS serial port")
+		return nil, errors.New("Failed to detect GPS serial baud rate")
 	}
 }
 
