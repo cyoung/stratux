@@ -8,10 +8,10 @@ This repository offers code and binaries that can help you to build your own tra
 ## Main differences to original Stratux
 * Original Stratux: https://github.com/cyoung/stratux
 * Added OGN receiver functionality to receive several protocols on the 868Mhz frequency band, comparable to what the OpenGliderNetwork does
-* Merged VirusPilot's fixes and improvements for U-Blox 8/9 devices and Galileo/Glonass reception ([link](https://github.com/VirusPilot/stratux))
+* Merged VirusPilot's fixes and improvements for U-Blox 8/9 devices and Galileo/Glonass reception ([link](https://github.com/VirusPilot))
 * If no pressure sensor is present, Stratux EU will try to estimate your pressure altitude with atmospheric information received from other aircraft. We still recommend using some kind of barometric sensor (e.g. Stratux AHRS module). More information can be found [here](https://github.com/b3nn0/stratux/wiki/Altitudes-in-Stratux-EU)
 * By default, OGN and DeveloperMode is enabled, UAT is disabled
-* Merged Stratux Web-Radar for web-based traffic display by [TomBric](https://github.com/TomBric/Radar-Stratux)
+* Merged Stratux Web-Radar for web-based traffic display by [TomBric](https://github.com/TomBric)
 * Upgraded the RaspberryPi Debian system to the latest debian packages (RaspiOS Buster)
 * Hide Weather/Towers page if UAT is disabled
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
