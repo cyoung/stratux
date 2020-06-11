@@ -184,7 +184,7 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
 	if msg.Alt_std_m != 0 {
-		ti.Alt = int32(msg.Alt_std_m)
+		ti.Alt = int32(msg.Alt_std_m * 3.28084)
 		ti.AltIsGNSS = false
 	} else {
 		alt := msg.Alt_msl_m * 3.28084
