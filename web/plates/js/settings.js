@@ -20,9 +20,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		// consider using angular.extend()
 		$scope.rawSettings = angular.toJson(data, true);
 		$scope.visible_serialout = false;
-		if ((settings.SerialOutputs !== undefined) && (settings.SerialOutputs !== null) && (settings.SerialOutputs['/dev/serialout0'] !== undefined)) {
-			$scope.Baud = settings.SerialOutputs['/dev/serialout0'].Baud;
-			$scope.visible_serialout = true;
+		if ((settings.SerialOutputs !== undefined) && (settings.SerialOutputs !== null)) {
+			for (var k in settings.SerialOutputs) {
+				$scope.Baud = settings.SerialOutputs[k].Baud;
+				$scope.visible_serialout = true;
+			}
 		}
 		$scope.UAT_Enabled = settings.UAT_Enabled;
 		$scope.ES_Enabled = settings.ES_Enabled;
