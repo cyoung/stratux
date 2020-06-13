@@ -2123,6 +2123,11 @@ func gpsSerialReader() {
 		}
 
 		s := scanner.Text()
+		startIdx := strings.Index(s, "$")
+		if startIdx < 0 {
+			continue
+		}
+		s = s[startIdx:]
 
 		if !processNMEALine(s) {
 			if globalSettings.DEBUG {
