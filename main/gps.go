@@ -318,21 +318,27 @@ func initGPSSerial() bool {
 			if globalSettings.DEBUG {
 				log.Printf("ublox 8 detected\n")
 			}
-			// ublox 8
-			cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
-			gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}		// enable GPS with 8-16 tracking channels
-			sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}		// disable SBAS
-			beidou := []byte{0x03, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}	// disable BEIDOU
-			qzss := []byte{0x05, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}		// disable QZSS
-			glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01}	// enable GLONASS with 8-14 tracking channels
-			galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01}	// enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
+			// There are Ublox8 chips that only support GPS+GLO, so we first enable these to hopefully get an ACK
+			// Then we do the same with GAL and get an NACK for those chips, but ACK for the ones that support GAL as well
+
+			cfgGnss := []byte{0x00, 0x00, 0x20, 0x05}
+			gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 tracking channels
+			sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01} // disable SBAS
+			beidou  := []byte{0x03, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable BEIDOU
+			qzss    := []byte{0x05, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS 0-3 tracking channels. Ublox recommends enabling when GPS is enabled
+			glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-14 tracking channels
+			galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
 			cfgGnss = append(cfgGnss, gps...)
 			cfgGnss = append(cfgGnss, sbas...)
 			cfgGnss = append(cfgGnss, beidou...)
 			cfgGnss = append(cfgGnss, qzss...)
 			cfgGnss = append(cfgGnss, glonass...)
+			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds on all chips supporting GPS+GLO
+
+			cfgGnss[3] = 0x06
 			cfgGnss = append(cfgGnss, galileo...)
-			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
+			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds only on chips that support GPS+GLO+GAL
+
 			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS off
 			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
