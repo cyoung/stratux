@@ -31,16 +31,20 @@
                 <div class="panel-body">
                     <!-- Upload. Temporary. -->
                     <div class="col-xs-12">
-                        <span ng-show="update_files == ''">
+                        <span ng-show="update_files == '' && !uploading_update"> <!-- default: offer file selection -->
                             <span style="position:relative; overflow: hidden;">
                                 <span class="fake-btn fake-btn-block">Click to select System Update file</span>
                                 <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file"
                                        onchange="angular.element(this).scope().setUploadFile(this.files)"/>
                             </span>
                         </span>
-                        <span ng-hide="update_files == ''">
+                        <span ng-show="update_files != '' && !uploading_update"> <!-- once selected, btn to upload -->
                             <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">
                                 Install {{update_files[0].name}}</button>
+                        </span>
+                        <span ng-show="update_files != '' && uploading_update"> <!-- "uploading.." -->
+                            <button class="btn btn-block">
+                                Uploading {{update_files[0].name}}. Please wait...</button>
                         </span>
                     </div>
                     <div class="form-group reset-flow">

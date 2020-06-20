@@ -238,6 +238,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 
 		fd.append("update_file", file);
+		$scope.uploading_update = true;
+		$scope.$apply();
 
 		$http.post(URL_UPDATE_UPLOAD, fd, {
 			withCredentials: true,
@@ -247,11 +249,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			transformRequest: angular.identity
 		}).success(function (data) {
 			alert("success. wait 5 minutes and refresh home page to verify new version.");
+			$scope.uploading_update = false;
+			$scope.$apply();
 			window.location.replace("/");
 		}).error(function (data) {
+			$scope.uploading_update = false;
+			$scope.$apply();
 			alert("error");
 		});
-
 	};
 
 	$scope.setOrientation = function(action) {
