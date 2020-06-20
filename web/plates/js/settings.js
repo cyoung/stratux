@@ -248,14 +248,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			},
 			transformRequest: angular.identity
 		}).success(function (data) {
-			alert("success. wait 5 minutes and refresh home page to verify new version.");
 			$scope.uploading_update = false;
-			$scope.$apply();
+			alert("success. wait 5 minutes and refresh home page to verify new version.");
 			window.location.replace("/");
+			$scope.$apply();
 		}).error(function (data) {
 			$scope.uploading_update = false;
-			$scope.$apply();
 			alert("error");
+			$scope.$apply();
 		});
 	};
 
