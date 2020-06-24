@@ -185,21 +185,22 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	// set altitude
 	// To keep the rest of the system as simple as possible, we want to work with barometric altitude everywhere.
 	// To do so, we use our own known geoid separation and pressure difference to compute the expected barometric altitude of the traffic.
-	if msg.Alt_std_m != 0 {
+	// Some OGN trackers are equiped with a baro sensor, but older firmwares send wrong data, so we usually can't rely on it.
+	alt := msg.Alt_msl_m * 3.28084
+	if alt == 0 {
+		alt = msg.Alt_hae_m * 3.28084 - mySituation.GPSGeoidSep
+	}
+	if isGPSValid() && isTempPressValid() {
+		ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
+		ti.AltIsGNSS = false
+	} else if msg.Alt_std_m != 0 {
+		// Fall back to received baro alt
 		ti.Alt = int32(msg.Alt_std_m * 3.28084)
 		ti.AltIsGNSS = false
 	} else {
-		alt := msg.Alt_msl_m * 3.28084
-		if alt == 0 {
-			alt = msg.Alt_hae_m * 3.28084 - mySituation.GPSGeoidSep
-		}
-		if isGPSValid() && isTempPressValid() {
-			ti.Alt = int32(alt - mySituation.GPSAltitudeMSL + mySituation.BaroPressureAltitude)
-			ti.AltIsGNSS = false
-		} else {
-			ti.Alt = int32(alt)
-			ti.AltIsGNSS = true
-		}
+		// Fall back to GNSS alt
+		ti.Alt = int32(alt)
+		ti.AltIsGNSS = true
 	}
 
 	// Maybe the sender has baro AND GNS altitude.. in that case we can use that to estimage GnssBaroDiff to guess our own baro altitude
