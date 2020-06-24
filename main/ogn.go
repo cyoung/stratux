@@ -125,7 +125,7 @@ func ognListen() {
 			importOgnMessage(msg, buf)
 
 			// TODO: remove me
-			if globalSettings.DEBUG && isGPSValid() {
+			/*if globalSettings.DEBUG && isGPSValid() {
 				var j map[string]interface{}
 				json.Unmarshal(buf, &j)
 				dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
@@ -133,11 +133,7 @@ func ognListen() {
 				j["bearing_deg"] = bearing
 				txt, _ := json.Marshal(j)
 				log.Printf("ogn-rx-eu traffic: %s", txt)
-			}
-
-			if globalSettings.DEBUG {
-				log.Printf(string(buf))
-			}
+			}*/
 		}
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
@@ -204,7 +200,8 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	}
 
 	// Maybe the sender has baro AND GNS altitude.. in that case we can use that to estimage GnssBaroDiff to guess our own baro altitude
-	if msg.Alt_msl_m != 0 && msg.Alt_std_m != 0 {
+	// TODO: don't do that because of invalid baro alts from old OGN trackers.
+	/*if msg.Alt_msl_m != 0 && msg.Alt_std_m != 0 {
 		ti.Last_GnssDiffAlt = ti.Alt
 		hae := msg.Alt_msl_m + mySituation.GPSGeoidSep
 		ti.GnssDiffFromBaroAlt = int32((hae - msg.Alt_std_m) * 3.28084)
@@ -213,7 +210,7 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 		ti.Last_GnssDiffAlt = ti.Alt
 		ti.GnssDiffFromBaroAlt = int32((msg.Alt_hae_m - msg.Alt_std_m) * 3.28084)
 		ti.Last_GnssDiff = stratuxClock.Time
-	}
+	}*/
 
 	ti.TurnRate = float32(msg.Turn_dps)
 	if ti.TurnRate > 360 || ti.TurnRate < -360 {
@@ -257,6 +254,11 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	traffic[ti.Icao_addr] = ti
 	registerTrafficUpdate(ti)
 	seenTraffic[ti.Icao_addr] = true
+
+	if globalSettings.DEBUG {
+		txt, _ := json.Marshal(ti)
+		log.Printf("OGN traffic imported: " + string(txt))
+	}
 }
 
 var ognTailNumberCache = make(map[string]string)
