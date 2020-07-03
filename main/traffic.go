@@ -1273,7 +1273,7 @@ func esListen() {
 				ti.OnGround = bool(*newTi.OnGround)
 			}
 
-			if (newTi.Tail != nil) && ((newTi.DF == 17) || (newTi.DF == 18)) { // DF=17 or DF=18, Type Code 1-4
+			if (newTi.Tail != nil) && ((newTi.DF == 17) || (newTi.DF == 18) || (newTi.DF == 21)) { // DF=17 or DF=18, Type Code 1-4 , DF=21 Identity Reply
 				ti.Tail = *newTi.Tail
 				ti.Tail = strings.Trim(ti.Tail, " ") // remove extraneous spaces
 			}
