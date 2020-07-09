@@ -581,7 +581,7 @@ func parseFlarmPFLAA(message []string) {
 	}
 	ti.Icao_addr = address
 	if len(ti.Tail) == 0 {
-		ti.Tail = getTailNumber(flarmID) // Might have better tail from ADS-B. Don't overwrite.
+		ti.Tail = getTailNumber(flarmID, "FLR") // Might have better tail from ADS-B. Don't overwrite.
 	}
 	ti.Timestamp = time.Now().UTC()
 	ti.Last_source = TRAFFIC_SOURCE_OGN
