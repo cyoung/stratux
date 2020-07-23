@@ -13,6 +13,11 @@
     stroke: #000000;
 }
 
+.radar .circle {
+    fill: white;
+    stroke: black;
+}
+
 .radar .textDir {
 	font-size: 1em;
 	font-family: sans-serif;
@@ -38,33 +43,33 @@
 	stroke: none;
 }
 .radar .textCirc {
-	font-size: 1.3em;
+	font-size: 1.8em;
 	font-family: sans-serif;
 	text-anchor: center;
 	fill: #7B1AB9;
 }
 .radar .textCircReg {
-	font-size: 1.0em;
+	font-size: 0.8em;
 	font-family: sans-serif;
-	text-anchor: left;
+	text-anchor: center;
 	fill: #7B1AB9;
 }
 .radar .textRegOut {
-	font-size: 1.0em;
+	font-size: 0.8em;
 	font-family: sans-serif;
-	text-anchor: left;
+	text-anchor: center;
 	fill: white;
 	stroke: white;
-	stroke-width: 5px;
+	stroke-width: 3px;
 }
 
 .radar .textCOut {
-	font-size: 1.3em;
+	font-size: 1.8em;
 	font-family: sans-serif;
-	text-anchor: left;
+	text-anchor: center;
 	fill: white;
 	stroke: white;
-	stroke-width: 5px;
+	stroke-width: 7px;
 }
 
 .radar .greenCirc {
@@ -81,11 +86,20 @@
 }
 
 .radar .textPlane {
-	font-size: 1.3em;
+	font-size: 1.8em;
 	font-family: sans-serif;
 	text-anchor: start;
 	fill: black;
 	stroke-width: 0px;
+}
+
+.radar .textPlaneOut {
+	font-size: 1.8em;
+	font-family: sans-serif;
+	text-anchor: start;
+	fill: white;
+	stroke: white;
+	stroke-width: 2px;
 }
 
 .radar .textPlaneSmall {
