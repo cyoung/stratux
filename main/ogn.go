@@ -17,6 +17,7 @@ import (
 	"net"
 	"bufio"
 	"strconv"
+	"strings"
 	"time"
 	"log"
 	"io/ioutil"
@@ -164,7 +165,7 @@ func importOgnMessage(msg OgnMessage, buf []byte) {
 	}
 	ti.Icao_addr = address
 	if len(ti.Tail) == 0 {
-		ti.Tail = getTailNumber(msg.Addr)
+		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}
 	ti.Last_source = TRAFFIC_SOURCE_OGN
 	if msg.Time > 0 {
@@ -291,10 +292,14 @@ func lookupOgnTailNumber(ognid string) string {
 	return ""
 }
 
-func getTailNumber(ognid string) string {
+func getTailNumber(ognid string, sys string) string {
 	tail := lookupOgnTailNumber(ognid)
 	if globalSettings.DisplayTrafficSource {
-		tail = "og" + tail
+		if sys == "" {
+			sys = "un"
+		}
+		sys = strings.ToLower(sys)[0:2]
+		tail = sys + tail
 	}
 	return tail
 }

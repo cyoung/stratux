@@ -180,13 +180,13 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 				}
 				var dx = Math.round(distx * Math.cos(traffic.posangle));
 				var dy = Math.round(distx * Math.sin(traffic.posangle));
-				var outtext = radar.allScreen.text(ctxt).center(dx, dy).addClass('textCOut');  //Outline in black
+				var outtext = radar.allScreen.text(ctxt).addClass('textCOut').center(dx,dy);  //Outline
 				traffic.circ.add(outtext);
-				var tratext = radar.allScreen.text(ctxt).center(dx, dy).addClass('textCirc');  //not rotated
+				var tratext = radar.allScreen.text(ctxt).addClass('textCirc').center(dx,dy); 
 				traffic.circ.add(tratext);
-				var tailout = radar.allScreen.text(traffic.tail).center(dx, dy - 16).addClass('textRegOut');
+				var tailout = radar.allScreen.text(traffic.tail).addClass('textRegOut').center(dx,dy+18);
 				traffic.circ.add(tailout);
-				var tailtext = radar.allScreen.text(traffic.tail).center(dx, dy - 16).addClass('textCircReg');
+				var tailtext = radar.allScreen.text(traffic.tail).addClass('textCircReg').center(dx,dy+18);
 				traffic.circ.add(tailtext);
 			}
 		}
@@ -202,6 +202,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (traffic.planeimg) {  //delete Images + Text
 			traffic.planeimg.remove().forget();
 			traffic.planetext.remove().forget();
+			traffic.planetextOut.remove().forget();
 			traffic.planespeed.remove().forget();
 			traffic.planetail.remove().forget();
 			// do not remove radar-trace
@@ -266,6 +267,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			var pfeil = '';
 			if (traffic.vspeed > 0) pfeil = '\u2191';
 			if (traffic.vspeed < 0) pfeil = '\u2193';
+			traffic.planetextOut = radar.rScreen.text(vorzeichen + Math.abs(altDiff) + pfeil).move(distx + 17, disty - 10).rotate(GPSCourse, distx, disty).addClass('textPlaneOut');
 			traffic.planetext = radar.rScreen.text(vorzeichen + Math.abs(altDiff) + pfeil).move(distx + 17, disty - 10).rotate(GPSCourse, distx, disty).addClass('textPlane');
 			traffic.planespeed = radar.rScreen.text(traffic.nspeed + 'kts').move(distx + 17, disty).rotate(GPSCourse, distx, disty).addClass('textPlaneSmall');
 			traffic.planetail = radar.rScreen.text(traffic.tail).move(distx + 17, disty + 10).rotate(GPSCourse, distx, disty).addClass('textPlaneReg');
@@ -386,6 +388,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 			if ($scope.data_list[validIdx].planeimg) {
 				$scope.data_list[validIdx].planeimg.remove().forget();    // remove plane image
 				$scope.data_list[validIdx].planetext.remove().forget();   // remove plane image
+				$scope.data_list[validIdx].planetextOut.remove().forget();   // remove plane image
 				$scope.data_list[validIdx].planespeed.remove().forget();  // remove plane image
 				$scope.data_list[validIdx].planetail.remove().forget();   // remove plane image
 				if ($scope.data_list[validIdx].trace) {
@@ -517,6 +520,7 @@ function RadarCtrl($rootScope, $scope, $state, $http, $interval) {
 				if ($scope.data_list[i - 1].planeimg) {
 					$scope.data_list[i - 1].planeimg.remove().forget();    // remove plane image
 					$scope.data_list[i - 1].planetext.remove().forget();   // remove plane image
+					$scope.data_list[i - 1].planetextOut.remove().forget();   // remove plane image
 					$scope.data_list[i - 1].planespeed.remove().forget();  // remove plane image
 					$scope.data_list[i - 1].planetail.remove().forget();   // remove plane image
 					if ($scope.data_list[i - 1].trace) {
@@ -580,6 +584,7 @@ function clearRadarTraces($scope) {
 		if ($scope.data_list[i - 1].planeimg) {
 			$scope.data_list[i - 1].planeimg.remove().forget();    // remove plane image
 			$scope.data_list[i - 1].planetext.remove().forget();   // remove plane image
+			$scope.data_list[i - 1].planetextOut.remove().forget();   // remove plane image
 			$scope.data_list[i - 1].planespeed.remove().forget();  // remove plane image
 			$scope.data_list[i - 1].planetail.remove().forget();   // remove plane image
 			$scope.data_list[i - 1].alarms = 0;                    //reset alarm counter
@@ -692,8 +697,8 @@ function RadarRenderer(locationId, $scope, $http) {
 	var radarAll = SVG(this.locationId).viewbox(-201, -201, 402, 302).group().addClass('radar');
 	var background = radarAll.rect(402, 402).radius(5).x(-201).y(-201).addClass('blackRect');
 	var card = radarAll.group().addClass('card');
-	card.circle(400).cx(0).cy(0);
-	card.circle(200).cx(0).cy(0);
+	card.circle(400).cx(0).cy(0).addClass('circle');
+	card.circle(200).cx(0).cy(0).addClass('circle');
 	this.displayText = radarAll.text(DisplayRadius + ' nm').addClass('textOutside').x(-200).cy(-158);               //not rotated
 	this.altText = radarAll.text('\xB1' + AltDiffThreshold + '00ft').addClass('textOutsideRight').x(200).cy(-158);  //not rotated
 	this.fl = radarAll.text('FL' + Math.round(BaroAltitude / 100)).addClass('textSmall').move(7, 5);
