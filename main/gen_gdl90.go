@@ -1266,7 +1266,7 @@ func defaultSettings() {
 	globalSettings.NoSleep = false
 	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
-	globalSettings.EstimateBearinglessDist = true
+	globalSettings.EstimateBearinglessDist = false
 
 	globalSettings.WiFiChannel = 1
 	globalSettings.WiFiIPAddress = "192.168.10.1"

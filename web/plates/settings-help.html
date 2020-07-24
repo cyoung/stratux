@@ -67,6 +67,11 @@
                 You will need to stop the Stratux software before running the calibration process.
                 You can stop all of the Stratux processes with the command: <code>pkill screen</code>.</span>
         </li>
+        <li>Stratux estimates the distance of Mode C/S equipped transponders that don't have ADS-B out capabilities.
+            When using NMEA Output (with PFLAA/PFLAU traffic messages), these are shown as circles in most EFBs.
+            GDL90, however, does not support this directly. <strong>GDL90 bearingless target circle emulation</strong>
+            can be enabled and Stratux will create 8 pseudo-targets in a circle around you to emulate this support in GDL90.
+        </li>
         <li>Additional settings will be added in future releases.</li>
     </ul>
     <p>The <strong>System</strong> section lets you safely shutdown or reboot your Stratux device.</p>

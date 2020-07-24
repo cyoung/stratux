@@ -395,13 +395,13 @@ func sendTrafficUpdates() {
 
 	sendNetFLARM(msgFLARM)
 	// Also send the nearest best bearingless
-	if globalSettings.EstimateBearinglessDist && bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
+	if bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
 		msg, valid, _ := makeFlarmPFLAAString(bestEstimate)
 		if valid { 
 			sendNetFLARM(msg)
 		}
 
-		if isGPSValid() {
+		if globalSettings.EstimateBearinglessDist && isGPSValid() {
 			fakeTargets := calculateModeSFakeTargets(bestEstimate)
 			fakeMsg :=  make([]byte, 0)
 			for _, ti := range fakeTargets {
