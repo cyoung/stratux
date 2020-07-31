@@ -441,8 +441,8 @@ func estimateDistance(ti *TrafficInfo) {
 	// Only learn from 1090ES targets
 	// We ignore targets that are too far away (a lot of signal strength fluctuation), too close (non-reception cone or ownship)
 	// and of course extrapolated targets and invalid signal levels
-	if ti.BearingDist_valid && ti.Distance < 50000 && ti.Distance > 1500 && ti.Last_source == TRAFFIC_SOURCE_1090ES 
-		&& ti.SignalLevel > -100 && ti.SignalLevel < 0 && !ti.ExtrapolatedPosition {
+	if ti.BearingDist_valid && ti.Distance < 50000 && ti.Distance > 1500 && ti.Last_source == TRAFFIC_SOURCE_1090ES &&
+		ti.SignalLevel > -100 && ti.SignalLevel < 0 && !ti.ExtrapolatedPosition {
 		var errorFactor float64
 		if ti.DistanceEstimated > ti.Distance {
 			errorFactor = -(ti.DistanceEstimated / ti.Distance)
