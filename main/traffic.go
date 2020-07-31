@@ -291,7 +291,7 @@ func sendTrafficUpdates() {
 		log.Printf("==================================================================\n")
 	}
 	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
-		if isGPSValid() {
+		if isGPSValid() && ti.Position_valid {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
 			dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
@@ -439,7 +439,10 @@ func estimateDistance(ti *TrafficInfo) {
 	ti.DistanceEstimated = ti.DistanceEstimated * expon + dist * (1 - expon);
 
 	// Only learn from 1090ES targets
-	if ti.BearingDist_valid && ti.Distance < 50000 && ti.Last_source == TRAFFIC_SOURCE_1090ES && ti.SignalLevel > -100 && ti.SignalLevel < 0 {
+	// We ignore targets that are too far away (a lot of signal strength fluctuation), too close (non-reception cone or ownship)
+	// and of course extrapolated targets and invalid signal levels
+	if ti.BearingDist_valid && ti.Distance < 50000 && ti.Distance > 1500 && ti.Last_source == TRAFFIC_SOURCE_1090ES 
+		&& ti.SignalLevel > -100 && ti.SignalLevel < 0 && !ti.ExtrapolatedPosition {
 		var errorFactor float64
 		if ti.DistanceEstimated > ti.Distance {
 			errorFactor = -(ti.DistanceEstimated / ti.Distance)
