@@ -24,6 +24,7 @@ fi
 /usr/sbin/logrotate /etc/logrotate.conf
 
 
-/usr/bin/stratux-screen.py start
+# Disabled for now as it is unamintained and doesn't run correctly with python2 deprecation
+# /usr/bin/stratux-screen.py start
 
 exit 0
