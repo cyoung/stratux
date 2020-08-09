@@ -46,9 +46,16 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 	dist, bearing, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 	relativeVertical := computeRelativeVertical(ti)
 	alarmLevel := computeAlarmLevel(dist, relativeVertical)
+
+	// make bearing relative to ground track, with +-180deg
+	bearing = bearing - float64(mySituation.GPSTrueCourse)
 	if bearing > 180 {
-		bearing = -(360 - bearing)
+		bearing = bearing - 360
 	}
+	if bearing < -180 {
+		bearing = bearing + 360
+	}
+
 	alarmType := 0
 	if alarmLevel > 0 {
 		alarmType = 2
