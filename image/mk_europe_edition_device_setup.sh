@@ -21,7 +21,7 @@ ln -s /bin/true /root/fake/deb-systemd-helper
 mkdir -p /proc/sys/vm/
 
 apt update
-PATH=/root/fake:$PATH apt dist-upgrade --yes
+#PATH=/root/fake:$PATH apt dist-upgrade --yes
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
