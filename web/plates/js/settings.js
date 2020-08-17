@@ -118,7 +118,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.updateppm = function () {
 		settings["PPM"] = 0;
-		if (($scope.PPM !== undefined) && ($scope.PPM !== null) && ($scope.PPM !== settings["PPM"])) {
+		if (($scope.PPM !== undefined) && ($scope.PPM !== null)) {
 			settings["PPM"] = parseInt($scope.PPM);
 			var newsettings = {
 				"PPM": settings["PPM"]
@@ -130,7 +130,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.updateBaud = function () {
 		settings["Baud"] = 0;
-		if (($scope.Baud !== undefined) && ($scope.Baud !== null) && ($scope.Baud !== settings["Baud"])) {
+		if (($scope.Baud !== undefined) && ($scope.Baud !== null)) {
 			settings["Baud"] = parseInt($scope.Baud);
 			var newsettings = {
 				"Baud": settings["Baud"]
