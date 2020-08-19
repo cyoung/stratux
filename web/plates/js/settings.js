@@ -8,7 +8,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
 	var toggles = ['UAT_Enabled', 'ES_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'IMU_Sensor_Enabled',
-		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'AHRSLog'];
+		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'AHRSLog', 'DarkMode'];
 	var settings = {};
 	for (var i = 0; i < toggles.length; i++) {
 		settings[toggles[i]] = undefined;
@@ -24,6 +24,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			$scope.Baud = settings.SerialOutputs['/dev/serialout0'].Baud;
 			$scope.visible_serialout = true;
 		}
+
+		$scope.DarkMode = settings.DarkMode;
+
 		$scope.UAT_Enabled = settings.UAT_Enabled;
 		$scope.ES_Enabled = settings.ES_Enabled;
 		$scope.Ping_Enabled = settings.Ping_Enabled;
@@ -50,6 +53,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         $scope.WiFiSmartEnabled = settings.WiFiSmartEnabled;
 
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+		// Update theme
+		$scope.$parent.updateTheme($scope.DarkMode);
 	}
 
 	function getSettings() {

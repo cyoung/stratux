@@ -99,7 +99,23 @@ app.controller('MainCtrl', function ($scope, $http) {
     .then(function(response) {
 			var settings = angular.fromJson(response.data);
             $scope.DeveloperMode = settings.DeveloperMode;
+
+            // Update theme
+            $scope.updateTheme(settings.DarkMode);
     }, function(response) {
         //Second function handles error
     });	
+
+    $scope.updateTheme = function(darkMode) {
+        if(darkMode != $scope.DarkMode) {
+            // console.log("Updating theme, use dark mode?", darkMode);
+            $scope.DarkMode = darkMode;
+
+            if($scope.DarkMode) {
+                document.getElementById('themeStylesheet').href = 'css/dark-mode.css';
+            } else {
+                document.getElementById('themeStylesheet').href = '';
+            }
+        }
+    };
 });
