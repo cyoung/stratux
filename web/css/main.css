@@ -262,6 +262,9 @@
 	width: 100%;
 }
 
+.row-header {
+	background-color: #f7f7f7;
+}
 
 /* ***************************************************************************
 everything below this comment represents tweaks to the mobile-angular-uis CSS
