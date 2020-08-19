@@ -1103,6 +1103,7 @@ func getProductNameFromId(product_id int) string {
 }
 
 type settings struct {
+	DarkMode             bool
 	UAT_Enabled          bool
 	ES_Enabled           bool
 	Ping_Enabled         bool
@@ -1186,6 +1187,7 @@ var globalSettings settings
 var globalStatus status
 
 func defaultSettings() {
+	globalSettings.DarkMode = false
 	globalSettings.UAT_Enabled = true
 	globalSettings.ES_Enabled = true
 	globalSettings.GPS_Enabled = true
