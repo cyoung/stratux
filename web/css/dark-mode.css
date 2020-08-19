@@ -1,0 +1,184 @@
+pre {
+	color: #9b9b9b;
+}
+
+.app-body,
+.panel-default,
+.scrollable-content,
+.form-group {
+	color: #9b9b9b;
+        background-color: #121212;
+}
+
+.help-page {
+	background-color: #121212;
+}
+
+a,
+.btn,
+.navbar-app .btn {
+	color: #1e88e5;
+}
+
+a:hover,
+a:focus,
+.btn:hover,
+.btn:focus,
+.navbar-app .btn:hover,
+.navbar-app .btn:focus {
+	color: #42a5f5;
+}
+
+.btn-primary {
+	color: #121212;
+	background-color: #1e88e5;
+	border-color: #1e88e5;
+}
+
+.btn-primary:hover {
+	color: #121212;
+	background-color: #42a5f5;
+	border-color: #42a5f5;
+}
+
+.btn-default {
+	color: #e0e0e0;
+	background-color: #343434;
+}
+
+.btn-default:hover {
+	background-color: #383838;
+}
+
+a.list-group-item,
+.list-group-item {
+	color: #e0e0e0;
+	border-color: #373737;
+	background-color: #242424;
+}
+
+a.list-group-item:hover,
+.list-group-item:hover {
+	text-decoration: none;
+	color: #e0e0e0;
+	background-color: #373737;
+}
+
+.list-group-item.active,
+.list-group-item.active:focus,
+.list-group-item.active:hover {
+	color: #121212;
+	background-color: #1e88e5;
+	border-color: #1e88e5;
+}
+
+.navbar-app {
+	background-color: #2d2d2d;
+	border-color: #373737;
+}
+
+.panel {
+	border-color: #373737;
+}
+
+.panel-default>.panel-heading {
+	color: #e0e0e0;
+	background-color: #2d2d2d;
+	border-color: #373737;
+}
+
+.panel-default>.panel-footer {
+	color: #e0e0e0;
+	background-color: #2d2d2d;
+	border-color: #373737;
+}
+
+.row-header {
+	background-color: #212121;
+}
+
+.separator {
+	border-bottom-color: #2d2d2d;
+}
+
+.sidebar-header,
+.app-name {
+	color: #e0e0e0;
+	background-color: #2d2d2d;
+	border-color: #373737;
+}
+
+.switch {
+	background-color: #2d2d2d;
+	border-color: #9b9b9b;
+}
+
+.switch .switch-handle {
+	background-color: #9b9b9b;
+	border-color: #9b9b9b;
+}
+
+.switch.active {
+	background-color: #1e88e5;
+	border-color: #1e88e5;
+}
+
+.text-primary {
+	color: #1e88e5;
+}
+
+.label-success {
+	color: #121212;
+	background-color: #4caf50;
+}
+
+.label-warning {
+	color: #121212;
+	background-color: #ffeb3b;
+}
+
+.label-danger {
+	color: #121212;
+	background-color: #f44336;
+}
+
+/* Input changes */
+input[type=text],
+input[type=number] {
+	color: #e0e0e0;
+	background-color: #212121;
+	border: 2px solid #2d2d2d;
+	border-radius: 4px;
+}
+
+input.ng-invalid:not(.grayout) {
+	color: #121212;
+}
+
+select {
+	color: #e0e0e0;
+	background-color: #212121;
+	border: 2px solid #2d2d2d;
+	border-radius: 4px;
+}
+
+/* Modal changes */
+.modal-content {
+	background-color: #343434;
+}
+
+.modal-header {
+	border-color: #9b9b9b;
+}
+
+.modal-title {
+	color: #e0e0e0;
+}
+
+.modal-body {
+	color: #9b9b9b;
+}
+
+.modal-footer {
+	border-color: #9b9b9b;
+}
