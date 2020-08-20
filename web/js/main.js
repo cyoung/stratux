@@ -107,7 +107,23 @@ app.controller('MainCtrl', function ($scope, $http) {
 			var settings = angular.fromJson(response.data);
             $scope.DeveloperMode = settings.DeveloperMode;
             $scope.UAT_Enabled = settings.UAT_Enabled;
+
+            // Update theme
+            $scope.updateTheme(settings.DarkMode);
     }, function(response) {
         //Second function handles error
     });	
+
+    $scope.updateTheme = function(darkMode) {
+        if(darkMode != $scope.DarkMode) {
+            // console.log("Updating theme, use dark mode?", darkMode);
+            $scope.DarkMode = darkMode;
+
+            if($scope.DarkMode) {
+                document.getElementById('themeStylesheet').href = 'css/dark-mode.css';
+            } else {
+                document.getElementById('themeStylesheet').href = '';
+            }
+        }
+    };
 });

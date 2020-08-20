@@ -304,6 +304,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 				for key, val := range msg {
 					// log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
 					switch key {
+					case "DarkMode":
+						globalSettings.DarkMode = val.(bool)
 					case "UAT_Enabled":
 						globalSettings.UAT_Enabled = val.(bool)
 					case "ES_Enabled":

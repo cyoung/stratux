@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	gyroRange  = 250 // gyroRange is the default range to use for the Gyro.
-	accelRange = 4   // accelRange is the default range to use for the Accel.
-	updateFreq = 50  // updateFreq is the rate at which to update the sensor values.
+	mpu9250GyroRange  = 250 // mpu9250GyroRange is the default range to use for the Gyro.
+	mpu9250AccelRange = 4   // mpu9250AccelRange is the default range to use for the Accel.
+	mpu9250UpdateFreq = 50  // mpu9250UpdateFreq is the rate at which to update the sensor values.
 )
 
 // MPU9250 represents an InvenSense MPU9250 attached to the I2C bus and satisfies
@@ -27,7 +27,7 @@ func NewMPU9250(i2cbus *embd.I2CBus) (*MPU9250, error) {
 		err error
 	)
 
-	mpu, err = mpu9250.NewMPU9250(i2cbus, gyroRange, accelRange, updateFreq, true, false)
+	mpu, err = mpu9250.NewMPU9250(i2cbus, mpu9250GyroRange, mpu9250AccelRange, mpu9250UpdateFreq, true, false)
 	if err != nil {
 		return nil, err
 	}
