@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"bufio"
 	"io"
 	"log"
 	"math"
@@ -413,7 +414,7 @@ type tcpClient struct {
 
 var msgchan chan string
 
-func tcpNMEAListener() {
+func tcpNMEAOutListener() {
 	ln, err := net.Listen("tcp", ":2000")
 	if err != nil {
 		fmt.Println(err)
@@ -433,8 +434,40 @@ func tcpNMEAListener() {
 			continue
 		}
 
-		go handleConnection(conn, msgchan, addchan, rmchan)
+		go handleNmeaOutConnection(conn, msgchan, addchan, rmchan)
 	}
+}
+
+/* Server that can be used to feed NMEA data to, e.g. to connect OGN Tracker wirelessly */
+func tcpNMEAInListener() {
+	ln, err := net.Listen("tcp", ":30011")
+	if err != nil {
+		log.Printf(err.Error())
+		return
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Printf(err.Error())
+			continue
+		}
+		go handleNmeaInConnection(conn)
+	}	
+}
+
+func handleNmeaInConnection(c net.Conn) {
+	defer c.Close()
+	reader := bufio.NewReader(c)
+	globalStatus.GPS_connected = true
+	globalStatus.GPS_detected_type = GPS_TYPE_NETWORK
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		processNMEALine(line)
+	}
+	globalStatus.GPS_connected = false
 }
 
 /*
@@ -459,7 +492,7 @@ func (c tcpClient) WriteLinesFrom(ch <-chan string) {
 	}
 }
 
-func handleConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClient, rmchan chan<- tcpClient) {
+func handleNmeaOutConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClient, rmchan chan<- tcpClient) {
 	//bufc := bufio.NewReader(c)
 	defer c.Close()
 	client := tcpClient{

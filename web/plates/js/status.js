@@ -94,6 +94,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 11:
 					tempGpsHardwareString = "SoftRF Dongle";
 					break;
+				case 12:
+					tempGpsHardwareString = "Network";
+					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}
