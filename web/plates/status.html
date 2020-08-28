@@ -55,6 +55,23 @@
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
 				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-6">
+						<span><strong>OGN Statistics</strong></span>
+					</div>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-12">
+						<span align="center" class="col-xs-6 row-header">Background Noise</span>
+						<span align="center" class="col-xs-6 row-header">Receiver Gain</span>
+					</div>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-12">
+						<span align="center" class="col-xs-6">{{OGN_noise_db}} dB</span>
+						<span align="center" class="col-xs-6">{{OGN_gain_db}} dB</span>
+					</div>
+				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
 					<div class="col-sm-6">
 						<span><strong>UAT Statistics</strong></span>

@@ -1239,6 +1239,8 @@ type status struct {
 	BMPConnected                               bool
 	IMUConnected                               bool
 	NightMode                                  bool // For turning off LEDs.
+	OGN_noise_db                               float32
+	OGN_gain_db                                float32
 }
 
 var globalSettings settings

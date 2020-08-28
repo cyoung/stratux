@@ -44,33 +44,15 @@ type OgnMessage struct {
 	SNR_dB float64
 	Rx_err int32
 
-	// TODO: only for debug. Maybe remove in the future
-	Dist_m float64
-	Bearing_deg float64
+	// Status message (Sys=status):
+	Bkg_noise_db float32
+	Gain_db      float32
 }
 
 
 var ognReadWriter *bufio.ReadWriter
 
-/*func predTest() {
-	ticker := time.NewTicker(19 * time.Second)
-	for {
-		
-		var msg OgnMessage
-		msg.Sys="FLR"
-		msg.Time = 0
-		msg.Addr="AAAAAA"
-		msg.Acft_type="1"
-		msg.Lat_deg = 48.35208
-		msg.Lon_deg = 10.21165
-		msg.Speed_mps = 50
-		msg.Alt_msl_m = 1000
-		msg.Turn_dps = 3
-		msg.Track_deg = 350
-		importOgnMessage(msg, []byte(""))
-		<-ticker.C
-	}
-}*/
+
 
 func ognPublishNmea(nmea string) {
 	if ognReadWriter != nil {
@@ -123,18 +105,11 @@ func ognListen() {
 				continue
 			}
 
-			importOgnMessage(msg, buf)
-
-			// TODO: remove me
-			/*if globalSettings.DEBUG && isGPSValid() {
-				var j map[string]interface{}
-				json.Unmarshal(buf, &j)
-				dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
-				j["dist_m"] = dist
-				j["bearing_deg"] = bearing
-				txt, _ := json.Marshal(j)
-				log.Printf("ogn-rx-eu traffic: %s", txt)
-			}*/
+			if msg.Sys == "status" {
+				importOgnStatusMessage(msg)
+			} else {
+				importOgnTrafficMessage(msg, buf)
+			}
 		}
 		globalStatus.OGN_connected = false
 		ognReadWriter = nil
@@ -143,7 +118,12 @@ func ognListen() {
 	}
 }
 
-func importOgnMessage(msg OgnMessage, buf []byte) {
+func importOgnStatusMessage(msg OgnMessage) {
+	globalStatus.OGN_noise_db = msg.Bkg_noise_db
+	globalStatus.OGN_gain_db = msg.Gain_db
+}
+
+func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	var ti TrafficInfo
 	addressBytes, _ := hex.DecodeString(msg.Addr)
 	addressBytes = append([]byte{0}, addressBytes...)

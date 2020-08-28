@@ -57,6 +57,8 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
+			$scope.OGN_noise_db = status.OGN_noise_db;
+			$scope.OGN_gain_db = status.OGN_gain_db;
 
 			switch(status.GPS_solution) {
 				case "Disconnected":
