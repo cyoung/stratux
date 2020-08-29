@@ -59,6 +59,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.GPS_solution = status.GPS_solution;
 			$scope.OGN_noise_db = status.OGN_noise_db;
 			$scope.OGN_gain_db = status.OGN_gain_db;
+			$scope.OGN_Status_url = "http://" + window.location.hostname + ":8082/rf-spectro.jpg";
 
 			$scope.OGN_range_loss_factor = Math.pow(10, 0.05 * $scope.OGN_noise_db).toFixed(2)
 

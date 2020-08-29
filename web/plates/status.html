@@ -80,14 +80,16 @@
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
 					<div class="col-sm-12">
-						<span align="center" class="col-xs-6 row-header">Background Noise@Gain 50</span>
-						<span align="center" class="col-xs-6 row-header">Receiver Gain</span>
+						<span align="center" class="col-xs-4 row-header">Background Noise@Gain 50</span>
+						<span align="center" class="col-xs-4 row-header">Receiver Gain</span>
+						<span align="center" class="col-xs-4 row-header">RF Spectrogram</span>
 					</div>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
 					<div class="col-sm-12">
-						<span align="center" class="col-xs-6">{{OGN_noise_db}} dB</span>
-						<span align="center" class="col-xs-6">{{OGN_gain_db}} dB</span>
+						<span align="center" class="col-xs-4">{{OGN_noise_db}} dB</span>
+						<span align="center" class="col-xs-4">{{OGN_gain_db}} dB</span>
+						<span align="center" class="col-xs-4"><a ng-href="{{OGN_Status_url}}">Download</a></span>
 					</div>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
