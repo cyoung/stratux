@@ -182,3 +182,9 @@ select {
 .modal-footer {
 	border-color: #9b9b9b;
 }
+
+.traffic-style1,
+.traffic-style2,
+.traffic-style4 {
+	color: whitesmoke;
+}
