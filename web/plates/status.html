@@ -52,6 +52,13 @@
 					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style4" ng-attr-style="width:{{OGN_messages_max ? 100*OGN_messages_last_minute / OGN_messages_max : 0}}%;">{{OGN_messages_last_minute}}</div></div></span>
 					<span class="col-xs-2 text-right">{{OGN_messages_max}}</span>
 				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<span class="col-xs-1"></span>
+					<label class="col-xs-3">OGN Noise@Gain 50:<br/><sup>For each 6 dB of noise, range is halfed</sup></label>
+					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style4"
+						ng-attr-style="width:{{(Clamp(OGN_noise_db, 0, 20) / 20.0) * 100}}%; background-color: {{OGN_noise_color}}">{{OGN_noise_db}}</div></div></span>
+					<span class="col-xs-2 text-right">20 dB</span>
+				</div>
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
 				</div>
@@ -62,7 +69,7 @@
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
 					<div class="col-sm-12">
-						<span align="center" class="col-xs-6 row-header">Background Noise</span>
+						<span align="center" class="col-xs-6 row-header">Background Noise@Gain 50</span>
 						<span align="center" class="col-xs-6 row-header">Receiver Gain</span>
 					</div>
 				</div>

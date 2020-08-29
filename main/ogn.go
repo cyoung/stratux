@@ -94,9 +94,6 @@ func ognListen() {
 			thisMsg.MessageClass = MSGCLASS_OGN
 			thisMsg.TimeReceived = stratuxClock.Time
 			thisMsg.Data = string(buf)
-			MsgLog = append(MsgLog, thisMsg)
-			logMsg(thisMsg) // writes to replay logs
-
 
 			var msg OgnMessage
 			err = json.Unmarshal(buf, &msg)
@@ -108,6 +105,8 @@ func ognListen() {
 			if msg.Sys == "status" {
 				importOgnStatusMessage(msg)
 			} else {
+				MsgLog = append(MsgLog, thisMsg)
+				logMsg(thisMsg) // writes to replay logs
 				importOgnTrafficMessage(msg, buf)
 			}
 		}

@@ -60,6 +60,12 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.OGN_noise_db = status.OGN_noise_db;
 			$scope.OGN_gain_db = status.OGN_gain_db;
 
+			$scope.OGN_noise_color = "red";
+			if ($scope.OGN_noise_db < 12)
+				$scope.OGN_noise_color = "green";
+			else if ($scope.OGN_noise_db < 16)
+				$scope.OGN_noise_color = "#fc0";
+
 			switch(status.GPS_solution) {
 				case "Disconnected":
 				case "No Fix":
@@ -241,6 +247,12 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
             location.reload();
         }
     }
+
+	$scope.Clamp = function(num, min, max) {
+		if (num < min) return min;
+		if (num > max) return max;
+		return num;
+	}
 
     $scope.GetDeveloperModeClick = function() {
         return DeveloperModeClick;
