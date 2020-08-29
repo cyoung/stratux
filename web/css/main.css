@@ -248,16 +248,28 @@
 }
 
 .bar_container {
-	display: inline-block;
+	display: grid;
 	border: 1px solid #cccccc;
 	width: 100%;
-	border-radius: 2px;
-	font-size: 0.75em;
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.bar_container > * {
+    grid-row: 1;
+    grid-column: 1;
 }
 
 .bar_display {
-	padding: 1px 2px 1px 3px;
 	white-space: nowrap;
+	z-index: 1;
+}
+
+.bar_text {
+	font-size: 1em;
+	color: white;
+	mix-blend-mode: difference;
+	z-index: 2;
 }
 
 .fake-btn {

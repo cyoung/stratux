@@ -37,27 +37,37 @@
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">UAT:</label>
-					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style2" ng-attr-style="width:{{UAT_messages_max ? 100*UAT_messages_last_minute / UAT_messages_max : 0}}%">{{UAT_messages_last_minute}}</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display traffic-style2" ng-attr-style="width:{{UAT_messages_max ? 100*UAT_messages_last_minute / UAT_messages_max : 0}}%"></div>
+						<div class="bar_text">{{UAT_messages_last_minute}}</div>
+					</div></span>
 					<span class="col-xs-2 text-right">{{UAT_messages_max}}</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_es}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">1090ES:</label>
-					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style1" ng-attr-style="width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;">{{ES_messages_last_minute}}</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display traffic-style1" ng-attr-style="width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;"></div>
+						<div class="bar_text">{{ES_messages_last_minute}}</div>
+					</div></span>
 					<span class="col-xs-2 text-right">{{ES_messages_max}}</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">OGN{{OGN_connected ? "" : " (disconnected)"}}:</label>
-					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style4" ng-attr-style="width:{{OGN_messages_max ? 100*OGN_messages_last_minute / OGN_messages_max : 0}}%;">{{OGN_messages_last_minute}}</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display traffic-style4" ng-attr-style="width:{{OGN_messages_max ? 100*OGN_messages_last_minute / OGN_messages_max : 0}}%;"></div>
+						<div class="bar_text">{{OGN_messages_last_minute}}</div>
+					</div></span>
 					<span class="col-xs-2 text-right">{{OGN_messages_max}}</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">OGN Noise@Gain 50:<br/><sup>Half range for each 6 dB noise</sup></label>
-					<span class="col-xs-6">
-						<div class="bar_container"><div class="bar_display traffic-style4"
-						ng-attr-style="width:{{(Clamp(OGN_noise_db, 0, 25) / 25.0) * 100}}%; background-color: {{OGN_noise_color}}">{{OGN_noise_db}} dB, range loss: {{OGN_range_loss_factor}}x</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display traffic-style4" ng-attr-style="width:{{(Clamp(OGN_noise_db, 0, 25) / 25.0) * 100}}%; background-color: {{OGN_noise_color}}"></div>
+						<div class="bar_text">{{OGN_noise_db}} dB, range loss: {{OGN_range_loss_factor}}x</div>
+					</div></span>
 					<span class="col-xs-2 text-right">25 dB</span>
 				</div>
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
