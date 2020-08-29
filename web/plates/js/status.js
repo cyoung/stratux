@@ -60,11 +60,15 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.OGN_noise_db = status.OGN_noise_db;
 			$scope.OGN_gain_db = status.OGN_gain_db;
 
+			$scope.OGN_range_loss_factor = Math.pow(10, 0.05 * $scope.OGN_noise_db).toFixed(2)
+
 			$scope.OGN_noise_color = "red";
-			if ($scope.OGN_noise_db < 12)
+			if ($scope.OGN_noise_db <= 6)
 				$scope.OGN_noise_color = "green";
-			else if ($scope.OGN_noise_db < 16)
+			else if ($scope.OGN_noise_db < 12)
 				$scope.OGN_noise_color = "#fc0";
+			else if ($scope.OGN_noise_db < 18)
+				$scope.OGN_noise_color = "orange";
 
 			switch(status.GPS_solution) {
 				case "Disconnected":
