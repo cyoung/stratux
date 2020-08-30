@@ -203,6 +203,9 @@ func makeNMEACmd(cmd string) []byte {
 
 func initGPSSerial() bool {
 	var device string
+	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_NETWORK {
+		return true
+	}
 	// Possible baud rates for this device. We will try to auto detect the correct one
 	baudrates := []int{int(9600)}
 	isSirfIV := bool(false)
@@ -2429,7 +2432,7 @@ func pollGPS() {
 		// GPS enabled, was not connected previously?
 		if globalSettings.GPS_Enabled && !globalStatus.GPS_connected && readyToInitGPS { //TODO: Implement more robust method (channel control) to kill zombie serial readers
 			globalStatus.GPS_connected = initGPSSerial()
-			if globalStatus.GPS_connected {
+			if globalStatus.GPS_connected && (globalStatus.GPS_detected_type & 0x0f) != GPS_TYPE_NETWORK {
 				go gpsSerialReader()
 			}
 		}

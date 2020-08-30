@@ -458,9 +458,12 @@ func tcpNMEAInListener() {
 func handleNmeaInConnection(c net.Conn) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
-	globalStatus.GPS_connected = true
+	// Set to fixed GPS_TYPE_NETWORK in the beginning, to override previous detected NMEA types
 	globalStatus.GPS_detected_type = GPS_TYPE_NETWORK
 	for {
+		globalStatus.GPS_connected = true
+		// Keep detected protocol, only ensure type=network
+		globalStatus.GPS_detected_type = GPS_TYPE_NETWORK | (globalStatus.GPS_detected_type & 0xf0)
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			break
@@ -468,6 +471,7 @@ func handleNmeaInConnection(c net.Conn) {
 		processNMEALine(line)
 	}
 	globalStatus.GPS_connected = false
+	globalStatus.GPS_detected_type = 0
 }
 
 /*

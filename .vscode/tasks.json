@@ -22,6 +22,16 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build rPI",
+            "type": "shell",
+            "command": "make xgen_gdl90",
+            "problemMatcher": "$go",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }
