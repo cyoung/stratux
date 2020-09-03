@@ -566,11 +566,6 @@ func atof32(val string) float32 {
 
 // Read data from a raw $PFLAU/$PFLAA message (i.e. when serial flarm device is connected)
 func parseFlarmNmeaMessage(message []string) {
-	if !globalSettings.OGN_Enabled {
-		return
-	}
-	globalStatus.OGN_connected = true
-
 	if message[0] == "PFLAU" {
 		parseFlarmPFLAU(message)
 	} else if message[0] == "PFLAA" {
