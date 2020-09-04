@@ -1,0 +1,16 @@
+.plane-map-label {
+    font-size: 1.3em;
+    font-family: sans-serif;
+    color:black;
+    text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+    -webkit-font-smoothing: antialiased;
+    font-weight: bold;
+    line-height: 100%;
+}
+
+.panel-body-fullsize {
+	padding: 8px 4px 4px 4px;
+    width: 100%;
+    height: calc(100vh - 160px);
+    
+}

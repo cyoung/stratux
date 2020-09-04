@@ -21,6 +21,7 @@ var URL_SHUTDOWN            = URL_HOST_PROTOCOL + URL_HOST_BASE + "/shutdown";
 var URL_STATUS_GET          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getStatus";
 var URL_TOWERS_GET          = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getTowers";
 var URL_UPDATE_UPLOAD       = URL_HOST_PROTOCOL + URL_HOST_BASE + "/updateUpload";
+var URL_GET_SITUATION       = URL_HOST_PROTOCOL + URL_HOST_BASE + "/getSituation";
 
 var URL_DEVELOPER_WS        = "ws://" + URL_HOST_BASE + "/developer";
 var URL_GPS_WS              = "ws://" + URL_HOST_BASE + "/situation";
@@ -83,6 +84,12 @@ app.config(function ($stateProvider, $urlRouterProvider) {
 			url: '/radar',
 			templateUrl: 'plates/radar.html',
 			controller: 'RadarCtrl',
+			reloadOnSearch: false
+		})
+		.state('map', {
+			url: '/map',
+			templateUrl: 'plates/map.html',
+			controller: 'MapCtrl',
 			reloadOnSearch: false
 		})
         .state('developer', {

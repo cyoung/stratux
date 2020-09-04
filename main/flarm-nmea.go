@@ -33,7 +33,9 @@ import (
 
 func sendNetFLARM(msg string) {
 	sendMsg([]byte(msg), NETWORK_FLARM_NMEA, false) // UDP (and possibly future serial) output. Traffic messages are always non-queuable.
-	msgchan <- msg // TCP output.
+	if len(msgchan) < cap(msgchan) {
+		msgchan <- msg // TCP output.
+	}
 
 }
 
