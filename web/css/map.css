@@ -1,5 +1,25 @@
+@keyframes plane-map-color-anim {
+    from {
+        fill: green;
+    }
+    to {
+        fill:black;
+    }
+
+}
+
+.plane-map {
+    /*fill: green;*/
+    stroke: white;
+    stroke-width: 10px;
+    fill: green;
+    animation-name: plane-map-color-anim;
+    animation-duration: 15s;
+    animation-fill-mode: forwards;
+}
+
 .plane-map-label {
-    font-size: 1.3em;
+    font-size: 1.1em;
     font-family: sans-serif;
     color:black;
     text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
@@ -14,3 +34,4 @@
     height: calc(100vh - 160px);
     
 }
+
