@@ -213,7 +213,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			}
 			if (aircraft.trackline)
 				$scope.map.removeLayer(aircraft.trackline);
-			aircraft.trackline = L.polyline(aircraft.posHistory, { color: 'blue'}).addTo($scope.map);
+			let coords = [...aircraft.posHistory, acPosition];
+			aircraft.trackline = L.polyline(coords, { color: 'blue'}).addTo($scope.map);
 		}
 	
 	}
