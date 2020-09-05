@@ -1,21 +1,56 @@
 @keyframes plane-map-color-anim {
-    from {
-        fill: green;
-    }
     to {
-        fill:black;
+        fill:transparent;
+        stroke: transparent;
     }
 
 }
 
 .plane-map {
-    /*fill: green;*/
+    animation-name: plane-map-color-anim;
+    animation-duration: 20s;
+    animation-fill-mode: forwards;
     stroke: white;
     stroke-width: 10px;
-    fill: green;
-    animation-name: plane-map-color-anim;
-    animation-duration: 15s;
-    animation-fill-mode: forwards;
+}
+
+.plane-map-style1,
+.plane-map-style10,
+.plane-map-style11 {
+    fill: cornflowerblue;
+
+}
+
+
+.plane-map-style12,
+.plane-map-style13,
+.plane-map-style14 {
+	fill: skyblue;
+}
+
+.plane-map-style2,
+.plane-map-style20,
+.plane-map-style21 {
+	fill: darkkhaki
+}
+
+.plane-map-style22,
+.plane-map-style23,
+.plane-map-style24 {
+	fill: khaki
+}
+
+.paperairplane_left,
+.plane-map-style4,
+.plane-map-style40,
+.plane-map-style41 {
+	fill: green;
+}
+
+.plane-map-style42,
+.plane-map-style43,
+.plane-map-style44 {
+	fill: greenyellow;
 }
 
 .plane-map-label {

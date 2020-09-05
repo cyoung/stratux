@@ -65,7 +65,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	$scope.createPlaneSvg = function(aircraft) {
 		let html = `
-			<svg height="30" width="30" viewBox="0 0 250 250" transform="rotate({Track})" class="plane-map">
+			<svg height="30" width="30" viewBox="0 0 250 250" transform="rotate({Track})" class="plane-map-style{Last_source}{TargetType} plane-map">
 				<path id="acpath" d="M 247.51404,152.40266 139.05781,71.800946 c 0.80268,-12.451845 1.32473,-40.256266 0.85468,-45.417599 -3.94034,-43.266462 -31.23018,-24.6301193 -31.48335,-5.320367 -0.0693,5.281361 -1.01502,32.598388 -1.10471,50.836622 L 0.2842717,154.37562 0,180.19575 l 110.50058,-50.48239 3.99332,80.29163 -32.042567,22.93816 -0.203845,16.89693 42.271772,-11.59566 0.008,0.1395 42.71311,10.91879 -0.50929,-16.88213 -32.45374,-22.39903 2.61132,-80.35205 111.35995,48.50611 -0.73494,-25.77295 z" fill-rule="evenodd"/>
 			</svg>
 			`;
