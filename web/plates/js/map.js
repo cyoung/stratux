@@ -74,6 +74,74 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	}
 
+	// Converts from degrees to radians.
+	function toRadians(degrees) {
+		return degrees * Math.PI / 180;
+	};
+	
+	// Converts from radians to degrees.
+	function toDegrees(radians) {
+		return radians * 180 / Math.PI;
+	}
+
+	function bearing(startLat, startLng, destLat, destLng) {
+		startLat = toRadians(startLat);
+		startLng = toRadians(startLng);
+		destLat = toRadians(destLat);
+		destLng = toRadians(destLng);
+
+		y = Math.sin(destLng - startLng) * Math.cos(destLat);
+		x = Math.cos(startLat) * Math.sin(destLat) - Math.sin(startLat) * Math.cos(destLat) * Math.cos(destLng - startLng);
+		brng = Math.atan2(y, x);
+		brng = toDegrees(brng);
+		return (brng + 360) % 360;
+	}
+
+	function distance(lat1, lon1, lat2, lon2) {
+		var R = 6371; // Radius of the earth in km
+		var dLat = toRadians(lat2-lat1);  // deg2rad below
+		var dLon = toRadians(lon2-lon1); 
+		var a = 
+			Math.sin(dLat/2) * Math.sin(dLat/2) +
+			Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
+			Math.sin(dLon/2) * Math.sin(dLon/2)
+			; 
+		var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+		var d = R * c; // Distance in km
+		return d;
+	}
+
+	function computeTrackFromPositions(aircraft) {
+		let dist = 0;
+		let prev = [aircraft.Lat, aircraft.Lng]
+
+		// Scan backwards until we have at least 500m of position data
+		for (var i = aircraft.posHistory.length - 1; i >= 0; i--) {
+			dist += distance(prev[0], prev[1], aircraft.posHistory[i][0], aircraft.posHistory[i][1]);
+			prev = aircraft.posHistory[i];
+			if (dist >= 0.5)
+				break;
+			
+		}
+		if (dist != 0 && i >= 0) {
+			return bearing(aircraft.posHistory[i][0], aircraft.posHistory[i][1], aircraft.Lat, aircraft.Lng);
+		}
+		return 0;
+	}
+
+	function clipPosHistory(aircraft, maxLenKm) {
+		let dist = 0;
+		for (var i = aircraft.posHistory.length - 2; i >= 0; i--) {
+			let prev = aircraft.posHistory[i+1];
+			let curr = aircraft.posHistory[i];
+			dist += distance(prev[0], prev[1], curr[0], curr[1]);
+			if (dist > maxLenKm)
+				break;
+		}
+		if (i > 0)
+			aircraft.posHistory = aircraft.posHistory.slice(i);
+	}
+
 	$scope.onMessage = function(msg) {
 		let aircraft = JSON.parse(msg.data);
 		if (!aircraft.Position_valid || aircraft.Age > TRAFFIC_MAX_AGE_SECONDS)
@@ -87,14 +155,33 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		let updateIndex = -1;
 		for (let i in $scope.aircraft) {
 			if ($scope.aircraft[i].Icao_addr == aircraft.Icao_addr) {
-				aircraft.marker = $scope.aircraft[i].marker;
-				isActualUpdate = (aircraft.Age < $scope.aircraft[i].Age);
+				let oldAircraft = $scope.aircraft[i];
+				aircraft.marker = oldAircraft.marker;
+				aircraft.trackline = oldAircraft.trackline;
+				aircraft.posHistory = oldAircraft.posHistory;
+
+				let prevRecordedPos = aircraft.posHistory[aircraft.posHistory.length - 1];
+				 // remember one coord each 100m
+				if (distance(prevRecordedPos[0], prevRecordedPos[1], aircraft.Lat, aircraft.Lng) > 0.1) {
+					aircraft.posHistory.push([aircraft.Lat, aircraft.Lng]);
+				}
+				
+				// At most 10 positions per aircraft
+				aircraft.posHistroy = clipPosHistory(aircraft, 5);
+
+				if (!aircraft.Speed_valid) {
+					// Compute fake track from last to current position
+					aircraft.Track = computeTrackFromPositions(aircraft);
+				}
+				isActualUpdate = (aircraft.Age < oldAircraft.Age);
+
 				$scope.aircraft[i] = aircraft;
 				updateIndex = i;
 			}
 		}
 		if (updateIndex < 0) {
 			$scope.aircraft.push(aircraft);
+			aircraft.posHistory = [[aircraft.Lat, aircraft.Lng]];
 		}
 
 		let acPosition = [aircraft.Lat, aircraft.Lng];
@@ -124,6 +211,9 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 					svgElem.style.animation = null;
 				}, 100);
 			}
+			if (aircraft.trackline)
+				$scope.map.removeLayer(aircraft.trackline);
+			aircraft.trackline = L.polyline(aircraft.posHistory, { color: 'blue'}).addTo($scope.map);
 		}
 	
 	}
@@ -145,6 +235,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			if (aircraft.Age > TRAFFIC_MAX_AGE_SECONDS) {
 				if (aircraft.marker)
 					$scope.map.removeLayer(aircraft.marker);
+				if (aircraft.trackline)
+					$scope.map.removeLayer(aircraft.trackline);
 				$scope.aircraft.splice(i, 1);
 				i--;
 			}
