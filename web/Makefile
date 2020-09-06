@@ -7,13 +7,8 @@ all:
 	mkdir -p /var/www
 	mkdir -p /var/www/css
 	cp css/*.css /var/www/css
-	cp -r css/images /var/www/css/
 	mkdir -p /var/www/js
-	cp js/main.js /var/www/js
-	cp js/addtohomescreen.min.js /var/www/js
-	cp js/svg.min.js /var/www/js
-	cp js/NoSleep.min.js /var/www/js
-	cp js/leaflet.js /var/www/js
+	cp js/*.js /var/www/js/
 	mkdir -p /var/www/img
 	cp img/logo*.png /var/www/img
 	cp img/screen*.png /var/www/img

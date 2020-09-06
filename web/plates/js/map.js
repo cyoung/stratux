@@ -7,26 +7,63 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 
 
 	$scope.$parent.helppage = 'plates/radar-help.html';
-	$scope.map = L.map('map_display').setView([52.0, 10.0], 4);
+
+	$scope.aircraftSymbols = new ol.source.Vector();
+	$scope.aircraftTrails = new ol.source.Vector();
+
+	let offlineMap = new ol.layer.Image({
+		title: '[offline] OSM LowRes',
+		visible: false,
+		type: 'base',
+		source: new ol.source.ImageStatic({
+			url: 'img/world_large.png',
+			imageExtent: [-20037508.342789244,-20037508.342789244,20037508.342789244,20037508.342789244],
+			projection: 'EPSG:3857',
+			imageSize: [8192, 8192]
+		})
+	});
+
+	let osm = new ol.layer.Tile({
+		title: '[online] OSM',
+		type: 'base',
+		source: new ol.source.OSM()
+	});
+
+	let openaip = new ol.layer.Tile({
+		title: '[online] OpenAIP',
+		type: 'overlay',
+		visible: false,
+		source: new ol.source.XYZ({
+			url: 'http://{1-2}.tile.maps.openaip.net/geowebcache/service/tms/1.0.0/openaip_basemap@EPSG%3A900913@png/{z}/{x}/{-y}.png'
+		})
+	});
+
+	let aircraftSymbolsLayer = new ol.layer.Vector({
+		title: 'Aircraft symbols',
+		source: $scope.aircraftSymbols
+	});
+	let aircraftTrailsLayer = new ol.layer.Vector({
+		title: 'Aircraft trails 5NM',
+		source: $scope.aircraftTrails
+	});
+
+	$scope.map = new ol.Map({
+		target: 'map_display',
+		layers: [
+			offlineMap,
+			osm,
+			openaip,
+			aircraftSymbolsLayer,
+			aircraftTrailsLayer
+		],
+		view: new ol.View({
+			center: ol.proj.fromLonLat([10.0, 52.0]),
+			zoom: 4
+		})
+	});
+	$scope.map.addControl(new ol.control.LayerSwitcher());
+	
 	$scope.aircraft = [];
-	let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-	});
-	let openaip = L.tileLayer('http://{s}.tile.maps.openaip.net/geowebcache/service/tms/1.0.0/openaip_basemap@EPSG%3A900913@png/{z}/{x}/{y}.png', {
-		tms: true,
-		subdomains: ['1', '2']
-	});
-
-	osm.addTo($scope.map);
-	openaip.addTo($scope.map);
-
-	let base = {
-		'OpenStreeMap [online]': osm
-	};
-	let overlay = {
-		'Open AIP [online]': openaip
-	};
-	L.control.layers(base, overlay).addTo($scope.map);
 
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
@@ -63,14 +100,22 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 	}
 
-	$scope.createPlaneSvg = function(aircraft) {
+	function createPlaneSvg(aircraft) {
+		let dummyElem = document.createElement('div');
+		dummyElem.classList.add('traffic-style' + aircraft.Last_source + aircraft.TargetType);
+		document.body.appendChild(dummyElem);
+		let style = window.getComputedStyle(dummyElem);
+		let color = style.getPropertyValue('background-color');
+		document.body.removeChild(dummyElem);
+
+		
 		let html = `
-			<svg height="30" width="30" viewBox="0 0 250 250" transform="rotate({Track})" class="plane-map-style{Last_source}{TargetType} plane-map">
-				<path id="acpath" d="M 247.51404,152.40266 139.05781,71.800946 c 0.80268,-12.451845 1.32473,-40.256266 0.85468,-45.417599 -3.94034,-43.266462 -31.23018,-24.6301193 -31.48335,-5.320367 -0.0693,5.281361 -1.01502,32.598388 -1.10471,50.836622 L 0.2842717,154.37562 0,180.19575 l 110.50058,-50.48239 3.99332,80.29163 -32.042567,22.93816 -0.203845,16.89693 42.271772,-11.59566 0.008,0.1395 42.71311,10.91879 -0.50929,-16.88213 -32.45374,-22.39903 2.61132,-80.35205 111.35995,48.50611 -0.73494,-25.77295 z" fill-rule="evenodd"/>
+			<svg height="30" width="30" viewBox="0 0 250 250" version="1.1" xmlns="http://www.w3.org/2000/svg" >
+				<path fill="${color}" stroke="white" stroke-width="5" d="M 247.51404,152.40266 139.05781,71.800946 c 0.80268,-12.451845 1.32473,-40.256266 0.85468,-45.417599 -3.94034,-43.266462 -31.23018,-24.6301193 -31.48335,-5.320367 -0.0693,5.281361 -1.01502,32.598388 -1.10471,50.836622 L 0.2842717,154.37562 0,180.19575 l 110.50058,-50.48239 3.99332,80.29163 -32.042567,22.93816 -0.203845,16.89693 42.271772,-11.59566 0.008,0.1395 42.71311,10.91879 -0.50929,-16.88213 -32.45374,-22.39903 2.61132,-80.35205 111.35995,48.50611 -0.73494,-25.77295 z" fill-rule="evenodd"/>
 			</svg>
 			`;
 
-		return L.Util.template(html, aircraft);
+		return html;
 
 	}
 
@@ -84,7 +129,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		return radians * 180 / Math.PI;
 	}
 
-	function bearing(startLat, startLng, destLat, destLng) {
+	function bearing(startLng, startLat, destLng, destLat) {
 		startLat = toRadians(startLat);
 		startLng = toRadians(startLng);
 		destLat = toRadians(destLat);
@@ -97,7 +142,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		return (brng + 360) % 360;
 	}
 
-	function distance(lat1, lon1, lat2, lon2) {
+	function distance(lon1, lat1, lon2, lat2) {
 		var R = 6371; // Radius of the earth in km
 		var dLat = toRadians(lat2-lat1);  // deg2rad below
 		var dLon = toRadians(lon2-lon1); 
@@ -124,7 +169,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			
 		}
 		if (dist != 0 && i >= 0) {
-			return bearing(aircraft.posHistory[i][0], aircraft.posHistory[i][1], aircraft.Lat, aircraft.Lng);
+			return bearing(aircraft.posHistory[i][0], aircraft.posHistory[i][1], aircraft.Lng, aircraft.Lat);
 		}
 		return 0;
 	}
@@ -142,6 +187,47 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			aircraft.posHistory = aircraft.posHistory.slice(i);
 	}
 
+	function updateOpacity(aircraft) {
+		let opacity = 1.0 - (aircraft.Age / 15.0);
+		if (aircraft.Age <= 0)
+			opacity = 1;
+		if (aircraft.Age >= 15)
+			opacity = 0;
+		
+		return aircraft.marker.getStyle().getImage().setOpacity(opacity);
+	}
+
+	function updateAircraftText(aircraft) {
+		let text = '';
+		if (aircraft.Tail.length > 0)
+			text += aircraft.Tail + '\n';
+		text += aircraft.Alt + 'ft';
+		if (aircraft.Speed_valid)
+			text += '\n' + aircraft.Speed + 'kt'
+		aircraft.marker.getStyle().getText().setText(text);
+	}
+
+	function updateAircraftTrail(aircraft) {
+		if (!aircraft.posHistory || aircraft.posHistory.length < 2)
+			return;
+
+		let coords = [];
+		for (let c of aircraft.posHistory)
+			coords.push(ol.proj.fromLonLat(c));
+		coords.push(ol.proj.fromLonLat([aircraft.Lng, aircraft.Lat]));
+
+		let trailFeature = aircraft.trail;
+		if (!aircraft.trail) {
+			trailFeature = new ol.Feature({
+				geometry: new ol.geom.LineString(coords)
+			});
+			aircraft.trail = trailFeature;
+			$scope.aircraftTrails.addFeature(trailFeature);
+		} else {
+			trailFeature.getGeometry().setCoordinates(coords);
+		}
+	}
+
 	$scope.onMessage = function(msg) {
 		let aircraft = JSON.parse(msg.data);
 		if (!aircraft.Position_valid || aircraft.Age > TRAFFIC_MAX_AGE_SECONDS)
@@ -157,17 +243,17 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			if ($scope.aircraft[i].Icao_addr == aircraft.Icao_addr) {
 				let oldAircraft = $scope.aircraft[i];
 				aircraft.marker = oldAircraft.marker;
-				aircraft.trackline = oldAircraft.trackline;
+				aircraft.trail = oldAircraft.trail;
 				aircraft.posHistory = oldAircraft.posHistory;
 
 				let prevRecordedPos = aircraft.posHistory[aircraft.posHistory.length - 1];
 				 // remember one coord each 100m
-				if (distance(prevRecordedPos[0], prevRecordedPos[1], aircraft.Lat, aircraft.Lng) > 0.1) {
-					aircraft.posHistory.push([aircraft.Lat, aircraft.Lng]);
+				if (distance(prevRecordedPos[0], prevRecordedPos[1], aircraft.Lng, aircraft.Lat) > 0.1) {
+					aircraft.posHistory.push([aircraft.Lng, aircraft.Lat]);
 				}
 				
 				// At most 10 positions per aircraft
-				aircraft.posHistroy = clipPosHistory(aircraft, 5);
+				aircraft.posHistroy = clipPosHistory(aircraft, 9.25);
 
 				if (!aircraft.Speed_valid) {
 					// Compute fake track from last to current position
@@ -181,40 +267,47 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		if (updateIndex < 0) {
 			$scope.aircraft.push(aircraft);
-			aircraft.posHistory = [[aircraft.Lat, aircraft.Lng]];
+			aircraft.posHistory = [[aircraft.Lng, aircraft.Lat]];
 		}
 
-		let acPosition = [aircraft.Lat, aircraft.Lng];
+		let acPosition = [aircraft.Lng, aircraft.Lat];
 
 		if (!aircraft.marker) {
-			let planeIcon = L.divIcon({
-				className: '',
-				html: $scope.createPlaneSvg(aircraft) + L.Util.template(`<span class="plane-map-label">{Tail}<br/>{Alt}ft<br/>{Speed}kt</span>`, aircraft),
-				iconAnchor: [15, 15]
-			});
-			let marker = L.marker(acPosition, {
-				icon: planeIcon,
-				title: aircraft.Tail
+			let planeStyle = new ol.style.Style({
+				image: new ol.style.Icon({
+					opacity: 1.0,
+					//src: 'img/plane.svg',
+					src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
+					rotation: aircraft.Track,
+					anchor: [0.5, 0.5],
+					anchorXUnits: 'fraction',
+					anchorYUnits: 'fraction'
+				}),
+				text: new ol.style.Text({
+					text: '',
+					offsetY: 40,
+					font: 'bold 1em sans-serif',
+					stroke: new ol.style.Stroke({color: 'white', width: 2}),
+
+				})
 			});
 
-			aircraft.marker = marker;
-			marker.addTo($scope.map);
+			let planeFeature = new ol.Feature({
+				geometry: new ol.geom.Point(ol.proj.fromLonLat(acPosition))
+			});
+			planeFeature.setStyle(planeStyle);
+
+			aircraft.marker = planeFeature;
+			updateOpacity(aircraft);
+			updateAircraftText(aircraft);
+			$scope.aircraftSymbols.addFeature(planeFeature);
+			//marker.addTo($scope.map);
 		} else {
-			aircraft.marker.setLatLng(acPosition);
-
-			let svgElem = aircraft.marker._icon.getElementsByTagName('svg')[0]
-			svgElem.transform.baseVal.getItem(0).setRotate(aircraft.Track, 0, 0);
-			// Restart animation if age changed..
-			if (isActualUpdate) {
-				svgElem.style.animation = 'none';
-				setTimeout(function() {
-					svgElem.style.animation = null;
-				}, 100);
-			}
-			if (aircraft.trackline)
-				$scope.map.removeLayer(aircraft.trackline);
-			let coords = [...aircraft.posHistory, acPosition];
-			aircraft.trackline = L.polyline(coords, { color: 'blue'}).addTo($scope.map);
+			aircraft.marker.getGeometry().setCoordinates(ol.proj.fromLonLat(acPosition));
+			aircraft.marker.getStyle().getImage().setRotation(toRadians(aircraft.Track));
+			updateOpacity(aircraft);
+			updateAircraftText(aircraft);
+			updateAircraftTrail(aircraft);
 		}
 	
 	}
@@ -226,6 +319,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			if (!ac.ageReceived)
 				ac.ageReceived = ac.Age;
 			ac.Age = ac.ageReceived + (now - ac.receivedTs) / 1000.0;
+			updateOpacity(ac);
 		}
 	}
 
@@ -235,9 +329,9 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			let aircraft = $scope.aircraft[i];
 			if (aircraft.Age > TRAFFIC_MAX_AGE_SECONDS) {
 				if (aircraft.marker)
-					$scope.map.removeLayer(aircraft.marker);
-				if (aircraft.trackline)
-					$scope.map.removeLayer(aircraft.trackline);
+					$scope.aircraftSymbols.removeFeature(aircraft.marker);
+				if (aircraft.trail)
+					$scope.aircraftTrails.removeFeature(aircraft.trail);
 				$scope.aircraft.splice(i, 1);
 				i--;
 			}
@@ -254,9 +348,11 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_GET_SITUATION).then(function(response) {
 			situation = angular.fromJson(response.data);
 			if (situation.GPSFixQuality > 0) {
-				$scope.map.setView([situation.GPSLatitude, situation.GPSLongitude], 10);
+				$scope.map.setView(new ol.View({
+					center: ol.proj.fromLonLat([situation.GPSLongitude, situation.GPSLatitude]),
+					zoom: 10,
+				}));
 			}
-
 		});
 	};
 
