@@ -58,7 +58,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		],
 		view: new ol.View({
 			center: ol.proj.fromLonLat([10.0, 52.0]),
-			zoom: 4
+			zoom: 4,
+			enableRotation: false
 		})
 	});
 	$scope.map.addControl(new ol.control.LayerSwitcher());
@@ -348,10 +349,32 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		$http.get(URL_GET_SITUATION).then(function(response) {
 			situation = angular.fromJson(response.data);
 			if (situation.GPSFixQuality > 0) {
+				pos = ol.proj.fromLonLat([situation.GPSLongitude, situation.GPSLatitude])
 				$scope.map.setView(new ol.View({
-					center: ol.proj.fromLonLat([situation.GPSLongitude, situation.GPSLatitude]),
+					center: pos,
 					zoom: 10,
+					enableRotation: false
 				}));
+
+
+				let gpsLayer = new ol.layer.Vector({
+					source: new ol.source.Vector({
+						features: [
+							new ol.Feature({
+								geometry: new ol.geom.Point(pos),
+								name: 'Your GPS position'
+							})
+						]
+					}),
+					style: new ol.style.Style({
+						text: new ol.style.Text({
+							text: '\uf041',
+							font: 'normal 35px FontAwesome',
+							textBaseline: 'bottom'
+						})
+					})
+				});
+				$scope.map.addLayer(gpsLayer);
 			}
 		});
 	};
