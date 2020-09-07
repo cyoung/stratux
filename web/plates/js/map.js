@@ -159,7 +159,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	function computeTrackFromPositions(aircraft) {
 		let dist = 0;
-		let prev = [aircraft.Lat, aircraft.Lng]
+		let prev = [aircraft.Lng, aircraft.Lat]
 
 		// Scan backwards until we have at least 500m of position data
 		for (var i = aircraft.posHistory.length - 1; i >= 0; i--) {
