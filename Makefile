@@ -30,7 +30,7 @@ fancontrol:
 
 xdump1090:
 	git submodule update --init
-	cd dump1090 && make BLADERF=off
+	cd dump1090 && make BLADERF=no
 
 xdump978:
 	cd dump978 && make lib
