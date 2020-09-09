@@ -64,7 +64,7 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 		alarmType = 2
 	}
 
-	idstr := fmt.Sprintf("%X", ti.Icao_addr)
+	idstr := fmt.Sprintf("%.6X", ti.Icao_addr)
 	if len(ti.Tail) > 0 {
 		idstr += "!" + ti.Tail
 	}
@@ -201,7 +201,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 
-	idstr := fmt.Sprintf("%X", ti.Icao_addr)
+	idstr := fmt.Sprintf("%.6X", ti.Icao_addr)
 	if len(ti.Tail) > 0 {
 		idstr += "!" + ti.Tail
 	}
