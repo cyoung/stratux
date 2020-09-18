@@ -8,6 +8,6 @@ order: 1
 ---
 
 
-<a href="https://github.com/cyoung/stratux/releases/download/v1.6r1/stratux-v1.6r1-377d22b403.img.zip" class="button scrolly">Download</a>
+<a href="https://github.com/cyoung/stratux/releases/download/v1.6r1-AHRS2/stratux-v1.6r1-d85695e842.img.zip" class="button scrolly">Download</a>
 <br/><br/>
 <a href="https://github.com/cyoung/stratux" class="button">View on GitHub</a>
