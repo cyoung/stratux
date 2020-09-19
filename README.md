@@ -12,6 +12,7 @@ This repository offers code and binaries that can help you to build your own tra
 * If no pressure sensor is present, Stratux EU will try to estimate your pressure altitude with atmospheric information received from other aircraft. We still recommend using some kind of barometric sensor (e.g. Stratux AHRS module). More information can be found [here](https://github.com/b3nn0/stratux/wiki/Altitudes-in-Stratux-EU)
 * By default, OGN and DeveloperMode is enabled, UAT is disabled
 * Merged Stratux Web-Radar for web-based traffic display by [TomBric](https://github.com/TomBric)
+* Added a map to the web interface that shows received traffic
 * Upgraded the RaspberryPi Debian system to the latest debian packages (RaspiOS Buster)
 * Hide Weather/Towers page if UAT is disabled
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
