@@ -101,13 +101,24 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 	}
 
-	function createPlaneSvg(aircraft) {
+	let colorCache = {};
+	function getColorForAircraft(aircraft) {
+		let key = 'traffic-style' + aircraft.Last_source + aircraft.TargetType;
+		if (colorCache[key])
+			return colorCache[key];
+
 		let dummyElem = document.createElement('div');
-		dummyElem.classList.add('traffic-style' + aircraft.Last_source + aircraft.TargetType);
+		dummyElem.classList.add(key);
 		document.body.appendChild(dummyElem);
 		let style = window.getComputedStyle(dummyElem);
 		let color = style.getPropertyValue('background-color');
 		document.body.removeChild(dummyElem);
+		colorCache[key] = color;
+		return color;
+	}
+
+	function createPlaneSvg(aircraft) {
+		let color = getColorForAircraft(aircraft);
 
 		
 		let html = `
@@ -235,6 +246,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			return;
 
 		aircraft.receivedTs = Date.now();
+		let prevColor = undefined;
 
 		// It is only a 'real' update, if the traffic's Age actually changes.
 		// If it doesn't, don't restart animation (only interpolated position).
@@ -243,6 +255,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		for (let i in $scope.aircraft) {
 			if ($scope.aircraft[i].Icao_addr == aircraft.Icao_addr) {
 				let oldAircraft = $scope.aircraft[i];
+				prevColor = getColorForAircraft(oldAircraft);
 				aircraft.marker = oldAircraft.marker;
 				aircraft.trail = oldAircraft.trail;
 				aircraft.posHistory = oldAircraft.posHistory;
@@ -275,42 +288,39 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		if (!aircraft.marker) {
 			let planeStyle = new ol.style.Style({
-				image: new ol.style.Icon({
-					opacity: 1.0,
-					//src: 'img/plane.svg',
-					src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
-					rotation: aircraft.Track,
-					anchor: [0.5, 0.5],
-					anchorXUnits: 'fraction',
-					anchorYUnits: 'fraction'
-				}),
 				text: new ol.style.Text({
 					text: '',
 					offsetY: 40,
 					font: 'bold 1em sans-serif',
 					stroke: new ol.style.Stroke({color: 'white', width: 2}),
-
 				})
 			});
-
 			let planeFeature = new ol.Feature({
 				geometry: new ol.geom.Point(ol.proj.fromLonLat(acPosition))
 			});
 			planeFeature.setStyle(planeStyle);
 
 			aircraft.marker = planeFeature;
-			updateOpacity(aircraft);
-			updateAircraftText(aircraft);
 			$scope.aircraftSymbols.addFeature(planeFeature);
-			//marker.addTo($scope.map);
 		} else {
 			aircraft.marker.getGeometry().setCoordinates(ol.proj.fromLonLat(acPosition));
-			aircraft.marker.getStyle().getImage().setRotation(toRadians(aircraft.Track));
-			updateOpacity(aircraft);
-			updateAircraftText(aircraft);
 			updateAircraftTrail(aircraft);
 		}
-	
+
+		updateAircraftText(aircraft);
+		if (!prevColor || prevColor != getColorForAircraft(aircraft)) {
+			let imageStyle = new ol.style.Icon({
+				opacity: 1.0,
+				src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
+				rotation: aircraft.Track,
+				anchor: [0.5, 0.5],
+				anchorXUnits: 'fraction',
+				anchorYUnits: 'fraction'
+			});
+			aircraft.marker.getStyle().setImage(imageStyle); // to update the color if latest source changed
+		}
+		updateOpacity(aircraft);
+		aircraft.marker.getStyle().getImage().setRotation(toRadians(aircraft.Track));
 	}
 
 	$scope.updateAges = function() {
