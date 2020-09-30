@@ -568,6 +568,12 @@ func atof32(val string) float32 {
 
 // Read data from a raw $PFLAU/$PFLAA message (i.e. when serial flarm device is connected)
 func parseFlarmNmeaMessage(message []string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Error parsing NMEA " + strings.Join(message, ","))
+		}
+	}()
+
 	if message[0] == "PFLAU" {
 		parseFlarmPFLAU(message)
 	} else if message[0] == "PFLAA" {
@@ -575,15 +581,116 @@ func parseFlarmNmeaMessage(message []string) {
 	}
 }
 
+func relativeGpsAltToBaro(relVert float32) (alt int32, altIsGnss bool) {
+	if isTempPressValid() {
+		return int32(mySituation.BaroPressureAltitude + relVert * 3.28084), false
+	} else if isGPSValid() {
+		return int32(mySituation.GPSAltitudeMSL + relVert * 3.28084), true
+	}
+	return 0, false
+}
+
+func getIdTail(idReceived string) (idStr string, tail string, address uint32) {
+	ognIDAndTail := strings.Split(idReceived, "!")
+	idStr = ognIDAndTail[0]
+	tail = ""
+	if len(ognIDAndTail) == 2 {
+		tail = ognIDAndTail[1]
+	}
+	// Some devices report ID as tail number, with a respective prefix. E.g. OGN_AAAAAA, FLR_BBBBBB, ....
+	// Ignore that - it's not useful for us and we would rather check OGN DDB for a real tail number
+	if len(tail) > 4 && tail[3] == '_' {
+		tail = ""
+	}
+
+	addressBytes, _ := hex.DecodeString(idStr)
+	addressBytes = append([]byte{0}, addressBytes...)
+	address = binary.BigEndian.Uint32(addressBytes)
+
+	return
+}
+
 func parseFlarmPFLAU(message []string) {
 	// $PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
-	// TODO: do we really need this?
-	// I think not - we get everything from PFLAA
+	if len(message) < 11 {
+		log.Printf("Discarding invalid NMEA: " + strings.Join(message, ","))
+		return
+	}
+	if len(message[10]) == 0 || len(message[9]) == 0 || len(message[8]) == 0 || len(message[6]) == 0 {
+		return
+	}
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_OGN
+	thisMsg.TimeReceived = stratuxClock.Time
+	MsgLog = append(MsgLog, thisMsg)
+	
+	if !isGPSValid() {
+		return // can't convert relative to absolute without GPS
+	}
+
+	ognID, tail, address := getIdTail(message[10])
+
+	trafficBearing := int32(mySituation.GPSTrueCourse + atof32(message[6])) % 360
+	if trafficBearing < 0 {
+		trafficBearing += 360
+	}
+	relVertical := atof32(message[8])
+	relDist := atof32(message[9])
+
+	var ti TrafficInfo
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+
+	if existingTi, ok := traffic[address]; ok {
+		if existingTi.Last_source == TRAFFIC_SOURCE_1090ES && existingTi.Age < 5 {
+			// traffic has FLARM and 1090ES and was seen via 1090ES recently?
+			// -> ignore the flarm message. 1090ES has much less delay, so we prefer that.
+			return
+		}
+
+		ti = existingTi
+	}
+	ti.Icao_addr = address
+	if len(ti.Tail) <= 3 {
+		if len(tail) != 0 {
+			// Tail provided via NMEA (IDIDID!TAIL syntax)
+			ti.Tail = tail
+		} else {
+			// OGN DDB fallback
+			ti.Tail = getTailNumber(ognID, "FLR") // Might have better tail from ADS-B. Don't overwrite.
+		}
+	}
+	ti.Timestamp = time.Now().UTC()
+	ti.Last_source = TRAFFIC_SOURCE_OGN
+	ti.Alt, ti.AltIsGNSS = relativeGpsAltToBaro(relVertical)
+
+	lat, lng := calcLocationForBearingDistance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(trafficBearing), float64(relDist / 1852.0))
+	ti.Lat = float32(lat)
+	ti.Lng = float32(lng)
+	ti.Distance = float64(relDist)
+	ti.Bearing = float64(trafficBearing)
+	ti.BearingDist_valid = true
+	ti.Position_valid = true
+	ti.ExtrapolatedPosition = false
+	ti.Last_seen = stratuxClock.Time
+	ti.Last_alt = stratuxClock.Time
+	// update traffic database
+	traffic[ti.Icao_addr] = ti
+
+	// notify
+	registerTrafficUpdate(ti)
+
+	// mark traffic as seen
+	seenTraffic[ti.Icao_addr] = true
 }
 
 func parseFlarmPFLAA(message []string) {
 	// $PFLAA,<AlarmLevel>,<RelativeNorth>,<RelativeEast>,<RelativeVertical>,<IDType>,<ID>,<Track>,<TurnRate>,<GroundSpeed>, <ClimbRate>,<AcftType>
 	// Append flarm message to message log
+	if len(message) < 12 {
+		log.Printf("Discarding invalid NMEA: " + strings.Join(message, ","))
+		return
+	}
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_OGN
 	thisMsg.TimeReceived = stratuxClock.Time
@@ -593,8 +700,9 @@ func parseFlarmPFLAA(message []string) {
 	relNorth := atof32(message[2])
 	relEast := atof32(message[3])
 	relVert := atof32(message[4])
-	flarmID := message[6]
-	flarmID = strings.Split(flarmID, "!")[0] // for OGNTP targets it's xxxxxx!yyyyyy
+
+	ognID, tail, address := getIdTail(message[6])
+
 	track := atof32(message[7])
 	turn := atof32(message[8])
 	speed := atof32(message[9])
@@ -602,10 +710,6 @@ func parseFlarmPFLAA(message []string) {
 	acType := message[11]
 
 	var ti TrafficInfo
-	addressBytes, _ := hex.DecodeString(flarmID)
-	addressBytes = append([]byte{0}, addressBytes...)
-	address := binary.BigEndian.Uint32(addressBytes)
-	// address += 1 // TODO: for range testing - will make SDR and FLARM traffic appear seperately
 
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
@@ -621,20 +725,18 @@ func parseFlarmPFLAA(message []string) {
 		ti = existingTi
 	}
 	ti.Icao_addr = address
-	if len(ti.Tail) == 0 {
-		ti.Tail = getTailNumber(flarmID, "FLR") // Might have better tail from ADS-B. Don't overwrite.
+	if len(ti.Tail) <= 3 {
+		if len(tail) != 0 {
+			// Tail provided via NMEA (IDIDID!TAIL syntax)
+			ti.Tail = tail
+		} else {
+			// OGN DDB fallback
+			ti.Tail = getTailNumber(ognID, "FLR") // Might have better tail from ADS-B. Don't overwrite.
+		}
 	}
 	ti.Timestamp = time.Now().UTC()
 	ti.Last_source = TRAFFIC_SOURCE_OGN
-
-
-	if isTempPressValid() {
-		ti.Alt = int32(mySituation.BaroPressureAltitude + relVert * 3.28084)
-		ti.AltIsGNSS = false
-	} else if isGPSValid() {
-		ti.Alt = int32(mySituation.GPSAltitudeMSL + relVert * 3.28084)
-		ti.AltIsGNSS = true
-	}
+	ti.Alt, ti.AltIsGNSS = relativeGpsAltToBaro(relVert)
 
 	// lat dist = 60nm = 111,12km
 	ti.Lat = mySituation.GPSLatitude + (relNorth / 111120.0)

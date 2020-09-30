@@ -2023,6 +2023,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			mySituation.BaroLastMeasurementTime = stratuxClock.Time
 			mySituation.BaroSourceType = BARO_TYPE_NMEA
 			mySituation.muBaro.Unlock()
+			return true
 		}
 	}
 
