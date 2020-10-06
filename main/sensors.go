@@ -23,6 +23,7 @@ const (
 	// WHO_AM_I values to differentiate between the different IMUs.
 	MPUREG_WHO_AM_I     = 0x75
 	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
+	MPUREG_WHO_AM_I_VAL_9255 = 0x73 // Expected value for MPU9255, seems to be compatible to 9250
 	ICMREG_WHO_AM_I     = 0x00
 	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
 )
@@ -155,8 +156,8 @@ func initIMU() (ok bool) {
 			myIMUReader = imu
 			return true
 		}
-	} else if v2 == MPUREG_WHO_AM_I_VAL {
-		log.Println("MPU-9250 detected.")
+	} else if v2 == MPUREG_WHO_AM_I_VAL || v2 == MPUREG_WHO_AM_I_VAL_9255 {
+		log.Println("MPU-925X detected.")
 		imu, err := sensors.NewMPU9250(&i2cbus)
 		if err == nil {
 			myIMUReader = imu
