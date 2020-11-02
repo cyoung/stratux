@@ -132,7 +132,7 @@
 				<div class="separator"></div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS hardware:</label>
-					<span class="col-xs-6">{{GPS_hardware}} ({{GPS_protocol}})</span>
+					<span class="col-xs-6">{{GPS_hardware}} <a href="http://{{GPS_NetworkRemoteIp}}" ng-show="GPS_hardware=='Network'">{{GPS_NetworkRemoteIp}}</a> ({{GPS_protocol}})</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS solution:</label>

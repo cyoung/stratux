@@ -462,6 +462,7 @@ func handleNmeaInConnection(c net.Conn) {
 	reader := bufio.NewReader(c)
 	// Set to fixed GPS_TYPE_NETWORK in the beginning, to override previous detected NMEA types
 	globalStatus.GPS_detected_type = GPS_TYPE_NETWORK
+	globalStatus.GPS_NetworkRemoteIp = strings.Split(c.RemoteAddr().String(), ":")[0]
 	for {
 		globalStatus.GPS_connected = true
 		// Keep detected protocol, only ensure type=network
@@ -474,6 +475,7 @@ func handleNmeaInConnection(c net.Conn) {
 	}
 	globalStatus.GPS_connected = false
 	globalStatus.GPS_detected_type = 0
+	globalStatus.GPS_NetworkRemoteIp = ""
 }
 
 /*

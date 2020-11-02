@@ -1213,6 +1213,7 @@ type status struct {
 	GPS_connected                              bool
 	GPS_solution                               string
 	GPS_detected_type                          uint
+	GPS_NetworkRemoteIp                        string // for NMEA via TCP from OGN tracker: display remote IP to configure the OGN tracker
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
