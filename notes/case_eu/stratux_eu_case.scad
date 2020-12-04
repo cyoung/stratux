@@ -23,10 +23,10 @@ FAN_TYPE="40";
 
 // 0.3mm should work on most printers, but you might have small gaps between parts.
 // If you have a good printer, go for 0.2 or even 0.15.
-PRINTING_TOLERANCE_XY = 0.3; 
+PRINTING_TOLERANCE_XY = 0.2; 
 
 // Most printers are more precise in the Z direction
-PRITING_TOLERANCE_Z = 0.1;
+PRITING_TOLERANCE_Z = 0.15;
 
 // This defines the resolution of the resulting meshe's round elements
 $fn=40;
@@ -192,12 +192,12 @@ module sma_connector_hole() {
             cylinder(h=WALL_THICKNESS + 0.02, r=3.35);
 }
 
-module corner_screw_holder(rotation_deg, holeradius, holexoffset, holeyoffset) {
+module corner_screw_holder(rotation_deg, holeradius, holexoffset, holeyoffset, cornersize=6) {
     rotate([0, 0, rotation_deg]) {
         difference() {
             // corner notch
             linear_extrude(height=10) 
-                polygon([[0,0], [6,0], [0,6]]);
+                polygon([[0,0], [cornersize,0], [0,cornersize]]);
             
             // screw hole
             // We leave a single layer (0.3mm) on the bottom, so that
@@ -247,10 +247,10 @@ module case() {
                 offset_other = 2.59 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
                 
                 translate([-_wing_part_width+WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(0, 0.8, offset_gps_side, offset_other);
+                    corner_screw_holder(0, 0.8, offset_gps_side, offset_other, cornersize=7.5);
                 
                 translate([_case_main_width + _wing_part_width - WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(90, 0.8, offset_pin_side, offset_other);
+                    corner_screw_holder(90, 0.8, offset_pin_side, offset_other, cornersize=7.5);
             }
             // clear holes for PI screws
             translate([_case_main_width/2, 58/2 + WALL_THICKNESS + 4, WALL_THICKNESS])
@@ -258,9 +258,10 @@ module case() {
             
 
             // clear hole for power connector
-            // left side + 0.5 gap from the side + 10.6 center of connector
+            // left side: older PI have the power connector 10.6mm in, pi4 has 12.4mm. We use the average 11.5
+            // -> 11.5 + 0.5 gap from the side
             // height: wall + pillar height + pcb height + socket height/2
-            translate([_case_main_width, WALL_THICKNESS + 11.1, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
+            translate([_case_main_width, WALL_THICKNESS + 0.5 + 11.5, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
                 power_connector_hole();
             
             // clear hole for SD card slot
@@ -277,7 +278,7 @@ module case() {
             
 
             // Remove vent holes (double-SMA-connector-holes for T-Beam antenna)
-            translate([_case_main_width / 2, _case_total_length - WALL_THICKNESS, _case_height - 8.4])
+            translate([_case_main_width / 2, _case_total_length - WALL_THICKNESS, _case_height - 6.8 + PRITING_TOLERANCE_Z])
                 vent_holes();
         }
     }
