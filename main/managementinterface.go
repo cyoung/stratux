@@ -293,6 +293,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 			} else if err != nil {
 				log.Printf("handleSettingsSetRequest:error: %s\n", err.Error())
 			} else {
+				reconfigureOgnTracker := false
 				for key, val := range msg {
 					// log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
 					switch key {
@@ -431,12 +432,29 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.SkyDemonAndroidHack = val.(bool)
 					case "EstimateBearinglessDist":
 						globalSettings.EstimateBearinglessDist = val.(bool)
+
+					case "OGNAddrType":
+						globalSettings.OGNAddrType = int(val.(float64))
+						reconfigureOgnTracker = true
+					case "OGNAddr":
+						globalSettings.OGNAddr = val.(string)
+						reconfigureOgnTracker = true
+					case "OGNAcftType":
+						globalSettings.OGNAcftType = int(val.(float64))
+						reconfigureOgnTracker = true
+					case "OGNPilot":
+						globalSettings.OGNPilot = val.(string)
+						reconfigureOgnTracker = true
+
 					default:
 						log.Printf("handleSettingsSetRequest:json: unrecognized key:%s\n", key)
 					}
 				}
 				saveSettings()
 				applyNetworkSettings(false)
+				if reconfigureOgnTracker {
+					configureOgnTrackerFromSettings()
+				}
 			}
 		}
 

@@ -16,6 +16,15 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	}
 	$scope.update_files = '';
 
+	$http.get(URL_STATUS_GET).then(function(response) {
+		var status = angular.fromJson(response.data);
+		var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
+		if (gpsHardwareCode == 3)
+			$scope.hasOgnTracker = true;
+		else
+			$scope.hasOgnTracker = false;
+	});
+
 	function loadSettings(data) {
 		settings = angular.fromJson(data);
 		// consider using angular.extend()
@@ -64,6 +73,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WiFiDirectPin = settings.WiFiDirectPin;
 
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+		$scope.OGNAddrType = settings.OGNAddrType.toString();
+		$scope.OGNAddr = settings.OGNAddr;
+		$scope.OGNAcftType = settings.OGNAcftType.toString();
+		$scope.OGNPilot = settings.OGNPilot;
 
 		// Update theme
 		$scope.$parent.updateTheme($scope.DarkMode);
@@ -324,6 +338,22 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
             $scope.Ui.turnOn("modalErrorWiFi");
         }
     };
+
+
+	$scope.updateOgnTrackerConfig = function(action) {
+		var newsettings = {
+			"OGNAddrType": parseInt($scope.OGNAddrType),
+			"OGNAddr": $scope.OGNAddr,
+			"OGNAcftType": parseInt($scope.OGNAcftType),
+			"OGNPilot": $scope.OGNPilot
+		};
+		setSettings(angular.toJson(newsettings));
+
+		// reload settings after a short time, to check if OGN tracker actually accepted the settings
+		setTimeout(function() {
+			getSettings();
+		}, 1000);
+	}
 }
 
 function isValidSSID(str) { return /^[a-zA-Z0-9()_-]{1,32}$/g.test(str); }

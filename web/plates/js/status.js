@@ -89,6 +89,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 2:
 					tempGpsHardwareString = "Prolific USB-serial bridge";
 					break;
+				case 3:
+					tempGpsHardwareString = "OGN Tracker";
+					break;
 				case 6:
 					tempGpsHardwareString = "USB u-blox 6 GPS receiver";
 					break;
@@ -102,7 +105,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 					tempGpsHardwareString = "USB u-blox 9 GNSS receiver";
 					break;
 				case 10:
-					tempGpsHardwareString = "FLARM";
+					tempGpsHardwareString = "USB Serial IN";
 					break;
 				case 11:
 					tempGpsHardwareString = "SoftRF Dongle";

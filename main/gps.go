@@ -140,6 +140,8 @@ var readyToInitGPS bool //TODO: replace with channel control to terminate gorout
 
 var Satellites map[string]SatelliteInfo
 
+var ognTrackerConfigured = false;
+
 /*
 u-blox5_Referenzmanual.pdf
 Platform settings
@@ -201,6 +203,7 @@ func makeNMEACmd(cmd string) []byte {
 	return []byte(fmt.Sprintf("$%s*%02x\x0d\x0a", cmd, chk_sum))
 }
 
+
 func initGPSSerial() bool {
 	var device string
 	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_NETWORK {
@@ -209,6 +212,7 @@ func initGPSSerial() bool {
 	// Possible baud rates for this device. We will try to auto detect the correct one
 	baudrates := []int{int(9600)}
 	isSirfIV := bool(false)
+	ognTrackerConfigured = false;
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
 	if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
@@ -230,9 +234,9 @@ func initGPSSerial() bool {
 		baudrates[0] = 4800
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
-	} else if _, err := os.Stat("/dev/flarm"); err == nil {
-		device = "/dev/flarm"
-		globalStatus.GPS_detected_type = GPS_TYPE_FLARM
+	} else if _, err := os.Stat("/dev/serialin"); err == nil {
+		device = "/dev/serialin"
+		globalStatus.GPS_detected_type = GPS_TYPE_SERIAL
 		// OGN Tracker uses 115200, SoftRF 38400
 		baudrates = []int{115200, 38400, 9600}
  	} else if _, err := os.Stat("/dev/softrf_dongle"); err == nil {
@@ -304,11 +308,9 @@ func initGPSSerial() bool {
 		// sampling rates.
 
 		// load default configuration             |      clearMask     |  |     saveMask       |  |     loadMask       |  deviceMask
-		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x17}))
+		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
 		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
-		// UBX-CFG-NMEA (change NMEA protocol version to 4.1)
-		p.Write(makeUBXCFG(0x06, 0x17, 20, []byte{0x00, 0x41, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
 			if globalSettings.DEBUG {
@@ -323,27 +325,7 @@ func initGPSSerial() bool {
 			}
 			// There are Ublox8 chips that only support GPS+GLO, so we first enable these to hopefully get an ACK
 			// Then we do the same with GAL and get an NACK for those chips, but ACK for the ones that support GAL as well
-
-			cfgGnss := []byte{0x00, 0x00, 0x20, 0x05}
-			gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 tracking channels
-			sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01} // disable SBAS
-			beidou  := []byte{0x03, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable BEIDOU
-			qzss    := []byte{0x05, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS 0-3 tracking channels. Ublox recommends enabling when GPS is enabled
-			glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-14 tracking channels
-			galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
-			cfgGnss = append(cfgGnss, gps...)
-			cfgGnss = append(cfgGnss, sbas...)
-			cfgGnss = append(cfgGnss, beidou...)
-			cfgGnss = append(cfgGnss, qzss...)
-			cfgGnss = append(cfgGnss, glonass...)
-			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds on all chips supporting GPS+GLO
-
-			cfgGnss[3] = 0x06
-			cfgGnss = append(cfgGnss, galileo...)
-			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds only on chips that support GPS+GLO+GAL
-
-			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS off
-			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+			writeUblox8ConfigCommands(10, p)
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
 			if globalSettings.DEBUG {
 				log.Printf("ublox 6 or 7 detected\n")
@@ -367,13 +349,7 @@ func initGPSSerial() bool {
 			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
 		}
 
-		// UBX-CFG-PMS
-		p.Write(makeUBXCFG(0x06, 0x86, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Full Power Mode
-		// p.Write(makeUBXCFG(0x06, 0x86, 8, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Balanced Power Mode
-
-		// UBX-CFG-NAV5                           |mask1...|  dyn
-		p.Write(makeUBXCFG(0x06, 0x24, 36, []byte{0x01, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Dynamic platform model: airborne with <1g acceleration
-
+		writeUbloxGenericCommands(p)
 		// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
 		//                                       Class ID    DDC   UART1 UART2 USB   I2C   Res
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GGA - Global positioning system fix data
@@ -397,6 +373,7 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // Ublox - Satellite Status
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
 
+
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
 		cfg[0] = 0x01 // portID.
@@ -404,6 +381,7 @@ func initGPSSerial() bool {
 		cfg[2] = 0x00 // res1.
 		cfg[3] = 0x00 // res1.
 
+			
 		//      [   7   ] [   6   ] [   5   ] [   4   ]
 		//	0000 0000 0000 0000 0000 10x0 1100 0000
 		// UART mode. 0 stop bits, no parity, 8 data bits. Little endian order.
@@ -435,6 +413,8 @@ func initGPSSerial() bool {
 
 		// UBX-CFG-PRT (Port Configuration for UART)
 		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
+
+
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 		baudrates[0] = 38400
 
@@ -497,6 +477,87 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 		}
 		return nil, errors.New("Failed to detect GPS serial baud rate")
 	}
+}
+
+// Navrate only supports "5" or "10" for now
+func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
+	cfgGnss := []byte{0x00, 0x00, 0x20, 0x05}
+	gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 tracking channels
+	sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01} // disable SBAS
+	beidou  := []byte{0x03, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable BEIDOU
+	qzss    := []byte{0x05, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS 0-3 tracking channels. Ublox recommends enabling when GPS is enabled
+	glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-14 tracking channels
+	galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
+	cfgGnss = append(cfgGnss, gps...)
+	cfgGnss = append(cfgGnss, sbas...)
+	cfgGnss = append(cfgGnss, beidou...)
+	cfgGnss = append(cfgGnss, qzss...)
+	cfgGnss = append(cfgGnss, glonass...)
+	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds on all chips supporting GPS+GLO
+
+	cfgGnss[3] = 0x06
+	cfgGnss = append(cfgGnss, galileo...)
+	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds only on chips that support GPS+GLO+GAL
+
+	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS off
+
+	if navrate == 10 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x00, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+	} else if navrate == 5 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xC8, 0x00, 0x01, 0x00, 0x00, 0x00}))			// 200ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+	}
+}
+
+func writeUbloxGenericCommands(p *serial.Port) {
+	// UBX-CFG-NMEA (change NMEA protocol version to 4.0 extended)
+	p.Write(makeUBXCFG(0x06, 0x17, 20, []byte{0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
+
+	// UBX-CFG-PMS
+	p.Write(makeUBXCFG(0x06, 0x86, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Full Power Mode
+	// p.Write(makeUBXCFG(0x06, 0x86, 8, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Balanced Power Mode
+
+	// UBX-CFG-NAV5                           |mask1...|  dyn
+	p.Write(makeUBXCFG(0x06, 0x24, 36, []byte{0x01, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Dynamic platform model: airborne with <1g acceleration
+}
+
+
+func ensureOgnTrackerConfigured() {
+	if ognTrackerConfigured || serialPort == nil {
+		return
+	}
+
+	ognTrackerConfigured = true
+	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
+
+	writeUblox8ConfigCommands(10, serialPort)
+	writeUbloxGenericCommands(serialPort)
+
+	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
+	//                                          Class ID    DDC   UART1 UART2 USB   I2C   Res
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00})) // GGA - Global positioning system fix data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GSV - GNSS Satellites in View
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00})) // RMC - Recommended Minimum data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00})) // VGT - Course over ground and Ground speed
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS - GNSS Satellite Fault Detection
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM - Datum Reference
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GNS - GNSS fix data
+	// p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW - Dual ground/water distance
+
+	// UBX-CFG-MSG (NMEA PUBX Messages)      msg   msg   Ports 1-6
+	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00})) // Ublox - Lat/Long Position Data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00})) // Ublox - Satellite Status
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
+
+	serialPort.Flush()
+
+	globalStatus.GPS_detected_type = GPS_TYPE_OGNTRACKER
 }
 
 // func validateNMEAChecksum determines if a string is a properly formatted NMEA sentence with a valid checksum.
@@ -1737,25 +1798,25 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				if sv <= 32 {
 					svType = SAT_TYPE_GPS
-					svStr = fmt.Sprintf("G%d", sv)
+					svStr = fmt.Sprintf("G%d", sv)		// GPS 1-32
 				} else if sv <= 64 {
-					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv-32)
+					svType = SAT_TYPE_SBAS
+					svStr = fmt.Sprintf("S%d", sv-32)	// SBAS 33-64
 				} else if sv <= 96 {
 					svType = SAT_TYPE_GLONASS
-					svStr = fmt.Sprintf("R%d", sv-64)
-				} else if (sv >= 120) && (sv <= 158) {
+					svStr = fmt.Sprintf("R%d", sv-64)	// GLONASS 65-96
+				} else if sv <= 158 {
 					svType = SAT_TYPE_SBAS
-					svStr = fmt.Sprintf("S%d", sv)
-				} else if sv <= 163 {
-					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv-126)
-				} else if sv <= 193 {
+					svStr = fmt.Sprintf("S%d", sv-151)	// SBAS 152-158
+				} else if sv <= 202 {
 					svType = SAT_TYPE_QZSS
-					svStr = fmt.Sprintf("Q%d", sv-192)
-				} else if sv >= 211 {
+					svStr = fmt.Sprintf("Q%d", sv-192)	// QZSS 193-202
+				} else if sv <= 336 {
 					svType = SAT_TYPE_GALILEO
-					svStr = fmt.Sprintf("E%d", sv-210)
+					svStr = fmt.Sprintf("E%d", sv-300)	// GALILEO 301-336
+				} else if sv <= 437 {
+					svType = SAT_TYPE_BEIDOU
+					svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-437
 				} else {
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
@@ -1874,25 +1935,25 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			if sv <= 32 {
 				svType = SAT_TYPE_GPS
-				svStr = fmt.Sprintf("G%d", sv)
+				svStr = fmt.Sprintf("G%d", sv)		// GPS 1-32
 			} else if sv <= 64 {
-				svType = SAT_TYPE_BEIDOU
-				svStr = fmt.Sprintf("B%d", sv-32)
+				svType = SAT_TYPE_SBAS
+				svStr = fmt.Sprintf("S%d", sv-32)	// SBAS 33-64
 			} else if sv <= 96 {
 				svType = SAT_TYPE_GLONASS
-				svStr = fmt.Sprintf("R%d", sv-64)
-			} else if (sv >= 120) && (sv <= 158) {
+				svStr = fmt.Sprintf("R%d", sv-64)	// GLONASS 65-96
+			} else if sv <= 158 {
 				svType = SAT_TYPE_SBAS
-				svStr = fmt.Sprintf("S%d", sv)
-			} else if sv <= 163 {
-				svType = SAT_TYPE_BEIDOU
-				svStr = fmt.Sprintf("B%d", sv-126)
-			} else if sv <= 193 {
+				svStr = fmt.Sprintf("S%d", sv-151)	// SBAS 152-158
+			} else if sv <= 202 {
 				svType = SAT_TYPE_QZSS
-				svStr = fmt.Sprintf("Q%d", sv-192)
-			} else if sv >= 211 {
+				svStr = fmt.Sprintf("Q%d", sv-192)	// QZSS 193-202
+			} else if sv <= 336 {
 				svType = SAT_TYPE_GALILEO
-				svStr = fmt.Sprintf("E%d", sv-210)
+				svStr = fmt.Sprintf("E%d", sv-300)	// GALILEO 301-336
+			} else if sv <= 437 {
+				svType = SAT_TYPE_BEIDOU
+				svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-437
 			} else {
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
@@ -2000,10 +2061,40 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		return true
 	}
 
+	// Only sent by OGN tracker. We use this to detect that OGN tracker is connected and configure it as needed
+	if x[0] == "POGNR" {
+		ensureOgnTrackerConfigured()
+		return true
+	}
+
+	if x[0] == "POGNS" {
+		// OGN tracker sent us its configuration
+		log.Printf("Received OGN Tracker configuration: " + strings.Join(x, ","))
+		for i := 1; i < len(x); i++ {
+			kv := strings.SplitN(x[i], "=", 2);
+			if len(kv) < 2 {
+				continue
+			}
+
+			if kv[0] == "Address" {
+				addr, _ :=  strconv.ParseUint(kv[1], 0, 32)
+				globalSettings.OGNAddr = strings.ToUpper(fmt.Sprintf("%x", addr))
+			} else if kv[0] == "AddrType" {
+				addrtype, _ :=  strconv.ParseInt(kv[1], 0, 8)
+				globalSettings.OGNAddrType = int(addrtype)
+			} else if kv[0] == "AcftType" {
+				acfttype, _ :=  strconv.ParseInt(kv[1], 0, 8)
+				globalSettings.OGNAcftType = int(acfttype)
+			} else if kv[0] == "Pilot" {
+				globalSettings.OGNPilot = kv[1]
+			}
+		}
+	}
+
 	// Only evaluate PGRMZ for SoftRF/Flarm, where we know that it is standard barometric pressure.
 	// might want to add more types if applicable.
 	// $PGRMZ,1089,f,3*2B
-	if x[0] == "PGRMZ" && ((globalStatus.GPS_detected_type & 0x0f) ==  GPS_TYPE_FLARM || (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_SOFTRF_DONGLE) {
+	if x[0] == "PGRMZ" && ((globalStatus.GPS_detected_type & 0x0f) ==  GPS_TYPE_SERIAL || (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_SOFTRF_DONGLE) {
 		if len(x) < 3 {
 			return false
 		}
@@ -2035,6 +2126,19 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	// If we've gotten this far, the message isn't one that we can use.
 	return false
+}
+
+func configureOgnTrackerFromSettings() {
+	if serialPort == nil {
+		return
+	}
+
+	cfg := fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s\r\n", globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot)
+	log.Printf("Configuring OGN Tracker: " + cfg)
+
+	serialPort.Write([]byte(cfg))
+	serialPort.Write([]byte("$POGNS\r\n")) // re-read settings from tracker
+	serialPort.Flush()
 }
 
 

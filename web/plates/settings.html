@@ -54,7 +54,7 @@
                     </div>
                     <div class="form-group reset-flow">
                         <div class="col-xs-12">
-                            <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalShutdown">Shutdown</button>
                         </div>
                     </div>
                 </div>
@@ -72,6 +72,64 @@
                             <ui-switch ng-model='DarkMode' settings-change></ui-switch>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+<!-- OGN Tracker config -->
+        <div class="panel-group col-sm-12" ng-show="hasOgnTracker">  <!-- TODO -->
+            <div class="panel panel-default">
+                <div class="panel-heading">OGN Tracker</div>
+                <div class="panel-body">
+                    <form name="OGNTrackerSettings" novalidate>
+                        <!-- Address Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address Type</label>
+                            <select class="col-xs-7 custom-select" mode-input ng-model="OGNAddrType">
+                                <option value="0" ng-selected="OGNAddrType=='0'">Random</option>
+                                <option value="1" ng-selected="OGNAddrType=='1'">ICAO</option>
+                                <option value="2" ng-selected="OGNAddrType=='2'">Flarm</option>
+                                <option value="3" ng-selected="OGNAddrType=='3'">OGN</option>
+                            </select>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address (Hex)</label>
+                            <input class="col-xs-7" type="text" hex-input ng-model="OGNAddr" />
+                        </div>
+
+                        <!-- Aircraft Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Aircraft type</label>
+                            <select class="col-xs-7 custom-select" mode-input ng-model="OGNAcftType">
+                                <option value="1" ng-selected="OGNAcftType=='1'">Glider/Motorglider</option>
+                                <option value="2" ng-selected="OGNAcftType=='2'">Tow plane</option>
+                                <option value="3" ng-selected="OGNAcftType=='3'">Helicopter</option>
+                                <option value="4" ng-selected="OGNAcftType=='4'">Parachute</option>
+                                <option value="5" ng-selected="OGNAcftType=='5'">Drop plane</option>
+                                <option value="6" ng-selected="OGNAcftType=='6'">Hang glider</option>
+                                <option value="7" ng-selected="OGNAcftType=='7'">Para glider</option>
+                                <option value="8" ng-selected="OGNAcftType=='8'">Powered Aircraft</option>
+                                <option value="9" ng-selected="OGNAcftType=='9'">Jet Aircraft</option>
+                                <option value="10" ng-selected="OGNAcftType=='10'">UFO</option>
+                                <option value="11" ng-selected="OGNAcftType=='11'">Balloon</option>
+                                <option value="12" ng-selected="OGNAcftType=='12'">Airship</option>
+                                <option value="13" ng-selected="OGNAcftType=='13'">UAV</option>
+                                <option value="14" ng-selected="OGNAcftType=='14'">Ground support</option>
+                                <option value="15" ng-selected="OGNAcftType=='15'">Static object</option>
+                            </select>
+                        </div>
+
+                        <!-- Pilot name -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Pilot Name</label>
+                            <input class="col-xs-7" type="text" ng-model="OGNPilot" />
+                        </div>
+
+                        <div class="form-group reset-flow">
+                            <button class="btn btn-primary btn-block" ng-click="updateOgnTrackerConfig()">Configure OGN Tracker</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

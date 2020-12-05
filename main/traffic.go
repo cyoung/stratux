@@ -185,6 +185,18 @@ func cleanupOldEntries() {
 // If the ti is very close and at same altitude, it is considered to be us
 // If it has no position information, we will not take it as ownship, but ignore its data (no mode-s detection for everything that is configured as ownship)
 func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool) {
+	// First, check if this is our own OGN tracker
+	
+	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_OGNTRACKER {
+		ognTrackerCodeInt, _ := strconv.ParseUint(globalSettings.OGNAddr, 16, 32)
+		if uint32(ognTrackerCodeInt) == ti.Icao_addr {
+			isOwnshipInfo = true
+			shouldIgnore = true
+			return
+		}
+	}
+
+
 	codes := strings.Split(globalSettings.OwnshipModeS, ",")
 	shouldIgnore = false
 

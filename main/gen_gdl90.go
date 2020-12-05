@@ -97,7 +97,8 @@ const (
 	GPS_TYPE_UBX6     = 0x06
 	GPS_TYPE_PROLIFIC = 0x02
 	GPS_TYPE_UART     = 0x01
-	GPS_TYPE_FLARM    = 0x0A
+	GPS_TYPE_SERIAL   = 0x0A
+	GPS_TYPE_OGNTRACKER = 0x03
 	GPS_TYPE_SOFTRF_DONGLE = 0x0B
 	GPS_TYPE_NETWORK  = 0x0C
 	GPS_PROTOCOL_NMEA = 0x10
@@ -1185,7 +1186,11 @@ type settings struct {
 	EstimateBearinglessDist bool
 	RadarLimits          int
 	RadarRange           int
-	
+
+	OGNAddr              string
+	OGNAddrType          int
+	OGNAcftType          int
+	OGNPilot             string	
 }
 
 type status struct {
