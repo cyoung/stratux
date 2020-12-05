@@ -3,8 +3,8 @@
 // For viewing, you will want to uncomment one of these calls, depending on what you want to see
 
 //case();
-//lid();
-view_side_by_side();
+lid();
+//view_side_by_side();
 //view_assembled(gap=0.2);
 
 // You can modify the parameters below to get your own custom, slightly modified case
@@ -14,7 +14,7 @@ POWER_CONNECTOR_HOLE_WIDTH = 12;
 POWER_CONNECTOR_HOLE_HEIGHT = 8;
 
 // wall and base/top thickness
-WALL_THICKNESS = 1.6;
+WALL_THICKNESS = 1.8;
 
 OUTSIDE_CORNER_RADIUS = 1.5;
 
@@ -29,7 +29,7 @@ PRINTING_TOLERANCE_XY = 0.2;
 PRITING_TOLERANCE_Z = 0.15;
 
 // This defines the resolution of the resulting meshe's round elements
-$fn=40;
+$fn=70;
 
 
 // dimensions of the rPI part
@@ -41,7 +41,7 @@ _case_height = 25;
 // Important: these are INCLUDING 0.3mm tolerance on each size and 0.1mm in thickness
 _tbeam_pcb_width = 100.13 + 2 * PRINTING_TOLERANCE_XY;
 _tbeam_pcb_length = 32.89 + 2 * PRINTING_TOLERANCE_XY;
-_tbeam_pcb_thickness = 1.6 + 2 * PRITING_TOLERANCE_Z;
+_tbeam_pcb_thickness = 1.7 + 2 * PRITING_TOLERANCE_Z;
 _tbeam_corner_radius = 1.3;
 
 
@@ -91,19 +91,6 @@ module roundedcube(size, center=false, rx=0, ry=0, rz=0) {
         centeredcube();
     } else {
         translate([size[0]/2, size[1]/2, size[2]/2]) centeredcube();
-    }
-}
-
-
-// Inverts a geometry. I.e. creates a huge cube and then removes all children from it.
-// We use it to cut out holes with a nice round corner.
-// I.e. create a rounded box, invert it and intersect
-module inverse() {
-    difference() {
-        cube(10000, center=true);
-        for (i=[0:$children-1])
-            children(i);
-        
     }
 }
 
@@ -335,13 +322,15 @@ module lid() {
             // the +- 6 or 12 is to leave space for the screw holders in the main case
             tolerance = PRINTING_TOLERANCE_XY;
             
-            translate([WALL_THICKNESS + tolerance, WALL_THICKNESS + tolerance + 6, lid_height])
+            // TODO: no idea why lid_height - 0.001 is needed. Otherwise the STL export will have the 
+            // guides exported as seperate objects with 0 distance..
+            translate([WALL_THICKNESS + tolerance, WALL_THICKNESS + tolerance + 6, lid_height - 0.001])
                 cube([1.0, _case_main_length - WALL_THICKNESS - tolerance - 6 + WALL_THICKNESS/2, 1.5]);
             
-            translate([_case_main_width - WALL_THICKNESS - tolerance - 1, WALL_THICKNESS + tolerance + 6, lid_height])
+            translate([_case_main_width - WALL_THICKNESS - tolerance - 1, WALL_THICKNESS + tolerance + 6, lid_height - 0.001])
                 cube([1.0, _case_main_length - WALL_THICKNESS - tolerance - 6 + WALL_THICKNESS/2, 1.5]);
             
-            translate([WALL_THICKNESS + tolerance + 6, WALL_THICKNESS + tolerance, lid_height])
+            translate([WALL_THICKNESS + tolerance + 6, WALL_THICKNESS + tolerance, lid_height - 0.001])
                 cube([_case_main_width - 2 * WALL_THICKNESS - 2 * tolerance - 12, 1.0, 1.5]);
         }
         
