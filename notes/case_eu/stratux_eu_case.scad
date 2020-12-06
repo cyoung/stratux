@@ -3,8 +3,8 @@
 // For viewing, you will want to uncomment one of these calls, depending on what you want to see
 
 //case();
-lid();
-//view_side_by_side();
+//lid();
+view_side_by_side();
 //view_assembled(gap=0.2);
 
 // You can modify the parameters below to get your own custom, slightly modified case
