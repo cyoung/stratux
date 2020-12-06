@@ -527,6 +527,9 @@ func ensureOgnTrackerConfigured() {
 	}
 
 	ognTrackerConfigured = true
+
+	gpsTimeOffsetPpsMs = 200 * time.Millisecond
+
 	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
 
 	writeUblox8ConfigCommands(10, serialPort)
@@ -1451,9 +1454,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					stratuxClock.SetRealTimeReference(gpsTime)
 					mySituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
 					// log.Printf("GPS time is: %s\n", gpsTime) //debug
-					if time.Since(gpsTime) > 50*time.Millisecond || time.Since(gpsTime) < -50*time.Millisecond {
+					if time.Since(gpsTime) > 200*time.Millisecond || time.Since(gpsTime) < -200*time.Millisecond {
 						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
-						log.Printf("setting system time to: '%s'\n", setStr)
+						log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
 						if err := exec.Command("date", "-s", setStr).Run(); err != nil {
 							log.Printf("Set Date failure: %s error\n", err)
 						} else {
@@ -1664,9 +1667,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				tmpSituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
 				stratuxClock.SetRealTimeReference(gpsTime)
-				if time.Since(gpsTime) > 50*time.Millisecond || time.Since(gpsTime) < -50*time.Millisecond {
+				if time.Since(gpsTime) > 200*time.Millisecond || time.Since(gpsTime) < -200*time.Millisecond {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
-					log.Printf("setting system time to: '%s'\n", setStr)
+					log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
 					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
 						log.Printf("Set Date failure: %s error\n", err)
 					} else {
