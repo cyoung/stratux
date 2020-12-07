@@ -68,32 +68,39 @@ _case_total_length = _case_main_length + _case_wing_length;
 
 
 module roundedcube(size, center=false, rx=0, ry=0, rz=0) {
-    module centeredcube() {
-        intersection() {
-            
-            // Extrude upwards for the z radius
-            linear_extrude(size[2], center=true)
-                offset(r=rz) square([size[0] - 2*rz, size[1] - 2*rz], center=true);
-            
-            // Extrude for the x radius
-            rotate([90, 0, 90])
-                linear_extrude(size[0], center=true) 
-                    offset(r=rx) square([size[1] - 2*rx, size[2] - 2*rx], center=true);
-            
-            // Extrude for the y radius
-            rotate([90, 0, 0])
-                linear_extrude(size[1], center=true) 
-                    offset(r=ry) square([size[0] - 2*ry, size[2] - 2*ry], center=true);        
+    
+    translation = center ? [0,0,0] : [size[0]/2, size[1]/2, size[2]/2];
+    
+    if (rx == 0 && ry == 0 && rz == 0) {
+        cube(size=size, center=center);
+    } else {
+        translate(translation) {
+            intersection() {
+                
+                // Extrude upwards for the z radius
+                if (rz > 0) {
+                    linear_extrude(size[2], center=true)
+                        offset(r=rz) square([size[0] - 2*rz, size[1] - 2*rz], center=true);
+                }
+
+                
+                if (rx > 0) {
+                    // Extrude for the x radius
+                    rotate([90, 0, 90])
+                        linear_extrude(size[0], center=true) 
+                            offset(r=rx) square([size[1] - 2*rx, size[2] - 2*rx], center=true);
+                }
+                
+                if (ry > 0) {
+                    // Extrude for the y radius
+                    rotate([90, 0, 0])
+                        linear_extrude(size[1], center=true) 
+                            offset(r=ry) square([size[0] - 2*ry, size[2] - 2*ry], center=true);
+                }
+            }
         }
     }
-    
-    if (center) {
-        centeredcube();
-    } else {
-        translate([size[0]/2, size[1]/2, size[2]/2]) centeredcube();
-    }
 }
-
 
 // Helper module to create the basic T-like shape that we use. Used to construct case and lid
 module base_case_shape(top_thickness, side_thickness, height) {
@@ -324,17 +331,17 @@ module lid() {
             
             // TODO: no idea why lid_height - 0.001 is needed. Otherwise the STL export will have the 
             // guides exported as seperate objects with 0 distance..
-            translate([WALL_THICKNESS + tolerance, WALL_THICKNESS + tolerance + 6, lid_height - 0.001])
+            translate([WALL_THICKNESS + tolerance, WALL_THICKNESS + tolerance + 6, lid_height - 0.01])
                 cube([1.0, _case_main_length - WALL_THICKNESS - tolerance - 6 + WALL_THICKNESS/2, 1.5]);
             
-            translate([_case_main_width - WALL_THICKNESS - tolerance - 1, WALL_THICKNESS + tolerance + 6, lid_height - 0.001])
+            translate([_case_main_width - WALL_THICKNESS - tolerance - 1, WALL_THICKNESS + tolerance + 6, lid_height - 0.01])
                 cube([1.0, _case_main_length - WALL_THICKNESS - tolerance - 6 + WALL_THICKNESS/2, 1.5]);
             
-            translate([WALL_THICKNESS + tolerance + 6, WALL_THICKNESS + tolerance, lid_height - 0.001])
+            translate([WALL_THICKNESS + tolerance + 6, WALL_THICKNESS + tolerance, lid_height - 0.01])
                 cube([_case_main_width - 2 * WALL_THICKNESS - 2 * tolerance - 12, 1.0, 1.5]);
         }
         
-        translate([-_wing_part_width + WALL_THICKNESS/2, _case_main_length + WALL_THICKNESS/2, lid_height - _tbeam_pcb_thickness + 0.001])
+        translate([-_wing_part_width + WALL_THICKNESS/2, _case_main_length + WALL_THICKNESS/2, lid_height - _tbeam_pcb_thickness + 0.01])
             tbeam();
         
         // This cube will make sure there is a bit of space for the solder-joints of the SMA connector on the older T-Beams.
