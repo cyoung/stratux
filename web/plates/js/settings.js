@@ -40,6 +40,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.AHRSLog = settings.AHRSLog;
 
 		$scope.PPM = settings.PPM;
+		$scope.AltitudeOffset = settings.AltitudeOffset;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
