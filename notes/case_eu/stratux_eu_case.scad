@@ -13,6 +13,11 @@ view_side_by_side();
 POWER_CONNECTOR_HOLE_WIDTH = 12;
 POWER_CONNECTOR_HOLE_HEIGHT = 8;
 
+// Set this to "3", "4" or "HYBRID". The only difference is a slighly moved
+// power connector
+RASPI_VERSION = "HYBRID";
+
+
 // wall and base/top thickness
 WALL_THICKNESS = 1.8;
 
@@ -252,10 +257,15 @@ module case() {
             
 
             // clear hole for power connector
-            // left side: older PI have the power connector 10.6mm in, pi4 has 12.4mm. We use the average 11.5
+            // left side: older PI have the power connector 10.6mm in, pi4 has 12.4mm.
+            // For hybrid we use the average 11.5
             // -> 11.5 + 0.5 gap from the side
             // height: wall + pillar height + pcb height + socket height/2
-            translate([_case_main_width, WALL_THICKNESS + 0.5 + 11.5, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
+            connector_offset = RASPI_VERSION == "3" ? 10.6 :
+                RASPI_VERSION == "4" ? 12.4 :
+                11.5;
+
+            translate([_case_main_width, WALL_THICKNESS + 0.5 + connector_offset, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
                 power_connector_hole();
             
             // clear hole for SD card slot
