@@ -26,9 +26,13 @@ OUTSIDE_CORNER_RADIUS = 1.5;
 // Use "40", "30" or "NONE" to decide which fan you want to include
 FAN_TYPE="40";
 
+// Standard T-Beam GPS antenna is 16x6mm. If you decide to use a larger antenna,
+// change the hole size here. This is WITHOUT tolerance.
+GPS_ANTENNA_HOLE_SIZE = [16, 6]; 
+
 // 0.3mm should work on most printers, but you might have small gaps between parts.
 // If you have a good printer, go for 0.2 or even 0.15.
-PRINTING_TOLERANCE_XY = 0.2; 
+PRINTING_TOLERANCE_XY = 0.2;
 
 // Most printers are more precise in the Z direction
 PRITING_TOLERANCE_Z = 0.15;
@@ -298,7 +302,7 @@ module lid_screw_hole() {
 }
 
 module gps_antenna_hole() {
-    square([16 + 2 * PRINTING_TOLERANCE_XY, 6 + 2 * PRINTING_TOLERANCE_XY]);
+    square([GPS_ANTENNA_HOLE_SIZE[0] + 2 * PRINTING_TOLERANCE_XY, GPS_ANTENNA_HOLE_SIZE[1] + 2 * PRINTING_TOLERANCE_XY], center=true);
 }
 
 // 40mm fan: fan(holedist=32, outercircle=19, innercircle=10)
@@ -387,7 +391,7 @@ module lid() {
         }
             
         // GPS Antenna
-        translate([40, _case_total_length-20, -0.01])
+        translate([45, _case_total_length-_case_wing_length/2, -0.01])
             linear_extrude(height=WALL_THICKNESS + 0.05) gps_antenna_hole();
         
         // 868 and 1090 text
