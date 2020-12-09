@@ -483,11 +483,12 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
 	cfgGnss := []byte{0x00, 0x00, 0x20, 0x05}
 	gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 tracking channels
-	sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01} // disable SBAS
+	sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 1-3 channels
+	galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
 	beidou  := []byte{0x03, 0x04, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable BEIDOU
 	qzss    := []byte{0x05, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS 0-3 tracking channels. Ublox recommends enabling when GPS is enabled
 	glonass := []byte{0x06, 0x08, 0x0E, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-14 tracking channels
-	galileo := []byte{0x02, 0x04, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 4-10 tracking channels, ublox 8 does only support up to 10
+	
 	cfgGnss = append(cfgGnss, gps...)
 	cfgGnss = append(cfgGnss, sbas...)
 	cfgGnss = append(cfgGnss, beidou...)
@@ -498,8 +499,6 @@ func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
 	cfgGnss[3] = 0x06
 	cfgGnss = append(cfgGnss, galileo...)
 	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds only on chips that support GPS+GLO+GAL
-
-	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS off
 
 	if navrate == 10 {
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x00, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
@@ -532,17 +531,21 @@ func ensureOgnTrackerConfigured() {
 
 	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
 
+	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config, but
+	// we use standard NMEA info and disable most PUBX, because OGN Tracker needs that anyway and
+	// won't forward very long sentences as used for PUBX
+
 	writeUblox8ConfigCommands(10, serialPort)
 	writeUbloxGenericCommands(serialPort)
 
 	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
-	//                                          Class ID    DDC   UART1 UART2 USB   I2C   Res
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00})) // GGA - Global positioning system fix data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
+	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // GGA - Global positioning system fix data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
 	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})) // GSV - GNSS Satellites in View
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00})) // RMC - Recommended Minimum data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00})) // VGT - Course over ground and Ground speed
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // RMC - Recommended Minimum data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // VGT - Course over ground and Ground speed
 	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
 	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
 	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date
@@ -554,9 +557,9 @@ func ensureOgnTrackerConfigured() {
 
 	// UBX-CFG-MSG (NMEA PUBX Messages)      msg   msg   Ports 1-6
 	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00})) // Ublox - Lat/Long Position Data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00})) // Ublox - Satellite Status
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox - Lat/Long Position Data
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox - Satellite Status
+	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
 
 	serialPort.Flush()
 
@@ -1852,7 +1855,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 			}
 		}
-		if sat < 12 || tmpSituation.GPSSatellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
+		if tmpSituation.GPSSatellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
 			tmpSituation.GPSSatellites = uint16(sat)
 			if (tmpSituation.GPSFixQuality == 2) && !svSBAS && !svGLONASS && !svGalileo { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
 				tmpSituation.GPSSatellites++
@@ -1868,7 +1871,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if tmpSituation.GPSFixQuality == 2 {
 			tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
 		} else {
-			tmpSituation.GPSHorizontalAccuracy = float32(hdop * 8.0) // Rough 95% confidence estimate for 3D non-WAAS solution
+			tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0) // Rough 95% confidence estimate for 3D non-WAAS solution
 		}
 
 		// NACp estimate.
