@@ -30,15 +30,11 @@ This repository offers code and binaries that can help you to build your own tra
 * Many more smaller tweaks all over the place
 
 ## Building the Europe Edition
-Building the european Edition is practically the same as the official Stratux. More information can be found here:
-http://stratux.me/
-You can also buy a prebuilt unit.
-Notable however: Stratux recently started selling a new "Stratux V3 UAT Radio" for UAT reception. This radio does NOT work for OGN reception, so make sure you get the old V2 radios instead or get a secondary RTLSDR dongle from somewhere else.
-Also, it is recommended to purchase a 868 Mhz antenna for OGN reception. The standard 978 Mhz antenna can receive OGN targets, but the range will be limited.
-Additionally, you will need a PC with an SD Card reader.
-Download the latest image [here](https://github.com/b3nn0/stratux/releases)
-and use an arbitrary tool to burn the image to your Micro SD Card (e.g. "Etcher", see [here](https://www.raspberrypi.org/documentation/installation/installing-images/)).
-A summary of supported hardware, which can be used as a buying guide, can be found [here](https://github.com/b3nn0/stratux/wiki/Supported-Hardware).
+Due to the modular nature of Stratux, there are many possibilities how you can build it to your needs.
+You can find three popular variations in the form of complete build guides [here](https://github.com/b3nn0/stratux/wiki/Building-Stratux-Europe-Edition).
+It also shows how you can modify your pre-built Stratux US version to run the EU version.
+
+If you want to customize beyond that, or have different needs, you can find a full list of supported hardware/attachments [here](https://github.com/b3nn0/stratux/wiki/Supported-Hardware).
 
 
 
