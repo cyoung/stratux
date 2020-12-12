@@ -14,7 +14,7 @@ endif
 	BUILDINFO+=-ldflags "$(LFLAGS)"
 	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LFLAGS)"
 $(if $(GOROOT),,$(error GOROOT is not set!))
-	PLATFORMDEPENDENT=fancontrol
+	PLATFORMDEPENDENT=xfancontrol
 endif
 
 all:
@@ -24,7 +24,7 @@ xgen_gdl90:
 	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
 	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -p 4 main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/ogn.go main/flarm-nmea.go main/networksettings.go main/xplane.go
 
-fancontrol:
+xfancontrol:
 	go get -t -d -v ./main
 	go build $(BUILDINFO) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
 

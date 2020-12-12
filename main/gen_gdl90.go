@@ -1190,7 +1190,9 @@ type settings struct {
 	OGNAddr              string
 	OGNAddrType          int
 	OGNAcftType          int
-	OGNPilot             string	
+	OGNPilot             string
+
+	PWMDutyMin           int
 }
 
 type status struct {
@@ -1287,6 +1289,8 @@ func defaultSettings() {
 
 	globalSettings.RadarLimits = 2000
 	globalSettings.RadarRange = 10
+
+	globalSettings.PWMDutyMin = 0
 }
 
 func readSettings() {
@@ -1297,7 +1301,7 @@ func readSettings() {
 		return
 	}
 	defer fd.Close()
-	buf := make([]byte, 2048)
+	buf := make([]byte, 4096)
 	count, err := fd.Read(buf)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())

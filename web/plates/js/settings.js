@@ -79,6 +79,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.OGNAcftType = settings.OGNAcftType.toString();
 		$scope.OGNPilot = settings.OGNPilot;
 
+		$scope.PWMDutyMin = settings.PWMDutyMin;
+
 		// Update theme
 		$scope.$parent.updateTheme($scope.DarkMode);
 	}
@@ -148,6 +150,17 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+
+	$scope.updatePWMDutyMin = function() {
+		settings['PWMDutyMin'] = 0;
+		if ($scope.PWMDutyMin !== undefined && $scope.PWMDutyMin !== null) {
+			settings['PWMDutyMin'] = parseInt($scope.PWMDutyMin);
+			var newsettings = {
+				'PWMDutyMin': settings['PWMDutyMin']
+			};
+			setSettings(angular.toJson(newsettings));
+		}
+	}
 
 	$scope.updateBaud = function () {
 		settings["Baud"] = 0;

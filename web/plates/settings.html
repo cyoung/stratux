@@ -312,6 +312,16 @@
                             <ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
+                    <div class="form-group" ng-show="IMU_Sensor_Enabled">
+                        <label class="control-label col-xs-7">Minimum fan duty cycle %</label>
+                        <div class="col-xs-5">
+                            <form name="PWMDutyMin" ng-submit="updatePWMDutyMin()" novalidate>
+                                <!-- type="number" not supported except on mobile -->
+                                <input class="col-xs-7" type="number" ng-model="PWMDutyMin" placeholder="0-100" min="0" max="100"
+                                       ng-change="updatePWMDutyMin()" />
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

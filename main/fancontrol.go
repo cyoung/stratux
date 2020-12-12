@@ -44,6 +44,8 @@ var (
 )
 
 const (
+	configLocation = "/etc/stratux.conf"
+
 	// CPU temperature target, degrees C
 	defaultTempTarget = 50.
 	hysteresis        = float32(1.)
@@ -54,7 +56,8 @@ const (
 	/* not spin. This depends on both your fan and the switching
 	/* transistor used. */
 	defaultPwmDutyMin = 1
-	pwmDutyMax        = 10
+	pwmDutyMax        = 100
+	pwmDutyStep       = 10
 
 	// Temperature at which we give up attempting active fan speed control and set it to full speed.
 	failsafeTemp = 65
@@ -83,6 +86,8 @@ type FanControl struct {
 }
 
 var myFanControl FanControl
+
+var configChan = make(chan bool, 1)
 
 var stdlog, errlog *log.Logger
 
@@ -133,19 +138,24 @@ func fanControl() {
 
 	for {
 		if myFanControl.TempCurrent > (myFanControl.TempTarget + hysteresis) {
-			myFanControl.PWMDutyCurrent = iMax(iMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+1), myFanControl.PWMDutyMin)
+			myFanControl.PWMDutyCurrent = iMax(iMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+pwmDutyStep), myFanControl.PWMDutyMin)
 		} else if myFanControl.TempCurrent < (myFanControl.TempTarget - hysteresis) {
-			myFanControl.PWMDutyCurrent = iMax(myFanControl.PWMDutyCurrent-1, 0)
+			myFanControl.PWMDutyCurrent = iMax(myFanControl.PWMDutyCurrent-pwmDutyStep, 0)
 			if myFanControl.PWMDutyCurrent < myFanControl.PWMDutyMin {
-				myFanControl.PWMDutyCurrent = 0
+				myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
 			}
 		}
 		//log.Println(myFanControl.TempCurrent, " ", myFanControl.PWMDutyCurrent)
 		C.pwmWrite(cPin, C.int(myFanControl.PWMDutyCurrent))
-		<-delay.C
-		if myFanControl.PWMDutyCurrent == myFanControl.PWMDutyMax && myFanControl.TempCurrent >= failsafeTemp {
-			// Reached the maximum temperature. We stop using PWM control and set the fan to "on" permanently.
-			break
+		select {
+		case <-delay.C:
+			if myFanControl.PWMDutyCurrent == myFanControl.PWMDutyMax && myFanControl.TempCurrent >= failsafeTemp {
+				// Reached the maximum temperature. We stop using PWM control and set the fan to "on" permanently.
+				break
+			}
+		case <-configChan:
+			// Make sure we don't change speed again immediately
+			myFanControl.TempCurrent = myFanControl.TempTarget
 		}
 	}
 
@@ -192,27 +202,57 @@ func (service *Service) Manage() (string, error) {
 	myFanControl.PWMDutyMax = pwmDutyMax
 	myFanControl.PWMPin = *pin
 
+	readSettings()
+
 	go fanControl()
 
 	// Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
 	// if we're not ready to receive when the signal is sent.
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
 
 	http.HandleFunc("/", handleStatusRequest)
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(addr, nil)
+	go http.ListenAndServe(addr, nil)
 
 	// interrupt by system signal
 	for {
 		killSignal := <-interrupt
-		stdlog.Println("Got signal:", killSignal)
-		if killSignal == os.Interrupt {
+		log.Println("Got signal:", killSignal)
+		if killSignal == syscall.SIGINT {
 			return "Daemon was interrupted by system signal", nil
+		} else if (killSignal == syscall.SIGUSR1) {
+			readSettings()
+			myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
+			configChan<-true
+		} else {
+			return "Daemon was killed", nil
 		}
-		return "Daemon was killed", nil
 	}
+
+	return "", nil
+}
+
+func readSettings() {
+	fd, err := os.Open(configLocation)
+	if err != nil {
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		return
+	}
+	defer fd.Close()
+	buf := make([]byte, 4096)
+	count, err := fd.Read(buf)
+	if err != nil {
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		return
+	}
+	err = json.Unmarshal(buf[0:count], &myFanControl)
+	if err != nil {
+		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
+		return
+	}
+	log.Printf("read in settings.\n")
 }
 
 func handleStatusRequest(w http.ResponseWriter, r *http.Request) {
