@@ -520,12 +520,10 @@ func writeUbloxGenericCommands(p *serial.Port) {
 }
 
 
-func ensureOgnTrackerConfigured() {
-	if ognTrackerConfigured || serialPort == nil {
+func configureOgnTracker() {
+	if serialPort == nil {
 		return
 	}
-
-	ognTrackerConfigured = true
 
 	gpsTimeOffsetPpsMs = 200 * time.Millisecond
 
@@ -2069,7 +2067,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 	// Only sent by OGN tracker. We use this to detect that OGN tracker is connected and configure it as needed
 	if x[0] == "POGNR" {
-		ensureOgnTrackerConfigured()
+		if !ognTrackerConfigured {
+			ognTrackerConfigured = true
+			go func() {
+				time.Sleep(5 * time.Second)
+				configureOgnTracker()
+			}()
+		}
+
 		return true
 	}
 
