@@ -595,6 +595,10 @@ func relativeGpsAltToBaro(relVert float32) (alt int32, altIsGnss bool) {
 func getIdTail(idReceived string) (idStr string, tail string, address uint32) {
 	ognIDAndTail := strings.Split(idReceived, "!")
 	idStr = ognIDAndTail[0]
+	if len(idStr) > 6 {
+		// OGN Tracker sometimes encodes address type in the address.. strip that
+		idStr = idStr[len(idStr)-6:]
+	}
 	tail = ""
 	if len(ognIDAndTail) == 2 {
 		tail = ognIDAndTail[1]
