@@ -16,7 +16,7 @@
         {
             "label": "Build rPI debug",
             "type": "shell",
-            "command": "make xgen_gdl90 debug=true",
+            "command": "make gen_gdl90 debug=true",
             "problemMatcher": "$go",
             "group": {
                 "kind": "build",
@@ -26,7 +26,7 @@
         {
             "label": "Build rPI",
             "type": "shell",
-            "command": "make xgen_gdl90",
+            "command": "make gen_gdl90",
             "problemMatcher": "$go",
             "group": {
                 "kind": "build",
