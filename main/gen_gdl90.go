@@ -917,7 +917,7 @@ func updateMessageStats() {
 
 func updateStatus() {
 	if mySituation.GPSFixQuality == 2 {
-		globalStatus.GPS_solution = "GPS + SBAS (WAAS / EGNOS)"
+		globalStatus.GPS_solution = "3D GPS + SBAS"
 	} else if mySituation.GPSFixQuality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.GPSFixQuality == 6 {

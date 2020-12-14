@@ -115,7 +115,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
         var solutionText = "No Fix";
         if (situation.GPSFixQuality === 2) {
-            solutionText = "GPS + SBAS (WAAS / EGNOS)";
+            solutionText = "3D GPS + SBAS";
         } else if (situation.GPSFixQuality === 1) {
             solutionText = "3D GPS"
         }
