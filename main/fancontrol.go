@@ -57,7 +57,6 @@ const (
 	/* transistor used. */
 	defaultPwmDutyMin = 1
 	pwmDutyMax        = 100
-	pwmDutyStep       = 10
 
 	// Temperature at which we give up attempting active fan speed control and set it to full speed.
 	failsafeTemp = 65
@@ -133,6 +132,12 @@ func fanControl() {
 	delay := time.NewTicker(delaySeconds * time.Second)
 
 	for {
+		// Make sure we have 10 fanspeed steps, but if it's more than 90% duty cycle, we just increase by one every time
+		pwmDutyStep := (myFanControl.PWMDutyMax - myFanControl.PWMDutyMin) / 10.0
+		if pwmDutyStep < 1 {
+			pwmDutyStep = 1
+		}
+
 		if myFanControl.TempCurrent > (myFanControl.TempTarget + hysteresis) {
 			myFanControl.PWMDutyCurrent = iMax(iMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+pwmDutyStep), myFanControl.PWMDutyMin)
 		} else if myFanControl.TempCurrent < (myFanControl.TempTarget - hysteresis) {
