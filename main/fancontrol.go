@@ -120,11 +120,7 @@ func fanControl() {
 	time.Sleep(5 * time.Second)
 	C.digitalWrite(cPin, C.LOW)
 
-	C.pwmSetMode(C.PWM_MODE_MS)
-	C.pinMode(cPin, C.PWM_OUTPUT)
-	C.pwmSetRange(C.uint(myFanControl.PWMDutyMax))
-	C.pwmSetClock(pwmClockDivisor)
-	C.pwmWrite(cPin, C.int(myFanControl.PWMDutyMin))
+	
 	myFanControl.TempCurrent = 0
 	go cpuTempMonitor(func(cpuTemp float32) {
 		if isCPUTempValid(cpuTemp) {
@@ -146,6 +142,10 @@ func fanControl() {
 			}
 		}
 		//log.Println(myFanControl.TempCurrent, " ", myFanControl.PWMDutyCurrent)
+		C.pwmSetMode(C.PWM_MODE_MS)
+		C.pinMode(cPin, C.PWM_OUTPUT)
+		C.pwmSetRange(C.uint(myFanControl.PWMDutyMax))
+		C.pwmSetClock(pwmClockDivisor)
 		C.pwmWrite(cPin, C.int(myFanControl.PWMDutyCurrent))
 		select {
 		case <-delay.C:
