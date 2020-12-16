@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
 
 if [[ ! -d esp-idf ]]; then
     git clone -b v4.0 --recursive https://github.com/espressif/esp-idf.git
@@ -61,8 +62,6 @@ disable WITH_TBEAM
 enable WITH_TBEAM_V10
 enable WITH_AXP
 
-
-sed -i 's/^#define WITH_TBEAM/#define WITH_TBEAM_V10/g' main/config.h
 make -B -j16
 source bin-arch.sh
 mkdir stratux

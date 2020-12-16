@@ -14,7 +14,7 @@ ogn/esp32-ogn-tracker
 
 *.img
 
-*.zip
+#*.zip
 
 test/bmp180_read
 

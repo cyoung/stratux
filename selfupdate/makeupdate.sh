@@ -43,6 +43,8 @@ cp image/dhcpd.conf.template work/bin/
 cp image/interfaces.template work/bin/
 cp ogn/ddb.json work/bin
 cp ogn/ogn-rx-eu_arm work/bin/ogn-rx-eu
+cp ogn/esp32-ogn-tracker-bin-*.zip work/bin/
+cp ogn/install-ogntracker-firmware-pi.sh work/bin
 
 # WiringPi doesn't allow static linking any more, so we deploy the shared library aswell
 cp /usr/lib/libwiringPi.so work/bin/

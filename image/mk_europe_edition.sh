@@ -66,13 +66,14 @@ mount -t ext4 -o offset=$partoffset $IMGNAME mnt/
 mount -t vfat -o offset=$bootoffset,sizelimit=$sizelimit $IMGNAME mnt/boot
 cp $(which qemu-arm-static) mnt/usr/bin
 
+# Download and extract go in the chroot
 cd mnt/root
 wget https://dl.google.com/go/go1.12.4.linux-armv6l.tar.gz
 tar xzf go1.12.4.linux-armv6l.tar.gz
 rm go1.12.4.linux-armv6l.tar.gz
 
 if [ "$1" == "dev" ]; then
-    cp -ra $SRCDIR .
+    rsync -av --progress --exclude=ogn/esp-idf $SRCDIR ./
     cd stratux && git checkout $2 && cd ..
 else
     git clone --recursive -b $2 https://github.com/b3nn0/stratux.git

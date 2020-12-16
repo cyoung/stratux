@@ -106,5 +106,11 @@ cd web/ && make stratuxBuild=${stratuxBuild}
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
 
+
+# Install ogntracker firmware
+mkdir -p /var/stratux
+cp esp32-ogn-tracker-bin-*.zip /root/stratux/ogn/
+cp install-ogntracker-firmware-pi.sh /root/stratux/ogn/
+
 cd /
 rm -rf /root/stratux-update
