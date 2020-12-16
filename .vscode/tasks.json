@@ -6,7 +6,7 @@
         {
             "label": "Build x86",
             "type": "shell",
-            "command": "make -f Makefile.x86 xgen_gdl90",
+            "command": "make -f Makefile.x86 gen_gdl90",
             "problemMatcher": "$go",
             "group": {
                 "kind": "build",

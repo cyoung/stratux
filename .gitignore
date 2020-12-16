@@ -7,6 +7,8 @@ gen_gdl90
 libdump978.so
 fancontrol
 ogn/ddb.json
+ogn/esp-idf
+ogn/esp32-ogn-tracker
 
 *.mp4
 
