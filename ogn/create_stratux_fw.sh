@@ -33,7 +33,7 @@ disable WITH_GPS_MTK
 disable WITH_LORAWAN
 disable WITH_SD
 disable WITH_SDLOG
-disable FANET # not ready yet
+disable WITH_FANET # not ready yet
 
 # ?? WITH_FANET, WITH_LORAWAN
 enable WITH_GPS_UBX
