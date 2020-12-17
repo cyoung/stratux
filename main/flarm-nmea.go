@@ -628,7 +628,7 @@ func parseFlarmPFLAU(message []string) {
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_OGN
 	thisMsg.TimeReceived = stratuxClock.Time
-	MsgLog = append(MsgLog, thisMsg)
+	msgLogAppend(thisMsg)
 	
 	if !isGPSValid() {
 		return // can't convert relative to absolute without GPS
@@ -701,7 +701,7 @@ func parseFlarmPFLAA(message []string) {
 	thisMsg.MessageClass = MSGCLASS_OGN
 	thisMsg.TimeReceived = stratuxClock.Time
 	// thisMsg.Data = ...?
-	MsgLog = append(MsgLog, thisMsg)
+	msgLogAppend(thisMsg)
 	
 	relNorth := atof32(message[2])
 	relEast := atof32(message[3])

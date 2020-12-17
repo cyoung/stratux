@@ -202,7 +202,8 @@ type msg struct {
 }
 
 // Raw inputs.
-var MsgLog []msg
+var msgLog []msg
+var msgLogMutex sync.Mutex
 
 // Time gen_gdl90 was started.
 var timeStarted time.Time
@@ -837,15 +838,24 @@ func heartBeatSender() {
 	}
 }
 
+func msgLogAppend(m msg) {
+	msgLogMutex.Lock()
+	defer msgLogMutex.Unlock()
+	msgLog = append(msgLog, m)
+}
+
 func updateMessageStats() {
+	ADSBTowerMutex.Lock()
+	defer ADSBTowerMutex.Unlock()
+
+	msgLogMutex.Lock()
+	defer msgLogMutex.Unlock()
+
+	m := len(msgLog)
 	t := make([]msg, 0)
-	m := len(MsgLog)
 	UAT_messages_last_minute := uint(0)
 	ES_messages_last_minute := uint(0)
 	OGN_messages_last_minute := uint(0)
-
-	ADSBTowerMutex.Lock()
-	defer ADSBTowerMutex.Unlock()
 
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
@@ -855,39 +865,39 @@ func updateMessageStats() {
 	}
 
 	for i := 0; i < m; i++ {
-		if stratuxClock.Since(MsgLog[i].TimeReceived).Minutes() < 1 {
-			t = append(t, MsgLog[i])
-			if MsgLog[i].MessageClass == MSGCLASS_UAT {
+		if stratuxClock.Since(msgLog[i].TimeReceived).Minutes() < 1 {
+			t = append(t, msgLog[i])
+			if msgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
-					tid := MsgLog[i].ADSBTowerID
+				if len(msgLog[i].ADSBTowerID) > 0 { // Update tower stats.
+					tid := msgLog[i].ADSBTowerID
 
 					if _, ok := ADSBTowers[tid]; !ok { // First time we've seen the tower? Start tracking.
 						var newTower ADSBTower
-						newTower.Lat = MsgLog[i].uatMsg.Lat
-						newTower.Lng = MsgLog[i].uatMsg.Lon
+						newTower.Lat = msgLog[i].uatMsg.Lat
+						newTower.Lng = msgLog[i].uatMsg.Lon
 						newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
 						ADSBTowers[tid] = newTower
 					}
 
 					twr := ADSBTowers[tid]
-					twr.Signal_strength_now = MsgLog[i].Signal_strength
+					twr.Signal_strength_now = msgLog[i].Signal_strength
 
-					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
+					twr.Energy_last_minute += uint64((msgLog[i].Signal_amplitude) * (msgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
-					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
-						twr.Signal_strength_max = MsgLog[i].Signal_strength
+					if msgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
+						twr.Signal_strength_max = msgLog[i].Signal_strength
 					}
 					ADSBTowers[tid] = twr
 				}
-			} else if MsgLog[i].MessageClass == MSGCLASS_ES {
+			} else if msgLog[i].MessageClass == MSGCLASS_ES {
 				ES_messages_last_minute++
-			} else if MsgLog[i].MessageClass == MSGCLASS_OGN {
+			} else if msgLog[i].MessageClass == MSGCLASS_OGN {
 				OGN_messages_last_minute++
 			}
 		}
 	}
-	MsgLog = t
+	msgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
 	globalStatus.OGN_messages_last_minute = OGN_messages_last_minute
@@ -1128,7 +1138,7 @@ func parseInput(buf string) ([]byte, uint16) {
 		}
 	}
 
-	MsgLog = append(MsgLog, thisMsg)
+	msgLogAppend(thisMsg)
 	logMsg(thisMsg)
 
 	return frame, msgtype
@@ -1656,7 +1666,7 @@ func main() {
 
 	ADSBTowers = make(map[string]ADSBTower)
 	ADSBTowerMutex = &sync.Mutex{}
-	MsgLog = make([]msg, 0)
+	msgLog = make([]msg, 0)
 
 	// Start the management interface.
 	go managementInterface()

@@ -105,7 +105,7 @@ func ognListen() {
 			if msg.Sys == "status" {
 				importOgnStatusMessage(msg)
 			} else {
-				MsgLog = append(MsgLog, thisMsg)
+				msgLogAppend(thisMsg)
 				logMsg(thisMsg) // writes to replay logs
 				importOgnTrafficMessage(msg, buf)
 			}

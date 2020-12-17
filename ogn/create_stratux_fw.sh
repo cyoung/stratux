@@ -22,14 +22,16 @@ function enable {
     grep $opt -q main/config.h || echo "#define $opt" >> main/config.h # add option if it doesn't exist yet
 }
 
+
+
 ## Initial basic configuration
 disable WITH_FollowMe
 disable WITH_U8G2_OLED
 disable WITH_U8G2_SH1106
 disable WITH_U8G2_FLIP
 disable WITH_GPS_ENABLE
-disable WITH_GPS_PPS
 disable WITH_GPS_MTK
+# disable WITH_GPS_PPS // ?
 disable WITH_LORAWAN
 disable WITH_SD
 disable WITH_SDLOG
@@ -39,6 +41,7 @@ disable WITH_FANET # not ready yet
 enable WITH_GPS_UBX
 enable WITH_GPS_UBX_PASS
 enable WITH_GPS_NMEA_PASS
+enable WITH_BME280
 enable WITH_PAW
 
 
