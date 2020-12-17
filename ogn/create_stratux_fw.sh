@@ -33,6 +33,7 @@ disable WITH_GPS_MTK
 disable WITH_LORAWAN
 disable WITH_SD
 disable WITH_SDLOG
+disable FANET # not ready yet
 
 # ?? WITH_FANET, WITH_LORAWAN
 enable WITH_GPS_UBX
@@ -46,7 +47,7 @@ disable WITH_TBEAM_V10
 disable WITH_AXP
 enable WITH_TBEAM
 
-make -B -j16
+make -B -j16 > /dev/null
 source bin-arch.sh
 rm -r stratux
 mkdir stratux
@@ -62,7 +63,7 @@ disable WITH_TBEAM
 enable WITH_TBEAM_V10
 enable WITH_AXP
 
-make -B -j16
+make -B -j16 > /dev/null
 source bin-arch.sh
 mkdir stratux
 cd stratux
