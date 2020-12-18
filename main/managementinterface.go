@@ -640,8 +640,8 @@ func delayReboot() {
 }
 
 func handleDownloadLogRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename='stratux.log'")
+	//w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=stratux.log")
 	http.ServeFile(w, r, "/var/log/stratux.log")
 }
 
@@ -692,12 +692,12 @@ func handleDownloadAHRSLogsRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"ahrs_logs.zip\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=ahrs_logs.zip")
 }
 
 func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename='stratux.sqlite'")
+	//w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=stratux.sqlite")
 	http.ServeFile(w, r, "/var/log/stratux.sqlite")
 }
 
