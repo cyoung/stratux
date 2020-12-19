@@ -503,7 +503,7 @@ func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
 	if navrate == 10 {
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x00, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
 	} else if navrate == 5 {
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xC8, 0x00, 0x01, 0x00, 0x00, 0x00}))			// 200ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xC8, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 200ms & 1 cycle -> 5Hz (UBX-CFG-RATE payload bytes: little endian!)
 	}
 }
 
@@ -533,7 +533,7 @@ func configureOgnTracker() {
 	// we use standard NMEA info and disable most PUBX, because OGN Tracker needs that anyway and
 	// won't forward very long sentences as used for PUBX
 
-	writeUblox8ConfigCommands(10, serialPort)
+	writeUblox8ConfigCommands(5, serialPort)
 	writeUbloxGenericCommands(serialPort)
 
 	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
