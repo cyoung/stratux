@@ -240,6 +240,16 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 	}
 
+	function isSameAircraft(addr1, addrType1, addr2, addrType2) {
+		if (addr1 != addr2)
+			return false;
+		// Both aircraft have the same address and it is either an ICAO address for both,
+		// or a non-icao address for both.
+		// 1 = non-icao, everything else = icao
+		if ((addrType1 == 1 && addrType2 == 1) || (addrType1 != 1 && addrType2 != 1))
+			return true;
+	}
+
 	$scope.onMessage = function(msg) {
 		let aircraft = JSON.parse(msg.data);
 		if (!aircraft.Position_valid || aircraft.Age > TRAFFIC_MAX_AGE_SECONDS)
@@ -253,7 +263,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		let isActualUpdate = true;
 		let updateIndex = -1;
 		for (let i in $scope.aircraft) {
-			if ($scope.aircraft[i].Icao_addr == aircraft.Icao_addr) {
+			if (isSameAircraft($scope.aircraft[i].Icao_addr, $scope.aircraft[i].Addr_type, aircraft.Icao_addr, aircraft.Addr_type)) {
 				let oldAircraft = $scope.aircraft[i];
 				prevColor = getColorForAircraft(oldAircraft);
 				aircraft.marker = oldAircraft.marker;

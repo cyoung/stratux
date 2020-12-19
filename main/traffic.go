@@ -173,9 +173,9 @@ func convertMetersToFeet(meters float32) float32 {
 }
 
 func cleanupOldEntries() {
-	for icao_addr, ti := range traffic {
+	for key, ti := range traffic {
 		if stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 30 seconds, so we don't lose tail number, etc...
-			delete(traffic, icao_addr)
+			delete(traffic, key)
 		}
 	}
 }
@@ -302,7 +302,7 @@ func sendTrafficUpdates() {
 		log.Printf("List of all aircraft being tracked:\n")
 		log.Printf("==================================================================\n")
 	}
-	for icao, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
+	for key, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() && ti.Position_valid {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
 			dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
@@ -340,7 +340,7 @@ func sendTrafficUpdates() {
 			}
 			// end of debug block
 		}
-		traffic[icao] = ti // write the updated ti back to the map
+		traffic[key] = ti // write the updated ti back to the map
 		//log.Printf("Traffic age of %X is %f seconds\n",icao,ti.Age)
 		if ti.Age > 2 { // if nothing polls an inactive ti, it won't push to the webUI, and its Age won't update.
 			trafficUpdate.SendJSON(ti)
@@ -1346,13 +1346,13 @@ func trafficInfoExtrapolator() {
 	for {
 		time.Sleep(1 * time.Second)
 		trafficMutex.Lock()
-		for icao, ti := range traffic {
+		for key, ti := range traffic {
 			if ti.Age < 2 || !ti.Position_valid || !ti.Speed_valid {
 				continue
 			}
 			extrapolateTraffic(&ti)
 			//log.Printf("Extrapolating " + ti.Tail + " oldPos: %f,%f,%d, newPos: %f,%f,%d", ti.Lat_fix, ti.Lng_fix, ti.Alt_fix, ti.Lat, ti.Lng, ti.Alt)
-			traffic[icao] = ti
+			traffic[key] = ti
 		}
 		trafficMutex.Unlock()
 	}

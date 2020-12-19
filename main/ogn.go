@@ -134,6 +134,9 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	if msg.Addr_type == 1 { // ICAO Address
 		addrType = 0 
 	}
+	// Store in higher-order bytes in front of the 24 bit address so we can handle address collinsions gracefully.
+	// For ICAO it will be null, so traffic is merged. For others it will be 1, so traffic is kept seperately
+	key := uint32(addrType) << 24 | address 
 
 	// Basic plausibility check:
 	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
@@ -145,7 +148,7 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
 
-	if existingTi, ok := traffic[address]; ok {
+	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
 	}
 	ti.Icao_addr = address
@@ -238,9 +241,9 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 		}
 	}
 
-	traffic[ti.Icao_addr] = ti
+	traffic[key] = ti
 	registerTrafficUpdate(ti)
-	seenTraffic[ti.Icao_addr] = true
+	seenTraffic[key] = true
 
 	if globalSettings.DEBUG {
 		txt, _ := json.Marshal(ti)

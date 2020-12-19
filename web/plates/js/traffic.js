@@ -143,6 +143,17 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	}
 
 
+	function isSameAircraft(addr1, addrType1, addr2, addrType2) {
+		if (addr1 != addr2)
+			return false;
+		// Both aircraft have the same address and it is either an ICAO address for both,
+		// or a non-icao address for both.
+		// 1 = non-icao, everything else = icao
+		if ((addrType1 == 1 && addrType2 == 1) || (addrType1 != 1 && addrType2 != 1))
+			return true;
+	}
+
+
 	function connect($scope) {
 		if (($scope === undefined) || ($scope === null))
 			return; // we are getting called once after clicking away from the status page
@@ -186,7 +197,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 				var validIdx = -1;
 				var invalidIdx = -1;
 				for (var i = 0, len = $scope.data_list.length; i < len; i++) {
-					if ($scope.data_list[i].icao_int === message.Icao_addr) {
+					if (isSameAircraft($scope.data_list[i].icao_int, $scope.data_list[i].addr_type, message.Icao_addr, message.Addr_type)) {
 						setAircraft(message, $scope.data_list[i]);
 						validIdx = i;
 						break;
@@ -194,7 +205,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 				}
 				
 				for (var i = 0, len = $scope.data_list_invalid.length; i < len; i++) {
-					if ($scope.data_list_invalid[i].icao_int === message.Icao_addr) {
+					if (isSameAircraft($scope.data_list_invalid[i].icao_int, $scope.data_list_invalid[i].addr_type, message.Icao_addr, message.Addr_type)) {
 						setAircraft(message, $scope.data_list_invalid[i]);
 						invalidIdx = i;
 						break;

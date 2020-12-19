@@ -18,7 +18,7 @@ This repository offers code and binaries that can help you to build your own tra
 * Upgraded the RaspberryPi Debian system to the latest debian packages (RaspiOS Buster)
 * Hide Weather/Towers page if UAT is disabled
 * Added a special "Skydemon wonky GDL90 parser" workaround to reduce Skydemons constant detection of very short disconnects (see below)
-* Support for NMEA output (including PFLAA/PFLAUU traffic messages) via TCP Port 2000 and [serial](https://github.com/b3nn0/stratux/wiki/Stratux-Serial-output-for-EFIS's-that-support-GDL90-or-Flarm-NMEA-over-serial)
+* Support for NMEA output (including PFLAA/PFLAU traffic messages) via TCP Port 2000 and [serial](https://github.com/b3nn0/stratux/wiki/Stratux-Serial-output-for-EFIS's-that-support-GDL90-or-Flarm-NMEA-over-serial)
 * Estimation of Mode C/S target distance by signal strength, transmission of bearingless targets via NMEA and GDL90
 * Support for changing the Stratux's IP address
 * Possibility to enter multiple ownship transponder HEX codes, Stratux will automatically decide which of these are actually you. This is useful if you have multiple aircraft that you regularly fly with (e.g. add all club aircraft)

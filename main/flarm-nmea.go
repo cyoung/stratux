@@ -64,7 +64,7 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 		alarmType = 2
 	}
 
-	idstr := fmt.Sprintf("%.6X", ti.Icao_addr)
+	idstr := fmt.Sprintf("%.6X", ti.Icao_addr & 0xFFFFFF)
 	if len(ti.Tail) > 0 {
 		idstr += "!" + ti.Tail
 	}
@@ -207,7 +207,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 
-	idstr := fmt.Sprintf("%.6X", ti.Icao_addr)
+	idstr := fmt.Sprintf("%.6X", ti.Icao_addr & 0xFFFFFF)
 	if len(ti.Tail) > 0 {
 		idstr += "!" + ti.Tail
 	}
@@ -652,14 +652,20 @@ func parseFlarmPFLAU(message []string) {
 	var ti TrafficInfo
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
-
-	if existingTi, ok := traffic[address]; ok {
+	
+	// We don't know idType any more in PFLAU message.. just use anything we have.. Not optimal, but better than having multiple targets
+	key := address
+	existingTi, ok := traffic[key]
+	key = 1 << 24 | address
+	if !ok {
+		existingTi, ok = traffic[key]
+	}
+	if ok {
 		if existingTi.Last_source == TRAFFIC_SOURCE_1090ES && existingTi.Age < 5 {
 			// traffic has FLARM and 1090ES and was seen via 1090ES recently?
 			// -> ignore the flarm message. 1090ES has much less delay, so we prefer that.
 			return
 		}
-
 		ti = existingTi
 	}
 	ti.Icao_addr = address
@@ -687,13 +693,13 @@ func parseFlarmPFLAU(message []string) {
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_alt = stratuxClock.Time
 	// update traffic database
-	traffic[ti.Icao_addr] = ti
+	traffic[key] = ti
 
 	// notify
 	registerTrafficUpdate(ti)
 
 	// mark traffic as seen
-	seenTraffic[ti.Icao_addr] = true
+	seenTraffic[key] = true
 }
 
 func parseFlarmPFLAA(message []string) {
@@ -714,7 +720,7 @@ func parseFlarmPFLAA(message []string) {
 	relVert := atof32(message[4])
 
 	ognID, tail, address := getIdTail(message[6])
-	idType := message[5]
+	idType, _ := strconv.ParseInt(message[5], 10, 8)
 
 	track := atof32(message[7])
 	turn := atof32(message[8])
@@ -728,7 +734,8 @@ func parseFlarmPFLAA(message []string) {
 	defer trafficMutex.Unlock()
 	
 	// check if traffic is already known
-	if existingTi, ok := traffic[address]; ok {
+	key := uint32(idType) << 24 | address
+	if existingTi, ok := traffic[key]; ok {
 		if existingTi.Last_source == TRAFFIC_SOURCE_1090ES && existingTi.Age < 5 {
 			// traffic has FLARM and 1090ES and was seen via 1090ES recently?
 			// -> ignore the flarm message. 1090ES has much less delay, so we prefer that.
@@ -740,7 +747,7 @@ func parseFlarmPFLAA(message []string) {
 	ti.Icao_addr = address
 	// idType 1=ICAO, 2=Flarm ID, 3=anonymous ID. 0 is valid but not documented.
 	// For us: 0=ICAO, 1=Non ICAO
-	if idType == "1" {
+	if idType == 1 {
 		ti.Addr_type = 0
 	} else {
 		ti.Addr_type = 1
@@ -791,11 +798,11 @@ func parseFlarmPFLAA(message []string) {
 	}
 
 	// update traffic database
-	traffic[ti.Icao_addr] = ti
+	traffic[key] = ti
 
 	// notify
 	registerTrafficUpdate(ti)
 
 	// mark traffic as seen
-	seenTraffic[ti.Icao_addr] = true
+	seenTraffic[key] = true
 }
