@@ -138,6 +138,11 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	// For ICAO it will be null, so traffic is merged. For others it will be 1, so traffic is kept seperately
 	key := uint32(addrType) << 24 | address 
 
+	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
+	if msg.Lat_deg > 360 || msg.Lat_deg < -360 || msg.Lon_deg > 360 || msg.Lon_deg < -360 {
+		return
+	}
+
 	// Basic plausibility check:
 	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
 	if dist >= 50000  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
