@@ -31,7 +31,6 @@ disable WITH_U8G2_SH1106
 disable WITH_U8G2_FLIP
 disable WITH_GPS_ENABLE
 disable WITH_GPS_MTK
-# disable WITH_GPS_PPS // ?
 disable WITH_LORAWAN
 disable WITH_SD
 disable WITH_SDLOG
@@ -48,6 +47,7 @@ enable WITH_PAW
 # First build for old T-Beams
 disable WITH_TBEAM_V10
 disable WITH_AXP
+disable WITH_GPS_PPS
 enable WITH_TBEAM
 
 make -B -j16 > /dev/null
@@ -65,6 +65,7 @@ rm -r stratux
 disable WITH_TBEAM
 enable WITH_TBEAM_V10
 enable WITH_AXP
+enable WITH_GPS_PPS
 
 make -B -j16 > /dev/null
 source bin-arch.sh
