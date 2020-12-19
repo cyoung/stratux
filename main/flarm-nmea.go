@@ -158,7 +158,13 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 	var relativeNorth, relativeEast, relativeVertical, groundSpeed int32
 	var msg2 string
 
-	idType = 1
+	// Addr type "NON-ICAO" mapped to Flarm ID, rest mapped to ICAO.
+	// Especially SkyDemon is picky and only accepts NMEA messages with 0-2, but nothing else.
+	if ti.Addr_type == 1 {
+		idType = 2
+	} else {
+		idType = 1
+	}
 
 	// determine distance and bearing to target
 	dist, bearing, distN, distE := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
@@ -708,6 +714,7 @@ func parseFlarmPFLAA(message []string) {
 	relVert := atof32(message[4])
 
 	ognID, tail, address := getIdTail(message[6])
+	idType := message[5]
 
 	track := atof32(message[7])
 	turn := atof32(message[8])
@@ -731,6 +738,13 @@ func parseFlarmPFLAA(message []string) {
 		ti = existingTi
 	}
 	ti.Icao_addr = address
+	// idType 1=ICAO, 2=Flarm ID, 3=anonymous ID. 0 is valid but not documented.
+	// For us: 0=ICAO, 1=Non ICAO
+	if idType == "1" {
+		ti.Addr_type = 0
+	} else {
+		ti.Addr_type = 1
+	}
 	if len(ti.Tail) <= 3 {
 		if len(tail) != 0 {
 			// Tail provided via NMEA (IDIDID!TAIL syntax)

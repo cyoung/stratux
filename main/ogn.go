@@ -128,13 +128,19 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	addressBytes = append([]byte{0}, addressBytes...)
 	address := binary.BigEndian.Uint32(addressBytes)
 
+	// GDL90 only knows 2 address types. ICAO and non-ICAO, so we map to those.
+	// for OGN: 1=ICAO. For us: 0=ICAO, 1="ADS-B with Self-assigned address"
+	addrType := uint8(1) // Non-ICAO Address
+	if msg.Addr_type == 1 { // ICAO Address
+		addrType = 0 
+	}
+
 	// Basic plausibility check:
 	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
 	if dist >= 50000  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
 		// more than 50km away? Ignore. Most likely invalid data
 		return
 	}
-	
 
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
@@ -143,6 +149,7 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 		ti = existingTi
 	}
 	ti.Icao_addr = address
+	ti.Addr_type = addrType
 	if len(ti.Tail) == 0 {
 		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}

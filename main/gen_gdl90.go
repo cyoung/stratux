@@ -1662,7 +1662,7 @@ func main() {
 		log.SetOutput(mfp)
 
 		// Make sure crash dumps are written to the log as well
-		syscall.Dup2(int(fp.Fd()), 2)
+		syscall.Dup3(int(fp.Fd()), 2, 0)
 	}
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
