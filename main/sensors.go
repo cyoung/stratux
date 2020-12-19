@@ -25,8 +25,6 @@ const (
 	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
 	ICMREG_WHO_AM_I     = 0x00
 	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
-	BMXREG_WHO_AM_I     = 0x00
-	BMXREG_WHO_AM_I_VAL = 0xD8 // Expected value.
 )
 
 var (
@@ -142,11 +140,6 @@ func initIMU() (ok bool) {
 		log.Printf("Error identifying IMU: %s\n", err.Error())
 		return false
 	}
-	v3, err := i2cbus.ReadByteFromReg(0x68, BMXREG_WHO_AM_I)
-	if err != nil {
-		log.Printf("Error identifying IMU: %s\n", err.Error())
-		return false
-	}
 
 	if v == ICMREG_WHO_AM_I_VAL {
 		log.Println("ICM-20948 detected.")
@@ -162,15 +155,8 @@ func initIMU() (ok bool) {
 			myIMUReader = imu
 			return true
 		}
-	} else if v3 == BMXREG_WHO_AM_I_VAL {
-		log.Println("BMX-160 detected.")
-		imu, err := sensors.NewBMX160(&i2cbus)
-		if err == nil {
-			myIMUReader = imu
-			return true
-		}
 	} else {
-		log.Printf("Could not identify MPU. v=%02x, v2=%02x, v3=%02x.\n", v, v2, v3)
+		log.Printf("Could not identify MPU. v=%02x, v2=%02x.\n", v, v2)
 		return false
 	}
 
