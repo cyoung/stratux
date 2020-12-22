@@ -515,4 +515,21 @@ angular.module('appControllers')
                 ctrl.$parsers.push(gLimitsValidation);
             }
         };
+    })
+    .directive('pilotnameInput', function() {
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function pilotnameValidation(value) {
+                    var r = "^[0-9a-zA-Z_]*$";
+                    var valid = new RegExp(r).test(value);
+                    ctrl.$setValidity('pilotname', valid);
+                    if (valid)
+                        return value;
+                    else
+                        return "";
+                }
+                ctrl.$parsers.push(pilotnameValidation);
+            }
+        }
     });

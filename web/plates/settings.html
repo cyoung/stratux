@@ -84,7 +84,7 @@
                         <!-- Address Type -->
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Tracker Address Type</label>
-                            <select class="col-xs-7 custom-select" mode-input ng-model="OGNAddrType">
+                            <select class="col-xs-7 custom-select" ng-model="OGNAddrType">
                                 <option value="0" ng-selected="OGNAddrType=='0'">Random</option>
                                 <option value="1" ng-selected="OGNAddrType=='1'">ICAO</option>
                                 <option value="2" ng-selected="OGNAddrType=='2'">Flarm</option>
@@ -101,7 +101,7 @@
                         <!-- Aircraft Type -->
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Aircraft type</label>
-                            <select class="col-xs-7 custom-select" mode-input ng-model="OGNAcftType">
+                            <select class="col-xs-7 custom-select" ng-model="OGNAcftType">
                                 <option value="1" ng-selected="OGNAcftType=='1'">Glider/Motorglider</option>
                                 <option value="2" ng-selected="OGNAcftType=='2'">Tow plane</option>
                                 <option value="3" ng-selected="OGNAcftType=='3'">Helicopter</option>
@@ -123,7 +123,7 @@
                         <!-- Pilot name -->
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Pilot Name</label>
-                            <input class="col-xs-7" type="text" ng-model="OGNPilot" />
+                            <input class="col-xs-7" type="text" pilotname-input ng-model="OGNPilot" />
                         </div>
 
                         <div class="form-group reset-flow">
@@ -209,7 +209,7 @@
                     <form name="WiFiSettings">
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi Mode</label>
-                            <select class="custom-select" mode-input ng-model="WiFiMode"
+                            <select class="custom-select" ng-model="WiFiMode"
                                 ng-change="WiFiSecurityEnabled=(WiFiSecurityEnabled || WiFiMode=='1')">
                                 <option value="0" ng-selected="WiFiMode=='0'">AccessPoint</option>
                                 <option value="1" ng-selected="WiFiMode=='1'">WiFi-Direct</option>
@@ -315,7 +315,7 @@
                     <div class="form-group" ng-show="IMU_Sensor_Enabled">
                         <label class="control-label col-xs-7">Minimum fan duty cycle %</label>
                         <div class="col-xs-5">
-                            <form name="PWMDutyMin" ng-submit="updatePWMDutyMin()" novalidate>
+                            <form name="PWMDutyMinForm" ng-submit="updatePWMDutyMin()" novalidate>
                                 <!-- type="number" not supported except on mobile -->
                                 <input class="col-xs-7" type="number" ng-model="PWMDutyMin" placeholder="0-100" min="0" max="100"
                                        ng-change="updatePWMDutyMin()" />

@@ -526,7 +526,7 @@ func configureOgnTracker() {
 	}
 
 	gpsTimeOffsetPpsMs = 200 * time.Millisecond
-
+	serialPort.Write([]byte("$POGNS,NavRate=5\r\n")) // Also force NavRate directly, just to make sure it's always set
 	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
 
 	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config, but
@@ -2070,7 +2070,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if !ognTrackerConfigured {
 			ognTrackerConfigured = true
 			go func() {
-				time.Sleep(5 * time.Second)
+				time.Sleep(10 * time.Second)
 				configureOgnTracker()
 			}()
 		}
@@ -2079,6 +2079,11 @@ func processNMEALine(l string) (sentenceUsed bool) {
 	}
 
 	if x[0] == "POGNS" {
+		// Tracker notified us of restart (crashed?) -> ensure we configure it again
+		if len(x) == 2 && x[1] == "SysStart" {
+			ognTrackerConfigured = false
+			return true
+		}
 		// OGN tracker sent us its configuration
 		log.Printf("Received OGN Tracker configuration: " + strings.Join(x, ","))
 		for i := 1; i < len(x); i++ {
