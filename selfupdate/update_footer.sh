@@ -99,17 +99,17 @@ cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 # Interfaces file.
 cp -f interfaces.template /etc/network/interfaces.template
 
+# Install ogntracker firmware
+cp esp32-ogn-tracker-bin-*.zip /root/stratux/ogn/
+cp install-ogntracker-firmware-pi.sh /root/stratux/ogn/
+
+
 # Web files install.
 cd web/ && make stratuxBuild=${stratuxBuild}
 
 # Remove old Wi-Fi watcher script.
 rm -f /usr/sbin/wifi_watch.sh
 sed -i "/\bwifi_watch\b/d" /etc/rc.local
-
-
-# Install ogntracker firmware
-cp esp32-ogn-tracker-bin-*.zip /root/stratux/ogn/
-cp install-ogntracker-firmware-pi.sh /root/stratux/ogn/
 
 cd /
 rm -rf /root/stratux-update
