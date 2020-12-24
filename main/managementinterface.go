@@ -341,6 +341,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
+					case "AltitudeOffset":
+						globalSettings.AltitudeOffset = int(val.(float64))
 					case "RadarLimits":
 						globalSettings.RadarLimits = int(val.(float64))
 						radarUpdate.SendJSON(globalSettings)

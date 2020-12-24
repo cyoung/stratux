@@ -181,6 +181,14 @@
                         </form>
                     </div>
                     <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">P-Altitude Offset</label>
+                        <form name="altForm" ng-submit="updatealtitudeoffset()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <input class="col-xs-7" type="number" ng-model="AltitudeOffset" placeholder="integer"
+                                   ng-blur="updatealtitudeoffset()" />
+                        </form>
+                    </div>
+                    <div class="form-group reset-flow">
                         <label class="control-label col-xs-5">GDL90: Use MSL instead of HAE, please disable for ForeFlight and SkyDemon</label>
                         <div class="col-xs-5">
                             <ui-switch ng-model='GDL90MSLAlt_Enabled' settings-change></ui-switch>

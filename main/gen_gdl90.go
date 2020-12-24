@@ -1176,6 +1176,7 @@ type settings struct {
 	SensorQuaternion     [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	C, D                 [3]float64 // IMU Accel, Gyro zero bias
 	PPM                  int
+	AltitudeOffset       int
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
@@ -1299,6 +1300,7 @@ func defaultSettings() {
 
 	globalSettings.RadarLimits = 2000
 	globalSettings.RadarRange = 10
+	globalSettings.AltitudeOffset = 0
 
 	globalSettings.PWMDutyMin = 0
 }
