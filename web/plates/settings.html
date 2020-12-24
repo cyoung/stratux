@@ -180,8 +180,8 @@
                                    ng-blur="updatestaticips()" />
                         </form>
                     </div>
-                    <div class="form-group reset-flow">
-                        <label class="control-label col-xs-5">P-Altitude Offset</label>
+                    <div class="form-group reset-flow" ng-show="BMP_Sensor_Enabled">
+                        <label class="control-label col-xs-5">Pressure altitude Offset</label>
                         <form name="altForm" ng-submit="updatealtitudeoffset()" novalidate>
                             <!-- type="number" not supported except on mobile -->
                             <input class="col-xs-7" type="number" ng-model="AltitudeOffset" placeholder="integer"
