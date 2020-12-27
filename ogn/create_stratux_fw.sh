@@ -31,7 +31,6 @@ disable WITH_U8G2_SH1106
 disable WITH_U8G2_FLIP
 disable WITH_GPS_ENABLE
 disable WITH_GPS_MTK
-disable WITH_LORAWAN
 disable WITH_SD
 disable WITH_SDLOG
 disable WITH_FANET # not ready yet
@@ -42,6 +41,7 @@ enable WITH_GPS_UBX_PASS
 enable WITH_GPS_NMEA_PASS
 enable WITH_BME280
 enable WITH_PAW
+enable WITH_LORAWAN
 
 
 # First build for old T-Beams
