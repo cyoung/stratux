@@ -342,29 +342,6 @@ func initGPSSerial() bool {
 		}
 
 		writeUbloxGenericCommands(10, p)
-		// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
-		//                                       Class ID    DDC   UART1 UART2 USB   I2C   Res
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GGA - Global positioning system fix data
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GSV - GNSS Satellites in View
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // RMC - Recommended Minimum data
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VGT - Course over ground and Ground speed
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS - GNSS Satellite Fault Detection
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM - Datum Reference
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS - GNSS fix data
-		// p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW - Dual ground/water distance
-
-		// UBX-CFG-MSG (NMEA PUBX Messages)      msg   msg   Ports 1-6
-		//                                       Class ID    DDC   UART1 UART2 USB   I2C   Res
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // Ublox - Lat/Long Position Data
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // Ublox - Satellite Status
-		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x0A, 0x00, 0x0A, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
-
 
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
@@ -525,6 +502,23 @@ func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 	// UBX-CFG-SBAS (disable integrity, enable auto-scan)
 	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
+	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
+	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // GGA - Global positioning system fix data
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GSV - GNSS Satellites in View
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // RMC - Recommended Minimum data
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // VGT - Course over ground and Ground speed
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS - GNSS Satellite Fault Detection
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM - Datum Reference
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS - GNSS fix data
+	// p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW - Dual ground/water distance
+
 	if navrate == 10 {
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
 	} else if navrate == 5 {
@@ -534,6 +528,8 @@ func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 	} else if navrate == 1 {
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xE8, 0x03, 0x01, 0x00, 0x01, 0x00})) // 1000ms & 1 cycle -> 1Hz (UBX-CFG-RATE payload bytes: little endian!)
 	}
+
+
 }
 
 
@@ -547,34 +543,9 @@ func configureOgnTracker() {
 	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
 
 	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config, but
-	// we use standard NMEA info and disable most PUBX, because OGN Tracker needs that anyway and
-	// won't forward very long sentences as used for PUBX
 
 	writeUblox8ConfigCommands(serialPort)
 	writeUbloxGenericCommands(5, serialPort)
-
-	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
-	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // GGA - Global positioning system fix data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GLL - Latitude and longitude, with time of position fix and status
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x02, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GSA - GNSS DOP and Active Satellites
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x03, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GSV - GNSS Satellites in View
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // RMC - Recommended Minimum data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // VGT - Course over ground and Ground speed
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS - GNSS Satellite Fault Detection
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM - Datum Reference
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GNS - GNSS fix data
-	// p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ???
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // VLW - Dual ground/water distance
-
-	// UBX-CFG-MSG (NMEA PUBX Messages)      msg   msg   Ports 1-6
-	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox - Lat/Long Position Data
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox - Satellite Status
-	serialPort.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF1, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Ublox - Time of Day and Clock Information
 
 	serialPort.Flush()
 
@@ -767,99 +738,63 @@ func calcGPSAttitude() bool {
 */
 	halfwidth = calculateNavRate()
 
-	if (globalStatus.GPS_detected_type & 0xf0) == GPS_PROTOCOL_UBX { // UBX reports vertical speed, so we can just walk through all of the PUBX messages in order
-		// Speed and VV. Use all values in myGPSPerfStats; perform regression.
-		tempSpeedTime = make([]float64, length, length) // all are length of original slice
-		tempSpeed = make([]float64, length, length)
-		tempVV = make([]float64, length, length)
-		tempRegWeights = make([]float64, length, length)
+	//v_x = float64(myGPSPerfStats[index].gsf * 1.687810)
+	//v_z = 0
 
-		for i := 0; i < length; i++ {
-			tempSpeed[i] = float64(myGPSPerfStats[i].gsf)
-			tempVV[i] = float64(myGPSPerfStats[i].vv)
-			tempSpeedTime[i] = float64(myGPSPerfStats[i].nmeaTime)
-			tempRegWeights[i] = triCubeWeight(center, halfwidth, tempSpeedTime[i])
+	// first, parse groundspeed from RMC messages.
+	tempSpeedTime = make([]float64, 0)
+	tempSpeed = make([]float64, 0)
+	tempRegWeights = make([]float64, 0)
+
+	for i := 0; i < length; i++ {
+		if myGPSPerfStats[i].msgType == "GPRMC" || myGPSPerfStats[i].msgType == "GNRMC" {
+			tempSpeed = append(tempSpeed, float64(myGPSPerfStats[i].gsf))
+			tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
+			tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
 		}
-
-		// Groundspeed regression estimate.
+	}
+	lengthSpeed = len(tempSpeed)
+	if lengthSpeed == 0 {
+		log.Printf("GPS Attitude: No groundspeed data could be parsed from NMEA RMC messages\n")
+		return false
+	} else if lengthSpeed == 1 {
+		v_x = tempSpeed[0] * 1.687810
+	} else {
 		slope, intercept, valid = linRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
 		if !valid {
-			log.Printf("GPS attitude: Error calculating speed regression from UBX position messages")
+			log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
 			return false
 		} else {
 			v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
+			//log.Printf("Avg speed %f calculated from %d RMC messages\n", v_x, lengthSpeed) // DEBUG
 		}
+	}
 
-		// Vertical speed regression estimate.
-		slope, intercept, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
+	// next, calculate vertical velocity from GGA altitude data.
+	tempSpeedTime = make([]float64, 0)
+	tempVV = make([]float64, 0)
+	tempRegWeights = make([]float64, 0)
+
+	for i := 0; i < length; i++ {
+		if myGPSPerfStats[i].msgType == "GPGGA" || myGPSPerfStats[i].msgType == "GNGGA" {
+			tempVV = append(tempVV, float64(myGPSPerfStats[i].alt))
+			tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
+			tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
+		}
+	}
+	lengthSpeed = len(tempVV)
+	if lengthSpeed < 2 {
+		log.Printf("GPS Attitude: Not enough points to calculate vertical speed from NMEA GGA messages\n")
+		return false
+	} else {
+		slope, _, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
 		if !valid {
-			log.Printf("GPS attitude: Error calculating vertical speed regression from UBX position messages")
+			log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
 			return false
 		} else {
-			v_z = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) // units are feet per sec; no conversion needed
+			v_z = slope // units are feet/sec
+			//log.Printf("Avg VV %f calculated from %d GGA messages\n", v_z, lengthSpeed) // DEBUG
 		}
-
-	} else { // If we need to parse standard NMEA messages, determine if it's RMC or GGA, then fill the temporary slices accordingly. Need to pull from multiple message types since GGA doesn't do course or speed; VTG / RMC don't do altitude, etc. Grrr.
-
-		//v_x = float64(myGPSPerfStats[index].gsf * 1.687810)
-		//v_z = 0
-
-		// first, parse groundspeed from RMC messages.
-		tempSpeedTime = make([]float64, 0)
-		tempSpeed = make([]float64, 0)
-		tempRegWeights = make([]float64, 0)
-
-		for i := 0; i < length; i++ {
-			if myGPSPerfStats[i].msgType == "GPRMC" || myGPSPerfStats[i].msgType == "GNRMC" {
-				tempSpeed = append(tempSpeed, float64(myGPSPerfStats[i].gsf))
-				tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
-				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
-			}
-		}
-		lengthSpeed = len(tempSpeed)
-		if lengthSpeed == 0 {
-			log.Printf("GPS Attitude: No groundspeed data could be parsed from NMEA RMC messages\n")
-			return false
-		} else if lengthSpeed == 1 {
-			v_x = tempSpeed[0] * 1.687810
-		} else {
-			slope, intercept, valid = linRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
-			if !valid {
-				log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
-				return false
-			} else {
-				v_x = (slope*float64(myGPSPerfStats[index].nmeaTime) + intercept) * 1.687810 // units are knots, converted to feet/sec
-				//log.Printf("Avg speed %f calculated from %d RMC messages\n", v_x, lengthSpeed) // DEBUG
-			}
-		}
-
-		// next, calculate vertical velocity from GGA altitude data.
-		tempSpeedTime = make([]float64, 0)
-		tempVV = make([]float64, 0)
-		tempRegWeights = make([]float64, 0)
-
-		for i := 0; i < length; i++ {
-			if myGPSPerfStats[i].msgType == "GPGGA" || myGPSPerfStats[i].msgType == "GNGGA" {
-				tempVV = append(tempVV, float64(myGPSPerfStats[i].alt))
-				tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
-				tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
-			}
-		}
-		lengthSpeed = len(tempVV)
-		if lengthSpeed < 2 {
-			log.Printf("GPS Attitude: Not enough points to calculate vertical speed from NMEA GGA messages\n")
-			return false
-		} else {
-			slope, _, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
-			if !valid {
-				log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
-				return false
-			} else {
-				v_z = slope // units are feet/sec
-				//log.Printf("Avg VV %f calculated from %d GGA messages\n", v_z, lengthSpeed) // DEBUG
-			}
-		}
-
 	}
 
 	// If we're going too slow for processNMEALine() to give us valid heading data, there's no sense in trying to parse it.
@@ -1066,7 +1001,6 @@ func calculateNavRate() float64 {
 processNMEALine parses NMEA-0183 formatted strings against several message types.
 
 Standard messages supported: RMC GGA VTG GSA
-U-blox proprietary messages: PUBX,00 PUBX,03 PUBX,04
 
 return is false if errors occur during parse, or if GPS position is invalid
 return is true if parse occurs correctly and position is valid.
@@ -1102,393 +1036,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 	mySituation.GPSLastValidNMEAMessageTime = stratuxClock.Time
 	mySituation.GPSLastValidNMEAMessage = l
 
-	if x[0] == "PUBX" { // UBX proprietary message
-		if x[1] == "00" { // Position fix.
-			if len(x) < 20 {
-				return false
-			}
-
-			// set the global GPS type to UBX as soon as we see our first (valid length)
-			// PUBX,01 position message, even if we don't have a fix
-			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-				globalStatus.GPS_detected_type |= GPS_PROTOCOL_UBX
-				log.Printf("GPS detected: u-blox NMEA position message seen.\n")
-			}
-
-			thisGpsPerf.msgType = x[0] + x[1]
-
-			tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
-
-			// Do the accuracy / quality fields first to prevent invalid position etc. from being sent downstream
-			// field 8 = nav status
-			// DR = dead reckoning, G2= 2D GPS, G3 = 3D GPS, D2= 2D diff, D3 = 3D diff, RK = GPS+DR, TT = time only
-			if x[8] == "D2" || x[8] == "D3" {
-				tmpSituation.GPSFixQuality = 2
-			} else if x[8] == "G2" || x[8] == "G3" {
-				tmpSituation.GPSFixQuality = 1
-			} else if x[8] == "DR" || x[8] == "RK" {
-				tmpSituation.GPSFixQuality = 6
-			} else if x[8] == "NF" {
-				tmpSituation.GPSFixQuality = 0 // Just a note.
-				return false
-			} else {
-				tmpSituation.GPSFixQuality = 0 // Just a note.
-				return false
-			}
-
-			// field 9 = horizontal accuracy, m
-			hAcc, err := strconv.ParseFloat(x[9], 32)
-			if err != nil {
-				return false
-			}
-			tmpSituation.GPSHorizontalAccuracy = float32(hAcc * 2) // UBX reports 1-sigma variation; NACp is 95% confidence (2-sigma)
-
-			// NACp estimate.
-			tmpSituation.GPSNACp = calculateNACp(tmpSituation.GPSHorizontalAccuracy)
-
-			// field 10 = vertical accuracy, m
-			/*
-				vAcc, err := strconv.ParseFloat(x[10], 32)
-				if err != nil {
-					return false
-				}
-				tmpSituation.GPSVerticalAccuracy = float32(vAcc * 2) // UBX reports 1-sigma variation; we want 95% confidence
-			*/
-			tmpSituation.GPSVerticalAccuracy = float32(2.) * tmpSituation.GPSHorizontalAccuracy
-
-			// field 2 = time
-			if len(x[2]) < 8 {
-				return false
-			}
-			hr, err1 := strconv.Atoi(x[2][0:2])
-			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
-			if err1 != nil || err2 != nil || err3 != nil {
-				return false
-			}
-
-			tmpSituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-			thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
-
-			// field 3-4 = lat
-			if len(x[3]) < 10 {
-				return false
-			}
-
-			hr, err1 = strconv.Atoi(x[3][0:2])
-			minf, err2 := strconv.ParseFloat(x[3][2:], 32)
-			if err1 != nil || err2 != nil {
-				return false
-			}
-
-			tmpSituation.GPSLatitude = float32(hr) + float32(minf/60.0)
-			if x[4] == "S" { // South = negative.
-				tmpSituation.GPSLatitude = -tmpSituation.GPSLatitude
-			}
-
-			// field 5-6 = lon
-			if len(x[5]) < 11 {
-				return false
-			}
-			hr, err1 = strconv.Atoi(x[5][0:3])
-			minf, err2 = strconv.ParseFloat(x[5][3:], 32)
-			if err1 != nil || err2 != nil {
-				return false
-			}
-
-			tmpSituation.GPSLongitude = float32(hr) + float32(minf/60.0)
-			if x[6] == "W" { // West = negative.
-				tmpSituation.GPSLongitude = -tmpSituation.GPSLongitude
-			}
-
-			// field 7 = height above ellipsoid, m
-
-			hae, err1 := strconv.ParseFloat(x[7], 32)
-			if err1 != nil {
-				return false
-			}
-
-			// the next 'if' statement is a workaround for a ubx7 firmware bug:
-			// PUBX,00 reports HAE with a floor of zero (i.e. negative altitudes are set to zero). This causes GPS altitude to never read lower than -GPSGeoidSep,
-			// placing minimum GPS altitude at about +80' MSL over most of North America.
-			//
-			// This does not affect GGA messages, so we can just rely on GGA to set altitude in these cases. It's a slower (1 Hz vs 5 Hz / 10 Hz), less precise
-			// (0.1 vs 0.001 mm resolution) report, but in practice the accuracy never gets anywhere near this resolution, so this should be an acceptable tradeoff
-
-			if hae != 0 {
-				alt := float32(hae*3.28084) - tmpSituation.GPSGeoidSep        // convert to feet and offset by geoid separation
-				tmpSituation.GPSHeightAboveEllipsoid = float32(hae * 3.28084) // feet
-				tmpSituation.GPSAltitudeMSL = alt
-				thisGpsPerf.alt = alt
-			}
-
-			tmpSituation.GPSLastFixLocalTime = stratuxClock.Time
-
-			// field 11 = groundspeed, km/h
-			groundspeed, err := strconv.ParseFloat(x[11], 32)
-			if err != nil {
-				return false
-			}
-			groundspeed = groundspeed * 0.540003 // convert to knots
-			tmpSituation.GPSGroundSpeed = groundspeed
-			thisGpsPerf.gsf = float32(groundspeed)
-
-			// field 12 = track, deg
-			trueCourse := float32(0.0)
-			tc, err := strconv.ParseFloat(x[12], 32)
-			if err != nil {
-				return false
-			}
-			if groundspeed > 3 { //TODO: use average groundspeed over last n seconds to avoid random "jumps"
-				trueCourse = float32(tc)
-				setTrueCourse(uint16(groundspeed), tc)
-				tmpSituation.GPSTrueCourse = trueCourse
-				thisGpsPerf.coursef = float32(tc)
-			} else {
-				thisGpsPerf.coursef = -999.9 // regression will skip negative values
-				// Negligible movement. Don't update course, but do use the slow speed.
-				//TODO: use average course over last n seconds?
-			}
-			tmpSituation.GPSLastGroundTrackTime = stratuxClock.Time
-
-			// field 13 = vertical velocity, m/s
-			vv, err := strconv.ParseFloat(x[13], 32)
-			if err != nil {
-				return false
-			}
-			tmpSituation.GPSVerticalSpeed = float32(vv * -3.28084) // convert to ft/sec and positive = up
-			thisGpsPerf.vv = tmpSituation.GPSVerticalSpeed
-
-			// field 14 = age of diff corrections
-
-			// field 18 = number of satellites
-			sat, err1 := strconv.Atoi(x[18])
-			if err1 != nil {
-				return false
-			}
-			tmpSituation.GPSSatellites = uint16(sat) // this seems to be reliable. UBX,03 handles >12 satellites solutions correctly.
-
-			if globalSettings.DEBUG {
-				log.Printf("numSvs: %s navStat: %s HDOP: %s VDOP: %s TDOP: %s hAcc: %s m vAcc: %s m altRef: %s m", x[18], x[8], x[15], x[16], x[17], x[9], x[10], x[7])
-			}
-
-			// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
-			mySituation = tmpSituation
-			updateGPSPerf = true
-			if updateGPSPerf {
-				mySituation.muGPSPerformance.Lock()
-				myGPSPerfStats = append(myGPSPerfStats, thisGpsPerf)
-				lenGPSPerfStats := len(myGPSPerfStats)
-				//	log.Printf("GPSPerf array has %n elements. Contents are: %v\n",lenGPSPerfStats,myGPSPerfStats)
-				if lenGPSPerfStats > 299 { //30 seconds @ 10 Hz for UBX, 30 seconds @ 5 Hz for MTK or SIRF with 2x messages per 200 ms)
-					myGPSPerfStats = myGPSPerfStats[(lenGPSPerfStats - 299):] // remove the first n entries if more than 300 in the slice
-				}
-
-				mySituation.muGPSPerformance.Unlock()
-			}
-
-			return true
-		} else if x[1] == "03" { // satellite status message. Only the first 20 satellites will be reported in this message for UBX firmware older than v3.0. Order seems to be GPS, then SBAS, then GLONASS.
-
-			if len(x) < 3 { // malformed UBX,03 message that somehow passed checksum verification but is missing all of its fields
-				return false
-			}
-
-			// field 2 = number of satellites tracked
-			//satSeen := 0 // satellites seen (signal present)
-			satTracked, err := strconv.Atoi(x[2])
-			if err != nil {
-				return false
-			}
-
-			if globalSettings.DEBUG {
-				log.Printf("GPS PUBX,03 message with %d satellites is %d fields long. (Should be %d fields long)\n", satTracked, len(x), satTracked*6+3)
-			}
-
-			if len(x) < (satTracked*6 + 3) { // malformed UBX,03 message that somehow passed checksum verification but is missing some of its fields
-				if globalSettings.DEBUG {
-					log.Printf("GPS PUBX,03 message is missing fields\n")
-				}
-				return false
-			}
-
-			mySituation.GPSSatellitesTracked = uint16(satTracked) // requires UBX M8N firmware v3.01 or later to report > 20 satellites
-
-			// fields 3-8 are repeated block
-
-			var sv, elev, az, cno int
-			var svType uint8
-			var svStr string
-
-			/* Reference for constellation tracking
-			for i:= 0; i < satTracked; i++ {
-				x[3+6*i] // sv number
-				x[4+6*i] // status [ U | e | - ] indicates [U]sed in solution, [e]phemeris data only, [-] not used
-				x[5+6*i] // azimuth, deg, 0-359
-				x[6+6*i] // elevation, deg, 0-90
-				x[7+6*i] // signal strength dB-Hz
-				x[8+6*i] // lock time, sec, 0-64
-			}
-			*/
-
-			for i := 0; i < satTracked; i++ {
-				//field 3+6i is sv number. GPS NMEA = PRN. GLONASS NMEA = PRN + 65. SBAS is PRN; needs to be converted to NMEA for compatiblity with GSV messages.
-				sv, err = strconv.Atoi(x[3+6*i]) // sv number
-				if err != nil {
-					return false
-				}
-				if sv <= 32 {
-					svType = SAT_TYPE_GPS
-					svStr = fmt.Sprintf("G%d", sv)
-				} else if sv <= 64 {
-					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv-32)
-				} else if sv <= 96 {
-					svType = SAT_TYPE_GLONASS
-					svStr = fmt.Sprintf("R%d", sv-64)
-				} else if (sv >= 120) && (sv <= 158) {
-					svType = SAT_TYPE_SBAS
-					svStr = fmt.Sprintf("S%d", sv)
-				} else if sv <= 163 {
-					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv-126)
-				} else if sv <= 193 {
-					svType = SAT_TYPE_QZSS
-					svStr = fmt.Sprintf("Q%d", sv-192)
-				} else if sv >= 211 {
-					svType = SAT_TYPE_GALILEO
-					svStr = fmt.Sprintf("E%d", sv-210)
-				} else {
-					svType = SAT_TYPE_UNKNOWN
-					svStr = fmt.Sprintf("U%d", sv)
-				}
-
-				var thisSatellite SatelliteInfo
-
-				// START OF PROTECTED BLOCK
-				mySituation.muSatellite.Lock()
-
-				// Retrieve previous information on this satellite code.
-				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
-					thisSatellite = val
-					//log.Printf("UBX,03: Satellite %s already seen. Retrieving from 'Satellites'.\n", svStr) // DEBUG
-				} else { // this satellite isn't in the Satellites data structure
-					thisSatellite.SatelliteID = svStr
-					thisSatellite.SatelliteNMEA = uint8(sv)
-					thisSatellite.Type = uint8(svType)
-					//log.Printf("UBX,03: Creating new satellite %s\n", svStr) // DEBUG
-				}
-				thisSatellite.TimeLastTracked = stratuxClock.Time
-
-				// Field 6+6*i is elevation, deg, 0-90
-				elev, err = strconv.Atoi(x[6+6*i]) // elevation
-				if err != nil {                    // could be blank if no position fix. Represent as -999.
-					elev = -999
-				}
-				thisSatellite.Elevation = int16(elev)
-
-				// Field 5+6*i is azimuth, deg, 0-359
-				az, err = strconv.Atoi(x[5+6*i]) // azimuth
-				if err != nil {                  // could be blank if no position fix. Represent as -999.
-					az = -999
-				}
-				thisSatellite.Azimuth = int16(az)
-
-				// Field 7+6*i is signal strength dB-Hz
-				cno, err = strconv.Atoi(x[7+6*i]) // signal
-				if err != nil {                   // will be blank if satellite isn't being received. Represent as -99.
-					cno = -99
-				} else if cno > 0 {
-					thisSatellite.TimeLastSeen = stratuxClock.Time // Is this needed?
-				}
-				thisSatellite.Signal = int8(cno)
-
-				// Field 4+6*i is status: [ U | e | - ]: [U]sed in solution, [e]phemeris data only, [-] not used
-				if x[4+6*i] == "U" {
-					thisSatellite.InSolution = true
-					thisSatellite.TimeLastSolution = stratuxClock.Time
-				} else if x[4+6*i] == "e" {
-					thisSatellite.InSolution = false
-					//log.Printf("Satellite %s is no longer in solution but has ephemeris - UBX,03\n", svStr) // DEBUG
-					// do anything that needs to be done for ephemeris
-				} else {
-					thisSatellite.InSolution = false
-					//log.Printf("Satellite %s is no longer in solution and has no ephemeris - UBX,03\n", svStr) // DEBUG
-				}
-
-				//if globalSettings.DEBUG {
-				//	inSolnStr := " "
-				//	if thisSatellite.InSolution {
-				//		inSolnStr = "+"
-				//	}
-				//	log.Printf("UBX: Satellite %s%s at index %d. Type = %d, NMEA-ID = %d, Elev = %d, Azimuth = %d, Cno = %d\n", inSolnStr, svStr, i, svType, sv, elev, az, cno) // remove later?
-				//}
-
-				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
-				updateConstellation()
-				mySituation.muSatellite.Unlock()
-				// END OF PROTECTED BLOCK
-
-				// end of satellite iteration loop
-			}
-
-			return true
-		} else if x[1] == "04" { // clock message
-			// field 5 is UTC week (epoch = 1980-JAN-06). If this is invalid, do not parse date / time
-			utcWeek, err0 := strconv.Atoi(x[5])
-			if err0 != nil {
-				// log.Printf("Error reading GPS week\n")
-				return false
-			}
-			if utcWeek < 1877 || utcWeek >= 32767 { // unless we're in a flying Delorean, UTC dates before 2016-JAN-01 are not valid. Check underflow condition as well.
-				if globalSettings.DEBUG {
-					log.Printf("GPS week # %v out of scope; not setting time and date\n", utcWeek)
-				}
-				return false
-			}
-
-			// field 2 is UTC time
-			if len(x[2]) < 7 {
-				return false
-			}
-			hr, err1 := strconv.Atoi(x[2][0:2])
-			min, err2 := strconv.Atoi(x[2][2:4])
-			sec, err3 := strconv.ParseFloat(x[2][4:], 32)
-			if err1 != nil || err2 != nil || err3 != nil {
-				return false
-			}
-
-			// field 3 is date
-
-			if len(x[3]) == 6 {
-				// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
-				gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[3], hr, min, sec)
-				gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
-				gpsTime = gpsTime.Add(gpsTimeOffsetPpsMs) // rough estimate for PPS offset
-				if err == nil {
-					// We only update ANY of the times if all of the time parsing is complete.
-					mySituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
-					mySituation.GPSTime = gpsTime
-					stratuxClock.SetRealTimeReference(gpsTime)
-					mySituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-					// log.Printf("GPS time is: %s\n", gpsTime) //debug
-					if time.Since(gpsTime) > 200*time.Millisecond || time.Since(gpsTime) < -200*time.Millisecond {
-						setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
-						log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
-						if err := exec.Command("date", "-s", setStr).Run(); err != nil {
-							log.Printf("Set Date failure: %s error\n", err)
-						} else {
-							log.Printf("Time set from GPS. Current time is %v\n", time.Now())
-						}
-					}
-					setDataLogTimeWithGPS(mySituation)
-					return true // All possible successes lead here.
-				}
-			}
-		}
-
-		// otherwise parse the NMEA standard messages as a compatibility option for SIRF, generic NMEA, etc.
-	} else if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
+	if (x[0] == "GNVTG") || (x[0] == "GPVTG") { // Ground track information.
 		tmpSituation := mySituation // If we decide to not use the data in this message, then don't make incomplete changes in mySituation.
 		if len(x) < 9 {             // Reduce from 10 to 9 to allow parsing by devices pre-NMEA v2.3
 			return false
@@ -1550,9 +1098,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 
 		tmpSituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
-		}
+		thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
 
 		// Latitude.
 		if len(x[2]) < 4 {
@@ -1591,12 +1137,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSAltitudeMSL = float32(alt * 3.28084) // Convert to feet.
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			thisGpsPerf.alt = float32(tmpSituation.GPSAltitudeMSL)
-		}
+		thisGpsPerf.alt = float32(tmpSituation.GPSAltitudeMSL)
 
 		// Geoid separation (Sep = HAE - MSL)
-		// (needed for proper MSL offset on PUBX,00 altitudes)
 
 		geoidSep, err1 := strconv.ParseFloat(x[11], 32)
 		if err1 != nil {
@@ -1608,10 +1151,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// Timestamp.
 		tmpSituation.GPSLastFixLocalTime = stratuxClock.Time
 
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			updateGPSPerf = true
-			thisGpsPerf.msgType = x[0]
-		}
+		updateGPSPerf = true
+		thisGpsPerf.msgType = x[0]
 
 		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
 		mySituation = tmpSituation
@@ -1672,9 +1213,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSLastFixSinceMidnightUTC = float32(3600*hr+60*min) + float32(sec)
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
-		}
+		thisGpsPerf.nmeaTime = tmpSituation.GPSLastFixSinceMidnightUTC
 
 		if len(x[9]) == 6 {
 			// Date of Fix, i.e 191115 =  19 November 2015 UTC  field 9
@@ -1732,9 +1271,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			return false
 		}
 		tmpSituation.GPSGroundSpeed = groundspeed
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			thisGpsPerf.gsf = float32(groundspeed)
-		}
+		thisGpsPerf.gsf = float32(groundspeed)
 
 		// ground track "True" (field 8)
 		trueCourse := float32(0)
@@ -1746,20 +1283,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			trueCourse = float32(tc)
 			setTrueCourse(uint16(groundspeed), tc)
 			tmpSituation.GPSTrueCourse = trueCourse
-			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-				thisGpsPerf.coursef = float32(tc)
-			}
+			thisGpsPerf.coursef = float32(tc)
 		} else {
-			if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-				thisGpsPerf.coursef = -999.9
-			}
+			thisGpsPerf.coursef = -999.9
 			// Negligible movement. Don't update course, but do use the slow speed.
 			//TODO: use average course over last n seconds?
 		}
-		if (globalStatus.GPS_detected_type & 0xf0) != GPS_PROTOCOL_UBX {
-			updateGPSPerf = true
-			thisGpsPerf.msgType = x[0]
-		}
+		updateGPSPerf = true
+		thisGpsPerf.msgType = x[0]
 		tmpSituation.GPSLastGroundTrackTime = stratuxClock.Time
 
 		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.

@@ -124,9 +124,6 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				case 1:
 					tempGpsProtocolString = "NMEA protocol";
 					break;
-				case 3:
-					tempGpsProtocolString = "NMEA-UBX protocol";
-					break;
 				default:
 					tempGpsProtocolString = "Not communicating";
 			}
