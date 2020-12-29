@@ -19,8 +19,8 @@ order: 3
 * [Pre-programmed SD Card](https://amzn.to/2FsorkV).
 * [White ABS Case](https://www.amazon.ca/dp/B072ND582W).
 
-* [GPS Internal](https://amzn.to/2N0dhrK)
-* [Removable External GPS Puck](https://amzn.to/3hqjawv)
+* [GPS Internal](https://amzn.to/2N0dhrK).
+* [Removable External GPS Puck](https://amzn.to/3hqjawv).
 * [GPS External](https://amzn.to/36vcKps).
 
 * [Slim Battery with Built in Wall Plug and Micro USB](https://amzn.to/3aPGtys).
