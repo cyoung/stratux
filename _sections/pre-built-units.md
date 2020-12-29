@@ -1,7 +1,7 @@
 ---
 title: Pre-Built Units
 icon: fa-fighter-jet
-order: 4
+order: 3
 ---
 1. [Crew Dog Electronics - Internal GPS](https://amzn.to/34PRxYx).
 2. [Crew Dog Electronics - External GPS](https://amzn.to/3mPv2ZW).

@@ -1,7 +1,7 @@
 ---
-title: Parts List
+title: DIY Kits and Parts
 icon: fa-check
-order: 3
+order: 4
 ---
 1. [Full Kit - Normal Antennas](https://amzn.to/3hqf9bp).
 2. [Full Kit - Large Antennas](https://amzn.to/3nWoMRf).
