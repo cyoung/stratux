@@ -4,6 +4,7 @@ icon: fa-fighter-jet
 order: 4
 ---
 
-1. [Stratux Aviation Weather & Traffic ADS-B Receiver - Dual Band with WAAS GPS & Battery Pack - Track Planes & Weather Live!](https://amzn.to/2Fo5qzR).
-2. [Everlast Concepts LLC](https://amzn.to/2FoEbFk).
-3. [OpenFlightSolutions FB1X](https://store.openflightsolutions.com/collections/flightbox-ads-b/products/flightbox-ads-b).
+1. [Crew Dog Electronics - Internal GPS](https://amzn.to/34PRxYx).
+2. [Crew Dog Electronics - External GPS](https://amzn.to/3mPv2ZW).
+3. [Crew Dog Electronics - Unit Only](https://amzn.to/3mTxQ8s).
+3. [OpenFlightSolutions - FlightBox](https://store.openflightsolutions.com/collections/flightbox-ads-b/products/flightbox-ads-b).
