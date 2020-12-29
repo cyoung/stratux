@@ -3,27 +3,41 @@ title: Parts List
 icon: fa-check
 order: 3
 ---
+1. [Full Kit - Normal Antennas](https://amzn.to/3hqf9bp).
+2. [Full Kit - Large Antennas](https://amzn.to/3nWoMRf).
+3. [Full Kit - External GPS Puck](https://amzn.to/2JpamKu).
+4. [Full Kit - All Accessories Included) and High Gain Antennas](https://amzn.to/3aTszv5).
+5. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
+6. [Full Kit - FLARM for Europe](https://www.amazon.de/BL1-Stratux-Bausatz-Selbstmontage-ohne/dp/B08BS4MP22/).
 
+## Replacement Parts and Accessories
 
-## Dual Band
+* [Stratux 1090ES &amp; UAT - Radios (Low Power) and High Gain Antennas](https://amzn.to/36wQFqv).
+* [UAT Radio](https://amzn.to/3ryTn9Z).
+* [Raspberry Pi 3B Motherboard](https://amzn.to/2ZKzAGT). **NOTE**: The 3B+ will **not** work.
+* [AHRS 2.0 and Fan Controller](https://amzn.to/39Kemxs).
+* [Pre-programmed SD Card](https://amzn.to/2FsorkV).
+* [White ABS Case](https://www.amazon.ca/dp/B072ND582W).
 
-1. [Raspberry Pi 3B Motherboard](https://amzn.to/2ZKzAGT). **NOTE**: The 3B+ will **not** work.
-2. [Pre-programmed SD card with Stratux software](https://amzn.to/2FsorkV).
-3. [Stratux 1090ES &amp; UAT - Radios (Low Power v2+v3) and High Gain Antennas](https://amzn.to/36wQFqv).
-4. [Stratux Case with Fan, White ABS](https://amzn.to/2tw2uif).
-5. [Slim battery with cable](https://amzn.to/2N0rXai).
-6. GPS (optional without AHRS or required with AHRS): [GPYes/internal](https://amzn.to/2N0dhrK) or [Vk-162/external](https://amzn.to/36vcKps).
-7. AHRS (optional): [Stratux AHRS Sensors and Fan Controller / Raspberry Pi MPU9250+BMP280](https://amzn.to/39Kemxs).
-8. Window Mount (optional): [Stratux Case Suction Mount](https://amzn.to/37R6Sav).
+* [GPS Internal](https://amzn.to/2N0dhrK)
+* [Removable External GPS Puck](https://amzn.to/3hqjawv)
+* [GPS External](https://amzn.to/36vcKps).
 
-## Parts in Canada
+* [Slim Battery with Built in Wall Plug and Micro USB](https://amzn.to/3aPGtys).
+* [High Capacity Battery Pack](https://amzn.to/2Js2KHl).
+* [USB Power Switch](https://amzn.to/34N9eYE).
+* [USB Cables with 90 Degree Connection](https://amzn.to/3mTJ78v).
+* [USB Car Charger with Digital Volt Display](https://amzn.to/3aOIMSh).
+* [Rubberized Battery Strap](https://amzn.to/2WRGDgp).
 
-1. [Complete Stratux kit (w. Raspberry Pi)](https://www.amazon.ca/dp/B01MY5MFK1).
-2. [Complete Stratux kit (no Raspberry Pi)](https://www.amazon.ca/dp/B01N4LEDD1).
-3. [Injection molded case](https://www.amazon.ca/dp/B072ND582W).
-4. [Low power radios](https://www.amazon.ca/dp/B01M7NMWCD).
-5. [Vk-162 GPS](https://www.amazon.ca/dp/B01EROIUEW).
-6. [Pre-programmed SD card](https://www.amazon.ca/dp/B01I0G15YU).
-7. [GPYes](https://www.amazon.ca/dp/B0716BK5NT).
-8. [AHRS sensor board](https://www.amazon.ca/dp/B06ZZCHBHT).
-9. [Serial output adapter](https://www.amazon.ca/dp/B01N7RNFRJ).
+* [Suction Mount](https://amzn.to/37R6Sav).
+* [Suction Cup Replacements](https://amzn.to/2KHlLpL).
+* [Carrying Case](https://amzn.to/3hBv4DT).
+* [Red LED Pen with Stylus](https://amzn.to/3hBv6M1).
+
+* [Compact 3dBi Antennas](https://amzn.to/3hqwlgI).
+* [Large 5dBi Antennas](https://amzn.to/3hsM6UC).
+
+* [Serial Adapter](https://amzn.to/3nY3L8S).
+* [Splitter and Saw Filter](https://amzn.to/38IFkpB).
+* [Fan and Heat Sinks](https://amzn.to/34Q0XDn).
