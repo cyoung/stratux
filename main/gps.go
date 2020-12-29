@@ -317,39 +317,31 @@ func initGPSSerial() bool {
 				log.Printf("ublox 9 detected\n")
 			}
 			// ublox 9
-			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS off
-			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+			writeUblox9ConfigCommands(p)		
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
 			if globalSettings.DEBUG {
 				log.Printf("ublox 8 detected\n")
 			}
-			// There are Ublox8 chips that only support GPS+GLO, so we first enable these to hopefully get an ACK
-			// Then we do the same with GAL and get an NACK for those chips, but ACK for the ones that support GAL as well
-			writeUblox8ConfigCommands(10, p)
+			// ublox 8
+			writeUblox8ConfigCommands(p)
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
 			if globalSettings.DEBUG {
 				log.Printf("ublox 6 or 7 detected\n")
 			}
 			// ublox 6,7
-			cfgGnss := []byte{0x00, 0x20, 0x20, 0x06}
-			gps := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01}		// enable GPS with 8-16 tracking channels
-			sbas := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01}		// enable SBAS with 2-3 tracking channels
-			beidou := []byte{0x03, 0x00, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01}	// disable BEIDOU
-			qzss := []byte{0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01}		// disable QZSS
-			glonass := []byte{0x06, 0x04, 0x0E, 0x00, 0x00, 0x00, 0x01, 0x01}	// disable GLONASS
-			galileo := []byte{0x02, 0x04, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01}	// disable Galileo
+			cfgGnss := []byte{0x00, 0x00, 0xFF, 0x04} // numTrkChUse=0xFF: number of tracking channels to use will be set to number of tracking channels available in hardware
+			gps     := []byte{0x00, 0x04, 0xFF, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 4-255 channels (ublox default)
+			sbas    := []byte{0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 1-3 channels (ublox default)
+			qzss    := []byte{0x05, 0x00, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS with 0-3 channel (ublox default)
+			glonass := []byte{0x06, 0x08, 0xFF, 0x00, 0x00, 0x00, 0x01, 0x01} // disable GLONASS (ublox default)
 			cfgGnss = append(cfgGnss, gps...)
 			cfgGnss = append(cfgGnss, sbas...)
-			cfgGnss = append(cfgGnss, beidou...)
 			cfgGnss = append(cfgGnss, qzss...)
 			cfgGnss = append(cfgGnss, glonass...)
-			cfgGnss = append(cfgGnss, galileo...)
 			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
-			p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))	// SBAS on & Auto Mode
-			p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
 		}
 
-		writeUbloxGenericCommands(p)
+		writeUbloxGenericCommands(10, p)
 		// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
 		//                                       Class ID    DDC   UART1 UART2 USB   I2C   Res
 		p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00})) // GGA - Global positioning system fix data
@@ -480,7 +472,7 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 }
 
 // Navrate only supports "5" or "10" for now
-func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
+func writeUblox8ConfigCommands(p *serial.Port) {
 	cfgGnss := []byte{0x00, 0x00, 0x20, 0x05}
 	gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 tracking channels
 	sbas    := []byte{0x01, 0x02, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 1-3 channels
@@ -499,15 +491,27 @@ func writeUblox8ConfigCommands(navrate uint16, p *serial.Port) {
 	cfgGnss[3] = 0x06
 	cfgGnss = append(cfgGnss, galileo...)
 	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss)) // Succeeds only on chips that support GPS+GLO+GAL
-
-	if navrate == 10 {
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
-	} else if navrate == 5 {
-		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xC8, 0x00, 0x01, 0x00, 0x01, 0x00}))			// 200ms & 1 cycle -> 5Hz (UBX-CFG-RATE payload bytes: little endian!)
-	}
 }
 
-func writeUbloxGenericCommands(p *serial.Port) {
+func writeUblox9ConfigCommands(p *serial.Port) {
+	cfgGnss := []byte{0x00, 0x00, 0xFF, 0x06} // numTrkChUse=0xFF: number of tracking channels to use will be set to number of tracking channels available in hardware
+	gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 channels (ublox default)
+	sbas    := []byte{0x01, 0x03, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 3-3 channels (ublox default)
+	galileo := []byte{0x02, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 8-16 channels (ublox default: 8-12 channels)
+	beidou  := []byte{0x03, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable BEIDOU with 8-16 channels (ublox default: 2-5 channels)
+	qzss    := []byte{0x05, 0x03, 0x04, 0x00, 0x01, 0x00, 0x05, 0x01} // enable QZSS 3-4 channels, L1C/A & L1S (ublox default)
+	glonass := []byte{0x06, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-16 tracking channels (ublox default: 8-12 channels)
+	
+	cfgGnss = append(cfgGnss, gps...)
+	cfgGnss = append(cfgGnss, sbas...)
+	cfgGnss = append(cfgGnss, beidou...)
+	cfgGnss = append(cfgGnss, qzss...)
+	cfgGnss = append(cfgGnss, glonass...)
+	cfgGnss = append(cfgGnss, galileo...)
+	p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
+}
+
+func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 	// UBX-CFG-NMEA (change NMEA protocol version to 4.0 extended)
 	p.Write(makeUBXCFG(0x06, 0x17, 20, []byte{0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
 
@@ -517,6 +521,19 @@ func writeUbloxGenericCommands(p *serial.Port) {
 
 	// UBX-CFG-NAV5                           |mask1...|  dyn
 	p.Write(makeUBXCFG(0x06, 0x24, 36, []byte{0x01, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Dynamic platform model: airborne with <2g acceleration
+
+	// UBX-CFG-SBAS (disable integrity, enable auto-scan)
+	p.Write(makeUBXCFG(0x06, 0x16, 8, []byte{0x01, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}))
+
+	if navrate == 10 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0x64, 0x00, 0x01, 0x00, 0x01, 0x00})) // 100ms & 1 cycle -> 10Hz (UBX-CFG-RATE payload bytes: little endian!)
+	} else if navrate == 5 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xC8, 0x00, 0x01, 0x00, 0x01, 0x00})) // 200ms & 1 cycle -> 5Hz (UBX-CFG-RATE payload bytes: little endian!)
+	} else if navrate == 2 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xF4, 0x01, 0x01, 0x00, 0x01, 0x00})) // 500ms & 1 cycle -> 2Hz (UBX-CFG-RATE payload bytes: little endian!)
+	} else if navrate == 1 {
+		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xE8, 0x03, 0x01, 0x00, 0x01, 0x00})) // 1000ms & 1 cycle -> 1Hz (UBX-CFG-RATE payload bytes: little endian!)
+	}
 }
 
 
@@ -533,8 +550,8 @@ func configureOgnTracker() {
 	// we use standard NMEA info and disable most PUBX, because OGN Tracker needs that anyway and
 	// won't forward very long sentences as used for PUBX
 
-	writeUblox8ConfigCommands(5, serialPort)
-	writeUbloxGenericCommands(serialPort)
+	writeUblox8ConfigCommands(serialPort)
+	writeUbloxGenericCommands(5, serialPort)
 
 	// UBX-CFG-MSG (NMEA Standard Messages)  msg   msg   Ports 1-6 (every 10th message over UART1, every message over USB)
 	//                                                Class ID    DDC   UART1 UART2 USB   I2C   Res
@@ -1866,10 +1883,18 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		if err1 != nil {
 			return false
 		}
-		if tmpSituation.GPSFixQuality == 2 {
-			tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) // Rough 95% confidence estimate for WAAS / DGPS solution
-		} else {
-			tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0) // Rough 95% confidence estimate for 3D non-WAAS solution
+		if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
+			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {			
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9
+			} else {
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
+			}
+		} else { // Rough 95% confidence estimate non-SBAS solution
+			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9
+			} else {
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
+			}
 		}
 
 		// NACp estimate.
