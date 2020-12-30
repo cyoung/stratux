@@ -1338,16 +1338,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		// fields 3-14: satellites in solution
 		var svStr string
 		var svType uint8
-		var svSBAS bool    // used to indicate whether this GSA message contains a SBAS satellite
-		var svGLONASS bool // used to indicate whether this GSA message contains GLONASS satellites
-		var svGalileo bool // used to indicate whether this GSA message contains Galileo satellites
-		sat := 0
+
+		// START OF PROTECTED BLOCK
+		mySituation.muSatellite.Lock()
 
 		for _, svtxt := range x[3:15] {
 			sv, err := strconv.Atoi(svtxt)
 			if err == nil {
-				sat++
-
 				if sv <= 32 {
 					svType = SAT_TYPE_GPS
 					svStr = fmt.Sprintf("G%d", sv)		// GPS 1-32
@@ -1376,9 +1373,6 @@ func processNMEALine(l string) (sentenceUsed bool) {
 
 				var thisSatellite SatelliteInfo
 
-				// START OF PROTECTED BLOCK
-				mySituation.muSatellite.Lock()
-
 				// Retrieve previous information on this satellite code.
 				if val, ok := Satellites[svStr]; ok { // if we've already seen this satellite identifier, copy it in to do updates
 					thisSatellite = val
@@ -1395,18 +1389,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				thisSatellite.TimeLastTracked = stratuxClock.Time // implied, since this satellite is used in the position solution
 
 				Satellites[thisSatellite.SatelliteID] = thisSatellite // Update constellation with this satellite
-				updateConstellation()
-				mySituation.muSatellite.Unlock()
-				// END OF PROTECTED BLOCK
-
 			}
 		}
-		if tmpSituation.GPSSatellites < 13 { // GSA only reports up to 12 satellites in solution, so we don't want to overwrite higher counts based on updateConstellation().
-			tmpSituation.GPSSatellites = uint16(sat)
-			if (tmpSituation.GPSFixQuality == 2) && !svSBAS && !svGLONASS && !svGalileo { // add one to the satellite count if we have a SBAS solution, but the GSA message doesn't track a SBAS satellite
-				tmpSituation.GPSSatellites++
-			}
-		}
+		updateConstellation()
+		tmpSituation.GPSSatellites = mySituation.GPSSatellites
+		tmpSituation.GPSSatellitesTracked = mySituation.GPSSatellitesTracked
+		tmpSituation.GPSSatellitesSeen = mySituation.GPSSatellitesSeen
+		mySituation.muSatellite.Unlock()
+		// END OF PROTECTED BLOCK
 
 		// field 16: HDOP
 		// Accuracy estimate
