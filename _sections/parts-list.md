@@ -8,7 +8,7 @@ order: 4
 3. [Full Kit - External GPS Puck](https://amzn.to/2JpamKu).
 4. [Full Kit - All Accessories Included](https://amzn.to/3aTszv5).
 5. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
-6. [Full Kit - FLARM for Europe](https://www.amazon.de/BL1-Stratux-Bausatz-Selbstmontage-ohne/dp/B08BS4MP22/).
+6. [Full Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
 
 ## Replacement Parts and Accessories
 
