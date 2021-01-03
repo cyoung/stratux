@@ -124,6 +124,7 @@ type TrafficInfo struct {
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated. Units: meters.
 	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
 	DistanceEstimatedLastTs time.Time // Used to compute moving average
+	ReceivedMsgs         uint64    // Number of messages received by this aircraft
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
@@ -435,6 +436,9 @@ func sendTrafficUpdates() {
 // altitude buckets: <5000ft, 5000-10000ft, >10000ft
 var estimatedDistFactors [3]float64 = [3]float64{2500.0, 2800.0, 3000.0}
 func estimateDistance(ti *TrafficInfo) {
+	if ti.TargetType != TARGET_TYPE_ADSB || ti.Last_source != TRAFFIC_SOURCE_1090ES {
+		return
+	}
 	altClass := int32(math.Max(0.0, math.Min(float64(ti.Alt / 5000), 2.0)))
 	dist := math.Pow(2.0, -ti.SignalLevel / 6.0) * estimatedDistFactors[altClass];  // distance approx. in meters, 6dB for double distance
 
@@ -504,6 +508,7 @@ func calculateModeSFakeTargets(bearinglessTi TrafficInfo) []TrafficInfo {
 }
 
 func postProcessTraffic(ti *TrafficInfo) {
+	ti.ReceivedMsgs += 1
 	estimateDistance(ti)
 }
 

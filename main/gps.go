@@ -1730,6 +1730,9 @@ func baroAltGuesser() {
 
 		trafficMutex.Lock()
 		for _, ti := range traffic {
+			if ti.ReceivedMsgs < 30 {
+				continue // Make sure it is actually a confirmed target, so we don't accidentally use invalid values from invalid data
+			}
 			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt == 0 {
 				continue // already considered this value or we don't have a value - skip
 			}
@@ -1779,6 +1782,7 @@ func baroAltGuesser() {
 					mySituation.BaroLastMeasurementTime = stratuxClock.Time
 					mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
 					mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
+					fmt.Printf("%f * x + %f\n", slope, intercept)
 					mySituation.muBaro.Unlock()
 				}
 			}

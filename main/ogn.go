@@ -247,6 +247,7 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	}
 
 	traffic[key] = ti
+	postProcessTraffic(&ti)
 	registerTrafficUpdate(ti)
 	seenTraffic[key] = true
 
