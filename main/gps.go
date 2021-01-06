@@ -1733,7 +1733,7 @@ func baroAltGuesser() {
 			if ti.ReceivedMsgs < 30 || ti.SignalLevel < -28 {
 				continue // Make sure it is actually a confirmed target, so we don't accidentally use invalid values from invalid data
 			}
-			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt == 0 {
+			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt <= 1 || stratuxClock.Since(ti.Last_alt) > 1 * time.Second {
 				continue // already considered this value or we don't have a value - skip
 			}
 			if len(gnssBaroAltDiffs) >= 5 && math.Abs(float64(ti.GnssDiffFromBaroAlt - int32(avgDiff))) > 1000 {
@@ -1741,6 +1741,9 @@ func baroAltGuesser() {
 				continue
 			}
 			bucket := int(ti.Alt / 1000)
+			if bucket <= 0 {
+				continue // sometimes some random altitude reports - usually close to 0ft but GNSS diff from around 40000.. try to filter those
+			}
 			if val, ok := gnssBaroAltDiffs[bucket]; ok {
 				// weighted average - don't tune too quickly... smooth over one minute (for one aircraft, half a minute for two, etc).
 				gnssBaroAltDiffs[bucket] = (val * 59 + int(ti.GnssDiffFromBaroAlt) * 1) / 60
