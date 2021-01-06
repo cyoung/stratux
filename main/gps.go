@@ -1730,7 +1730,7 @@ func baroAltGuesser() {
 
 		trafficMutex.Lock()
 		for _, ti := range traffic {
-			if ti.ReceivedMsgs < 30 {
+			if ti.ReceivedMsgs < 30 || ti.SignalLevel < -28 {
 				continue // Make sure it is actually a confirmed target, so we don't accidentally use invalid values from invalid data
 			}
 			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt == 0 {
@@ -1750,7 +1750,9 @@ func baroAltGuesser() {
 		}
 		trafficMutex.Unlock()
 
-
+		if len(gnssBaroAltDiffs) < 5 {
+			continue // not enough data
+		}
 		if isGPSValid() && (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE) {
 			// We have no real baro source.. try to estimate baro altitude with the help of closeby ADS-B aircraft that define BaroGnssDiff...
 
@@ -1782,7 +1784,7 @@ func baroAltGuesser() {
 					mySituation.BaroLastMeasurementTime = stratuxClock.Time
 					mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
 					mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
-					fmt.Printf("%f * x + %f\n", slope, intercept)
+					//fmt.Printf("%f * x + %f\n", slope, intercept)
 					mySituation.muBaro.Unlock()
 				}
 			}
