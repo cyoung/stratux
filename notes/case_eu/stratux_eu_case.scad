@@ -13,6 +13,12 @@ view_side_by_side();
 POWER_CONNECTOR_HOLE_WIDTH = 12;
 POWER_CONNECTOR_HOLE_HEIGHT = 8;
 
+// Provide lead-through for battery pack / velcro strap?
+STRAP_HOLDER = false;
+STRAP_HOLDER_WIDTH = 20;
+STRAP_HOLDER_HEIGHT = 3;
+STRAP_HOLDER_OFFSET = 5;
+
 // Set this to "3", "4" or "HYBRID". The only difference is a slighly moved
 // power connector
 RASPI_VERSION = "HYBRID";
@@ -182,6 +188,12 @@ module power_connector_hole() {
                      rx=1);
 }
 
+module strap_holder() {
+    radius = WALL_THICKNESS / 2;
+    translate([-WALL_THICKNESS - 0.01, -STRAP_HOLDER_WIDTH / 2, -STRAP_HOLDER_HEIGHT / 2])
+        roundedcube([WALL_THICKNESS + 0.02, STRAP_HOLDER_WIDTH, STRAP_HOLDER_HEIGHT],
+                     rx=1);
+}
 
 module sd_card_hole() {
     translate([-6, -WALL_THICKNESS/2 - 0.01, -5.01])
@@ -271,7 +283,19 @@ module case() {
 
             translate([_case_main_width, WALL_THICKNESS + 0.5 + connector_offset, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
                 power_connector_hole();
-            
+
+
+            // clear holes for battery pack strap
+            if (STRAP_HOLDER) {
+                strap_offset = 60;
+
+                translate([_case_main_width, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
+                    strap_holder();
+
+                translate([WALL_THICKNESS, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
+                    strap_holder();
+            }
+
             // clear hole for SD card slot
             translate([_case_main_width / 2, 0, 0])
                 sd_card_hole();
@@ -416,5 +440,3 @@ module view_assembled(gap=0.1) {
         translate([_case_main_width, 0, _case_height + gap + 4.9]) rotate([180, 0, 180]) lid();
     //}
 }
-
-
