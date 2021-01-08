@@ -436,7 +436,7 @@ func sendTrafficUpdates() {
 // altitude buckets: <5000ft, 5000-10000ft, >10000ft
 var estimatedDistFactors [3]float64 = [3]float64{2500.0, 2800.0, 3000.0}
 func estimateDistance(ti *TrafficInfo) {
-	if ti.TargetType != TARGET_TYPE_ADSB || ti.Last_source != TRAFFIC_SOURCE_1090ES {
+	if ti.Last_source != TRAFFIC_SOURCE_1090ES {
 		return
 	}
 	altClass := int32(math.Max(0.0, math.Min(float64(ti.Alt / 5000), 2.0)))
