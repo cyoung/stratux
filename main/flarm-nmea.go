@@ -408,6 +408,16 @@ func makeGPGGAString() string {
 
 }
 
+func makePGRMZString() string {
+	msg := fmt.Sprintf("PGRMZ,%d,f,3", int(mySituation.BaroPressureAltitude))
+	var checksum byte
+	for i := range msg {
+		checksum = checksum ^ byte(msg[i])
+	}
+	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
+	return msg
+}
+
 /*
 Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible)
 software: SkyDemon, RunwayHD, etc.

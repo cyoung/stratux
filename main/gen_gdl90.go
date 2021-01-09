@@ -808,6 +808,9 @@ func heartBeatSender() {
 
 			sendNetFLARM(makeGPRMCString())
 			sendNetFLARM(makeGPGGAString())
+			if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
+				sendNetFLARM(makePGRMZString())
+			}
 			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n")
 
 			// --- debug code: traffic demo ---
