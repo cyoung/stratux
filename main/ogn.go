@@ -47,6 +47,7 @@ type OgnMessage struct {
 	// Status message (Sys=status):
 	Bkg_noise_db float32
 	Gain_db      float32
+	Tx_enabled   bool
 }
 
 
@@ -55,15 +56,19 @@ var ognReadWriter *bufio.ReadWriter
 
 
 func ognPublishNmea(nmea string) {
-	if ognReadWriter != nil {
+	if globalStatus.OGN_connected {
 		// TODO: we could filter a bit more to only send RMC/GGA, but for now it's just everything
-		if len(nmea) > 5 && nmea[3:6] == "GGA" || nmea[3:6] == "RMC" {
+		if len(nmea) > 5 && nmea[3:6] == "GGA" || nmea[3:6] == "RMC" || nmea[1:6] == "POGNS" {
 			//log.Printf(nmea)
-			ognReadWriter.Write([]byte(nmea + "\r\n"))
-			ognReadWriter.Flush()
+			ognOutgoingMsgChan <- nmea + "\r\n"
 		}
 	}
 }
+
+var ognOutgoingMsgChan chan string = make(chan string, 100)
+var ognIncomingMsgChan chan string = make(chan string, 100)
+var ognExitChan chan bool = make(chan bool, 1)
+
 
 func ognListen() {
 	//go predTest()
@@ -81,33 +86,58 @@ func ognListen() {
 			continue
 		}
 		log.Printf("ogn-rx-eu successfully connected")
-		globalStatus.OGN_connected = true
 		ognReadWriter = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-		for globalSettings.OGN_Enabled {
-			buf, err := ognReadWriter.ReadBytes('\n')
-			if err != nil {
-				log.Printf("ogn-rx-eu connection lost.")
-				break
+		globalStatus.OGN_connected = true
+
+
+		go func() {
+			for {
+				buf, err := ognReadWriter.ReadBytes('\n')
+				if err != nil {
+					log.Printf("ogn-rx-eu connection lost.")
+					log.Printf(err.Error())
+					ognExitChan <- true
+					return
+				}
+				ognIncomingMsgChan <- string(buf)
 			}
+		}()
 
-			var thisMsg msg
-			thisMsg.MessageClass = MSGCLASS_OGN
-			thisMsg.TimeReceived = stratuxClock.Time
-			thisMsg.Data = string(buf)
+		pgrmzTimer := time.NewTicker(1 * time.Second)
 
-			var msg OgnMessage
-			err = json.Unmarshal(buf, &msg)
-			if err != nil {
-				log.Printf("Invalid Data from OGN: " + string(buf))
-				continue
-			}
+		loop: for globalSettings.OGN_Enabled {
+			select {
+			case data := <- ognOutgoingMsgChan:
+				//fmt.Printf(data)
+				ognReadWriter.Write([]byte(data))
+				ognReadWriter.Flush()
+			case data := <- ognIncomingMsgChan:
+				var thisMsg msg
+				thisMsg.MessageClass = MSGCLASS_OGN
+				thisMsg.TimeReceived = stratuxClock.Time
+				thisMsg.Data = data
+	
+				var msg OgnMessage
+				err = json.Unmarshal([]byte(data), &msg)
+				if err != nil {
+					log.Printf("Invalid Data from OGN: " + data)
+					continue
+				}
+	
+				if msg.Sys == "status" {
+					importOgnStatusMessage(msg)
+				} else {
+					msgLogAppend(thisMsg)
+					logMsg(thisMsg) // writes to replay logs
+					importOgnTrafficMessage(msg, data)
+				}
+			case <- pgrmzTimer.C:
+				if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
+					ognOutgoingMsgChan <- makePGRMZString()
+				}
+			case <- ognExitChan:
+				break loop
 
-			if msg.Sys == "status" {
-				importOgnStatusMessage(msg)
-			} else {
-				msgLogAppend(thisMsg)
-				logMsg(thisMsg) // writes to replay logs
-				importOgnTrafficMessage(msg, buf)
 			}
 		}
 		globalStatus.OGN_connected = false
@@ -120,9 +150,14 @@ func ognListen() {
 func importOgnStatusMessage(msg OgnMessage) {
 	globalStatus.OGN_noise_db = msg.Bkg_noise_db
 	globalStatus.OGN_gain_db = msg.Gain_db
+	globalStatus.OGN_tx_enabled = msg.Tx_enabled
+
+	if msg.Tx_enabled {
+		ognPublishNmea(getOgnTrackerConfigString())
+	}
 }
 
-func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
+func importOgnTrafficMessage(msg OgnMessage, data string) {
 	var ti TrafficInfo
 	addressBytes, _ := hex.DecodeString(msg.Addr)
 	addressBytes = append([]byte{0}, addressBytes...)
@@ -169,7 +204,7 @@ func importOgnTrafficMessage(msg OgnMessage, buf []byte) {
 	}
 	ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
 	if ti.Age > 30 || ti.Age < -2 {
-		log.Printf("Discarding likely invalid OGN target: %s", string(buf))
+		log.Printf("Discarding likely invalid OGN target: %s", data)
 		return
 	}
 

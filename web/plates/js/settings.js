@@ -19,7 +19,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$http.get(URL_STATUS_GET).then(function(response) {
 		var status = angular.fromJson(response.data);
 		var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
-		if (gpsHardwareCode == 3)
+		if (gpsHardwareCode == 3 || status.OGN_tx_enabled)
 			$scope.hasOgnTracker = true;
 		else
 			$scope.hasOgnTracker = false;

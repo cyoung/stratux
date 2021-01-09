@@ -1262,6 +1262,7 @@ type status struct {
 	NightMode                                  bool // For turning off LEDs.
 	OGN_noise_db                               float32
 	OGN_gain_db                                float32
+	OGN_tx_enabled                             bool // If ogn-rx-eu uses a local tx module for transmission
 }
 
 var globalSettings settings

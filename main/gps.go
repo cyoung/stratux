@@ -1697,20 +1697,22 @@ func processNMEALine(l string) (sentenceUsed bool) {
 	return false
 }
 
+func getOgnTrackerConfigString() string {
+	return fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s", globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot)
+}
+
 func configureOgnTrackerFromSettings() {
 	if serialPort == nil {
 		return
 	}
 
-	cfg := fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s\r\n", globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot)
+	cfg := getOgnTrackerConfigString()
 	log.Printf("Configuring OGN Tracker: " + cfg)
 
-	serialPort.Write([]byte(cfg))
+	serialPort.Write([]byte(cfg + "\r\n"))
 	serialPort.Write([]byte("$POGNS\r\n")) // re-read settings from tracker
 	serialPort.Flush()
 }
-
-
 
 
 
