@@ -1711,39 +1711,65 @@ func configureOgnTrackerFromSettings() {
 }
 
 
-// Maps 1000ft bands to gnssBaroAltDiffs of known traffic.
-// This will then be used to estimate our own baro altitude from GNSS if we don't have a pressure sensor connected...
-// Data will receive exponential smoothing so outliers hopefully don't have too much effect
+
+
+
 var gnssBaroAltDiffs = make(map [int]int)
+// Little helper function to dump the gnssBaroAltDiffs map to CSV for plotting
+//func dumpValues() {
+//	vals := ""
+//	for k, v := range gnssBaroAltDiffs {
+//		vals += fmt.Sprintf("%d,%d\n", k*100, v)
+//	}
+//	ioutil.WriteFile("/tmp/values.csv", []byte(vals), 0644)
+//}
+
+// Maps 100ft bands to gnssBaroAltDiffs of known traffic.
+// This will then be used to estimate our own baro altitude from GNSS if we don't have a pressure sensor connected...
+// Sometimes dump1090 will deliver some strange invalid data with wild values, so we need some outlier detection.
+// To achieve that, the algorithm works like this:
+// 1. Create a linear regression over all confirmed targets altitude->GnssBaroDiff mapping
+// 2. filter out targets that are more than +-400ft off from that regression
+// 3. Now for the remaining targets, sort them into buckets again in a smoothed out way
+// 4. Use a weighted linear regression with a higher weight around our own altitude to determine a smoothed-out GnssBaroDiff for our current altitude
+// 5. Use GPS Alt +- GnssBaroDiff to determine our own baro alt
+
 func baroAltGuesser() {
 	ticker := time.NewTicker(1 * time.Second)
 	for {
 		<-ticker.C
-
-		avgDiff := 0
-		for _, v := range gnssBaroAltDiffs {
-			avgDiff += v
+		// Create linear regression from GnssBaroAltDiffs we have confirmed already
+		var alts, diffs []float64
+		for k, v := range gnssBaroAltDiffs {
+			alts = append(alts, float64(k*100))
+			diffs = append(diffs, float64(v))
 		}
-		if len(gnssBaroAltDiffs) > 0 {
-			avgDiff /= len(gnssBaroAltDiffs)
-		}
+		slope, intercept, valid := linReg(alts, diffs)
+		//fmt.Printf("General: %f * x + %f \n", slope, intercept)
 
 		trafficMutex.Lock()
 		for _, ti := range traffic {
-			if ti.ReceivedMsgs < 30 || ti.SignalLevel < -28 {
+			if ti.ReceivedMsgs < 30 || ti.SignalLevel < -28 || ti.SignalLevel > -3 {
 				continue // Make sure it is actually a confirmed target, so we don't accidentally use invalid values from invalid data
 			}
 			if stratuxClock.Since(ti.Last_GnssDiff) > 1 * time.Second || ti.Alt <= 1 || stratuxClock.Since(ti.Last_alt) > 1 * time.Second {
 				continue // already considered this value or we don't have a value - skip
 			}
-			if len(gnssBaroAltDiffs) >= 5 && math.Abs(float64(ti.GnssDiffFromBaroAlt - int32(avgDiff))) > 1000 {
-				// For a simple outlier detection, disregard traffic who's gnssBaroAltDiff is more than 1000ft from the average
-				continue
-			}
-			bucket := int(ti.Alt / 1000)
+
+			bucket := int(ti.Alt / 100)
 			if bucket <= 0 {
 				continue // sometimes some random altitude reports - usually close to 0ft but GNSS diff from around 40000.. try to filter those
 			}
+
+			if len(gnssBaroAltDiffs) >= 30 && valid {
+				// Check if this ti is potentially an outlier/invalid data..
+				estimatedDiff := float64(ti.Alt) * slope + intercept
+				if math.Abs(float64(ti.GnssDiffFromBaroAlt) - estimatedDiff) > 400 {
+					fmt.Printf("Ignoring %d, alt=%d for baro computation. Expected GnssDiff: %f, Received: %d \n", ti.Icao_addr, ti.Alt, estimatedDiff, ti.GnssDiffFromBaroAlt)
+					continue
+				}
+			}
+
 			if val, ok := gnssBaroAltDiffs[bucket]; ok {
 				// weighted average - don't tune too quickly... smooth over one minute (for one aircraft, half a minute for two, etc).
 				gnssBaroAltDiffs[bucket] = (val * 59 + int(ti.GnssDiffFromBaroAlt) * 1) / 60
@@ -1753,7 +1779,7 @@ func baroAltGuesser() {
 		}
 		trafficMutex.Unlock()
 
-		if len(gnssBaroAltDiffs) < 5 {
+		if len(gnssBaroAltDiffs) < 30 {
 			continue // not enough data
 		}
 		if isGPSValid() && (!isTempPressValid() || mySituation.BaroSourceType == BARO_TYPE_NONE || mySituation.BaroSourceType == BARO_TYPE_ADSBESTIMATE) {
@@ -1767,17 +1793,19 @@ func baroAltGuesser() {
 			diffs := make([]float64, 0, len(gnssBaroAltDiffs))
 			weights := make([]float64, 0, len(gnssBaroAltDiffs)) // Weigh close altitudes higher than far altitudes for linreg
 			for k, v := range gnssBaroAltDiffs {
-				bucketAlt := float64(k * 1000 + 500)
-				alts = append(alts, bucketAlt) // Compute back from bucket to "real" altitude (+500 to be in the center of the bucket)
+				bucketAlt := float64(k * 100 + 50)
+				alts = append(alts, bucketAlt) // Compute back from bucket to "real" altitude (+50 to be in the center of the bucket)
 				diffs = append(diffs, float64(v))
-				// Weight: 1 / altitudeDifference / 1000
-				weight:= math.Abs(float64(myAlt) - bucketAlt)
+				// Weight: 1 / altitudeDifference / 100
+				weight := math.Abs(float64(myAlt) - bucketAlt)
 				if weight == 0 {
 					weight = 1
 				} else {
 					weight = math.Min(1 / (weight / 1000), 1)
 				}
-				weights = append(weights, weight)
+				weights = append(weights, weight * 5) // 5 = arbitrary factor to weight the local data even stronger compared to stuff thats 30000ft above.
+				// See https://www.desmos.com/calculator/qiqmb4wrev for why this seems to make sense.
+				// X-axis is altitude, Y axis is reported GnssBaroDiff
 			}
 			if len(gnssBaroAltDiffs) >= 2 {
 				slope, intercept, valid := linRegWeighted(alts, diffs, weights)
@@ -1787,12 +1815,11 @@ func baroAltGuesser() {
 					mySituation.BaroLastMeasurementTime = stratuxClock.Time
 					mySituation.BaroPressureAltitude = mySituation.GPSHeightAboveEllipsoid - float32(gnssBaroDiff)
 					mySituation.BaroSourceType = BARO_TYPE_ADSBESTIMATE
-					//fmt.Printf("%f * x + %f\n", slope, intercept)
+					//fmt.Printf(" %f * x + %f \n", slope, intercept)
 					mySituation.muBaro.Unlock()
 				}
 			}
 		}
-
 	}
 }
 
