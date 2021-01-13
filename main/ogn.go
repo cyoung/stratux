@@ -51,17 +51,10 @@ type OgnMessage struct {
 }
 
 
-var ognReadWriter *bufio.ReadWriter
-
-
 
 func ognPublishNmea(nmea string) {
 	if globalStatus.OGN_connected {
-		// TODO: we could filter a bit more to only send RMC/GGA, but for now it's just everything
-		if len(nmea) > 5 && nmea[3:6] == "GGA" || nmea[3:6] == "RMC" || nmea[1:6] == "POGNS" {
-			//log.Printf(nmea)
-			ognOutgoingMsgChan <- nmea + "\r\n"
-		}
+		ognOutgoingMsgChan <- nmea + "\r\n"
 	}
 }
 
@@ -86,21 +79,24 @@ func ognListen() {
 			continue
 		}
 		log.Printf("ogn-rx-eu successfully connected")
-		ognReadWriter = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+		ognReadWriter := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 		globalStatus.OGN_connected = true
+
+		// Make sure the exit channel is empty, so we don't exit immediately
+		for len(ognExitChan) > 0 {
+			<- ognExitChan
+		}
 
 
 		go func() {
-			for {
-				buf, err := ognReadWriter.ReadBytes('\n')
-				if err != nil {
-					log.Printf("ogn-rx-eu connection lost.")
-					log.Printf(err.Error())
-					ognExitChan <- true
-					return
-				}
-				ognIncomingMsgChan <- string(buf)
+			scanner := bufio.NewScanner(ognReadWriter.Reader)
+			for scanner.Scan() {
+				ognIncomingMsgChan <- scanner.Text()
 			}
+			if scanner.Err() != nil {
+				log.Printf("ogn-rx-eu connection lost: " + scanner.Err().Error())
+			}
+			ognExitChan <- true
 		}()
 
 		pgrmzTimer := time.NewTicker(1 * time.Second)
@@ -141,7 +137,6 @@ func ognListen() {
 			}
 		}
 		globalStatus.OGN_connected = false
-		ognReadWriter = nil
 		conn.Close()
 		time.Sleep(3*time.Second)
 	}
