@@ -546,8 +546,8 @@ func configureOgnTracker() {
 	}
 
 	gpsTimeOffsetPpsMs = 200 * time.Millisecond
-	serialPort.Write([]byte("$POGNS,NavRate=5\r\n")) // Also force NavRate directly, just to make sure it's always set
-	serialPort.Write([]byte("$POGNS\r\n")) // query current configuration
+	serialPort.Write([]byte(appendNmeaChecksum("$POGNS,NavRate=5") + "\r\n")) // Also force NavRate directly, just to make sure it's always set
+	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // query current configuration
 
 	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config, but
 
@@ -1698,7 +1698,13 @@ func processNMEALine(l string) (sentenceUsed bool) {
 }
 
 func getOgnTrackerConfigString() string {
-	return fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s", globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot)
+	msg := fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s", globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot)
+	msg = appendNmeaChecksum(msg)
+	return msg + "\r\n"
+}
+
+func getOgnTrackerConfigQueryString() string {
+	return appendNmeaChecksum("$POGNS") + "\r\n"
 }
 
 func configureOgnTrackerFromSettings() {
@@ -1709,8 +1715,8 @@ func configureOgnTrackerFromSettings() {
 	cfg := getOgnTrackerConfigString()
 	log.Printf("Configuring OGN Tracker: " + cfg)
 
-	serialPort.Write([]byte(cfg + "\r\n"))
-	serialPort.Write([]byte("$POGNS\r\n")) // re-read settings from tracker
+	serialPort.Write([]byte(getOgnTrackerConfigString()))
+	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // re-read settings from tracker
 	serialPort.Flush()
 }
 

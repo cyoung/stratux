@@ -54,7 +54,10 @@ type OgnMessage struct {
 
 func ognPublishNmea(nmea string) {
 	if globalStatus.OGN_connected {
-		ognOutgoingMsgChan <- nmea + "\r\n"
+		if !strings.HasSuffix(nmea, "\r\n") {
+			nmea += "\r\n"
+		}
+		ognOutgoingMsgChan <- nmea
 	}
 }
 

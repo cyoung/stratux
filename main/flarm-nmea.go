@@ -39,6 +39,19 @@ func sendNetFLARM(msg string) {
 
 }
 
+// Append checksum and to nmea string
+func appendNmeaChecksum(nmea string) string {
+	start := 0
+	if nmea[0] == '$' {
+		start = 1
+	}
+	checksum := byte(0x00)
+	for i := start; i < len(nmea); i++ {
+		checksum = checksum ^ byte(nmea[i])
+	}
+	return fmt.Sprintf("%s*%02X", nmea, checksum)
+}
+
 func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 	// syntax: PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
 	gpsStatus := 0
@@ -70,16 +83,12 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 	}
 	// TODO: we are always airbourne for now
 	if alarmLevel > 0 {
-		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,%d,%d,%d,%d,%d,%s", len(traffic), gpsStatus, alarmLevel, int32(bearing), alarmType, relativeVertical, int32(math.Abs(dist)), idstr)
+		msg = fmt.Sprintf("$PFLAU,%d,1,%d,1,%d,%d,%d,%d,%d,%s", len(traffic), gpsStatus, alarmLevel, int32(bearing), alarmType, relativeVertical, int32(math.Abs(dist)), idstr)
 	} else {
-		msg = fmt.Sprintf("PFLAU,%d,1,%d,1,0,,0,,,", len(traffic), gpsStatus)
+		msg = fmt.Sprintf("$PFLAU,%d,1,%d,1,0,,0,,,", len(traffic), gpsStatus)
 	}
-
-	checksumPFLAU := byte(0x00)
-	for i := range msg {
-		checksumPFLAU = checksumPFLAU ^ byte(msg[i])
-	}
-	msg = (fmt.Sprintf("$%s*%02X\r\n", msg, checksumPFLAU))
+	msg = appendNmeaChecksum(msg)
+	msg += "\r\n"
 	return
 }
 
@@ -154,9 +163,8 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 							F = static object
 	*/
 
-	var idType, checksum uint8
+	var idType uint8
 	var relativeNorth, relativeEast, relativeVertical, groundSpeed int32
-	var msg2 string
 
 	// Addr type "NON-ICAO" mapped to Flarm ID, rest mapped to ICAO.
 	// Especially SkyDemon is picky and only accepts NMEA messages with 0-2, but nothing else.
@@ -213,22 +221,14 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 	}
 
 	if ti.Position_valid {
-		msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%s,%d,%d,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, idstr, uint16(ti.Track), uint16(ti.TurnRate), groundSpeed, climbRate, acType)
+		msg = fmt.Sprintf("$PFLAA,%d,%d,%d,%d,%d,%s,%d,%d,%d,%0.1f,%s", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, idstr, uint16(ti.Track), uint16(ti.TurnRate), groundSpeed, climbRate, acType)
 	} else {
-		msg = fmt.Sprintf("PFLAA,%d,%d,,%d,%d,%s,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, idstr, climbRate, acType) // prototype for bearingless traffic
+		msg = fmt.Sprintf("$PFLAA,%d,%d,,%d,%d,%s,,,,%0.1f,%s", alarmLevel, int32(math.Abs(dist)), relativeVertical, idType, idstr, climbRate, acType) // prototype for bearingless traffic
 	}
 	//msg = fmt.Sprintf("PFLAA,%d,%d,%d,%d,%d,%X!%s,%d,,%d,%0.1f,%d", alarmLevel, relativeNorth, relativeEast, relativeVertical, idType, ti.Icao_addr, ti.Tail, ti.Track, groundSpeed, climbRate, acType)
-	
-	for i := range msg {
-		checksum = checksum ^ byte(msg[i])
-	}
-	msg = (fmt.Sprintf("$%s*%02X\r\n", msg, checksum))
+	msg = appendNmeaChecksum(msg)
+	msg += "\r\n"
 
-	checksum = 0 // reset for next message
-	for i := range msg2 {
-		checksum = checksum ^ byte(msg2[i])
-	}
-	msg = msg
 	valid = true
 	return
 }
@@ -318,16 +318,12 @@ func makeGPRMCString() string {
 	var msg string
 
 	if isGPSValid() {
-		msg = fmt.Sprintf("GPRMC,%02.f%02.f%05.2f,%s,%010.5f,%s,%011.5f,%s,%.1f,%.1f,%02d%02d%02d,%s,%s,%s", hr, mins, sec, status, lat, ns, lng, ew, gs, trueCourse, dd, mm, yy, magVar, mvEW, mode)
+		msg = fmt.Sprintf("$GPRMC,%02.f%02.f%05.2f,%s,%010.5f,%s,%011.5f,%s,%.1f,%.1f,%02d%02d%02d,%s,%s,%s", hr, mins, sec, status, lat, ns, lng, ew, gs, trueCourse, dd, mm, yy, magVar, mvEW, mode)
 	} else {
-		msg = fmt.Sprintf("GPRMC,,%s,,,,,,,%02d%02d%02d,%s,%s,%s", status, dd, mm, yy, magVar, mvEW, mode) // return null lat-lng and velocity if invalid GPS
+		msg = fmt.Sprintf("$GPRMC,,%s,,,,,,,%02d%02d%02d,%s,%s,%s", status, dd, mm, yy, magVar, mvEW, mode) // return null lat-lng and velocity if invalid GPS
 	}
-
-	var checksum byte
-	for i := range msg {
-		checksum = checksum ^ byte(msg[i])
-	}
-	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
+	msg = appendNmeaChecksum(msg)
+	msg += "\r\n"
 	return msg
 }
 
@@ -394,27 +390,21 @@ func makeGPGGAString() string {
 	var msg string
 
 	if isGPSValid() {
-		msg = fmt.Sprintf("GPGGA,%02.f%02.f%05.2f,%010.5f,%s,%011.5f,%s,%d,%d,%.2f,%.1f,M,%.1f,M,,", hr, mins, sec, lat, ns, lng, ew, thisSituation.GPSFixQuality, numSV, hdop, alt, geoidSep)
+		msg = fmt.Sprintf("$GPGGA,%02.f%02.f%05.2f,%010.5f,%s,%011.5f,%s,%d,%d,%.2f,%.1f,M,%.1f,M,,", hr, mins, sec, lat, ns, lng, ew, thisSituation.GPSFixQuality, numSV, hdop, alt, geoidSep)
 	} else {
-		msg = fmt.Sprintf("GPGGA,,,,,,0,%d,,,,,,,", numSV)
+		msg = fmt.Sprintf("$GPGGA,,,,,,0,%d,,,,,,,", numSV)
 	}
 
-	var checksum byte
-	for i := range msg {
-		checksum = checksum ^ byte(msg[i])
-	}
-	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
+	msg = appendNmeaChecksum(msg)
+	msg += "\r\n"
 	return msg
 
 }
 
 func makePGRMZString() string {
-	msg := fmt.Sprintf("PGRMZ,%d,f,3", int(mySituation.BaroPressureAltitude))
-	var checksum byte
-	for i := range msg {
-		checksum = checksum ^ byte(msg[i])
-	}
-	msg = fmt.Sprintf("$%s*%X\r\n", msg, checksum)
+	msg := fmt.Sprintf("$PGRMZ,%d,f,3", int(mySituation.BaroPressureAltitude))
+	msg = appendNmeaChecksum(msg)
+	msg += "\r\n"
 	return msg
 }
 
