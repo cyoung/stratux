@@ -102,7 +102,7 @@ func ognListen() {
 			ognExitChan <- true
 		}()
 
-		pgrmzTimer := time.NewTicker(1 * time.Second)
+		pgrmzTimer := time.NewTicker(100 * time.Millisecond)
 
 		loop: for globalSettings.OGN_Enabled {
 			select {
