@@ -1204,6 +1204,7 @@ type settings struct {
 	OGNAddrType          int
 	OGNAcftType          int
 	OGNPilot             string
+	OGNReg               string
 
 	PWMDutyMin           int
 }

@@ -95,7 +95,7 @@
                         <!-- Address -->
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Tracker Address (Hex)</label>
-                            <input class="col-xs-7" type="text" hex-input ng-model="OGNAddr" />
+                            <input class="col-xs-7" type="text" maxlength="6" hex-input ng-model="OGNAddr" />
                         </div>
 
                         <!-- Aircraft Type -->
@@ -123,7 +123,12 @@
                         <!-- Pilot name -->
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">Pilot Name</label>
-                            <input class="col-xs-7" type="text" pilotname-input ng-model="OGNPilot" />
+                            <input class="col-xs-7" type="text" maxlength="15" pilotname-input ng-model="OGNPilot" />
+                        </div>
+                        <!-- Registration -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Registration</label>
+                            <input class="col-xs-7" type="text" maxlength="15" ognreg-input ng-model="OGNReg" />
                         </div>
 
                         <div class="form-group reset-flow">

@@ -448,7 +448,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "OGNPilot":
 						globalSettings.OGNPilot = val.(string)
 						reconfigureOgnTracker = true
-					
+					case "OGNReg":
+						globalSettings.OGNReg = val.(string)
+						reconfigureOgnTracker = true
 					case "PWMDutyMin":
 						globalSettings.PWMDutyMin = int(val.(float64))
 						reconfigureFancontrol = true

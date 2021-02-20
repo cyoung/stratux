@@ -79,6 +79,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.OGNAddr = settings.OGNAddr;
 		$scope.OGNAcftType = settings.OGNAcftType.toString();
 		$scope.OGNPilot = settings.OGNPilot;
+		$scope.OGNReg = settings.OGNReg;
 
 		$scope.PWMDutyMin = settings.PWMDutyMin;
 
@@ -371,7 +372,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			"OGNAddrType": parseInt($scope.OGNAddrType),
 			"OGNAddr": $scope.OGNAddr,
 			"OGNAcftType": parseInt($scope.OGNAcftType),
-			"OGNPilot": $scope.OGNPilot
+			"OGNPilot": $scope.OGNPilot,
+			"OGNReg": $scope.OGNReg
 		};
 		setSettings(angular.toJson(newsettings));
 
@@ -543,6 +545,22 @@ angular.module('appControllers')
                         return "";
                 }
                 ctrl.$parsers.push(pilotnameValidation);
+            }
+        }
+    }).directive('ognregInput', function() {
+        return {
+            require: 'ngModel',
+            link: function(scope, element, attr, ctrl) {
+                function ognregValidation(value) {
+                    var r = "^[0-9a-zA-Z_\-]*$";
+                    var valid = new RegExp(r).test(value);
+                    ctrl.$setValidity('ognreg', valid);
+                    if (valid)
+                        return value;
+                    else
+                        return "";
+                }
+                ctrl.$parsers.push(ognregValidation);
             }
         }
     });
