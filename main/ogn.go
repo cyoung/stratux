@@ -31,6 +31,7 @@ type OgnMessage struct {
 	Addr_type int32
 	Acft_type string
 	Acft_cat string
+	Reg string
 	Lat_deg float32
 	Lon_deg float32
 	Alt_msl_m float32
@@ -171,6 +172,7 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	// For ICAO it will be null, so traffic is merged. For others it will be 1, so traffic is kept seperately
 	key := uint32(addrType) << 24 | address 
 
+
 	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
 	if msg.Lat_deg > 360 || msg.Lat_deg < -360 || msg.Lon_deg > 360 || msg.Lon_deg < -360 {
 		return
@@ -191,6 +193,9 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	}
 	ti.Icao_addr = address
 	ti.Addr_type = addrType
+	if len(msg.Reg) > 0 {
+		ti.Tail = msg.Reg
+	}
 	if len(ti.Tail) == 0 {
 		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}
