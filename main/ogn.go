@@ -172,6 +172,19 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	// For ICAO it will be null, so traffic is merged. For others it will be 1, so traffic is kept seperately
 	key := uint32(addrType) << 24 | address 
 
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+
+	if existingTi, ok := traffic[key]; ok {
+		ti = existingTi
+		// ogn-rx sends 2 types of messages.. normal ones with coords etc, and ones that only supply registration info. These usually don't have
+		// coords, so we can't validate them easily. Therefore, this is handled before other validations and only if we already received the traffic earlier
+		if len(msg.Reg) > 0 {
+			ti.Tail = msg.Reg
+			traffic[key] = ti
+		}
+
+	}
 
 	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
 	if msg.Lat_deg > 360 || msg.Lat_deg < -360 || msg.Lon_deg > 360 || msg.Lon_deg < -360 {
@@ -180,22 +193,14 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 
 	// Basic plausibility check:
 	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
-	if dist >= 50000  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
+	if (isGPSValid() && dist >= 50000)  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
 		// more than 50km away? Ignore. Most likely invalid data
 		return
 	}
 
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
-
-	if existingTi, ok := traffic[key]; ok {
-		ti = existingTi
-	}
 	ti.Icao_addr = address
 	ti.Addr_type = addrType
-	if len(msg.Reg) > 0 {
-		ti.Tail = msg.Reg
-	}
+
 	if len(ti.Tail) == 0 {
 		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}
