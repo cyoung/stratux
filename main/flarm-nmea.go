@@ -721,6 +721,11 @@ func parseFlarmPFLAA(message []string) {
 
 	ognID, tail, address := getIdTail(message[6])
 	idType, _ := strconv.ParseInt(message[5], 10, 8)
+	if idType == 1 {
+		idType = 0; // ICAO ID
+	} else {
+		idType = 1; // non-ICAO ID
+	}
 
 	track := atof32(message[7])
 	turn := atof32(message[8])
@@ -747,11 +752,8 @@ func parseFlarmPFLAA(message []string) {
 	ti.Icao_addr = address
 	// idType 1=ICAO, 2=Flarm ID, 3=anonymous ID. 0 is valid but not documented.
 	// For us: 0=ICAO, 1=Non ICAO
-	if idType == 1 {
-		ti.Addr_type = 0
-	} else {
-		ti.Addr_type = 1
-	}
+	ti.Addr_type = uint8(idType)
+
 	if len(ti.Tail) <= 3 {
 		if len(tail) != 0 {
 			// Tail provided via NMEA (IDIDID!TAIL syntax)
