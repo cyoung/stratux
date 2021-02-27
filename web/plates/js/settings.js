@@ -212,8 +212,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.updatealtitudeoffset = function () {
-		settings["AltitudeOffset"] = 0;
-		if (($scope.AltitudeOffset !== undefined) && ($scope.AltitudeOffset !== null) && ($scope.AltitudeOffset !== settings["AltitudeOffset"])) {
+		if ($scope.AltitudeOffset !== undefined && $scope.AltitudeOffset !== null && $scope.AltitudeOffset !== settings["AltitudeOffset"]) {
 			settings["AltitudeOffset"] = parseInt($scope.AltitudeOffset);
 			var newsettings = {
 				"AltitudeOffset": settings["AltitudeOffset"]
