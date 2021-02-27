@@ -325,7 +325,8 @@ func sendTrafficUpdates() {
 		isOwnshipTi, shouldIgnore := isOwnshipTrafficInfo(ti)
 
 		// As bearingless targets, we show the closest estimated traffic that is between +-2000ft
-		if !shouldIgnore && !ti.Position_valid && (bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
+		if !shouldIgnore && !ti.Position_valid && ti.DistanceEstimated > 0 &&
+			(bestEstimate.DistanceEstimated == 0 || ti.DistanceEstimated < bestEstimate.DistanceEstimated) {
 			if ti.Alt != 0 && math.Abs(float64(ti.Alt) - float64(currAlt)) < 2000 {
 				bestEstimate = ti
 			}
