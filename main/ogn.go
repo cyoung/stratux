@@ -165,12 +165,31 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	// GDL90 only knows 2 address types. ICAO and non-ICAO, so we map to those.
 	// for OGN: 1=ICAO. For us: 0=ICAO, 1="ADS-B with Self-assigned address"
 	addrType := uint8(1) // Non-ICAO Address
+	otherAddrType := uint8(0)
 	if msg.Addr_type == 1 { // ICAO Address
 		addrType = 0 
+		otherAddrType = 1;
 	}
 	// Store in higher-order bytes in front of the 24 bit address so we can handle address collinsions gracefully.
-	// For ICAO it will be null, so traffic is merged. For others it will be 1, so traffic is kept seperately
-	key := uint32(addrType) << 24 | address 
+	// For ICAO it will be 0, so traffic is merged. For others it will be 1, so traffic is kept seperately
+	// Only issue: PAW and FANET don't know the concept of address types. So for those, we need to be more tolerant.
+	// There are 2 cases here:
+	// - If non-PAW/FNT is received first, we can simply merge PAW/FNT onto that
+	// - If PAW/FNT is received first, we might need to update the traffic type later on
+	// To make the code a bit simpler, we don't actually update the existing traffic in the second case, but just let it time out
+	// and - from then on - only update the one with the correct AddrType
+
+	key := uint32(addrType) << 24 | address
+	otherKey := uint32(otherAddrType) << 24 | address
+
+	if msg.Sys == "PAW" || msg.Sys == "FNT" {
+		// First, assume the AddrType guess is wrong and try to merge.. Only if that fails we use our guessed AddrType
+		_, otherAddrTypeOk := traffic[otherKey]
+		if otherAddrTypeOk {
+			key = otherKey
+			addrType = otherAddrType
+		}
+	}
 
 	trafficMutex.Lock()
 	defer trafficMutex.Unlock()
