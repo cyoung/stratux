@@ -182,6 +182,9 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	key := uint32(addrType) << 24 | address
 	otherKey := uint32(otherAddrType) << 24 | address
 
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+
 	if msg.Sys == "PAW" || msg.Sys == "FNT" {
 		// First, assume the AddrType guess is wrong and try to merge.. Only if that fails we use our guessed AddrType
 		_, otherAddrTypeOk := traffic[otherKey]
@@ -190,9 +193,6 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 			addrType = otherAddrType
 		}
 	}
-
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
 
 	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
