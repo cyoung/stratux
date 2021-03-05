@@ -48,15 +48,18 @@ rm -r /root/fake
 rm /etc/modprobe.d/blacklist-rtl8192cu.conf
 echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
 
+# Install golang
+cd /root
+wget https://golang.org/dl/go1.16.linux-armv6l.tar.gz
+tar xzf go1.16.linux-armv6l.tar.gz
+rm go1.16.linux-armv6l.tar.gz
+
 
 # Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
 #cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
 wget https://project-downloads.drogon.net/wiringpi-latest.deb
 dpkg -i wiringpi-latest.deb
 rm wiringpi-latest.deb
-
-
-ldconfig
 
 
 cd /root/stratux
@@ -77,6 +80,7 @@ make install
 cd /root/
 rm -r rtl-sdr
 
+ldconfig
 
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
 #sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
