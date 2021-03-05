@@ -26,7 +26,7 @@ apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon python-serial screen librtlsdr-dev rtl-sdr libfftw3-dev libncurses-dev
+    python-pip python-dev python-pil python-daemon python-serial screen libfftw3-dev libncurses-dev
 apt clean
 #echo y | rpi-update
 
@@ -48,24 +48,12 @@ rm -r /root/fake
 rm /etc/modprobe.d/blacklist-rtl8192cu.conf
 echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
 
-# The current libfftw loads extremely slow, causing ogn-rf to take around 2-3 minutes to start up.
-# Revert to older version for now..
-# TODO: not needed any more with new OGN module?
-#wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-bin_3.3.5-3_armhf.deb
-#wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-dev_3.3.5-3_armhf.deb
-#wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-double3_3.3.5-3_armhf.deb
-#wget http://ftp.debian.org/debian/pool/main/f/fftw3/libfftw3-single3_3.3.5-3_armhf.deb
-#dpkg -i libfftw*.deb
-#rm libfftw*.deb
-#apt-mark hold libfftw3-bin libfftw3-dev libfftw3-double3 libfftw3-single3
-
 
 # Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
 #cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
 wget https://project-downloads.drogon.net/wiringpi-latest.deb
 dpkg -i wiringpi-latest.deb
 rm wiringpi-latest.deb
-
 
 
 ldconfig
@@ -75,32 +63,29 @@ cd /root/stratux
 cp image/bashrc.txt /root/.bashrc
 source /root/.bashrc
 
-# Prepare librtlsdr. TODO: not needed any more with buster?
-#rm -rf /root/librtlsdr
-#git clone https://github.com/jpoirier/librtlsdr /root/librtlsdr
-#mkdir -p /root/librtlsdr/build
-#cd /root/librtlsdr/build && cmake .. && make -j8 && make install && ldconfig
+# Prepare librtlsdr. The one shipping with buster uses usb_zerocopy, which is extremely slow on newer kernels, so
+# we manually compile the osmocom version that disables zerocopy by default..
+cd /root/
+rm -rf rtl-sdr
+git clone https://github.com/osmocom/rtl-sdr.git
+cd rtl-sdr
+git checkout 0847e93e0869feab50fd27c7afeb85d78ca04631 # Nov. 20, 2020
+mkdir build && cd build
+cmake .. -DENABLE_ZEROCOPY=0
+make -j8
+make install
+cd /root/
+rm -r rtl-sdr
+
 
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
-sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
-sed -i -e 's/libdir=/libdir=${prefix}\/lib\/arm-linux-gnueabihf/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
+#sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
+#sed -i -e 's/libdir=/libdir=${prefix}\/lib\/arm-linux-gnueabihf/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
 
 
 # Compile stratux
 cd /root/stratux
 
-# For some reason, qemu build fails unless we use a single compilation thread. Compilation takes quite long...
-#export GOMAXPROCS=1
-
-# TODO: this libary's latest version seems to be incomaptible. Force to 0.0.11.
-# Only an ugly hack - we should upgrade to go modules instead...
-#go get github.com/prometheus/procfs
-#cd $GOPATH/src/github.com/prometheus/procfs/
-#git checkout tags/v0.0.11
-
-cd /root/stratux
-
-#go get -u github.com/kidoman/embd/embd
 make clean
 # Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
 make
@@ -202,6 +187,7 @@ cd kalibrate-rtl
 ./configure
 make -j8
 make install
+cd /root && rm -rf kalibrate-rtl
 
 
 # TODO: not working right now - the pip one seems to at least make stratux-screen runnable (untested)
@@ -211,8 +197,8 @@ make install
 # Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
 #git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
 #echo Y | python setup.py install
-pip install luma.core
-pip install luma.oled
+#pip install luma.core
+#pip install luma.oled
 
 
 #disable serial console

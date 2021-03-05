@@ -5,8 +5,8 @@
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 set -x
-BASE_IMAGE_URL="http://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-05-28/2020-05-27-raspios-buster-lite-armhf.zip"
-ZIPNAME="2020-05-27-raspios-buster-lite-armhf.zip"
+BASE_IMAGE_URL="https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2021-01-12/2021-01-11-raspios-buster-armhf-lite.zip"
+ZIPNAME="2021-01-11-raspios-buster-armhf-lite.zip"
 IMGNAME="${ZIPNAME%.*}.img"
 TMPDIR="$HOME/stratux-tmp"
 
