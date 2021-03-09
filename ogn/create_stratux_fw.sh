@@ -3,7 +3,17 @@
 cd "$(dirname "$0")"
 
 if [[ ! -d esp-idf ]]; then
-    git clone -b v4.0 --recursive https://github.com/espressif/esp-idf.git
+    echo
+    read -p "Install esp-idf? [y/n]" -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        git clone -b v4.1 --recursive https://github.com/espressif/esp-idf.git
+        cd esp-idf && ./install.sh
+        cd ..
+    else
+        echo "esp-idf required to build firmware"
+        exit 1
+    fi
 fi
 
 source esp-idf/export.sh
