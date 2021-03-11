@@ -1,7 +1,7 @@
 CFLAGS+=-O2 -Wall -Werror -Ifec
 LDFLAGS=
 LIBS=-lm
-CC=gcc
+CC?=gcc
 
 all: dump978 uat2json uat2text uat2esnt extract_nexrad
 

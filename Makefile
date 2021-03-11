@@ -17,6 +17,13 @@ $(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
 
+ARCH := $(shell uname -p)
+ifeq ($(ARCH),aarch64)
+	OGN_RX_BINARY=ogn/ogn-rx-eu_aarch64
+else
+	OGN_RX_BINARY=ogn/ogn-rx-eu_arm
+endif
+
 STRATUX_SRC=main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/ogn.go main/flarm-nmea.go main/networksettings.go main/xplane.go
 FANCONTROL_SRC=main/fancontrol.go main/equations.go main/cputemp.go
 
@@ -73,7 +80,7 @@ install: ogn/ddb.json
 	cp -f image/hostapd.conf.template /etc/hostapd/
 	cp -f image/interfaces.template /etc/network/
 	cp -f image/wpa_supplicant.conf.template /etc/wpa_supplicant/
-	cp -f ogn/ogn-rx-eu_arm /usr/bin/ogn-rx-eu
+	cp -f $(OGN_RX_BINARY) /usr/bin/ogn-rx-eu
 	cp -f ogn/ddb.json /etc/
 
 clean:
