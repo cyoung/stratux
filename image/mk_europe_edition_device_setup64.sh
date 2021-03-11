@@ -218,8 +218,7 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
 
 # TODO: done -- uninstall clang again
-apt remove --yes clang
-apt autoremove --yes
+apt remove --yes clang binfmt-support clang-7 libclang-common-7-dev libclang1-7 libffi-dev libllvm7 libobjc-8-dev libobjc4 libomp-7-dev libomp5-7 llvm-7 llvm-7-dev llvm-7-runtime
 
 
 # Now also prepare the update file..
