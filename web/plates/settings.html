@@ -234,7 +234,7 @@
                                    placeholder="WiFi Network Name" />
                         </div>
                         <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
-                            <label class="control-label col-xs-7">Network Security</label>
+                            <label class="control-label col-xs-5">Network Security</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSecurityEnabled" settings-change></ui-switch>
                             </div>
@@ -251,12 +251,12 @@
                                     placeholder="WiFi-Direct PIN" ng-required="WiFiMode=='1'" />
                         </div>
                         <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
-                            <label class="control-label col-xs-7">WiFi Channel</label>
+                            <label class="control-label col-xs-5">WiFi Channel</label>
                             <select id="WiFiChannel" class="input-small col-sm-2 form-control-sm"
                                     ng-model="WiFiChannel" ng-options="x for x in Channels"></select>
                         </div>
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-7">Smart WiFi</label>
+                            <label class="control-label col-xs-5">Smart WiFi</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSmartEnabled" settings-change></ui-switch>
                             </div>

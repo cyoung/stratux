@@ -29,7 +29,7 @@ func linReg(x, y []float64) (slope, intercept float64, valid bool) {
 	}
 
 	if n < 2 {
-		fmt.Printf("linReg: Lengths too short\n")
+		//fmt.Printf("linReg: Lengths too short\n")
 		return math.NaN(), math.NaN(), false
 	}
 
