@@ -25,7 +25,7 @@ apt update
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
-    libusb-1.0-0-dev build-essential build-essential autoconf libtool i2c-tools screen libfftw3-dev libncurses-dev
+    libusb-1.0-0-dev build-essential build-essential autoconf libtool i2c-tools screen libfftw3-dev libncurses-dev python-serial
 apt clean
 #echo y | rpi-update
 
