@@ -176,11 +176,6 @@ cp -f modules.txt /etc/modules
 cp -f config.txt /boot/
 echo -e "\narm_64bit=1" >> /boot/config.txt
 
-#cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
-#mkdir -p /etc/stratux-screen/
-#cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
-#cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
-
 #startup scripts
 cp -f ../__lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
 cp -f ../__root__stratux-pre-start.sh /root/stratux-pre-start.sh
@@ -197,18 +192,6 @@ make -j8
 make install
 cd /root && rm -rf kalibrate-rtl
 
-
-# TODO: not working right now - the pip one seems to at least make stratux-screen runnable (untested)
-#cd /root
-#git clone https://github.com/rm-hull/ssd1306
-#cd ssd1306
-# Force an older version of ssd1306, since recent changes have caused a lot of compatibility issues.
-#git reset --hard 232fc801b0b8bd551290e26a13122c42d628fd39
-#echo Y | python setup.py install
-#pip install luma.core
-#pip install luma.oled
-
-
 #disable serial console
 sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 
@@ -219,6 +202,17 @@ sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 # TODO: done -- uninstall clang again
 apt remove --yes clang binfmt-support clang-7 libclang-common-7-dev libclang1-7 libffi-dev libllvm7 libobjc-8-dev libobjc4 libomp-7-dev libomp5-7 llvm-7 llvm-7-dev llvm-7-runtime
 
+# Finally, try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
+# Disable swap...
+systemctl disable dphys-swapfile
+apt purge -y dphys-swapfile
+apt autoremove -y
+
+# Mount logs/tmp stuff as tmpfs
+echo "" >> /etc/fstab # newline
+echo "tmpfs    /var/log    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0" >> /etc/fstab
+echo "tmpfs    /tmp        tmpfs    defaults,noatime,nosuid,size=100m    0 0" >> /etc/fstab
+echo "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0" >> /etc/fstab
 
 # Now also prepare the update file..
 cd /root/stratux/selfupdate
