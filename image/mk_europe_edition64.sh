@@ -68,7 +68,11 @@ sleep 3 # for whatever reason loop device is not immediately detached and takes 
 mkdir -p mnt
 mount -t ext4 -o offset=$partoffset $IMGNAME mnt/ || die "root-mount failed"
 mount -t vfat -o offset=$bootoffset,sizelimit=$sizelimit $IMGNAME mnt/boot || die "boot-mount failed"
-cp $(which qemu-aarch64-static) mnt/usr/bin || die "Failed to copy qemu-arm-static into image"
+
+# Use latest qemu-aarch64-static version, since aarch64 doesn't seem to be that stable yet..
+wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v5.2.0-2/qemu-aarch64-static
+chmod +x mnt/usr/bin/qemu-aarch64-static
+#cp $(which qemu-aarch64-static) mnt/usr/bin || die "Failed to copy qemu-arm-static into image"
 
 cd mnt/root/
 if [ "$1" == "dev" ]; then
