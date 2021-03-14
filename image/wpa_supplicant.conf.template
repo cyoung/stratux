@@ -1,7 +1,7 @@
 ctrl_interface=DIR=/var/run/wpa_supplicant
 driver_param=use_p2p_group_interface=1
 device_name={{.WiFiSSID}}
-device_type=1-0050F204-1
+device_type=6-0050F204-1
 p2p_go_intent=15
 p2p_ssid_postfix=-{{.WiFiSSID}}
 persistent_reconnect=1

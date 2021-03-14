@@ -57,7 +57,7 @@ function wifi-direct-start {
 	pin=$1
 
 	/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
-	wpa_cli -i wlan0 p2p_group_add persistent=0
+	wpa_cli -i wlan0 p2p_group_add persistent=0 freq=2
 	(while wpa_cli -i p2p-wlan0-0 wps_pin any $pin > /dev/null; do sleep 1; done) & disown
 	ifup p2p-wlan0-0
 }
