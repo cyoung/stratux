@@ -25,8 +25,7 @@ apt update
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg8-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
-    libusb-1.0-0-dev build-essential mercurial build-essential autoconf libtool i2c-tools python-smbus \
-    python-pip python-dev python-pil python-daemon python-serial screen libfftw3-dev libncurses-dev
+    libusb-1.0-0-dev build-essential build-essential autoconf libtool i2c-tools screen libfftw3-dev libncurses-dev python-serial 
 apt clean
 #echo y | rpi-update
 
@@ -56,10 +55,11 @@ rm go1.16.linux-armv6l.tar.gz
 
 
 # Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
-#cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
-wget https://project-downloads.drogon.net/wiringpi-latest.deb
-dpkg -i wiringpi-latest.deb
-rm wiringpi-latest.deb
+cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
+cd /root && rm -r WiringPi
+#wget https://project-downloads.drogon.net/wiringpi-latest.deb
+#dpkg -i wiringpi-latest.deb
+#rm wiringpi-latest.deb
 
 
 cd /root/stratux
@@ -91,9 +91,6 @@ ldconfig
 cd /root/stratux
 
 make clean
-# Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
-make
-make
 make
 make install
 
@@ -172,10 +169,10 @@ cp -f modules.txt /etc/modules
 #boot settings
 cp -f config.txt /boot/
 
-cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
-mkdir -p /etc/stratux-screen/
-cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
-cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
+#cp /root/stratux/test/screen/screen.py /usr/bin/stratux-screen.py
+#mkdir -p /etc/stratux-screen/
+#cp -f /root/stratux/test/screen/stratux-logo-64x64.bmp /etc/stratux-screen/stratux-logo-64x64.bmp
+#cp -f /root/stratux/test/screen/CnC_Red_Alert.ttf /etc/stratux-screen/CnC_Red_Alert.ttf
 
 #startup scripts
 cp -f ../__lib__systemd__system__stratux.service /lib/systemd/system/stratux.service

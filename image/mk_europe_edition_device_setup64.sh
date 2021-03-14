@@ -97,7 +97,6 @@ ldconfig
 cd /root/stratux
 
 make clean
-# Sometimes go build segfaults in qemu for some reason.. we will just try three times and hope for the best
 make
 make install
 
