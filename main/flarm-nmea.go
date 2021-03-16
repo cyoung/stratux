@@ -204,13 +204,15 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 
 	acType := "0"
 	switch ti.Emitter_category {
-	case 1: acType = "8" // light = piston
-	case 2, 3, 4, 5, 6: acType = "9" // heavy = jet
+	case 1, 6: acType = "8" // light/"highly maneuverable > 56" = piston
+	case 2, 3, 4, 5: acType = "9" // small/large/heavy = jet
 	case 7: acType = "3" // helicopter = helicopter
 	case 9: acType = "1" // glider = glider
 	case 10: acType = "B" // lighter than air = balloon
 	case 11: acType = "4" // skydiver/parachute = sky diver
 	case 12: acType = "7" // paraglider, hanglider
+	case 14: acType = "D" // UAV
+	case 19: acType = "F" // static object / point obstacle
 	}
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
