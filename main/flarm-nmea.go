@@ -135,18 +135,22 @@ func gdl90EmitterCatToNMEA(emitterCat uint8) string {
 }
 
 func nmeaAircraftTypeToGdl90(actype string) uint8 {
+	acTypeInt, err := strconv.ParseInt(actype, 16, 8)
+	if err != nil {
+		return 0
+	}
 	cat := uint8(0)
-	switch(actype) {
-		case "1": cat = 9 // glider = glider
-		case "2", "5", "8": cat = 1 // tow, drop, piston = light
-		case "3": cat = 7 // helicopter = helicopter
-		case "4": cat = 11 // skydiver
-		case "6", "7": cat = 12 // hang glider / paraglider
-		case "9": cat = 3 // jet = large
-		case "B", "C": cat = 10 // Balloon, airship = lighter than air
-		case "D": cat = 14 // UAV=UAV
-		case "E": cat = 18 // Ground support = surface vehicle (OGN extension?)
-		case "F": cat = 19 // point obstacle=static object
+	switch(acTypeInt) {
+		case 1: cat = 9 // glider = glider
+		case 2, 5, 8: cat = 1 // tow, drop, piston = light
+		case 3: cat = 7 // helicopter = helicopter
+		case 4: cat = 11 // skydiver
+		case 6, 7: cat = 12 // hang glider / paraglider
+		case 9: cat = 3 // jet = large
+		case 0xB, 0xC: cat = 10 // Balloon, airship = lighter than air
+		case 0xD: cat = 14 // UAV=UAV
+		case 0xE: cat = 18 // Ground support = surface vehicle (OGN extension?)
+		case 0xF: cat = 19 // point obstacle=static object
 	}
 	return cat
 }
