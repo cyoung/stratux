@@ -297,15 +297,7 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	if len(msg.Acft_cat) == 2 && err == nil {
 		ti.Emitter_category = uint8(emitter)
 	} else {
-		switch(msg.Acft_type) {
-			case "1": ti.Emitter_category = 9 // glider = glider
-			case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
-			case "3": ti.Emitter_category = 7 // helicopter = helicopter
-			case "4": ti.Emitter_category = 11 // skydiver
-			case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
-			case "9": ti.Emitter_category = 3 // jet = large
-			case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
-		}
+		ti.Emitter_category = nmeaAircraftTypeToGdl90(msg.Acft_type)
 	}
 
 	traffic[key] = ti

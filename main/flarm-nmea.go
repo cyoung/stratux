@@ -117,6 +117,40 @@ func computeRelativeVertical(ti TrafficInfo) (relativeVertical int32) {
 	return
 }
 
+func gdl90EmitterCatToNMEA(emitterCat uint8) string {
+	acType := "0"
+	switch emitterCat {
+		case 1, 6: acType = "8" // light/"highly maneuverable > 56" = piston
+		case 2, 3, 4, 5: acType = "9" // small/large/heavy = jet
+		case 7: acType = "3" // helicopter = helicopter
+		case 9: acType = "1" // glider = glider
+		case 10: acType = "B" // lighter than air = balloon
+		case 11: acType = "4" // skydiver/parachute = sky diver
+		case 12: acType = "7" // paraglider, hanglider
+		case 14: acType = "D" // UAV
+		case 17, 18: acType = "E" // Surface vehicle->Ground support (not in dataport spec, but OGN extension?)
+		case 19: acType = "F" // static object / point obstacle
+	}
+	return acType
+}
+
+func nmeaAircraftTypeToGdl90(actype string) uint8 {
+	cat := uint8(0)
+	switch(actype) {
+		case "1": cat = 9 // glider = glider
+		case "2", "5", "8": cat = 1 // tow, drop, piston = light
+		case "3": cat = 7 // helicopter = helicopter
+		case "4": cat = 11 // skydiver
+		case "6", "7": cat = 12 // hang glider / paraglider
+		case "9": cat = 3 // jet = large
+		case "B", "C": cat = 10 // Balloon, airship = lighter than air
+		case "D": cat = 14 // UAV=UAV
+		case "E": cat = 18 // Ground support = surface vehicle (OGN extension?)
+		case "F": cat = 19 // point obstacle=static object
+	}
+	return cat
+}
+
 /*
 	makeFlarmPFLAAString() creates a NMEA-formatted PFLAA string (FLARM traffic format) with checksum from the referenced
 		traffic object.
@@ -202,18 +236,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 		groundSpeed = int32(float32(ti.Speed) * 0.5144) // convert to m/s
 	}
 
-	acType := "0"
-	switch ti.Emitter_category {
-	case 1, 6: acType = "8" // light/"highly maneuverable > 56" = piston
-	case 2, 3, 4, 5: acType = "9" // small/large/heavy = jet
-	case 7: acType = "3" // helicopter = helicopter
-	case 9: acType = "1" // glider = glider
-	case 10: acType = "B" // lighter than air = balloon
-	case 11: acType = "4" // skydiver/parachute = sky diver
-	case 12: acType = "7" // paraglider, hanglider
-	case 14: acType = "D" // UAV
-	case 19: acType = "F" // static object / point obstacle
-	}
+	acType := gdl90EmitterCatToNMEA(ti.Emitter_category)
 
 	climbRate := float32(ti.Vvel) * 0.3048 / 60 // convert to m/s
 
@@ -791,15 +814,7 @@ func parseFlarmPFLAA(message []string) {
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_alt = stratuxClock.Time
 
-	switch(acType) {
-	case "1": ti.Emitter_category = 9 // glider = glider
-	case "2", "5", "8": ti.Emitter_category = 1 // tow, drop, piston = light
-	case "3": ti.Emitter_category = 7 // helicopter = helicopter
-	case "4": ti.Emitter_category = 11 // skydiver
-	case "6", "7": ti.Emitter_category = 12 // hang glider / paraglider
-	case "9": ti.Emitter_category = 3 // jet = large
-	case "B", "C": ti.Emitter_category = 10 // Balloon, airship = lighter than air
-	}
+	ti.Emitter_category = nmeaAircraftTypeToGdl90(acType)
 
 	// update traffic database
 	traffic[key] = ti
