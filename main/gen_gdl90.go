@@ -1174,6 +1174,7 @@ type settings struct {
 	DEBUG                bool
 	ReplayLog            bool
 	AHRSLog              bool
+	PersistentLogging    bool
 	IMUMapping           [2]int     // Map from aircraft axis to sensor axis: accelerometer
 	SensorQuaternion     [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	C, D                 [3]float64 // IMU Accel, Gyro zero bias

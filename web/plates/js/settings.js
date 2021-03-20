@@ -8,7 +8,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.$parent.helppage = 'plates/settings-help.html';
 
 	var toggles = ['UAT_Enabled', 'ES_Enabled', 'OGN_Enabled', 'Ping_Enabled', 'GPS_Enabled', 'IMU_Sensor_Enabled',
-		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'AHRSLog', 'GDL90MSLAlt_Enabled', 'SkyDemonAndroidHack', 'EstimateBearinglessDist', 'DarkMode'];
+		'BMP_Sensor_Enabled', 'DisplayTrafficSource', 'DEBUG', 'ReplayLog', 'AHRSLog', 'PersistentLogging', 'GDL90MSLAlt_Enabled', 'SkyDemonAndroidHack', 'EstimateBearinglessDist', 'DarkMode'];
 
 	var settings = {};
 	for (var i = 0; i < toggles.length; i++) {
@@ -51,6 +51,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.DEBUG = settings.DEBUG;
 		$scope.ReplayLog = settings.ReplayLog;
 		$scope.AHRSLog = settings.AHRSLog;
+		$scope.PersistentLogging = settings.PersistentLogging;
 
 		$scope.PPM = settings.PPM;
 		$scope.AltitudeOffset = settings.AltitudeOffset;

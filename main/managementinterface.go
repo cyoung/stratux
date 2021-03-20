@@ -333,6 +333,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						}
 					case "AHRSLog":
 						globalSettings.AHRSLog = val.(bool)
+					case "PersistentLogging":
+						globalSettings.PersistentLogging = val.(bool)
+						setPersistentLogging(globalSettings.PersistentLogging)
 					case "IMUMapping":
 						if globalSettings.IMUMapping != val.([2]int) {
 							globalSettings.IMUMapping = val.([2]int)
@@ -475,6 +478,35 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", settingsJSON)
 	}
 }
+
+func setPersistentLogging(persistent bool) {
+	bytes, err := ioutil.ReadFile("/etc/fstab")
+	if err != nil {
+		addSingleSystemErrorf("save-settings", "can't read /etc/fstab: %s", err.Error())
+		return
+	}
+	fstab := string(bytes)
+	if persistent {
+		fstab = strings.ReplaceAll(fstab, "\ntmpfs", "\n#tmpfs")
+	} else {
+		for strings.Count(fstab, "#tmpfs") > 0 { // do in a loop so if, for whatever reason, stratux.conf is not in sync to fstab, we remove all preceeding #
+			fstab = strings.ReplaceAll(fstab, "#tmpfs", "tmpfs")
+		}
+		if strings.Count(fstab, "tmpfs") == 0 {
+			// Never configured for tmpfs stuff.. append initial config
+			fstab += "\n"
+			fstab += "tmpfs    /var/log    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0\n"
+			fstab += "tmpfs    /tmp        tmpfs    defaults,noatime,nosuid,size=100m    0 0\n"
+			fstab += "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0\n"
+		}
+	}
+	err = ioutil.WriteFile("/etc/fstab", []byte(fstab), 0644)
+	if err != nil {
+		addSingleSystemErrorf("save-settings", "can't write /etc/fstab: %s", err.Error())
+		return
+	}
+}
+
 
 func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Sync()

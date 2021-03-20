@@ -414,8 +414,11 @@ input[type="number_format"] {
 }
 
 .control-label {
-	line-height: 28px;
-	margin-bottom: 4px;
+	line-height: 1;
+	height: 28px;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
 }
 
 .switch {
