@@ -778,6 +778,7 @@ func setJSONHeaders(w http.ResponseWriter) {
 }
 
 func defaultServer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age=360") // 5 min, so that if user installs update, he will revalidate soon enough
 	//	setNoCache(w)
 
 	http.FileServer(http.Dir("/var/www")).ServeHTTP(w, r)
