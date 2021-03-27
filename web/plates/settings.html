@@ -105,7 +105,7 @@
 
                         <!-- Aircraft Type -->
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-5">Aircraft type</label>
+                            <label class="control-label col-xs-5">Aircraft Type</label>
                             <select class="col-xs-7 custom-select" ng-model="OGNAcftType">
                                 <option value="1" ng-selected="OGNAcftType=='1'">Glider/Motorglider</option>
                                 <option value="2" ng-selected="OGNAcftType=='2'">Tow plane</option>
@@ -135,10 +135,14 @@
                             <label class="control-label col-xs-5">Registration</label>
                             <input class="col-xs-7" type="text" maxlength="15" ognreg-input ng-model="OGNReg" />
                         </div>
+                        <!-- TX Power -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Transmit Power (dBm)<br/><small>-32 = no transmission, actual power depends on hardware</small></label>
+                            <input class="col-xs-7" type="number" min="-32" max="31" ng-model="OGNTxPower" />
+                        </div>
 
                         <div class="form-group reset-flow">
-                            <button class="btn btn-primary btn-block" ng-click="updateOgnTrackerConfig()">Configure OGN
-                                Tracker</button>
+                            <button class="btn btn-primary btn-block" ng-click="updateOgnTrackerConfig()">Configure OGN Tracker</button>
                         </div>
                     </form>
                 </div>

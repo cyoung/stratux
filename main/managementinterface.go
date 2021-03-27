@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user" 
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -453,6 +453,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						reconfigureOgnTracker = true
 					case "OGNReg":
 						globalSettings.OGNReg = val.(string)
+						reconfigureOgnTracker = true
+					case "OGNTxPower":
+						globalSettings.OGNTxPower = int(val.(float64))
 						reconfigureOgnTracker = true
 					case "PWMDutyMin":
 						globalSettings.PWMDutyMin = int(val.(float64))

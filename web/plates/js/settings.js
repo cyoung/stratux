@@ -81,6 +81,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.OGNAcftType = settings.OGNAcftType.toString();
 		$scope.OGNPilot = settings.OGNPilot;
 		$scope.OGNReg = settings.OGNReg;
+		$scope.OGNTxPower = settings.OGNTxPower;
 
 		$scope.PWMDutyMin = settings.PWMDutyMin;
 
@@ -373,7 +374,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			"OGNAddr": $scope.OGNAddr,
 			"OGNAcftType": parseInt($scope.OGNAcftType),
 			"OGNPilot": $scope.OGNPilot,
-			"OGNReg": $scope.OGNReg
+			"OGNReg": $scope.OGNReg,
+			"OGNTxPower": $scope.OGNTxPower
 		};
 		setSettings(angular.toJson(newsettings));
 
