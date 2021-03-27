@@ -19,7 +19,7 @@
 export PATH=/root/go/bin:${PATH}
 export GOROOT=/root/go
 export GOPATH=/root/go_path
-export GO111MODULE=off # enabled by default as of go 1.16 but Stratux code is not modules aware..
+
 
 # This will allow users to keep an alias file after this file is added
 if [ -f /root/.aliases ]; then

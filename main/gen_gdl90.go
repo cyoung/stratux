@@ -32,7 +32,7 @@ import (
 	"syscall"
 	"time"
 
-	"../uatparse"
+	"github.com/b3nn0/stratux/uatparse"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ricochet2200/go-disk-usage/du"
 )

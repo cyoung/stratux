@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"../goflying/ahrs"
-	"../goflying/ahrsweb"
-	"../sensors"
+	"github.com/b3nn0/goflying/ahrs"
+	"github.com/b3nn0/goflying/ahrsweb"
+	"github.com/b3nn0/stratux/sensors"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
 )

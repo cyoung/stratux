@@ -32,11 +32,9 @@ all:
 	make xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
 
 gen_gdl90: $(STRATUX_SRC)
-	go get -t -d -v ./main ./godump978 ./uatparse ./sensors
 	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -o gen_gdl90 -p 4 $(STRATUX_SRC)
 
 fancontrol: $(FANCONTROL_SRC)
-	go get -t -d -v ./main
 	go build $(BUILDINFO) -o fancontrol -p 4 $(FANCONTROL_SRC)
 
 xdump1090:

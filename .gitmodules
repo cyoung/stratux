@@ -2,11 +2,6 @@
         path = dump1090
 	url = https://github.com/flightaware/dump1090.git
 	branch = dev
-[submodule "goflying"]
-	path = goflying
-	url = https://github.com/cyoung/goflying
-	branch = stratux_master
-
 [submodule "ogn/esp32-ogn-tracker"]
 	path = ogn/esp32-ogn-tracker
 	url = https://github.com/pjalocha/esp32-ogn-tracker.git
