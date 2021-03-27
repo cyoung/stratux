@@ -12,17 +12,19 @@
 package main
 
 import (
+	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"bufio"
 	"io"
 	"log"
 	"math"
 	"net"
-	"time"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/b3nn0/stratux/common"
 )
 
 /*
@@ -59,7 +61,7 @@ func makeFlarmPFLAUString(ti TrafficInfo) (msg string) {
 		gpsStatus = 2
 	}
 
-	dist, bearing, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+	dist, bearing, _, _ := common.DistRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 	relativeVertical := computeRelativeVertical(ti)
 	alarmLevel := computeAlarmLevel(dist, relativeVertical)
 
@@ -213,7 +215,7 @@ func makeFlarmPFLAAString(ti TrafficInfo) (msg string, valid bool, alarmLevel ui
 	}
 
 	// determine distance and bearing to target
-	dist, bearing, distN, distE := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+	dist, bearing, distN, distE := common.DistRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 	if !ti.Position_valid {
 		dist = ti.DistanceEstimated
 		distN = ti.DistanceEstimated
@@ -799,11 +801,11 @@ func parseFlarmPFLAA(message []string) {
 	// lat dist = 60nm = 111,12km
 	ti.Lat = mySituation.GPSLatitude + (relNorth / 111120.0)
 	avgLat := ti.Lat / 2.0 + mySituation.GPSLatitude / 2.0
-	lngFactor := float32(111120.0 * math.Cos(radians(float64(avgLat))))
+	lngFactor := float32(111120.0 * math.Cos(common.Radians(float64(avgLat))))
 	ti.Lng = mySituation.GPSLongitude + (relEast / lngFactor)
 
 	if isGPSValid() {
-		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		ti.BearingDist_valid = true
 	}
 	

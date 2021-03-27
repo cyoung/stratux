@@ -1,4 +1,3 @@
-
 /*
 	Copyright (c) 2020 Adrian Batzill
 	Distributable under the terms of The "BSD New" License
@@ -11,16 +10,18 @@
 package main
 
 import (
-	"encoding/json"
-	"encoding/hex"
-	"encoding/binary"
-	"net"
 	"bufio"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net"
 	"strconv"
 	"strings"
 	"time"
-	"log"
-	"io/ioutil"
+
+	"github.com/b3nn0/stratux/common"
 )
 
 // {"sys":"OGN","addr":"395F39","addr_type":3,"acft_type":"1","lat_deg":51.7657533,"lon_deg":-1.1918533,"alt_msl_m":124,"alt_std_m":63,"track_deg":0.0,"speed_mps":0.3,"climb_mps":-0.5,"turn_dps":0.0,"DOP":1.5}
@@ -211,7 +212,7 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	}
 
 	// Basic plausibility check:
-	dist, _, _, _ := distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
+	dist, _, _, _ := common.DistRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(msg.Lat_deg), float64(msg.Lon_deg))
 	if (isGPSValid() && dist >= 50000)  || (msg.Lat_deg == 0 && msg.Lon_deg == 0) {
 		// more than 50km away? Ignore. Most likely invalid data
 		return
@@ -282,7 +283,7 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	ti.SignalLevel = msg.SNR_dB
 
 	if isGPSValid() {
-		ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		ti.BearingDist_valid = true
 	}
 	ti.Position_valid = true

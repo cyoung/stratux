@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"io/ioutil"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const invalidCpuTemp = float32(-99.0)
+const InvalidCpuTemp = float32(-99.0)
 
 type CpuTempUpdateFunc func(cpuTemp float32)
 
@@ -16,13 +16,13 @@ calls a callback.  This is broken out into its own function (run as
 its own goroutine) because the RPi temperature monitor code is buggy,
 and often times reading this file hangs quite some time.  */
 
-func cpuTempMonitor(updater CpuTempUpdateFunc) {
+func CpuTempMonitor(updater CpuTempUpdateFunc) {
 	timer := time.NewTicker(1 * time.Second)
 	for {
 		// Update CPUTemp.
 		temp, err := ioutil.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 		tempStr := strings.Trim(string(temp), "\n")
-		t := invalidCpuTemp
+		t := InvalidCpuTemp
 		if err == nil {
 			tInt, err := strconv.Atoi(tempStr)
 			if err == nil {
@@ -33,7 +33,7 @@ func cpuTempMonitor(updater CpuTempUpdateFunc) {
 				}
 			}
 		}
-		if t >= invalidCpuTemp { // Only update if valid value was obtained.
+		if t >= InvalidCpuTemp { // Only update if valid value was obtained.
 			updater(t)
 		}
 		<-timer.C
@@ -41,6 +41,6 @@ func cpuTempMonitor(updater CpuTempUpdateFunc) {
 }
 
 // Check if CPU temperature is valid. Assume <= 0 is invalid.
-func isCPUTempValid(cpuTemp float32) bool {
+func IsCPUTempValid(cpuTemp float32) bool {
 	return cpuTemp > 0
 }

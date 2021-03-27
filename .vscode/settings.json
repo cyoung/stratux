@@ -13,8 +13,8 @@
 
 
     // Use this to make it possible to hide the gen_gdl90 vs fancontrol redeclaration errors..
-    //"files.exclude": {
-    //    "**/.git": true,
-    //    "main/fancontrol.go": true
-    //}
+    "files.exclude": {
+        "**/.git": true,
+        "main/fancontrol.go": true
+    }
 }

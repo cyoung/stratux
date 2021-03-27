@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/takama/daemon"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/b3nn0/stratux/common"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/takama/daemon"
 )
 
 // #include <wiringPi.h>
@@ -121,8 +123,8 @@ func fanControl() {
 
 	
 	myFanControl.TempCurrent = 0
-	go cpuTempMonitor(func(cpuTemp float32) {
-		if isCPUTempValid(cpuTemp) {
+	go common.CpuTempMonitor(func(cpuTemp float32) {
+		if common.IsCPUTempValid(cpuTemp) {
 			myFanControl.TempCurrent = cpuTemp
 		}
 	})
@@ -139,9 +141,9 @@ func fanControl() {
 		}
 
 		if myFanControl.TempCurrent > (myFanControl.TempTarget + hysteresis) {
-			myFanControl.PWMDutyCurrent = iMax(iMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+pwmDutyStep), myFanControl.PWMDutyMin)
+			myFanControl.PWMDutyCurrent = common.IMax(common.IMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+pwmDutyStep), myFanControl.PWMDutyMin)
 		} else if myFanControl.TempCurrent < (myFanControl.TempTarget - hysteresis) {
-			myFanControl.PWMDutyCurrent = iMax(myFanControl.PWMDutyCurrent-pwmDutyStep, 0)
+			myFanControl.PWMDutyCurrent = common.IMax(myFanControl.PWMDutyCurrent-pwmDutyStep, 0)
 			if myFanControl.PWMDutyCurrent < myFanControl.PWMDutyMin {
 				myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
 			}

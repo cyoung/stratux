@@ -32,6 +32,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/b3nn0/stratux/common"
 	"github.com/b3nn0/stratux/uatparse"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ricochet2200/go-disk-usage/du"
@@ -552,7 +553,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: CPU temperature portion.
-	if isCPUTempValid(globalStatus.CPUTemp) {
+	if common.IsCPUTempValid(globalStatus.CPUTemp) {
 		msg[13] = msg[13] | (1 << 4)
 	}
 
@@ -1726,14 +1727,14 @@ func main() {
 	go baroAltGuesser()
 
 	// Monitor RPi CPU temp.
-	globalStatus.CPUTempMin = invalidCpuTemp
-	globalStatus.CPUTempMax = invalidCpuTemp
-	go cpuTempMonitor(func(cpuTemp float32) {
+	globalStatus.CPUTempMin = common.InvalidCpuTemp
+	globalStatus.CPUTempMax = common.InvalidCpuTemp
+	go common.CpuTempMonitor(func(cpuTemp float32) {
 		globalStatus.CPUTemp = cpuTemp
-		if isCPUTempValid(cpuTemp) && ((cpuTemp < globalStatus.CPUTempMin) || !isCPUTempValid(globalStatus.CPUTempMin)) {
+		if common.IsCPUTempValid(cpuTemp) && ((cpuTemp < globalStatus.CPUTempMin) || !common.IsCPUTempValid(globalStatus.CPUTempMin)) {
 			globalStatus.CPUTempMin = cpuTemp
 		}
-		if isCPUTempValid(cpuTemp) && ((cpuTemp > globalStatus.CPUTempMax) || !isCPUTempValid(globalStatus.CPUTempMax)) {
+		if common.IsCPUTempValid(cpuTemp) && ((cpuTemp > globalStatus.CPUTempMax) || !common.IsCPUTempValid(globalStatus.CPUTempMax)) {
 			globalStatus.CPUTempMax = cpuTemp
 		}
 	})

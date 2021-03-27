@@ -10,10 +10,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
-	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +25,8 @@ import (
 
 	"os"
 	"os/exec"
+
+	"github.com/b3nn0/stratux/common"
 )
 
 const (
@@ -681,7 +683,7 @@ func calcGPSAttitude() bool {
 		for i := 0; i < length; i++ {
 			tempTime[i] = float64(myGPSPerfStats[i].nmeaTime)
 		}
-		minTime, _ := arrayMin(tempTime)
+		minTime, _ := common.ArrayMin(tempTime)
 		if minTime > 86401.0 {
 			log.Printf("GPS attitude: Rebasing GPS time since midnight to current day.\n")
 			for i := 0; i < length; i++ {
@@ -757,7 +759,7 @@ func calcGPSAttitude() bool {
 		if myGPSPerfStats[i].msgType == "GPRMC" || myGPSPerfStats[i].msgType == "GNRMC" {
 			tempSpeed = append(tempSpeed, float64(myGPSPerfStats[i].gsf))
 			tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
-			tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
+			tempRegWeights = append(tempRegWeights, common.TriCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
 		}
 	}
 	lengthSpeed = len(tempSpeed)
@@ -767,7 +769,7 @@ func calcGPSAttitude() bool {
 	} else if lengthSpeed == 1 {
 		v_x = tempSpeed[0] * 1.687810
 	} else {
-		slope, intercept, valid = linRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
+		slope, intercept, valid = common.LinRegWeighted(tempSpeedTime, tempSpeed, tempRegWeights)
 		if !valid {
 			log.Printf("GPS attitude: Error calculating speed regression from NMEA RMC position messages")
 			return false
@@ -786,7 +788,7 @@ func calcGPSAttitude() bool {
 		if myGPSPerfStats[i].msgType == "GPGGA" || myGPSPerfStats[i].msgType == "GNGGA" {
 			tempVV = append(tempVV, float64(myGPSPerfStats[i].alt))
 			tempSpeedTime = append(tempSpeedTime, float64(myGPSPerfStats[i].nmeaTime))
-			tempRegWeights = append(tempRegWeights, triCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
+			tempRegWeights = append(tempRegWeights, common.TriCubeWeight(center, halfwidth, float64(myGPSPerfStats[i].nmeaTime)))
 		}
 	}
 	lengthSpeed = len(tempVV)
@@ -794,7 +796,7 @@ func calcGPSAttitude() bool {
 		log.Printf("GPS Attitude: Not enough points to calculate vertical speed from NMEA GGA messages\n")
 		return false
 	} else {
-		slope, _, valid = linRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
+		slope, _, valid = common.LinRegWeighted(tempSpeedTime, tempVV, tempRegWeights)
 		if !valid {
 			log.Printf("GPS attitude: Error calculating vertical speed regression from NMEA GGA messages")
 			return false
@@ -846,9 +848,9 @@ func calcGPSAttitude() bool {
 
 	if lengthHeading > 1 {
 		tempHdgUnwrapped[0] = tempHdg[0]
-		tempRegWeights[0] = triCubeWeight(center, halfwidth, tempHdgTime[0])
+		tempRegWeights[0] = common.TriCubeWeight(center, halfwidth, tempHdgTime[0])
 		for i := 1; i < lengthHeading; i++ {
-			tempRegWeights[i] = triCubeWeight(center, halfwidth, tempHdgTime[i])
+			tempRegWeights[i] = common.TriCubeWeight(center, halfwidth, tempHdgTime[i])
 			if math.Abs(tempHdg[i]-tempHdg[i-1]) < 180 { // case 1: if angle change is less than 180 degrees, use the same reference system
 				tempHdgUnwrapped[i] = tempHdgUnwrapped[i-1] + tempHdg[i] - tempHdg[i-1]
 			} else if tempHdg[i] > tempHdg[i-1] { // case 2: heading has wrapped around from NE to NW. Subtract 360 to keep consistent with previous data.
@@ -865,7 +867,7 @@ func calcGPSAttitude() bool {
 	}
 
 	// Finally, calculate turn rate as the slope of the weighted linear regression of unwrapped heading.
-	slope, intercept, valid = linRegWeighted(tempHdgTime, tempHdgUnwrapped, tempRegWeights)
+	slope, intercept, valid = common.LinRegWeighted(tempHdgTime, tempHdgUnwrapped, tempRegWeights)
 
 	if !valid {
 		log.Printf("GPS attitude: Regression error calculating turn rate")
@@ -918,7 +920,7 @@ func calcGPSAttitude() bool {
 		*/
 
 		g := 32.174                                        // ft/(s^2)
-		omega = radians(myGPSPerfStats[index].gpsTurnRate) // need radians/sec
+		omega = common.Radians(myGPSPerfStats[index].gpsTurnRate) // need radians/sec
 		a_c = v_x * omega
 		myGPSPerfStats[index].gpsRoll = math.Atan2(a_c, g) * 180 / math.Pi // output is degrees
 		myGPSPerfStats[index].gpsLoadFactor = math.Sqrt(a_c*a_c+g*g) / g
@@ -980,7 +982,7 @@ func calculateNavRate() float64 {
  	}
 
  	var halfwidth float64
- 	dt_avg, valid := mean(tempSpeedTime)
+ 	dt_avg, valid := common.Mean(tempSpeedTime)
  	if valid && dt_avg > 0 {
  		if globalSettings.DEBUG {
  			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
@@ -1755,7 +1757,7 @@ func baroAltGuesser() {
 			alts = append(alts, float64(k*100))
 			diffs = append(diffs, float64(v))
 		}
-		slope, intercept, valid := linReg(alts, diffs)
+		slope, intercept, valid := common.LinReg(alts, diffs)
 		//fmt.Printf("General: %f * x + %f \n", slope, intercept)
 
 		trafficMutex.Lock()
@@ -1819,7 +1821,7 @@ func baroAltGuesser() {
 				// X-axis is altitude, Y axis is reported GnssBaroDiff
 			}
 			if len(gnssBaroAltDiffs) >= 2 {
-				slope, intercept, valid := linRegWeighted(alts, diffs, weights)
+				slope, intercept, valid := common.LinRegWeighted(alts, diffs, weights)
 				if valid {
 					gnssBaroDiff := float64(myAlt) * slope + intercept
 					mySituation.muBaro.Lock()
@@ -1897,10 +1899,10 @@ func makeFFAHRSMessage() {
 
 	if isAHRSValid() {
 		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
-			pitch = roundToInt16(mySituation.AHRSPitch * 10)
+			pitch = common.RoundToInt16(mySituation.AHRSPitch * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
-			roll = roundToInt16(mySituation.AHRSRoll * 10)
+			roll = common.RoundToInt16(mySituation.AHRSRoll * 10)
 		}
 	}
 
@@ -1959,27 +1961,27 @@ func makeAHRSGDL90Report() {
 	vs := int16(0x7FFF)
 	if isAHRSValid() {
 		if !isAHRSInvalidValue(mySituation.AHRSPitch) {
-			pitch = roundToInt16(mySituation.AHRSPitch * 10)
+			pitch = common.RoundToInt16(mySituation.AHRSPitch * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSRoll) {
-			roll = roundToInt16(mySituation.AHRSRoll * 10)
+			roll = common.RoundToInt16(mySituation.AHRSRoll * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
-			hdg = roundToInt16(mySituation.AHRSGyroHeading * 10)
+			hdg = common.RoundToInt16(mySituation.AHRSGyroHeading * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
-			slip_skid = roundToInt16(-mySituation.AHRSSlipSkid * 10)
+			slip_skid = common.RoundToInt16(-mySituation.AHRSSlipSkid * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSTurnRate) {
-			yaw_rate = roundToInt16(mySituation.AHRSTurnRate * 10)
+			yaw_rate = common.RoundToInt16(mySituation.AHRSTurnRate * 10)
 		}
 		if !isAHRSInvalidValue(mySituation.AHRSGLoad) {
-			g = roundToInt16(mySituation.AHRSGLoad * 10)
+			g = common.RoundToInt16(mySituation.AHRSGLoad * 10)
 		}
 	}
 	if isTempPressValid() {
 		palt = uint16(mySituation.BaroPressureAltitude + 5000.5)
-		vs = roundToInt16(float64(mySituation.BaroVerticalSpeed))
+		vs = common.RoundToInt16(float64(mySituation.BaroVerticalSpeed))
 	}
 
 	// Roll.

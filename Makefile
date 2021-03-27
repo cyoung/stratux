@@ -24,18 +24,15 @@ else
 	OGN_RX_BINARY=ogn/ogn-rx-eu_arm
 endif
 
-STRATUX_SRC=main/gen_gdl90.go main/traffic.go main/gps.go main/network.go main/managementinterface.go main/sdr.go main/ping.go main/uibroadcast.go main/monotonic.go main/datalog.go main/equations.go main/sensors.go main/cputemp.go main/lowpower_uat.go main/ogn.go main/flarm-nmea.go main/networksettings.go main/xplane.go
-FANCONTROL_SRC=main/fancontrol.go main/equations.go main/cputemp.go
-
 
 all:
 	make xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
 
-gen_gdl90: $(STRATUX_SRC)
-	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -o gen_gdl90 -p 4 $(STRATUX_SRC)
+gen_gdl90: main/*.go common/*.go
+	export CGO_CFLAGS_ALLOW="-L/root/stratux" && go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
 
-fancontrol: $(FANCONTROL_SRC)
-	go build $(BUILDINFO) -o fancontrol -p 4 $(FANCONTROL_SRC)
+fancontrol: fancontrol_main/*.go common/*.go
+	go build $(BUILDINFO) -o fancontrol -p 4 ./fancontrol_main/
 
 xdump1090:
 	git submodule update --init

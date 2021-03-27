@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/b3nn0/stratux/common"
 )
 
 //-0b2b48fe3aef1f88621a0856110a31c01105c4e6c4e6c40a9a820300000000000000;rs=7;
@@ -86,14 +88,14 @@ type TrafficInfo struct {
 	SignalLevel         float64   // Signal level, dB RSSI.
 	Squawk              int       // Squawk code
 	Position_valid      bool      //TODO: set when position report received. Unset after n seconds?
-	Lat                 float32   // decimal degrees, north positive
-	Lng                 float32   // decimal degrees, east positive
+	Lat                 float32   // decimal common.Degrees, north positive
+	Lng                 float32   // decimal common.Degrees, east positive
 	Alt                 int32     // Pressure altitude, feet
 	GnssDiffFromBaroAlt int32     // GNSS altitude above WGS84 datum. Reported in TC 20-22 messages
 	AltIsGNSS           bool      // Pressure alt = 0; GNSS alt = 1
 	NIC                 int       // Navigation Integrity Category.
 	NACp                int       // Navigation Accuracy Category for Position.
-	Track               float32   // degrees true
+	Track               float32   // common.Degrees true
 	TurnRate            float32   // Turn rate in deg/sec (negative = turning left, positive = right)
 	Speed               uint16    // knots
 	Speed_valid         bool      // set when speed report received.
@@ -120,7 +122,7 @@ type TrafficInfo struct {
 	Alt_fix              int32     // Last real, non-extrapolated altitude
 
 	BearingDist_valid    bool      // set when bearing and distance information is valid
-	Bearing              float64   // Bearing in degrees true to traffic from ownship, if it can be calculated. Units: degrees.
+	Bearing              float64   // Bearing in common.Degrees true to traffic from ownship, if it can be calculated. Units: common.Degrees.
 	Distance             float64   // Distance to traffic from ownship, if it can be calculated. Units: meters.
 	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
 	DistanceEstimatedLastTs time.Time // Used to compute moving average
@@ -225,7 +227,7 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 			}
 			trafficDist := 0.0
 			if isGPSValid() {
-				trafficDist, _, _, _ = distRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+				trafficDist, _, _, _ = common.DistRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			}
 			altDiff := 99999.0
 			if ti.AltIsGNSS && ti.Alt != 0 {
@@ -306,7 +308,7 @@ func sendTrafficUpdates() {
 	for key, ti := range traffic { // ForeFlight 7.5 chokes at ~1000-2000 messages depending on iDevice RAM. Practical limit likely around ~500 aircraft without filtering.
 		if isGPSValid() && ti.Position_valid {
 			// func distRect(lat1, lon1, lat2, lon2 float64) (dist, bearing, distN, distE float64) {
-			dist, bearing := distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+			dist, bearing := common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 			ti.Distance = dist
 			ti.Bearing = bearing
 			ti.BearingDist_valid = true
@@ -477,17 +479,17 @@ func estimateDistance(ti *TrafficInfo) {
 
  // calculates coordinates of a point defined by a location, a bearing, and a distance, thanks to 0x74-0x62
 func calcLocationForBearingDistance(lat1, lon1, bearingDeg, distanceNm float64) (lat2, lon2 float64) {
-	lat1Rad := radians(lat1)
-	lon1Rad := radians(lon1)
-	bearingRad := radians(bearingDeg)
+	lat1Rad := common.Radians(lat1)
+	lon1Rad := common.Radians(lon1)
+	bearingRad := common.Radians(bearingDeg)
 	distanceRad := distanceNm / (180 * 60 / math.Pi)
 
 	lat2Rad := math.Asin(math.Sin(lat1Rad)*math.Cos(distanceRad) + math.Cos(lat1Rad)*math.Sin(distanceRad)*math.Cos(bearingRad))
 	distanceLon := -math.Atan2(math.Sin(bearingRad)*math.Sin(distanceRad)*math.Cos(lat1Rad), math.Cos(distanceRad)-math.Sin(lat1Rad)*math.Sin(lat2Rad))
 	lon2Rad := math.Mod(lon1Rad-distanceLon+math.Pi, 2.0*math.Pi) - math.Pi
 
-	lat2 = degrees(lat2Rad)
-	lon2 = degrees(lon2Rad)
+	lat2 = common.Degrees(lat2Rad)
+	lon2 = common.Degrees(lon2Rad)
 
 	return
 }
@@ -639,7 +641,7 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	msg[16] = byte(vvel & 0x00FF)
 
 	// Track.
-	trk := uint8(ti.Track / TRACK_RESOLUTION) // Resolution is ~1.4 degrees.
+	trk := uint8(ti.Track / TRACK_RESOLUTION) // Resolution is ~1.4 common.Degrees.
 	msg[17] = byte(trk)
 
 	msg[18] = ti.Emitter_category
@@ -871,7 +873,7 @@ func parseDownlinkReport(s string, signalLevel int) {
 		ti.Lat = lat
 		ti.Lng = lng
 		if isGPSValid() {
-			ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+			ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 		}
 		ti.Last_seen = stratuxClock.Time
 		ti.ExtrapolatedPosition = false
@@ -1172,7 +1174,7 @@ func esListen() {
 					ti.Lat = lat
 					ti.Lng = lng
 					if isGPSValid() {
-						ti.Distance, ti.Bearing = distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+						ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
 						ti.BearingDist_valid = true
 					}
 					ti.Position_valid = true
@@ -1467,7 +1469,7 @@ func updateDemoTraffic(icao uint32, tail string, relAlt float32, gs float64, off
 	ti.Lat = float32(lat + traffRelLat)
 	ti.Lng = float32(lng + traffRelLng)
 
-	ti.Distance, ti.Bearing = distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+	ti.Distance, ti.Bearing = common.Distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
 	ti.BearingDist_valid = true
 
 	ti.Position_valid = true

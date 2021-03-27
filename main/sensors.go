@@ -10,6 +10,7 @@ import (
 
 	"github.com/b3nn0/goflying/ahrs"
 	"github.com/b3nn0/goflying/ahrsweb"
+	"github.com/b3nn0/stratux/common"
 	"github.com/b3nn0/stratux/sensors"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
@@ -123,7 +124,7 @@ func tempAndPressureSender() {
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
 		mySituation.BaroTemperature = float32(temp)
-		altitude = CalcAltitude(press, globalSettings.AltitudeOffset)
+		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
 		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
 			altLast = altitude // Initialize

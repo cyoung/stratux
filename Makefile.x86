@@ -15,11 +15,9 @@ FANCONTROL_SRC=main/fancontrol.go main/equations.go main/cputemp.go
 
 all: xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
 
-gen_gdl90: $(STRATUX_SRC)
-	CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -gcflags '-N -l' -p 4 $(STRATUX_SRC)
+gen_gdl90:  main/*.go common/*.go
+	CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -gcflags '-N -l' -o gen_gdl90 -p 4 ./main/
 
-fancontrol:
-	go build $(BUILDINFO) -p 4 $(FANCONTROL_SRC)
 
 xdump1090:
 	git submodule update --init
