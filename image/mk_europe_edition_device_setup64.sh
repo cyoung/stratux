@@ -2,8 +2,8 @@
 
 # DO NOT CALL ME DIRECTLY!
 # This script is called by mk_europe_edition.sh via qemu
+set -ex
 
-mv /etc/ld.so.preload /etc/ld.so.preload.bak
 cd /root/stratux
 
 # Make sure that the upgrade doesn't restart services in the chroot..
@@ -33,25 +33,20 @@ apt clean
 # Note that we also had to increase image size to 3gb for this.. hope we can reduce it again in the future
 apt --yes install clang
 export CC=clang
+export CXX=clang++
 
 
 systemctl enable isc-dhcp-server
 systemctl enable ssh
-systemctl disable ntp
 systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable hostapd
 
-echo INTERFACESv4=\"wlan0\" >> /etc/default/isc-dhcp-server
+sed -i 's/INTERFACESv4=""/INTERFACESv4="wlan0"/g' /etc/default/isc-dhcp-server
 
 rm -r /proc/*
 rm -r /root/fake
 
-
-# For some reason in buster, the 8192cu module seems to crash the kernel when a client connects to hostapd.
-# Use rtl8192cu module instead, even though raspbian doesn't seem to recommend it.
-rm /etc/modprobe.d/blacklist-rtl8192cu.conf
-echo "blacklist 8192cu" >> /etc/modprobe.d/blacklist-8192cu.conf
 
 # Install golang
 cd /root
@@ -86,7 +81,7 @@ make install
 cd /root/
 rm -r rtl-sdr
 
-ldconfig
+(ldconfig || ldconfig || ldconfig || ldconfig) # segfaults sometimes for unknown reasons..?
 
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
 #sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
@@ -198,9 +193,8 @@ sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
-
 # TODO: done -- uninstall clang again
-apt remove --yes clang binfmt-support clang-7 libclang-common-7-dev libclang1-7 libffi-dev libllvm7 libobjc-8-dev libobjc4 libomp-7-dev libomp5-7 llvm-7 llvm-7-dev llvm-7-runtime
+apt remove --purge --yes clang binfmt-support clang-7 libclang-common-7-dev libclang1-7 libffi-dev libllvm7 libobjc-8-dev libobjc4 libomp-7-dev libomp5-7 llvm-7 llvm-7-dev llvm-7-runtime
 
 # Finally, try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
 # Disable swap...
@@ -218,5 +212,3 @@ echo "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0" >> 
 cd /root/stratux/selfupdate
 ./makeupdate.sh
 
-
-mv /etc/ld.so.preload.bak /etc/ld.so.preload
