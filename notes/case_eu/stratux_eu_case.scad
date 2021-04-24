@@ -43,8 +43,12 @@ PRINTING_TOLERANCE_XY = 0.2;
 // Most printers are more precise in the Z direction
 PRITING_TOLERANCE_Z = 0.15;
 
+// Radius of the screw holes in the corners (absolute value, including tolerances)
+CORNER_SCREW_RADIUS_BASE = 0.95;
+CORNER_SCREW_RADIUS_LID = 1.2;
+
 // This defines the resolution of the resulting meshe's round elements
-$fn=70;
+$fn=50;
 
 
 // dimensions of the rPI part
@@ -122,21 +126,24 @@ module base_case_shape(top_thickness, side_thickness, height) {
     difference() {
         union() {
             // slightly longer for flat corners at the joint to the wings
-            roundedcube([_case_main_width, _case_main_length+2, height], rz=OUTSIDE_CORNER_RADIUS);
+            roundedcube([_case_main_width, _case_main_length+2+OUTSIDE_CORNER_RADIUS, height+OUTSIDE_CORNER_RADIUS], rz=OUTSIDE_CORNER_RADIUS, rx=OUTSIDE_CORNER_RADIUS, ry=OUTSIDE_CORNER_RADIUS);
             translate([-_wing_part_width, _case_main_length])
-                roundedcube([_case_wing_width, _case_wing_length, height], rz=OUTSIDE_CORNER_RADIUS);
+                roundedcube([_case_wing_width, _case_wing_length, height+OUTSIDE_CORNER_RADIUS], rz=OUTSIDE_CORNER_RADIUS, rx=OUTSIDE_CORNER_RADIUS, ry=OUTSIDE_CORNER_RADIUS);
         }
         
         // make main part hollow hollow
         translate([side_thickness, side_thickness, top_thickness]) {
-            roundedcube([_case_main_width-2*side_thickness, _case_main_length + 2, height], rz=OUTSIDE_CORNER_RADIUS);
+            roundedcube([_case_main_width-2*side_thickness, _case_main_length + 5, height+OUTSIDE_CORNER_RADIUS], rz=OUTSIDE_CORNER_RADIUS, rx=OUTSIDE_CORNER_RADIUS, ry=OUTSIDE_CORNER_RADIUS);
         }
         
         // make T-Beam part hollow
         translate([-_wing_part_width + side_thickness, _case_main_length + side_thickness, top_thickness]) {
-            roundedcube([_case_wing_width - 2 * side_thickness, _case_wing_length - 2*side_thickness, height], rz=OUTSIDE_CORNER_RADIUS);
+            roundedcube([_case_wing_width - 2 * side_thickness, _case_wing_length - 2*side_thickness, height+OUTSIDE_CORNER_RADIUS], rz=OUTSIDE_CORNER_RADIUS, rx=OUTSIDE_CORNER_RADIUS, ry=OUTSIDE_CORNER_RADIUS);
 
         }
+        // Cut off the top so the top isn't rounded
+        translate([-_case_main_width/2, -_case_main_length/2, height])
+            cube([_case_main_width*2, _case_main_length*2, OUTSIDE_CORNER_RADIUS+0.1]);
        
     }
     
@@ -150,14 +157,17 @@ module pi_screw_mount() {
     union() {
         fillet_radius = 1.2;
         // Creates a fillet around the base for more stability
-        rotate_extrude() {
+        // Somehow seems to generate invalid STLs? PrusaSlic3r prints strange stuff..
+        // Therefore replaced with a cone for now..
+        /*rotate_extrude() {
             translate([2.99, 0, 0])
-            difference() {
-                square(fillet_radius);
-                translate([fillet_radius, fillet_radius]) circle(fillet_radius);
-            }
-        }
-        cylinder(3, 3, 3);
+                difference() {
+                    square(fillet_radius);
+                    translate([fillet_radius, fillet_radius]) circle(fillet_radius);
+                }
+        }*/
+        cylinder(3, 4.0, 2);
+        cylinder(3, 3.01, 3.01);
     }
 }
 
@@ -170,7 +180,7 @@ module pi_screw_mounts() {
 }
 
 module pi_screw_hole() {
-    translate([0, 0, -1]) cylinder(4.01, 1.2, 1.2);
+    translate([0, 0, -1]) cylinder(5.01, 1.2, 1.2);
 }
 
 module pi_screw_holes() {
@@ -198,6 +208,9 @@ module strap_holder() {
 module sd_card_hole() {
     translate([-6, -WALL_THICKNESS/2 - 0.01, -5.01])
         roundedcube([12.01, WALL_THICKNESS + 1.0, 10.01], ry=1);
+
+    translate([-6, -WALL_THICKNESS/2 - 0.01, WALL_THICKNESS])
+        cube([12.01, 5, 2], center=false);
 }
 
 
@@ -233,86 +246,87 @@ module vent_holes() {
     }
 }
 
+
 // MAIN MODULE TO BUILD THE CASE
 module case() {
     // See here for exact dimensions of the pi:
     // https://www.raspiworld.com/images/other/drawings/Raspberry-Pi-1-2-3-Model-B.pdf
     // We use a bit of tolerance for the case (e.g. 0.5mm from the left side)
-    intersection() {
-        difference() {
-            union() {
-                base_case();
-                // Create PI screw pillars
-                translate([_case_main_width/2, 58/2 + WALL_THICKNESS + 4, WALL_THICKNESS])
-                    pi_screw_mounts();
-                
-                // screw holders for the lid. 
-                translate([WALL_THICKNESS, WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(0, 0.8, 1.4, 1.4);
-                translate([_case_main_width-WALL_THICKNESS, WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(90, 0.8, 1.4, 1.4);
-                
-                
-                // Note that the T-Beam screws are _not_ symmetric.
-                // On the side where the GPS chip is, distance from from side is 2.36mm (to hole-center).
-                // On the other side, it is 2.67mm Thistens to the longer sides is 2.59 all around
-                // Additionally, add 0.3mm tolerance
-                offset_gps_side = 2.36 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
-                offset_pin_side = 2.67 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
-                offset_other = 2.59 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
-                
-                translate([-_wing_part_width+WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(0, 0.8, offset_gps_side, offset_other, cornersize=7.5);
-                
-                translate([_case_main_width + _wing_part_width - WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
-                    corner_screw_holder(90, 0.8, offset_pin_side, offset_other, cornersize=7.5);
-            }
-            // clear holes for PI screws
-            translate([_case_main_width/2, 58/2 + WALL_THICKNESS + 4, WALL_THICKNESS])
-                pi_screw_holes();
+    difference() {
+        union() {
+            base_case();
+            // Create PI screw pillars
+            translate([_case_main_width/2, 58/2 + WALL_THICKNESS + 4, WALL_THICKNESS-0.01])
+                pi_screw_mounts();
             
-
-            // clear hole for power connector
-            // left side: older PI have the power connector 10.6mm in, pi4 has 12.4mm.
-            // For hybrid we use the average 11.5
-            // -> 11.5 + 0.5 gap from the side
-            // height: wall + pillar height + pcb height + socket height/2
-            connector_offset = RASPI_VERSION == "3" ? 10.6 :
-                RASPI_VERSION == "4" ? 12.4 :
-                11.5;
-
-            translate([_case_main_width, WALL_THICKNESS + 0.5 + connector_offset, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
-                power_connector_hole();
-
-
-            // clear holes for battery pack strap
-            if (STRAP_HOLDER) {
-                strap_offset = 60;
-
-                translate([_case_main_width, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
-                    strap_holder();
-
-                translate([WALL_THICKNESS, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
-                    strap_holder();
-            }
-
-            // clear hole for SD card slot
-            translate([_case_main_width / 2, 0, 0])
-                sd_card_hole();
+            // screw holders for the lid. 
+            translate([WALL_THICKNESS, WALL_THICKNESS, _case_height - 10])
+                corner_screw_holder(0, CORNER_SCREW_RADIUS_BASE, 1.4, 1.4);
+            translate([_case_main_width-WALL_THICKNESS, WALL_THICKNESS, _case_height - 10])
+                corner_screw_holder(90, CORNER_SCREW_RADIUS_BASE, 1.4, 1.4);
             
-
             
-            // The two SMA connectors
-            translate([-8, _case_main_length, WALL_THICKNESS + 8])
-                sma_connector_hole();
-            translate([_case_main_width + 8, _case_main_length, WALL_THICKNESS + 8])
-                sma_connector_hole();
+            // Note that the T-Beam screws are _not_ symmetric.
+            // On the side where the GPS chip is, distance from from side is 2.36mm (to hole-center).
+            // On the other side, it is 2.67mm Thistens to the longer sides is 2.59 all around
+            // Additionally, add 0.3mm tolerance
+            offset_gps_side = 2.36 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
+            offset_pin_side = 2.67 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
+            offset_other = 2.59 + PRINTING_TOLERANCE_XY - WALL_THICKNESS / 2;
             
-
-            // Remove vent holes (double-SMA-connector-holes for T-Beam antenna)
-            translate([_case_main_width / 2, _case_total_length - WALL_THICKNESS, _case_height - 6.8 + PRITING_TOLERANCE_Z])
-                vent_holes();
+            translate([-_wing_part_width+WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
+                corner_screw_holder(0, CORNER_SCREW_RADIUS_BASE, offset_gps_side, offset_other, cornersize=7.5);
+            
+            translate([_case_main_width + _wing_part_width - WALL_THICKNESS, _case_main_length+WALL_THICKNESS, _case_height - 10])
+                corner_screw_holder(90, CORNER_SCREW_RADIUS_BASE, offset_pin_side, offset_other, cornersize=7.5);
         }
+        // clear holes for PI screws
+        translate([_case_main_width/2, 58/2 + WALL_THICKNESS + 4, WALL_THICKNESS])
+            pi_screw_holes();
+        
+
+        // clear hole for power connector
+        // left side: older PI have the power connector 10.6mm in, pi4 has 12.4mm.
+        // For hybrid we use the average 11.5
+        // -> 11.5 + 0.5 gap from the side
+        // height: wall + pillar height + pcb height + socket height/2
+        connector_offset = RASPI_VERSION == "3" ? 10.6 :
+            RASPI_VERSION == "4" ? 12.4 :
+            11.5;
+
+        translate([_case_main_width, WALL_THICKNESS + 0.5 + connector_offset, WALL_THICKNESS + 3 + 1.5 + 3.3/2])
+            power_connector_hole();
+
+
+        // clear holes for battery pack strap
+        if (STRAP_HOLDER) {
+            strap_offset = 60;
+
+            translate([_case_main_width, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
+                strap_holder();
+
+            translate([WALL_THICKNESS, WALL_THICKNESS + 0.5 + strap_offset, WALL_THICKNESS + _case_height - STRAP_HOLDER_OFFSET - 3/2])
+                strap_holder();
+        }
+
+        // clear hole for SD card slot
+        translate([_case_main_width / 2, 0, 0])
+            sd_card_hole();
+        
+
+        
+        // The two SMA connectors
+        translate([-8, _case_main_length, WALL_THICKNESS + 8])
+            sma_connector_hole();
+        translate([_case_main_width + 8, _case_main_length, WALL_THICKNESS + 8])
+            sma_connector_hole();
+        
+
+        // Remove vent holes (double-SMA-connector-holes for T-Beam antenna)
+        translate([_case_main_width / 2, _case_total_length - WALL_THICKNESS, _case_height - 6.8 + PRITING_TOLERANCE_Z])
+            vent_holes();
+        translate([_case_main_width / 2, _case_total_length - WALL_THICKNESS, 6.8 + PRITING_TOLERANCE_Z])
+            vent_holes();
     }
 }
 
@@ -322,7 +336,7 @@ module tbeam() {
 }
 
 module lid_screw_hole() {
-    translate([0, 0, -0.01]) cylinder(h=10, r=1.1);
+    translate([0, 0, -0.01]) cylinder(h=10, r=CORNER_SCREW_RADIUS_LID);
 }
 
 module gps_antenna_hole() {
@@ -420,10 +434,10 @@ module lid() {
         
         // 868 and 1090 text
         translate([-_wing_part_width+8, _case_main_length + _case_wing_length / 2, -0.1]) 
-            linear_extrude(height=0.3) rotate(90) scale([1, -1, 1]) text("868", valign="center", halign="center", size=8);
+            linear_extrude(height=0.6) rotate(90) scale([1, -1, 1]) text("868", valign="center", halign="center", size=8);
         
         translate([_case_main_width+8, _case_main_length + _case_wing_length / 2, -0.1]) 
-            linear_extrude(height=0.3) rotate(270) scale([1, -1, 1]) text("1090", valign="center", halign="center", size=8);
+            linear_extrude(height=0.6) rotate(270) scale([1, -1, 1]) text("1090", valign="center", halign="center", size=8);
     }
 }
 
