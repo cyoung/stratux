@@ -503,12 +503,12 @@ func icmpEchoSender(c *icmp.PacketConn) {
 		netMutex.Lock()
 		// Collect IPs.
 		ips := make(map[string]bool)
-		for k, _ := range outSockets {
+		for k := range outSockets {
 			ipAndPort := strings.Split(k, ":")
 			ips[ipAndPort[0]] = true
 		}
 		// Send to all IPs.
-		for ip, _ := range ips {
+		for ip := range ips {
 			wm := icmp.Message{
 				Type: ipv4.ICMPTypeEcho, Code: 0,
 				Body: &icmp.Echo{
