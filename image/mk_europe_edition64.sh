@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # To run this, make sure that this is installed:
-# sudo apt install --yes qemu-user-static qemu-system-arm
+# sudo apt install --yes qemu-user-static qemu-system-arm parted zip unzip
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 set -x
@@ -69,10 +69,6 @@ mkdir -p mnt
 mount -t ext4 -o offset=$partoffset $IMGNAME mnt/ || die "root-mount failed"
 mount -t vfat -o offset=$bootoffset,sizelimit=$sizelimit $IMGNAME mnt/boot || die "boot-mount failed"
 
-# Use latest qemu-aarch64-static version, since aarch64 doesn't seem to be that stable yet..
-wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v5.2.0-2/qemu-aarch64-static
-chmod +x mnt/usr/bin/qemu-aarch64-static
-#cp $(which qemu-aarch64-static) mnt/usr/bin || die "Failed to copy qemu-arm-static into image"
 
 cd mnt/root/
 if [ "$1" == "dev" ]; then
@@ -83,7 +79,14 @@ else
 fi
 cd ../../
 
-chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+# Use latest qemu-aarch64-static version, since aarch64 doesn't seem to be that stable yet..
+if [ "$(arch)" != "aarch64" ]; then
+    wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v5.2.0-2/qemu-aarch64-static
+    chmod +x mnt/usr/bin/qemu-aarch64-static
+    chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+else
+    chroot mnt /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+fi
 mkdir out
 
 # Copy the selfupdate file out of there..

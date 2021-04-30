@@ -29,13 +29,6 @@ PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-updat
 apt clean
 #echo y | rpi-update
 
-# TODO: for some reason, gcc crashes a lot when compiling with qemu-user 64 bit.. therefore we will have to use clang for now
-# Note that we also had to increase image size to 3gb for this.. hope we can reduce it again in the future
-apt --yes install clang
-export CC=clang
-export CXX=clang++
-
-
 systemctl enable isc-dhcp-server
 systemctl enable ssh
 systemctl disable dhcpcd
@@ -56,7 +49,7 @@ rm go1.16.1.linux-arm64.tar.gz
 
 
 # Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
-cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make && make install
+cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make -j8 && make install
 cd /root && rm -r WiringPi
 #wget https://project-downloads.drogon.net/wiringpi-latest.deb
 #dpkg -i wiringpi-latest.deb
@@ -81,7 +74,7 @@ make install
 cd /root/
 rm -r rtl-sdr
 
-(ldconfig || ldconfig || ldconfig || ldconfig) # segfaults sometimes for unknown reasons..?
+ldconfig
 
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
 #sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
@@ -92,7 +85,7 @@ rm -r rtl-sdr
 cd /root/stratux
 
 make clean
-make
+make -j8
 make install
 
 
@@ -192,9 +185,6 @@ sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
-
-# TODO: done -- uninstall clang again
-apt remove --purge --yes clang binfmt-support clang-7 libclang-common-7-dev libclang1-7 libffi-dev libllvm7 libobjc-8-dev libobjc4 libomp-7-dev libomp5-7 llvm-7 llvm-7-dev llvm-7-runtime
 
 # Finally, try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
 # Disable swap...
