@@ -460,11 +460,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg[0] = 0x0B // Message type "Ownship Geo Alt".
 
 	var GPSalt float32
-	if globalSettings.GDL90MSLAlt_Enabled {
-		GPSalt = mySituation.GPSAltitudeMSL
-	} else {
-		GPSalt = mySituation.GPSHeightAboveEllipsoid
-	}
+	GPSalt = mySituation.GPSHeightAboveEllipsoid
 	encodedAlt := int16(GPSalt / 5)    // GPS Altitude, encoded to 16-bit int using 5-foot resolution
 	msg[1] = byte(encodedAlt >> 8)     // Altitude.
 	msg[2] = byte(encodedAlt & 0x00FF) // Altitude.
@@ -695,9 +691,9 @@ func makeFFIDMessage() []byte {
 	}
 	copy(msg[19:], devLongName)
 
-	if globalSettings.GDL90MSLAlt_Enabled {
-		msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
-	}
+	//if globalSettings.GDL90MSLAlt_Enabled {
+		msg[38] = 0x00 // Capabilities mask. MSL altitude for Ownship Geometric report. We only support HAE as in spec.
+	//}
 
 	return prepareMessage(msg)
 }
@@ -1196,7 +1192,6 @@ type settings struct {
 	WiFiMode             int
 	WiFiDirectPin        string
 	WiFiIPAddress        string
-	GDL90MSLAlt_Enabled  bool
 	SkyDemonAndroidHack  bool
 	EstimateBearinglessDist bool
 	RadarLimits          int
@@ -1295,7 +1290,6 @@ func defaultSettings() {
 	globalSettings.DeveloperMode = true
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.NoSleep = false
-	globalSettings.GDL90MSLAlt_Enabled = true
 	globalSettings.SkyDemonAndroidHack = false
 	globalSettings.EstimateBearinglessDist = false
 

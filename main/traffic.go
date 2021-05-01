@@ -649,8 +649,8 @@ func makeTrafficReportMsg(ti TrafficInfo) []byte {
 	// msg[19] to msg[26] are "call sign" (tail).
 	for i := 0; i < len(ti.Tail) && i < 8; i++ {
 		c := byte(ti.Tail[i])
-		if c != 20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' && c != 'a' && c != 'r' && c != 't' { // See p.24, FAA ref.
-			c = byte(20)
+		if c != 0x20 && !((c >= 48) && (c <= 57)) && !((c >= 65) && (c <= 90)) && c != 'e' && c != 'u' && c != 'a' && c != 'r' && c != 't' { // See p.24, FAA ref.
+			c = byte(0x20)
 		}
 		msg[19+i] = c
 	}
