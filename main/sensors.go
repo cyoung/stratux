@@ -25,6 +25,7 @@ const (
 	MPUREG_WHO_AM_I     = 0x75
 	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
 	MPUREG_WHO_AM_I_VAL_9255 = 0x73 // Expected value for MPU9255, seems to be compatible to 9250
+	MPUREG_WHO_AM_I_VAL_6500 = 0x70 // Expected value for MPU6500, seems to be same as 9250 but without magnetometer
 	ICMREG_WHO_AM_I     = 0x00
 	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
 )
@@ -159,7 +160,7 @@ func initIMU() (ok bool) {
 			myIMUReader = imu
 			return true
 		}
-	} else if v2 == MPUREG_WHO_AM_I_VAL || v2 == MPUREG_WHO_AM_I_VAL_9255 {
+	} else if v2 == MPUREG_WHO_AM_I_VAL || v2 == MPUREG_WHO_AM_I_VAL_9255 || v2 == MPUREG_WHO_AM_I_VAL_6500 {
 		log.Println("MPU-925X detected.")
 		imu, err := sensors.NewMPU9250(&i2cbus)
 		if err == nil {
