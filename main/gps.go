@@ -2147,7 +2147,7 @@ func isGPSGroundTrackValid() bool {
 }
 
 func isGPSClockValid() bool {
-	return stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds() < 15
+	return !mySituation.GPSLastGPSTimeStratuxTime.IsZero() && stratuxClock.Since(mySituation.GPSLastGPSTimeStratuxTime).Seconds() < 15
 }
 
 func isAHRSValid() bool {

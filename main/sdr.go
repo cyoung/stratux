@@ -178,6 +178,24 @@ func (u *UAT) read() {
 func (f *OGN) read() {
 	defer f.wg.Done()
 	log.Println("Entered OGN read() ...")
+
+	// ogn-rx doesn't like the time jumping forward while running.. delay initial startup until we have a valid system time
+	if !isGPSClockValid() {
+		log.Printf("Delaying ogn-rx start until we have a valid GPS time")
+		loop: for {
+			select {
+			case <- f.closeCh:
+				return
+			default:
+				if isGPSClockValid() {
+					break loop
+				} else {
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+	}
+
 	cmd := exec.Command("/usr/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/")
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
