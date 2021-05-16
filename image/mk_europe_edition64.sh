@@ -87,7 +87,7 @@ if [ "$(arch)" != "aarch64" ]; then
 else
     chroot mnt /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
 fi
-mkdir out
+mkdir -p out
 
 # Copy the selfupdate file out of there..
 cp mnt/root/stratux/work/*.sh out
@@ -96,13 +96,22 @@ rm -r mnt/root/stratux/work
 umount mnt/boot
 umount mnt
 
-mv $IMGNAME out/
-
 cd $SRCDIR
 outname="stratux-$(git describe --tags --abbrev=0)-$(git log -n 1 --pretty=%H | cut -c 1-8).img"
-cd $TMPDIR/out
+outname_us="stratux-$(git describe --tags --abbrev=0)-$(git log -n 1 --pretty=%H | cut -c 1-8)-us.img"
+cd $TMPDIR
+
+# Rename and zip EU version
 mv $IMGNAME $outname
-zip $outname.zip $outname
+zip out/$outname.zip $outname
 
 
-echo "Final image has been placed into $TMPDIR/out. Please install and test the image."
+# Now create US default config into the image and create the eu-us version..
+mount -t ext4 -o offset=$partoffset $IMGNAME mnt/ || die "root-mount failed"
+echo '{"UAT_Enabled": true,"OGN_Enabled": false,"DeveloperMode": false}' > mnt/etc/stratux.conf
+cp $SRCDIR/image/us-default-config.conf mnt/etc/stratux.conf
+umount mnt
+zip out/$outname-us.zip $outname
+
+
+echo "Final images has been placed into $TMPDIR/out. Please install and test the image."

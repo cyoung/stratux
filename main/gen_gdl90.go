@@ -1307,28 +1307,25 @@ func defaultSettings() {
 }
 
 func readSettings() {
+	defaultSettings()
+
 	fd, err := os.Open(configLocation)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
 	defer fd.Close()
-	buf := make([]byte, 4096)
+	buf := make([]byte, 10000)
 	count, err := fd.Read(buf)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
-	var newSettings settings
-	err = json.Unmarshal(buf[0:count], &newSettings)
+	err = json.Unmarshal(buf[0:count], &globalSettings)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
-	globalSettings = newSettings
 	log.Printf("read in settings.\n")
 }
 
