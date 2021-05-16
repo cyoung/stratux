@@ -121,11 +121,16 @@ func tempAndPressureSender() {
 			}
 		}
 
+		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
+		if altitude > 70000 || (isGPSValid() && mySituation.GPSAltitudeMSL != 0 && math.Abs(float64(mySituation.GPSAltitudeMSL) - altitude) > 5000) {
+			addSingleSystemErrorf("BaroBroken", "Barometric altitude %d' out of expected range. Ignoring. Pressure sensor potentially broken.", int32(altitude))
+			continue
+		}
+
 		// Update the Situation data.
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
 		mySituation.BaroTemperature = float32(temp)
-		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
 		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
 			altLast = altitude // Initialize
