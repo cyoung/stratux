@@ -107,11 +107,11 @@ zip out/$outname.zip $outname
 
 
 # Now create US default config into the image and create the eu-us version..
-mount -t ext4 -o offset=$partoffset $IMGNAME mnt/ || die "root-mount failed"
+mount -t ext4 -o offset=$partoffset $outname mnt/ || die "root-mount failed"
 echo '{"UAT_Enabled": true,"OGN_Enabled": false,"DeveloperMode": false}' > mnt/etc/stratux.conf
-cp $SRCDIR/image/us-default-config.conf mnt/etc/stratux.conf
 umount mnt
-zip out/$outname-us.zip $outname
+mv $outname $outname_us
+zip out/$outname_us.zip $outname_us
 
 
 echo "Final images has been placed into $TMPDIR/out. Please install and test the image."
