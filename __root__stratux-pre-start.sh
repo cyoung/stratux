@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+#echo powersave >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 
 #Logging Function
 SCRIPT=`basename ${BASH_SOURCE[0]}`
