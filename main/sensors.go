@@ -110,15 +110,23 @@ func tempAndPressureSender() {
 			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
 		}
 		press, err = myPressureReader.Pressure()
-		if press < 0.01 || err != nil {
-			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
+		if press == 0 || err != nil {
+			if err != nil {
+				addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
+			}
 			failNum++
 			if failNum > numRetries {
 				//				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
+				errStr := "Pressure is 0"
+				if err != nil {
+					errStr = err.Error()
+				}
+				addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", errStr)
 				break
 			}
+			continue
 		}
 
 		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
