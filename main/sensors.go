@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	numRetries uint8 = 5
+	numRetries uint8 = 50
 	calCLimit        = 0.15
 	calDLimit        = 10.0
 
@@ -110,7 +110,7 @@ func tempAndPressureSender() {
 			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
 		}
 		press, err = myPressureReader.Pressure()
-		if err != nil {
+		if press < 0.01 || err != nil {
 			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
 			failNum++
 			if failNum > numRetries {
