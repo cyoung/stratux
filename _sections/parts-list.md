@@ -4,11 +4,9 @@ icon: fa-check
 order: 4
 ---
 1. [Full Kit - Large Antennas](https://amzn.to/3nWoMRf).
-1. [Full Kit - Normal Antennas](https://amzn.to/3hTeEc8).
-2. [Full Kit - External GPS Puck](https://amzn.to/2JpamKu).
-3. [Full Kit - All Accessories Included](https://amzn.to/3aTszv5).
-4. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
-5. [Full Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
+2. [Full Kit - Normal Antennas](https://amzn.to/3hTeEc8).
+3. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
+4. [Full Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
 
 ## Replacement Parts and Accessories
 
