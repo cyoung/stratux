@@ -9,16 +9,15 @@
 
 package main
 
-
 import (
-	"text/template"
-	"strings"
-	"regexp"
-	"strconv"
 	"log"
 	"os"
-	"time"
 	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
+	"text/template"
+	"time"
 )
 
 const (
@@ -153,10 +152,10 @@ func applyNetworkSettings(force bool) {
 	}
 
 
-	writeTemplate("/etc/dhcp/dhcpd.conf.template", "/etc/dhcp/dhcpd.conf", tplSettings)
-	writeTemplate("/etc/network/interfaces.template", "/etc/network/interfaces", tplSettings)
-	writeTemplate("/etc/hostapd/hostapd.conf.template", "/etc/hostapd/hostapd.conf", tplSettings)
-	writeTemplate("/etc/wpa_supplicant/wpa_supplicant.conf.template", "/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/etc/dhcp/dhcpd.conf", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/etc/network/interfaces", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/etc/hostapd/hostapd.conf", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
 
 	go func() {
 		time.Sleep(time.Second)

@@ -62,13 +62,13 @@ type Dump1090TermMessage struct {
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--oversample", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--oversample", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err)
+		log.Printf("Error executing " + STRATUX_HOME + "/bin/dump1090: %s\n", err)
 		// don't return immediately, use the proper shutdown procedure
 		shutdownES = true
 		for {
@@ -81,7 +81,7 @@ func (e *ES) read() {
 		}
 	}
 
-	log.Println("Executed /usr/bin/dump1090 successfully...")
+	log.Println("Executed " + STRATUX_HOME + "/bin/dump1090 successfully...")
 
 	done := make(chan bool)
 
@@ -196,7 +196,7 @@ func (f *OGN) read() {
 		}
 	}
 
-	cmd := exec.Command("/usr/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/")
+	cmd := exec.Command(STRATUX_HOME + "/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/")
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 	autoRestart := true // automatically restart crashing child process

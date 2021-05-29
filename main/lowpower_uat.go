@@ -3,16 +3,17 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/stratux/serial"
 	"log"
 	"os"
 	"time"
 	"unsafe"
+
+	"github.com/stratux/serial"
 )
 
 /*
 
-#cgo LDFLAGS: -ldump978 -lm
+#cgo LDFLAGS: -L ${SRCDIR}/../ -ldump978 -lm
 
 #include <stdint.h>
 #include "../dump978/fec.h"

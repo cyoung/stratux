@@ -96,47 +96,17 @@ cp -f motd /etc/motd
 
 #dhcpd config
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
-cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
 
 #hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
-cp -f hostapd.conf.template /etc/hostapd/hostapd.conf.template
-
-#WPA supplicant config for wifi direct
-cp -f wpa_supplicant.conf.template /etc/wpa_supplicant/wpa_supplicant.conf.template
-
-#hostapd manager script
-cp -f hostapd_manager.sh /usr/sbin/hostapd_manager.sh
-chmod 755 /usr/sbin/hostapd_manager.sh
 
 #remove hostapd startup scripts
 rm -f /etc/rc*.d/*hostapd /etc/network/if-pre-up.d/hostapd /etc/network/if-post-down.d/hostapd /etc/init.d/hostapd /etc/default/hostapd
 #interface config
 cp -f interfaces /etc/network/interfaces
-cp -f interfaces.template /etc/network/interfaces.template
-
-#custom hostapd start script
-cp stratux-wifi.sh /usr/sbin/
-chmod 755 /usr/sbin/stratux-wifi.sh
-
-#SDR Serial Script
-cp -f sdr-tool.sh /usr/sbin/sdr-tool.sh
-chmod 755 /usr/sbin/sdr-tool.sh
-
-#ping udev
-cp -f 99-uavionix.rules /etc/udev/rules.d
 
 #logrotate conf
 cp -f logrotate.conf /etc/logrotate.conf
-
-#fan/temp control script
-#remove old script
-rm -rf /usr/bin/fancontrol.py /usr/bin/fancontrol
-#install new program
-cp ../fancontrol /usr/bin
-chmod 755 /usr/bin/fancontrol
-/usr/bin/fancontrol remove
-/usr/bin/fancontrol install
 
 #isc-dhcp-server config
 cp -f isc-dhcp-server /etc/default/isc-dhcp-server
@@ -144,12 +114,6 @@ cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 #sshd config
 # Do not copy for now. It contains many deprecated options and isn't needed.
 cp -f sshd_config /etc/ssh/sshd_config
-
-#udev config
-cp -f 10-stratux.rules /etc/udev/rules.d
-
-#stratux files
-cp -f ../libdump978.so /usr/lib/libdump978.so
 
 #debug aliases
 cp -f stxAliases.txt /root/.stxAliases
@@ -165,8 +129,6 @@ cp -f config.txt /boot/
 echo -e "\narm_64bit=1" >> /boot/config.txt
 
 #startup scripts
-cp -f ../__lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
-cp -f ../__root__stratux-pre-start.sh /root/stratux-pre-start.sh
 cp -f rc.local /etc/rc.local
 
 #kalibrate-rtl

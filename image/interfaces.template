@@ -16,7 +16,7 @@ iface wlan0 inet static
 iface wlan0 inet manual
   pre-down ifdown p2p-wlan0-0
 {{end}}
-  post-up /usr/sbin/stratux-wifi.sh {{.WiFiMode}} {{.WiFiDirectPin}}
+  post-up /opt/stratux/bin/stratux-wifi.sh {{.WiFiMode}} {{.WiFiDirectPin}}
   wireless-power off
 
 allow-hotplug p2p-wlan0-0

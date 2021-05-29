@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+
 	//"sync/atomic"
 	"net"
 	"os/exec"
@@ -68,13 +69,13 @@ func initPingSerial() bool {
 func pingNetworkRepeater() {
 	defer pingWG.Done()
 	log.Println("Entered Ping network repeater ...")
-	cmd := exec.Command("/usr/bin/dump1090", "--net-only")
+	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--net-only")
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Error executing /usr/bin/dump1090: %s\n", err)
+		log.Printf("Error executing " + STRATUX_HOME + "/bin/dump1090: %s\n", err)
 		// don't return immediately, use the proper shutdown procedure
 		shutdownPing = true
 		for {
@@ -87,7 +88,7 @@ func pingNetworkRepeater() {
 		}
 	}
 
-	log.Println("Executed /usr/bin/dump1090 successfully...")
+	log.Println("Executed " + STRATUX_HOME + "/bin/dump1090 successfully...")
 
 	scanStdout := bufio.NewScanner(stdout)
 	scanStderr := bufio.NewScanner(stderr)

@@ -3,8 +3,8 @@ Description=Stratux
 After=network.target
 
 [Service]
-ExecStartPre=/root/stratux-pre-start.sh
-ExecStart=/usr/bin/gen_gdl90
+ExecStartPre=/opt/stratux/bin/stratux-pre-start.sh
+ExecStart=/opt/stratux/bin/gen_gdl90
 ExecStopPost=/usr/bin/killall dump1090 ogn-rx-eu
 KillMode=process
 Restart=always

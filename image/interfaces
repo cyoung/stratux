@@ -13,7 +13,7 @@ iface wlan0 inet static
   netmask 255.255.255.0
   pre-up /usr/sbin/rfkill unblock wifi
 
-  post-up /usr/sbin/stratux-wifi.sh 0 
+  post-up /opt/stratux/bin/stratux-wifi.sh 0 
   wireless-power off
 
 allow-hotplug p2p-wlan0-0
