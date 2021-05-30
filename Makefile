@@ -1,31 +1,30 @@
-STRATUX_HOME := /opt/stratux/
+export STRATUX_HOME := /opt/stratux/
 ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 	PLATFORMDEPENDENT=
 else
-	LFLAGS=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H` 
+	LFLAGS=-X main.stratuxVersion=`git describe --tags --abbrev=0` -X main.stratuxBuild=`git log -n 1 --pretty=%H`  
 	BUILDINFO=-ldflags "$(LFLAGS)"
 	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LFLAGS)"
-$(if $(GOROOT),,$(error GOROOT is not set!))
 	PLATFORMDEPENDENT=fancontrol
 endif
 
 ARCH=$(shell arch)
 ifeq ($(ARCH),aarch64)
 	OGN_RX_BINARY=ogn/ogn-rx-eu_aarch64
-else ifeq($(ARCH),x86_64)
+else ifeq ($(ARCH),x86_64)
 	OGN_RX_BINARY=ogn/ogn-rx-eu_x86
 else
 	OGN_RX_BINARY=ogn/ogn-rx-eu_arm
 endif
 
 
+
 all:
 	make xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
 
 gen_gdl90: main/*.go common/*.go
-	CGO_CFLAGS_ALLOW="-L$(CURDIR)"
-	go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
+	CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
 
 fancontrol: fancontrol_main/*.go common/*.go
 	go build $(BUILDINFO) -o fancontrol -p 4 ./fancontrol_main/
@@ -47,29 +46,27 @@ www:
 ogn/ddb.json:
 	cd ogn && ./fetch_ddb.sh
 
-install: ogn/ddb.json
+optinstall: www ogn/ddb.json
 	mkdir -p $(STRATUX_HOME)/bin
 	mkdir -p $(STRATUX_HOME)/www
 	mkdir -p $(STRATUX_HOME)/ogn
 	mkdir -p $(STRATUX_HOME)/cfg
+	mkdir -p $(STRATUX_HOME)/lib
 
 	# binaries
 	cp -f gen_gdl90 $(STRATUX_HOME)/bin/
 	cp -f fancontrol $(STRATUX_HOME)/bin/
 	chmod 755 $(STRATUX_HOME)/bin/*
-	-$(STRATUX_HOME)/bin/fancontrol remove
-	$(STRATUX_HOME)/bin/fancontrol install
 
 	cp -f dump1090/dump1090 $(STRATUX_HOME)/bin
 	cp -f $(OGN_RX_BINARY) $(STRATUX_HOME)/bin/ogn-rx-eu
 
 	# Libs
-	cp -f libdump978.so /usr/lib/libdump978.so
+	cp -f libdump978.so $(STRATUX_HOME)/lib/
 
 
 	# web interface
 	make www
-	
 
 	# OGN stuff
 	cp -f ogn/ddb.json ogn/esp32-ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn
@@ -87,6 +84,10 @@ install: ogn/ddb.json
 	cp -f image/interfaces.template $(STRATUX_HOME)/cfg/
 	cp -f image/wpa_supplicant.conf.template $(STRATUX_HOME)/cfg/
 
+
+install: optinstall
+	-$(STRATUX_HOME)/bin/fancontrol remove
+	$(STRATUX_HOME)/bin/fancontrol install
 
 	# System configuration
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules

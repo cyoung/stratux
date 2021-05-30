@@ -1,27 +1,12 @@
-cp -f gen_gdl90 /usr/bin/gen_gdl90
-chmod 755 /usr/bin/gen_gdl90
-cp -f libdump978.so /usr/lib/libdump978.so
-chmod 655 /usr/bin/gen_gdl90
+cp -ra stratux /opt/ 
 
 # Startup script.
 RASPBIAN_VERSION=`cat /etc/debian_version`
-if test "$RASPBIAN_VERSION" = "8.0" ; then
-	# Install the systemd startup scripts in any case, even if they won't be used. If this is being run, then the old init.d script
-	#  is still intact and we just leave it. If running Wheezy, then remove the old init.d script.
-	rm -f /etc/init.d/stratux
-	rm -f /etc/rc2.d/S01stratux
-	rm -f /etc/rc6.d/K01stratux
-fi
 
 cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
-cp -f __root__stratux-pre-start.sh /root/stratux-pre-start.sh
 chmod 644 /lib/systemd/system/stratux.service
 chmod 744 /root/stratux-pre-start.sh
 ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
-
-#wifi config
-cp -f hostapd.conf.template /etc/hostapd/hostapd.conf.template
-cp -f wpa_supplicant.conf.template /etc/wpa_supplicant/wpa_supplicant.conf.template
 
 #rsyslog config
 cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
@@ -29,18 +14,6 @@ cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
 #logrotate config
 cp -f logrotate.conf /etc/logrotate.conf
 cp -f logrotate_d_stratux /etc/logrotate.d/stratux
-
-#WiFi Hostapd ver test and hostapd.conf builder script
-cp -f stratux-wifi.sh /usr/sbin/
-chmod 755 /usr/sbin/stratux-wifi.sh
-
-#WiFi Config Manager
-cp -f hostapd_manager.sh /usr/sbin/
-chmod 755 /usr/sbin/hostapd_manager.sh
-
-#SDR Serial Script
-cp -f sdr-tool.sh /usr/sbin/
-chmod 755 /usr/sbin/sdr-tool.sh
 
 #boot config
 cp -f config.txt /boot/config.txt
@@ -69,47 +42,9 @@ cp -f modules.txt /etc/modules
 cp -f motd /etc/motd
 
 #fan control utility
-#remove old script
-rm -f /usr/bin/fancontrol.py
-#install new program
-/usr/bin/fancontrol stop
-/usr/bin/fancontrol remove
-cp -f fancontrol /usr/bin/
-chmod 755 /usr/bin/fancontrol
-/usr/bin/fancontrol install
-
-cp -f dump1090 /usr/bin/
-chmod 755 /usr/bin/dump1090
-
-# Install libwiringpi
-cp -f libwiringPi.so /usr/lib/
-
-# OGN stuff
-cp -f ddb.json /etc/
-cp -f ogn-rx-eu /usr/bin/
-
-# AHRS approx data.
-cp -f ahrs_table.log /root/
-cp -f ahrs_approx /usr/bin/
-chmod 755 /usr/bin/ahrs_approx
-
-# DHCPD Config.
-cp -f dhcpd.conf.template /etc/dhcp/dhcpd.conf.template
-
-# Interfaces file.
-cp -f interfaces.template /etc/network/interfaces.template
-
-# Install ogntracker firmware
-cp esp32-ogn-tracker-bin-*.zip /root/stratux/ogn/
-cp install-ogntracker-firmware-pi.sh /root/stratux/ogn/
-
-
-# Web files install.
-cd web/ && make stratuxBuild=${stratuxBuild}
-
-# Remove old Wi-Fi watcher script.
-rm -f /usr/sbin/wifi_watch.sh
-sed -i "/\bwifi_watch\b/d" /etc/rc.local
+/opt/stratux/bin/fancontrol stop
+/opt/stratux/bin/fancontrol remove
+/opt/stratux/bin/fancontrol install
 
 cd /
 rm -rf /root/stratux-update

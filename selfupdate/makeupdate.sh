@@ -15,22 +15,13 @@ cd ..
 make
 rm -rf work
 mkdir -p work/bin
-cp gen_gdl90 work/bin/
-cp fancontrol work/bin/
-cp libdump978.so work/bin/
+make optinstall STRATUX_HOME=$(pwd)/work/bin/stratux
 cp __lib__systemd__system__stratux.service work/bin/
-cp __root__stratux-pre-start.sh work/bin/
-cp dump1090/dump1090 work/bin/
-cp -r web work/bin/
-cp image/hostapd.conf.template work/bin/
-cp image/wpa_supplicant.conf.template work/bin/
 cp image/config.txt work/bin/
 cp image/rtl-sdr-blacklist.conf work/bin/
 cp image/bashrc.txt work/bin/
 cp image/modules.txt work/bin/
 cp image/stxAliases.txt work/bin/
-cp image/hostapd_manager.sh work/bin/
-cp image/sdr-tool.sh work/bin/
 cp image/10-stratux.rules work/bin/
 cp image/99-uavionix.rules work/bin/
 cp image/motd work/bin/
@@ -39,47 +30,30 @@ cp image/rc.local work/bin/
 cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
 cp image/rsyslog_d_stratux work/bin/
-cp image/dhcpd.conf.template work/bin/
-cp image/interfaces.template work/bin/
-cp ogn/ddb.json work/bin
 
 if [ "$(arch)" == "aarch64" ]; then
-	cp ogn/ogn-rx-eu_aarch64 work/bin/ogn-rx-eu
 	echo -e "\narm_64bit=1" >> work/bin/config.txt
-else # armv7l
-	cp ogn/ogn-rx-eu_arm work/bin/ogn-rx-eu
 fi
 
-cp ogn/esp32-ogn-tracker-bin-*.zip work/bin/
-cp ogn/install-ogntracker-firmware-pi.sh work/bin
-
-# WiringPi doesn't allow static linking any more, so we deploy the shared library aswell
-cp /usr/lib/libwiringPi.so work/bin/
-
-cp test-data/ahrs/ahrs_table.log work/bin/
-cp ahrs_approx work/bin/
-
-#TODO: librtlsdr.
 cd work/
+echo "Compressing files..."
+cd bin
+tar cjvf ../files.tar.bz2 .
+cd ..
+
 cat ../selfupdate/update_header.sh >update.sh
 
 echo "stratuxVersion=${stratuxVersion}" >>update.sh
 echo "stratuxBuild=${stratuxBuild}" >>update.sh
 
+echo "packing files.tar.bz2"
+#echo "base64 -d | tar xjvf - <<__EOF__" >> update.sh # ??
+echo "base64 -d > files.tar.bz2 <<__EOF__" >> update.sh
+base64 files.tar.bz2 >> update.sh
+echo "__EOF__" >> update.sh
+echo "tar xjvf files.tar.bz2" >> update.sh
+echo "done"
 
-find bin/ -type d | sed -e 's/^bin\///' | grep -v '^$' | while read dn; do
-	echo "mkdir -p $dn" >>update.sh
-done
-find bin/ -type f | while read fn; do
-	echo -n "packaging $fn... "
-	UPFN=`echo $fn | sed -e 's/^bin\///'`
-	echo "cat >${UPFN}.b64 <<__EOF__" >>update.sh
-	gzip -c $fn | base64 >>update.sh
-	echo "__EOF__" >>update.sh
-	echo "base64 -d ${UPFN}.b64 | gzip -d -c >${UPFN}" >>update.sh
-	echo "rm -f ${UPFN}.b64" >>update.sh
-	echo "done"
-done
 cat ../selfupdate/update_footer.sh >>update.sh
 
 chmod +x update.sh

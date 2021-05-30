@@ -3,7 +3,8 @@ stratuxBuild=`git log -n 1 --pretty=%H`
 buildtime=`date +%s`
 endif
 
-www=/opt/stratux/www
+
+www=$(STRATUX_HOME)/www
 
 all:
 	mkdir -p $(www)

@@ -13,7 +13,7 @@ import (
 
 /*
 
-#cgo LDFLAGS: -L ${SRCDIR}/../ -ldump978 -lm
+#cgo LDFLAGS: -Wl,-rpath=/opt/stratux/lib -Wl,-rpath=${SRCDIR}/.. -L.. -ldump978 -lm
 
 #include <stdint.h>
 #include "../dump978/fec.h"

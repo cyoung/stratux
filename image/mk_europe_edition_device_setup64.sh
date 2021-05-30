@@ -94,22 +94,14 @@ cd /root/stratux/image
 #motd
 cp -f motd /etc/motd
 
-#dhcpd config
+#network default config. TODO: can't we just implement gen_gdl90 -write_network_settings or something to generate them from template?
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
-
-#hostapd config
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
-
-#remove hostapd startup scripts
-rm -f /etc/rc*.d/*hostapd /etc/network/if-pre-up.d/hostapd /etc/network/if-post-down.d/hostapd /etc/init.d/hostapd /etc/default/hostapd
-#interface config
 cp -f interfaces /etc/network/interfaces
+cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #logrotate conf
 cp -f logrotate.conf /etc/logrotate.conf
-
-#isc-dhcp-server config
-cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #sshd config
 # Do not copy for now. It contains many deprecated options and isn't needed.
