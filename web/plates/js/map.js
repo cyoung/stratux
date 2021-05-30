@@ -11,18 +11,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 	$scope.aircraftSymbols = new ol.source.Vector();
 	$scope.aircraftTrails = new ol.source.Vector();
 
-	let offlineMap = new ol.layer.Image({
-		title: '[offline] OSM LowRes',
-		visible: false,
-		type: 'base',
-		source: new ol.source.ImageStatic({
-			url: 'img/world_large.png',
-			imageExtent: [-20037508.342789244,-20037508.342789244,20037508.342789244,20037508.342789244],
-			projection: 'EPSG:3857',
-			imageSize: [8192, 8192]
-		})
-	});
-
 	let osm = new ol.layer.Tile({
 		title: '[online] OSM',
 		type: 'base',
@@ -38,19 +26,46 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		})
 	});
 
+	// Dynamic MBTiles layers
+	$http.get(URL_GET_TILESETS).then(function(response) {
+		var tilesets = angular.fromJson(response.data);
+		for (let file in tilesets) {
+			let meta = tilesets[file];
+			let name = (meta.name ? meta.name : file);
+			let baselayer = meta.type && meta.type == 'baselayer';
+			let format = meta.format ? meta.format : 'png';
+			let minzoom = meta.minzoom ? parseInt(meta.minzoom) : 1;
+			let maxzoom = meta.maxzoom ? parseInt(meta.maxzoom) : 18;
+
+			let layer = new ol.layer.Tile({
+				title: '[offline] ' + name,
+				type: baselayer ? 'base' : 'overlay',
+				source: new ol.source.XYZ({
+					url: URL_GET_TILE + '/' + file  + '/{z}/{x}/{-y}.' + format,
+					maxZoom: maxzoom,
+					minZoom: minzoom,
+				})				
+			});
+			if (baselayer)
+				$scope.map.getLayers().insertAt(0, layer);
+			else
+				$scope.map.addLayer(layer);
+
+		}
+	});
+
 	let aircraftSymbolsLayer = new ol.layer.Vector({
 		title: 'Aircraft symbols',
-		source: $scope.aircraftSymbols
+		source: $scope.aircraftSymbols,
 	});
 	let aircraftTrailsLayer = new ol.layer.Vector({
 		title: 'Aircraft trails 5NM',
-		source: $scope.aircraftTrails
+		source: $scope.aircraftTrails,
 	});
 
 	$scope.map = new ol.Map({
 		target: 'map_display',
 		layers: [
-			offlineMap,
 			osm,
 			openaip,
 			aircraftSymbolsLayer,

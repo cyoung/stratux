@@ -52,6 +52,7 @@ optinstall: www ogn/ddb.json
 	mkdir -p $(STRATUX_HOME)/ogn
 	mkdir -p $(STRATUX_HOME)/cfg
 	mkdir -p $(STRATUX_HOME)/lib
+	mkdir -p $(STRATUX_HOME)/mapdata
 
 	# binaries
 	cp -f gen_gdl90 $(STRATUX_HOME)/bin/
@@ -67,6 +68,9 @@ optinstall: www ogn/ddb.json
 
 	# web interface
 	make www
+
+	# map data
+	cp -ru mapdata/* $(STRATUX_HOME)/mapdata/
 
 	# OGN stuff
 	cp -f ogn/ddb.json ogn/esp32-ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn

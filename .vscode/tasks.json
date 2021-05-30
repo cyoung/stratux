@@ -4,27 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build x86",
-            "type": "shell",
-            "command": "make -f Makefile.x86 gen_gdl90",
-            "problemMatcher": "$go",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "Build rPI debug",
-            "type": "shell",
-            "command": "make gen_gdl90 debug=true",
-            "problemMatcher": "$go",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "Build rPI",
+            "label": "Build",
             "type": "shell",
             "command": "make gen_gdl90",
             "problemMatcher": "$go",

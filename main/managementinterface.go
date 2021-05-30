@@ -23,10 +23,15 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"text/template"
 	"time"
+
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/net/websocket"
@@ -883,6 +888,81 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Scans mapdata dir for all .db and .mbtiles files and returns json representation of all metadata values
+func handleTilesets(w http.ResponseWriter, r *http.Request) {
+	files, err := ioutil.ReadDir(STRATUX_HOME + "/mapdata/");
+	if err != nil {
+		log.Printf("handleTilesets() error: %s\n", err.Error())
+		http.Error(w, err.Error(), 500)
+	}
+	result := make(map[string]map[string]string, 0)
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(f.Name(), ".mbtiles") || strings.HasSuffix(f.Name(), ".db") {
+			db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + f.Name())
+			if err != nil {
+				log.Printf("SQLite open " + f.Name() + " failed: %s", err.Error())
+				continue
+			}
+			rows, err := db.Query("SELECT name, value FROM metadata");
+			meta := make(map[string]string)
+			for rows.Next() {
+				var name, val string
+				rows.Scan(&name, &val)
+				meta[name] = val
+			}
+			result[f.Name()] = meta
+		}
+	}
+	resJson, _ := json.Marshal(result)
+	w.Write(resJson)
+}
+
+func loadTile(fname string, z, x, y int) ([]byte, error) {
+	db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + fname)
+	if err != nil {
+		return nil, err
+	}
+	stmt, _ := db.Prepare("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?")
+	defer stmt.Close()
+	rows, err := stmt.Query(z, x, y)
+	for rows.Next() {
+		var res []byte
+		rows.Scan(&res)
+		return res, nil
+	}
+	return nil, nil
+}
+
+func handleTile(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.RequestURI, "/")
+	if len(parts) < 4 {
+		return
+	}
+	idx := len(parts) - 1
+	y, err := strconv.Atoi(strings.Split(parts[idx], ".")[0])
+	if err != nil {
+		http.Error(w, "Failed to parse y", 500)
+		return
+	}
+	idx--
+	x, _ := strconv.Atoi(parts[idx])
+	idx--
+	z, _ := strconv.Atoi(parts[idx])
+	idx--
+	file :=  parts[idx]
+	tileData, err := loadTile(file, z, x, y)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+	} else if tileData == nil {
+		http.Error(w, "Tile not found", 404)
+	} else {
+		w.Write(tileData)
+	}
+}
+
 func managementInterface() {
 	weatherUpdate = NewUIBroadcaster()
 	trafficUpdate = NewUIBroadcaster()
@@ -962,6 +1042,8 @@ func managementInterface() {
 	http.HandleFunc("/deleteahrslogfiles", handleDeleteAHRSLogFiles)
 	http.HandleFunc("/downloadahrslogs", handleDownloadAHRSLogsRequest)
 	http.HandleFunc("/downloaddb", handleDownloadDBRequest)
+	http.HandleFunc("/tiles/tilesets", handleTilesets)
+	http.HandleFunc("/tiles/", handleTile)
 
 	usr, _ := user.Current()
 	addr := managementAddr
