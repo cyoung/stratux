@@ -925,6 +925,7 @@ func loadTile(fname string, z, x, y int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer db.Close()
 	stmt, _ := db.Prepare("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?")
 	defer stmt.Close()
 	rows, err := stmt.Query(z, x, y)
