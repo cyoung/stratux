@@ -123,6 +123,9 @@ echo -e "\narm_64bit=1" >> /boot/config.txt
 #startup scripts
 cp -f rc.local /etc/rc.local
 
+# Clean up source tree - we don't need it at runtime
+cd /root && rm -r stratux
+
 #kalibrate-rtl
 cd /root
 rm -rf kalibrate-rtl
