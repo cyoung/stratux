@@ -906,7 +906,13 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 				log.Printf("SQLite open " + f.Name() + " failed: %s", err.Error())
 				continue
 			}
-			rows, err := db.Query("SELECT name, value FROM metadata");
+			rows, err := db.Query(`SELECT name, value FROM metadata 
+				UNION SELECT 'minzoom', min(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='minzoom')
+				UNION SELECT 'maxzoom', max(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='maxzoom')`);
+			if err != nil {
+				log.Printf("SQLite read error %s: %s", f.Name(), err.Error())
+				continue
+			}
 			meta := make(map[string]string)
 			for rows.Next() {
 				var name, val string
@@ -929,6 +935,10 @@ func loadTile(fname string, z, x, y int) ([]byte, error) {
 	stmt, _ := db.Prepare("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?")
 	defer stmt.Close()
 	rows, err := stmt.Query(z, x, y)
+	if err != nil {
+		log.Printf("SQLite read error %s: %s", fname, err.Error())
+		return nil, err
+	}
 	for rows.Next() {
 		var res []byte
 		rows.Scan(&res)

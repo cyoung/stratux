@@ -203,6 +203,12 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 			ti.Tail = msg.Reg
 			traffic[key] = ti
 		}
+		if msg.Time > 0 && !ti.Timestamp.IsZero() {
+ 			msgtime := time.Unix(msg.Time, 0)
+			if ti.Position_valid && ti.Last_source == TRAFFIC_SOURCE_OGN && msgtime.Before(ti.Timestamp) {
+				return // We already have a newer message for this target. This message was probably relayed by another tracker -- skip
+			}
+		}
 
 	}
 
