@@ -123,9 +123,6 @@ echo -e "\narm_64bit=1" >> /boot/config.txt
 #startup scripts
 cp -f rc.local /etc/rc.local
 
-# Clean up source tree - we don't need it at runtime
-cd /root && rm -r stratux
-
 #kalibrate-rtl
 cd /root
 rm -rf kalibrate-rtl
@@ -158,4 +155,8 @@ echo "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0" >> 
 # Now also prepare the update file..
 cd /root/stratux/selfupdate
 ./makeupdate.sh
+cd /root
+mv /root/stratux/work/update-*.sh /root/
 
+# Clean up source tree - we don't need it at runtime
+rm -r /root/stratux

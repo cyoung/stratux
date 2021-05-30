@@ -89,9 +89,8 @@ else
 fi
 mkdir -p out
 
-# Copy the selfupdate file out of there..
-cp mnt/root/stratux/work/*.sh out
-rm -r mnt/root/stratux/work
+# Move the selfupdate file out of there..
+mv mnt/root/update-*.sh out
 
 umount mnt/boot
 umount mnt
