@@ -160,3 +160,4 @@ mv /root/stratux/work/update-*.sh /root/
 
 # Clean up source tree - we don't need it at runtime
 rm -r /root/stratux
+rm -r /root/go_path/*
