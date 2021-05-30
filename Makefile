@@ -24,7 +24,7 @@ all:
 	make xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
 
 gen_gdl90: main/*.go common/*.go
-	CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
+	LIBRARY_PATH=$(CURDIR) CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
 
 fancontrol: fancontrol_main/*.go common/*.go
 	go build $(BUILDINFO) -o fancontrol -p 4 ./fancontrol_main/
