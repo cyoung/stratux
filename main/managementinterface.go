@@ -747,27 +747,41 @@ func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
 func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	r.ParseMultipartForm(1024 * 1024 * 32) // ~32MB update.
-	file, handler, err := r.FormFile("update_file")
+	reader, err := r.MultipartReader()
 	if err != nil {
 		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
 		return
 	}
-	defer file.Close()
-	// Special hardware builds. Don't allow an update unless the filename contains the hardware build name.
-	if (len(globalStatus.HardwareBuild) > 0) && !strings.Contains(strings.ToLower(handler.Filename), strings.ToLower(globalStatus.HardwareBuild)) {
-		w.WriteHeader(404)
-		return
+	for {
+		part, err := reader.NextPart();
+		if err != nil {
+			log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+			return
+		}
+		if part == nil {
+			return
+		}
+
+		if part.FormName() != "update_file" {
+			continue
+		}
+
+		fi, err := os.OpenFile("/root/TMP_update-stratux-v.sh", os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+		if err != nil {
+			log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+			return
+		}
+		defer fi.Close()
+		_, err = io.Copy(fi, part)
+		if err != nil {
+			log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
+			return
+		}
+
+		break
 	}
-	updateFile := fmt.Sprintf("/root/update-stratux-v.sh")
-	f, err := os.OpenFile(updateFile, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
-		return
-	}
-	defer f.Close()
-	io.Copy(f, file)
-	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, updateFile)
+	os.Rename("/root/TMP_update-stratux-v.sh", "/root/update-stratux-v.sh")
+	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, "/root/update-stratux-v.sh")
 	// Successful update upload. Now reboot.
 	go delayReboot()
 }
