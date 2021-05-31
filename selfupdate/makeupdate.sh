@@ -37,24 +37,16 @@ fi
 
 cd work/
 echo "Compressing files..."
+#cd bin
+#tar cjvf ../files.tar.bz2 .
+#cd ..
+#rm -r bin
+
+cat ../selfupdate/update_header.sh > update.sh
 cd bin
-tar cjvf ../files.tar.bz2 .
+tar cjvf - * >> ../update.sh
 cd ..
-
-cat ../selfupdate/update_header.sh >update.sh
-
-echo "stratuxVersion=${stratuxVersion}" >>update.sh
-echo "stratuxBuild=${stratuxBuild}" >>update.sh
-
-echo "packing files.tar.bz2"
-#echo "base64 -d | tar xjvf - <<__EOF__" >> update.sh # ??
-echo "base64 -d > files.tar.bz2 <<__EOF__" >> update.sh
-base64 files.tar.bz2 >> update.sh
-echo "__EOF__" >> update.sh
-echo "tar xjvf files.tar.bz2" >> update.sh
-echo "done"
-
-cat ../selfupdate/update_footer.sh >>update.sh
+rm -r bin
 
 chmod +x update.sh
 
