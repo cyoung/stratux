@@ -26,6 +26,12 @@ apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
     libusb-1.0-0-dev build-essential build-essential autoconf libtool i2c-tools screen libfftw3-dev libncurses-dev python-serial
+
+# try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
+# Disable swap...
+systemctl disable dphys-swapfile
+apt purge -y dphys-swapfile
+apt autoremove -y
 apt clean
 #echo y | rpi-update
 
@@ -40,12 +46,6 @@ sed -i 's/INTERFACESv4=""/INTERFACESv4="wlan0"/g' /etc/default/isc-dhcp-server
 rm -r /proc/*
 rm -r /root/fake
 
-
-# Install golang
-cd /root
-wget https://golang.org/dl/go1.16.1.linux-arm64.tar.gz
-tar xzf go1.16.1.linux-arm64.tar.gz
-rm go1.16.1.linux-arm64.tar.gz
 
 
 # Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
@@ -76,18 +76,34 @@ rm -r rtl-sdr
 
 ldconfig
 
+#kalibrate-rtl
+cd /root
+rm -rf kalibrate-rtl
+git clone https://github.com/steve-m/kalibrate-rtl
+cd kalibrate-rtl
+./bootstrap
+./configure
+make -j8
+make install
+cd /root && rm -rf kalibrate-rtl
+
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
 #sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
 #sed -i -e 's/libdir=/libdir=${prefix}\/lib\/arm-linux-gnueabihf/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
 
+# Install golang
+cd /root
+wget https://golang.org/dl/go1.16.1.linux-arm64.tar.gz
+tar xzf go1.16.1.linux-arm64.tar.gz
+rm go1.16.1.linux-arm64.tar.gz
 
 # Compile stratux
 cd /root/stratux
 
 make clean
 make -j8
+rm -r /root/go_path/* # safe space again..
 make install
-
 
 ##### Some device setup - copy files from image directory ####
 cd /root/stratux/image
@@ -123,28 +139,11 @@ echo -e "\narm_64bit=1" >> /boot/config.txt
 #startup scripts
 cp -f rc.local /etc/rc.local
 
-#kalibrate-rtl
-cd /root
-rm -rf kalibrate-rtl
-git clone https://github.com/steve-m/kalibrate-rtl
-cd kalibrate-rtl
-./bootstrap
-./configure
-make -j8
-make install
-cd /root && rm -rf kalibrate-rtl
-
 #disable serial console
 sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
-
-# Finally, try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
-# Disable swap...
-systemctl disable dphys-swapfile
-apt purge -y dphys-swapfile
-apt autoremove -y
 
 # Mount logs/tmp stuff as tmpfs
 echo "" >> /etc/fstab # newline
