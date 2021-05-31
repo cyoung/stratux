@@ -40,7 +40,7 @@ sizelimit=$(( 512*sizelimit ))
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
 #truncate -s 2600M $IMGNAME
-qemu-img resize $IMGNAME 2500M || die "Image resize failed"
+qemu-img resize $IMGNAME 2700M || die "Image resize failed"
 lo=$(losetup -f)
 losetup $lo $IMGNAME
 partprobe $lo
