@@ -102,6 +102,15 @@ cd /root/stratux
 
 make clean
 make -j8
+
+# Now also prepare the update file..
+cd /root/stratux/selfupdate
+./makeupdate.sh
+mv /root/stratux/work/update-*.sh /root/
+rm -r /root/stratux/work
+cd /root/stratux
+
+
 rm -r /root/go_path/* # safe space again..
 make install
 
@@ -151,11 +160,6 @@ echo "tmpfs    /var/log    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m 
 echo "tmpfs    /tmp        tmpfs    defaults,noatime,nosuid,size=100m    0 0" >> /etc/fstab
 echo "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0" >> /etc/fstab
 
-# Now also prepare the update file..
-cd /root/stratux/selfupdate
-./makeupdate.sh
-cd /root
-mv /root/stratux/work/update-*.sh /root/
 
 # Clean up source tree - we don't need it at runtime
 rm -r /root/stratux
