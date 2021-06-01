@@ -9,5 +9,5 @@ fi
 
 read -p "Download US Sectional VFR Charts (~4.9 GiB)? [y/n]" -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    wget -N https://abatzill.de/stratux/openflightmaps.mbtiles
+    wget -N https://abatzill.de/stratux/vfrsec.mbtiles
 fi
