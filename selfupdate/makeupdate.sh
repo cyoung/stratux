@@ -31,9 +31,6 @@ cp image/logrotate.conf work/bin/
 cp image/logrotate_d_stratux work/bin/
 cp image/rsyslog_d_stratux work/bin/
 
-if [ "$(arch)" == "aarch64" ]; then
-	echo -e "\narm_64bit=1" >> work/bin/config.txt
-fi
 
 cd work/
 echo "Compressing files..."

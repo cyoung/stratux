@@ -143,7 +143,6 @@ cp -f modules.txt /etc/modules
 
 #boot settings
 cp -f config.txt /boot/
-echo -e "\narm_64bit=1" >> /boot/config.txt
 
 #startup scripts
 cp -f rc.local /etc/rc.local

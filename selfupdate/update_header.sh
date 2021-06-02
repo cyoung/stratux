@@ -13,6 +13,10 @@ ARCHIVE=`awk '/^__ARCHIVE_BELOW__/ {print NR + 1; exit 0; }' $SCRIPT`
 tail -n +$ARCHIVE $SCRIPT | tar xjf -
 echo "Extracting done. Installing"
 
+# Need to stop fancontrol to install new version
+/opt/stratux/bin/fancontrol stop
+/opt/stratux/bin/fancontrol remove
+
 cp -ra stratux /opt/ 
 
 # Startup script.
@@ -20,7 +24,6 @@ RASPBIAN_VERSION=`cat /etc/debian_version`
 
 cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.service
 chmod 644 /lib/systemd/system/stratux.service
-chmod 744 /root/stratux-pre-start.sh
 ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 
 #rsyslog config
@@ -57,8 +60,6 @@ cp -f modules.txt /etc/modules
 cp -f motd /etc/motd
 
 #fan control utility
-/opt/stratux/bin/fancontrol stop
-/opt/stratux/bin/fancontrol remove
 /opt/stratux/bin/fancontrol install
 
 cd /
