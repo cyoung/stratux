@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # To run this, make sure that this is installed:
-# sudo apt install --yes qemu-utils parted zip unzip zerofree
+# sudo apt install --yes parted zip unzip zerofree
 # If you want to build on x86 with aarch64 emulation, additionally install qemu-user-static qemu-system-arm
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
@@ -38,24 +38,12 @@ partoffset=$(( 512*sector ))
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
-#truncate -s 2600M $IMGNAME
-qemu-img resize $IMGNAME 3000M || die "Image resize failed"
+truncate -s 3000M $IMGNAME || die "Image resize failed"
 lo=$(losetup -f)
 losetup $lo $IMGNAME
 partprobe $lo
 e2fsck -f ${lo}p2
-fdisk $lo <<EOF
-p
-d
-2
-n
-p
-2
-$sector
-
-p
-w
-EOF
+parted ${lo} resizepart 2 100%
 partprobe $lo || die "Partprobe failed failed"
 resize2fs -p ${lo}p2 || die "FS resize failed"
 
@@ -93,31 +81,19 @@ umount mnt/boot
 umount mnt
 
 # Shrink the image to minimum size.. it's still larger than it really needs to be, but whatever
-zerofree ${lo}p2
 minsize=$(resize2fs -P ${lo}p2 | rev | cut -d' ' -f 1 | rev)
+minsizeBytes=$(($minsize * 4096))
 e2fsck -f ${lo}p2
 resize2fs -p ${lo}p2 $minsize
-newpartsizeK=$(($minsize * 4096 / 1024))
-# now shrink the partition
-fdisk $lo <<EOF
-p
-d
-2
-n
-p
-2
-$sector
-+${newpartsizeK}K
-N
-p
-w
-EOF
-partprobe $lo || die "Partprobe failed failed"
-losetup -d $lo || die "Loop device setup failed"
 
-# Now finally shrink the image
-totalsize=$(($partoffset + $newpartsizeK * 1024))
-truncate -s $totalsize $IMGNAME
+zerofree ${lo}p2 # for smaller zip
+
+bytesEnd=$((partoffset + $minsizeBytes))
+parted  ${lo} resizepart 2 ${bytesEnd}B yes
+partprobe $lo
+
+losetup -d ${lo}
+truncate -s $(($bytesEnd + 4096)) $IMGNAME
 
 
 cd $SRCDIR

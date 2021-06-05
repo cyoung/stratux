@@ -162,4 +162,3 @@ echo "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0" >> 
 
 # Clean up source tree - we don't need it at runtime
 rm -r /root/stratux
-rm -r /root/go_path/*
