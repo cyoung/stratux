@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # To run this, make sure that this is installed:
-# sudo apt install --yes qemu-user-static qemu-system-arm parted zip unzip
+# sudo apt install --yes qemu-utils parted zip unzip zerofree
+# If you want to build on x86 with aarch64 emulation, additionally install qemu-user-static qemu-system-arm
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 set -x
@@ -34,15 +35,11 @@ unzip $ZIPNAME || die "Extracting image failed"
 # Check where in the image the root partition begins:
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
 partoffset=$(( 512*sector ))
-bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $2}')
-bootoffset=$(( 512*bootoffset ))
-sizelimit=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $4}')
-sizelimit=$(( 512*sizelimit ))
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
 #truncate -s 2600M $IMGNAME
-qemu-img resize $IMGNAME 2700M || die "Image resize failed"
+qemu-img resize $IMGNAME 3000M || die "Image resize failed"
 lo=$(losetup -f)
 losetup $lo $IMGNAME
 partprobe $lo
@@ -61,15 +58,13 @@ w
 EOF
 partprobe $lo || die "Partprobe failed failed"
 resize2fs -p ${lo}p2 || die "FS resize failed"
-losetup -d $lo || die "Loop device setup failed"
 
 
-sleep 3 # for whatever reason loop device is not immediately detached and takes a short time
 
 # Mount image locally, clone our repo, install packages..
 mkdir -p mnt
-mount -t ext4 -o offset=$partoffset $IMGNAME mnt/ || die "root-mount failed"
-mount -t vfat -o offset=$bootoffset,sizelimit=$sizelimit $IMGNAME mnt/boot || die "boot-mount failed"
+mount -t ext4 ${lo}p2 mnt/ || die "root-mount failed"
+mount -t vfat ${lo}p1 mnt/boot || die "boot-mount failed"
 
 
 cd mnt/root/
@@ -96,6 +91,34 @@ mv mnt/root/update-*.sh out
 
 umount mnt/boot
 umount mnt
+
+# Shrink the image to minimum size.. it's still larger than it really needs to be, but whatever
+zerofree ${lo}p2
+minsize=$(resize2fs -P ${lo}p2 | rev | cut -d' ' -f 1 | rev)
+e2fsck -f ${lo}p2
+resize2fs -p ${lo}p2 $minsize
+newpartsizeK=$(($minsize * 4096 / 1024))
+# now shrink the partition
+fdisk $lo <<EOF
+p
+d
+2
+n
+p
+2
+$sector
++${newpartsizeK}K
+N
+p
+w
+EOF
+partprobe $lo || die "Partprobe failed failed"
+losetup -d $lo || die "Loop device setup failed"
+
+# Now finally shrink the image
+totalsize=$(($partoffset + $newpartsizeK * 1024))
+truncate -s $totalsize $IMGNAME
+
 
 cd $SRCDIR
 outname="stratux-$(git describe --tags --abbrev=0)-$(git log -n 1 --pretty=%H | cut -c 1-8).img"
