@@ -34,8 +34,8 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="
 #                 --set-max-power=100 \
 #                 --set-bus-powered=no
 
-SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout%n"
-SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout NMEA", SYMLINK+="serialout_nmea%n"
+SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout0"
+SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout NMEA", SYMLINK+="serialout_nmea0"
 
 
 # SoftRF.
