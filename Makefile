@@ -53,6 +53,7 @@ optinstall: www ogn/ddb.json
 	mkdir -p $(STRATUX_HOME)/cfg
 	mkdir -p $(STRATUX_HOME)/lib
 	mkdir -p $(STRATUX_HOME)/mapdata
+	chmod a+rwx $(STRATUX_HOME)/mapdata # so users can upload their stuff as user pi
 
 	# binaries
 	cp -f gen_gdl90 $(STRATUX_HOME)/bin/
