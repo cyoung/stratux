@@ -41,7 +41,7 @@ test:
 	make -C test
 
 www:
-	cd web && make
+	make -C web
 
 ogn/ddb.json:
 	cd ogn && ./fetch_ddb.sh
@@ -65,9 +65,6 @@ optinstall: www ogn/ddb.json
 	# Libs
 	cp -f libdump978.so $(STRATUX_HOME)/lib/
 
-
-	# web interface
-	make www
 
 	# map data
 	cp -ru mapdata/* $(STRATUX_HOME)/mapdata/
