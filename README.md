@@ -1,9 +1,10 @@
 # Stratux - European edition
+**Users from the US, see here: https://github.com/b3nn0/stratux/wiki/US-configuration**
+
 This is a fork of the original Stratux version, incorperating many contributions by the community to create a
 nice, full featured Stratux-OGN image that works well for europe.
 ![Data flow diagram](https://user-images.githubusercontent.com/60190549/94661904-f1201c80-0307-11eb-9d8d-3af2020583a8.png)
 (see https://github.com/b3nn0/stratux/wiki/Stratux-EU-Structure)
-Users from the US, see here: https://github.com/b3nn0/stratux/wiki/US-configuration
 
 ## Disclaimer
 This repository offers code and binaries that can help you to build your own traffic awareness device. We do not take any responsibility for what you do with this code. When you build a device, you are responsible for what it does. There is no warrenty of any kind provided with the information, code and binaries you can find here. You are solely responsible for the device you build.
