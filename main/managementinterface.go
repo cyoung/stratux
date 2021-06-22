@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -943,17 +944,15 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 }
 
 func loadTile(fname string, z, x, y int) ([]byte, error) {
-	db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + fname)
+	db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + fname + "?mode=ro")
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
-	stmt, _ := db.Prepare("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?")
-	defer stmt.Close()
-	rows, err := stmt.Query(z, x, y)
+	rows, err := db.Query("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?", z, x, y)
 	if err != nil {
-		log.Printf("SQLite read error %s: %s", fname, err.Error())
-		return nil, err
+		log.Printf("Failed to query mbtiles: %s", err.Error())
+		return nil, nil
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -980,7 +979,7 @@ func handleTile(w http.ResponseWriter, r *http.Request) {
 	idx--
 	z, _ := strconv.Atoi(parts[idx])
 	idx--
-	file :=  parts[idx]
+	file, _ := url.QueryUnescape(parts[idx])
 	tileData, err := loadTile(file, z, x, y)
 	if err != nil {
 		http.Error(w, err.Error(), 500)

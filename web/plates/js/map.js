@@ -36,6 +36,12 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 			let format = meta.format ? meta.format : 'png';
 			let minzoom = meta.minzoom ? parseInt(meta.minzoom) : 1;
 			let maxzoom = meta.maxzoom ? parseInt(meta.maxzoom) : 18;
+			
+			let ext = [-180, -85, 180, 85];
+			if (meta.bounds) {
+				ext = meta.bounds.split(',').map(Number)
+			}
+			ext = ol.proj.transformExtent(ext, 'EPSG:4326', 'EPSG:3857')
 
 			let layer = new ol.layer.Tile({
 				title: '[offline] ' + name,
@@ -44,7 +50,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 					url: URL_GET_TILE + '/' + file  + '/{z}/{x}/{-y}.' + format,
 					maxZoom: maxzoom,
 					minZoom: minzoom,
-				})				
+				}),
+				extent: ext		
 			});
 			if (baselayer)
 				$scope.map.getLayers().insertAt(0, layer);
