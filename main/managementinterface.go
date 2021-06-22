@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"text/template"
 	"time"
@@ -49,6 +50,8 @@ var weatherUpdate *uibroadcaster
 var trafficUpdate *uibroadcaster
 var radarUpdate *uibroadcaster
 var gdl90Update *uibroadcaster
+var mbtileConnectionCache = make(map[string]*sql.DB)
+var mbtileCacheLock = sync.Mutex{}
 
 func handleGDL90WS(conn *websocket.Conn) {
 	// Subscribe the socket to receive updates.
@@ -904,6 +907,21 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func connectMbTilesArchive(path string) (*sql.DB, error) {
+	mbtileCacheLock.Lock()
+	defer mbtileCacheLock.Unlock()
+	if conn, ok := mbtileConnectionCache[path]; ok {
+		return conn, nil
+	} else {
+		conn, err := sql.Open("sqlite3", path + "?mode=ro")
+		if err != nil {
+			return nil, err
+		}
+		mbtileConnectionCache[path] = conn
+		return conn, nil
+	}
+}
+
 func tileToDegree(z, x, y int) (lon, lat float64) {
 	// osm-like schema:
 	y = (1 << z) - y - 1
@@ -926,12 +944,11 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if strings.HasSuffix(f.Name(), ".mbtiles") || strings.HasSuffix(f.Name(), ".db") {
-			db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + f.Name())
+			db, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + f.Name())
 			if err != nil {
 				log.Printf("SQLite open " + f.Name() + " failed: %s", err.Error())
 				continue
 			}
-			defer db.Close()
 			rows, err := db.Query(`SELECT name, value FROM metadata 
 				UNION SELECT 'minzoom', min(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='minzoom')
 				UNION SELECT 'maxzoom', max(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='maxzoom')`);
@@ -971,11 +988,10 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 }
 
 func loadTile(fname string, z, x, y int) ([]byte, error) {
-	db, err := sql.Open("sqlite3", STRATUX_HOME + "/mapdata/" + fname + "?mode=ro")
+	db, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + fname)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	rows, err := db.Query("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?", z, x, y)
 	if err != nil {
 		log.Printf("Failed to query mbtiles: %s", err.Error())
