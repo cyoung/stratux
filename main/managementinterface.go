@@ -17,6 +17,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -903,6 +904,15 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func tileToDegree(z, x, y int) (lon, lat float64) {
+	// osm-like schema:
+	y = (1 << z) - y - 1
+	n := math.Pi - 2.0*math.Pi*float64(y)/math.Exp2(float64(z))
+	lat = 180.0 / math.Pi * math.Atan(0.5*(math.Exp(n)-math.Exp(-n)))
+	lon = float64(x)/math.Exp2(float64(z))*360.0 - 180.0
+	return lon, lat
+}
+
 // Scans mapdata dir for all .db and .mbtiles files and returns json representation of all metadata values
 func handleTilesets(w http.ResponseWriter, r *http.Request) {
 	files, err := ioutil.ReadDir(STRATUX_HOME + "/mapdata/");
@@ -936,6 +946,23 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 				rows.Scan(&name, &val)
 				meta[name] = val
 			}
+			// determine extent of layer if not given.. Openlayers kinda needs this, or it can happen that it tries to do
+			// a billion request do down-scale high-res pngs that aren't even there (i.e. all 404s)
+			if _, ok := meta["bounds"]; !ok {
+				maxZoomInt, _ := strconv.ParseInt(meta["maxzoom"], 10, 32)
+				rows, err = db.Query("SELECT min(tile_column), min(tile_row), max(tile_column), max(tile_row) FROM tiles WHERE zoom_level=?", maxZoomInt)
+				if err != nil {
+					log.Printf("SQLite read error %s: %s", f.Name(), err.Error())
+					continue
+				}
+				rows.Next()
+				var xmin, ymin, xmax, ymax int
+				rows.Scan(&xmin, &ymin, &xmax, &ymax)
+				lonmin, latmin := tileToDegree(int(maxZoomInt), xmin, ymin)
+				lonmax, latmax := tileToDegree(int(maxZoomInt), xmax+1, ymax+1)
+				meta["bounds"] = fmt.Sprintf("%f,%f,%f,%f", lonmin, latmin, lonmax, latmax)
+			}
+
 			result[f.Name()] = meta
 		}
 	}
