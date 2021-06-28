@@ -439,6 +439,45 @@ func makePGRMZString() string {
 	return msg
 }
 
+func makeAHRSLevilReport() {
+	if !isAHRSValid() {
+		return
+	}
+	// Values if invalid
+	pitch := int16(0x7FFF)
+	roll := int16(0x7FFF)
+	hdg := int16(0x7FFF)
+	slip_skid := int16(0x7FFF)
+	yaw_rate := int16(0x7FFF)
+	g := int16(0x7FFF)
+	if !isAHRSInvalidValue(mySituation.AHRSPitch) {
+		pitch = common.RoundToInt16(mySituation.AHRSPitch * 10)
+	}
+	if !isAHRSInvalidValue(mySituation.AHRSRoll) {
+		roll = common.RoundToInt16(mySituation.AHRSRoll * 10)
+	}
+	if !isAHRSInvalidValue(mySituation.AHRSGyroHeading) {
+		hdg = common.RoundToInt16(mySituation.AHRSGyroHeading * 10)
+	}
+	if !isAHRSInvalidValue(mySituation.AHRSSlipSkid) {
+		slip_skid = common.RoundToInt16(-mySituation.AHRSSlipSkid * 10)
+	}
+	if !isAHRSInvalidValue(mySituation.AHRSTurnRate) {
+		yaw_rate = common.RoundToInt16(mySituation.AHRSTurnRate * 10)
+	}
+	if !isAHRSInvalidValue(mySituation.AHRSGLoad) {
+		g = common.RoundToInt16(mySituation.AHRSGLoad * 10)
+	}
+
+	checksumRPYL := byte(0x00)
+	msg := fmt.Sprintf("RPYL,%d,%d,%d,%d,%d,%d,0", roll, pitch, hdg, slip_skid, yaw_rate, g)
+	for i := range msg {
+		checksumRPYL = checksumRPYL ^ byte(msg[i])
+	}
+	msg = fmt.Sprintf("$%s*%02X\r\n", msg, checksumRPYL)
+	sendNetFLARM(msg)
+}
+
 /*
 Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible)
 software: SkyDemon, RunwayHD, etc.

@@ -366,6 +366,7 @@ func sensorAttitudeSender() {
 
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
 			makeAHRSSimReport()
+			makeAHRSLevilReport()
 
 			// Send to AHRS debugging server.
 			if ahrswebListener != nil {
