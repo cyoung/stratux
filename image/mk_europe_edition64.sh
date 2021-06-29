@@ -16,7 +16,7 @@ die() {
     exit 1
 }
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -lt 2 ]; then
     echo "Usage: " $0 " dev|prod branch [us]"
     echo "if \"us\" is given, an image with US-like pre-configuration and without developer mode enabled will be created as well"
     exit 1
