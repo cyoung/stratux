@@ -40,7 +40,7 @@ iface p2p-wlan0-0 inet static
 
 # allow-hotplug wlan1
 # iface wlan1 inet manual
-#     wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+#     wpa-roam /etc/wpa_supplicant/wpa_supplicant_wlan1.conf
 # iface name_of_WPA_Config inet dhcp
 # iface name_of_other_WPA_Config inet dhcp
 
@@ -48,7 +48,7 @@ iface p2p-wlan0-0 inet static
 ## End of interfaces
 
 
-#contents of wpa_supplicant.conf
+#contents of /etc/wpa_supplicant/wpa_supplicant_wlan1.conf
 #############################################################
 # ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 # update_config=1
