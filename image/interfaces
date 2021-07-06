@@ -29,9 +29,9 @@ iface p2p-wlan0-0 inet static
 ##               Custom settings not for novice users!!!!!!  
 ##               Modify at your own risk!!!!!!!!!!!!!!!!!!!
 ##
-##   Second Wifi Dongle for local work and internet access
-##   This template is for adding a second wifi dongle to your PI for internet access while debugging
-##     Modify /etc/wpa_supplicant/wpa_supplicant.conf with your settings also( see below )
+##  Second Wifi Dongle for local work and internet access
+##  This template is for adding a second wifi dongle to your PI for internet access while debugging
+##  You need to create a file /etc/wpa_supplicant/wpa_supplicant_wlan1.conf with your settings (see below)
 ##
 ##  Uncomment the following lines as needed. 
 
