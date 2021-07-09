@@ -57,8 +57,28 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 				$scope.map.getLayers().insertAt(0, layer);
 			else
 				$scope.map.addLayer(layer);
-
 		}
+		// Restore layer visibility
+		$scope.map.getLayers().forEach((layer) => {
+			const title = layer.get('title');
+			if (!title) return;
+			const key = 'stratux.map.layers.' + title + '.visible';
+			const oldState = localStorage.getItem(key);
+			if (oldState) {
+				layer.setVisible((oldState === 'true'));
+			}
+		});
+
+		// listener to remember enabled layers
+		$scope.map.getLayers().forEach((layer) => {
+			layer.on('change:visible', (ev) => {
+				const title = ev.target.get('title');
+				if (!title) return;
+				const visible = ev.target.get('visible');
+				const key = 'stratux.map.layers.' + title + '.visible';
+				localStorage.setItem(key, visible);
+			});
+		});
 	});
 
 	let aircraftSymbolsLayer = new ol.layer.Vector({
