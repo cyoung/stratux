@@ -8,6 +8,14 @@ import random
 import os.path
 import sqlite3
 
+
+URL_TEMPLATE = "https://c.tile.openstreetmap.org/%d/%d/%d.png"
+BBOX = None # [lon_min, lat_min, lon_max, lat_max] or None for whole world
+ZOOM_MAX = 7
+LAYERTYPE = "baselayer" # "baselayer" or "overlay"
+LAYERNAME = "OSM Low Detail"
+TILE_FORMAT = "png"
+
 def deg2num(lat_deg, lon_deg, zoom):
     lat_rad = math.radians(lat_deg)
     n = 2.0 ** zoom
@@ -18,8 +26,7 @@ def deg2num(lat_deg, lon_deg, zoom):
 def download_url(zoom, xtile, ytile, cursor):
     subdomain = random.randint(1, 4)
     
-    url = "https://c.tile.openstreetmap.org/%d/%d/%d.png" % (zoom, xtile, ytile)
-    download_path = "tiles/%d/%d/%d.png" % (zoom, xtile, ytile)
+    url = URL_TEMPLATE % (zoom, xtile, ytile)
 
     ymax = 1 << zoom
     yinverted = ymax - ytile - 1
@@ -44,11 +51,12 @@ def download_url(zoom, xtile, ytile, cursor):
 
 
 def main(argv):
-    maxzoom = 7 # redefine me if need so
 
     db = argv[1] if len(argv) > 1 else 'osm.mbtiles'
     conn = sqlite3.connect(db)
     cur = conn.cursor()
+    bboxStr = "-180,-85,180,85" if BBOX is None else ",".join(map(str, BBOX))
+
     cur.executescript('''
     CREATE TABLE IF NOT EXISTS tiles (
             zoom_level integer,
@@ -58,21 +66,34 @@ def main(argv):
     CREATE TABLE IF NOT EXISTS metadata(name text, value text);
     CREATE UNIQUE INDEX IF NOT EXISTS metadata_name on metadata (name);
     CREATE UNIQUE INDEX IF NOT EXISTS tile_index on tiles(zoom_level, tile_column, tile_row);
-    INSERT OR REPLACE INTO metadata VALUES('type', 'baselayer');
-    INSERT OR REPLACE INTO metadata VALUES('format', 'png');
     INSERT OR REPLACE INTO metadata VALUES('minzoom', '1');
     INSERT OR REPLACE INTO metadata VALUES('maxzoom', '{0}');
-    INSERT OR REPLACE INTO metadata VALUES('bounds', '-180,-85,180,85');
-    '''.format(maxzoom))
+    INSERT OR REPLACE INTO metadata VALUES('name', '{1}');
+    INSERT OR REPLACE INTO metadata VALUES('type', '{2}');
+    INSERT OR REPLACE INTO metadata VALUES('format', '{3}');
+    INSERT OR REPLACE INTO metadata VALUES('bounds', '{4}');
+
+    '''.format(ZOOM_MAX, LAYERNAME, LAYERTYPE, TILE_FORMAT, bboxStr))
 
     # from 0 to 6 download all
-    for zoom in range(0,maxzoom+1,1):
-        for x in range(0,2**zoom,1):
-            for y in range(0,2**zoom,1):
+    for zoom in range(0, ZOOM_MAX+1):
+        xstart = 0
+        ystart = 0
+        xend = 2**zoom
+        yend = 2**zoom
+        if BBOX is not None:
+            xstart, yend = deg2num(BBOX[1], BBOX[0], zoom)
+            xend, ystart = deg2num(BBOX[3], BBOX[2], zoom)
+
+        for x in range(xstart, xend):
+            for y in range(ystart, yend):
                 download_url(zoom, x, y, cur)
+            
+            conn.commit()
+
     
     cur.close()
-    conn.commit()
     conn.close()
 
-main(argv)    
+main(argv)
+
