@@ -35,6 +35,8 @@ unzip $ZIPNAME || die "Extracting image failed"
 # Check where in the image the root partition begins:
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
 partoffset=$(( 512*sector ))
+bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $2}')
+bootoffset=$(( 512*bootoffset ))
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
@@ -108,8 +110,8 @@ zip out/$outname.zip $outname
 
 # Now create US default config into the image and create the eu-us version..
 if [ "$3" == "us" ]; then
-    mount -t ext4 -o offset=$partoffset $outname mnt/ || die "root-mount failed"
-    echo '{"UAT_Enabled": true,"OGN_Enabled": false,"DeveloperMode": false}' > mnt/etc/stratux.conf
+    mount -t vfat -o offset=$bootoffset $outname mnt/ || die "boot-mount failed"
+    echo '{"UAT_Enabled": true,"OGN_Enabled": false,"DeveloperMode": false}' > mnt/stratux.conf
     umount mnt
     mv $outname $outname_us
     zip out/$outname_us.zip $outname_us

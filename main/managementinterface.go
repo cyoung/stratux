@@ -98,6 +98,15 @@ func handleGDL90WS(conn *websocket.Conn) {
 	}
 }
 
+func overlayctl(cmd string) {
+	out, err := exec.Command("/bin/sh", "/sbin/overlayctl", cmd).Output()
+	if err != nil {
+		log.Printf("overlayctl error: %s\n%s", err.Error(), out)
+	} else {
+		log.Printf("overlayctl: %s\n", out)
+	}
+}
+
 // Situation updates channel.
 var situationUpdate *uibroadcaster
 
@@ -525,18 +534,9 @@ func setPersistentLogging(persistent bool) {
 	}
 	fstab := string(bytes)
 	if persistent {
-		fstab = strings.ReplaceAll(fstab, "\ntmpfs", "\n#tmpfs")
+		overlayctl("disable")
 	} else {
-		for strings.Count(fstab, "#tmpfs") > 0 { // do in a loop so if, for whatever reason, stratux.conf is not in sync to fstab, we remove all preceeding #
-			fstab = strings.ReplaceAll(fstab, "#tmpfs", "tmpfs")
-		}
-		if strings.Count(fstab, "tmpfs") == 0 {
-			// Never configured for tmpfs stuff.. append initial config
-			fstab += "\n"
-			fstab += "tmpfs    /var/log    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0\n"
-			fstab += "tmpfs    /tmp        tmpfs    defaults,noatime,nosuid,size=100m    0 0\n"
-			fstab += "tmpfs    /var/tmp    tmpfs    defaults,noatime,nosuid,size=30m    0 0\n"
-		}
+		overlayctl("enable")
 	}
 	err = ioutil.WriteFile("/etc/fstab", []byte(fstab), 0644)
 	if err != nil {
@@ -814,6 +814,7 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	os.Rename("/root/TMP_update-stratux-v.sh", "/root/update-stratux-v.sh")
 	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, "/root/update-stratux-v.sh")
+	overlayctl("disable")
 	// Successful update upload. Now reboot.
 	go delayReboot()
 }

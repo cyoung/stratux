@@ -47,7 +47,7 @@ var dataLogFilef string // Set according to OS config.
 
 const (
 	STRATUX_HOME   = "/opt/stratux/"
-	configLocation = "/etc/stratux.conf"
+	configLocation = "/boot/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
 	debugLogFile   = "stratux.log"

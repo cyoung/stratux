@@ -1245,7 +1245,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				tmpSituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
 				stratuxClock.SetRealTimeReference(gpsTime)
-				if time.Since(gpsTime) > 200*time.Millisecond || time.Since(gpsTime) < -200*time.Millisecond {
+				if time.Since(gpsTime) > 300*time.Millisecond || time.Since(gpsTime) < -300*time.Millisecond {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
 					if err := exec.Command("date", "-s", setStr).Run(); err != nil {

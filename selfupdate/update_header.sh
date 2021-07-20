@@ -62,8 +62,25 @@ cp -f motd /etc/motd
 #fan control utility
 /opt/stratux/bin/fancontrol install
 
+# overlayctl
+cp -f overlayctl init-overlay /sbin/
+/sbin/overlayctl install
+
+# cleanup after switch to overlayfs: remove tmpfs lines from fstab, move stratux.conf to /boot and potentially enable the overlay depending on user settings
+cat /etc/fstab | grep -v tmpfs > /tmp/fstab
+mv /tmp/fstab /etc/fstab
+mv /etc/stratux.conf /boot/stratux.conf
+
+
 cd /
 rm -rf /root/stratux-update
+
+# re-enable overlay if it is configured. TODO: switch to jq for json parsing in the future once it's available in all installations
+if [ "$(cat /boot/stratux.conf | grep 'PersistentLogging.:true')" != "" ]; then
+    /sbin/overlayctl disable
+else
+    /sbin/overlayctl enable
+fi
 
 exit 0
 
