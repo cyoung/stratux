@@ -779,6 +779,7 @@ func handleDownloadDBRequest(w http.ResponseWriter, r *http.Request) {
 func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
+	overlayctl("unlock")
 	reader, err := r.MultipartReader()
 	if err != nil {
 		log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
@@ -798,7 +799,7 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fi, err := os.OpenFile("/root/TMP_update-stratux-v.sh", os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+		fi, err := os.OpenFile("/overlay/robase/root/TMP_update-stratux-v.sh", os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
 		if err != nil {
 			log.Printf("Update failed from %s (%s).\n", r.RemoteAddr, err.Error())
 			return
@@ -812,8 +813,10 @@ func handleUpdatePostRequest(w http.ResponseWriter, r *http.Request) {
 
 		break
 	}
-	os.Rename("/root/TMP_update-stratux-v.sh", "/root/update-stratux-v.sh")
-	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, "/root/update-stratux-v.sh")
+
+	
+	os.Rename("/overlay/robase/root/TMP_update-stratux-v.sh", "/overlay/robase/root/update-stratux-v.sh")
+	log.Printf("%s uploaded %s for update.\n", r.RemoteAddr, "/overlay/robase/root/update-stratux-v.sh")
 	overlayctl("disable")
 	// Successful update upload. Now reboot.
 	go delayReboot()

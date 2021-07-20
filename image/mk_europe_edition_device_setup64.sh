@@ -146,11 +146,15 @@ cp -f config.txt /boot/
 
 #rootfs overlay stuff
 cp -f overlayctl init-overlay /sbin/
-/sbin/overlayctl install
-/sbin/overlayctl enable
+# Can't use overlayctl install.. it will break raspis initial expanding of the filesystem :(
+# Instead we also ship a modified init_resize.sh that will then install the overlay
+cp -f init_resize.sh /usr/lib/raspi-config/
 
 #startup scripts
 cp -f rc.local /etc/rc.local
+
+# Optionally mount /dev/sda1 as /var/log - for logging to USB stick
+echo -e "\n/dev/sda1             /var/log        auto    defaults,nofail,noatime,x-systemd.device-timeout=1ms  0       2" >> /etc/fstab
 
 #disable serial console
 sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"

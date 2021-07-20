@@ -23,13 +23,6 @@ fi
 #
 /usr/sbin/logrotate /etc/logrotate.conf
 
-#
-# Mount optional USB stick for logging if available
-#
-if [ -e /dev/sda1 ]; then
-  mount /dev/sda1 /var/log
-fi
-
 
 # Disabled for now as it is unamintained and doesn't run correctly with python2 deprecation
 # /usr/bin/stratux-screen.py start
