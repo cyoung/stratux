@@ -149,6 +149,7 @@ cp -f overlayctl init-overlay /sbin/
 overlayctl install
 # init-overlay replaces raspis initial partition size growing.. Make sure we call that manually (see init-overlay script)
 touch /var/grow_root_part
+mkdir -p /overlay/robase # prepare so we can bind-mount root even if overlay is disabled
 
 #startup scripts
 cp -f rc.local /etc/rc.local
