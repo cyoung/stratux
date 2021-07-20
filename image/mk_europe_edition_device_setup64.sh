@@ -146,9 +146,9 @@ cp -f config.txt /boot/
 
 #rootfs overlay stuff
 cp -f overlayctl init-overlay /sbin/
-# Can't use overlayctl install.. it will break raspis initial expanding of the filesystem :(
-# Instead we also ship a modified init_resize.sh that will then install the overlay
-cp -f init_resize.sh /usr/lib/raspi-config/
+overlayctl install
+# init-overlay replaces raspis initial partition size growing.. Make sure we call that manually (see init-overlay script)
+touch /var/grow_root_part
 
 #startup scripts
 cp -f rc.local /etc/rc.local

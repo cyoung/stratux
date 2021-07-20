@@ -27,6 +27,31 @@ insmodule()
     fi
 }
 
+# Make sure partition is expanded on first boot..
+if [ -f /var/grow_root_part ]; then
+    mount -t proc proc /proc
+    mount -t sysfs sys /sys
+    sleep 1 # otherwise proc/sys not yet ready?
+    mount -o remount,rw /
+    rm /var/grow_root_part
+    touch /var/grow_root_fs
+    /usr/lib/raspi-config/init_resize.sh
+fi
+# On second boot, we then increase the filesystem itself..
+if [ -f /var/grow_root_fs ]; then
+    mount -t proc proc /proc
+    mount -t sysfs sys /sys
+    sleep 1 # otherwise proc/sys not yet ready?
+    mount -o remount,rw /
+    rm /var/grow_root_fs
+    rm -f /etc/init.d/resize2fs_once # so we don't get error messages on boot
+    resize2fs $(findmnt / -o source -n)
+
+    umount /sys
+    umount /proc
+    mount -o remount,ro /
+fi
+
 if [ -e "/overlay/disable" ] ; then
     echo "Overlay disabled"
     # Stratux: make sure we always have something usable in /overlay/robase, so we can upload update .sh files there

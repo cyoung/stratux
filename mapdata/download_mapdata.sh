@@ -20,8 +20,4 @@ fi
 
 overlayctl lock
 
-echo
-read -p "Reboot required. Reboot now? [y/n]" -n 1 -r
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    reboot
-fi
+systemctl restart stratux
