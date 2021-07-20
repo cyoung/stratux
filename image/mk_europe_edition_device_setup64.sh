@@ -40,6 +40,8 @@ systemctl enable ssh
 systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable hostapd
+systemctl disable apt-daily.timer
+systemctl disable apt-daily-upgrade.timer
 
 sed -i 's/INTERFACESv4=""/INTERFACESv4="wlan0"/g' /etc/default/isc-dhcp-server
 
