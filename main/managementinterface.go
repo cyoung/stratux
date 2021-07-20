@@ -948,7 +948,7 @@ func connectMbTilesArchive(path string) (*sql.DB, error) {
 		log.Printf("Reloading MBTiles " + path)
 	}
 
-	conn, err := sql.Open("sqlite3", path + "?mode=ro")
+	conn, err := sql.Open("sqlite3", "file:" + path + "?mode=ro")
 	if err != nil {
 		return nil, err
 	}
