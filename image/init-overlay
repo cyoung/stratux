@@ -31,8 +31,8 @@ insmodule()
 if [ -f /var/grow_root_part ]; then
     mount -t proc proc /proc
     mount -t sysfs sys /sys
-    sleep 3 # otherwise proc/sys not yet ready?
-    mount -o remount,rw /
+    sleep 1 # otherwise proc/sys not yet ready?
+    mount -o remount,rw $(findmnt / -o source -n) /
     rm /var/grow_root_part
     touch /var/grow_root_fs
     /usr/lib/raspi-config/init_resize.sh
@@ -41,8 +41,8 @@ fi
 if [ -f /var/grow_root_fs ]; then
     mount -t proc proc /proc
     mount -t sysfs sys /sys
-    sleep 3 # otherwise proc/sys not yet ready?
-    mount -o remount,rw /
+    sleep 1 # otherwise proc/sys not yet ready?
+    mount -o remount,rw $(findmnt / -o source -n) /
     rm /var/grow_root_fs
     rm -f /etc/init.d/resize2fs_once # so we don't get error messages on boot
     resize2fs $(findmnt / -o source -n)
