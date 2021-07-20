@@ -31,7 +31,7 @@ insmodule()
 if [ -f /var/grow_root_part ]; then
     mount -t proc proc /proc
     mount -t sysfs sys /sys
-    sleep 1 # otherwise proc/sys not yet ready?
+    sleep 3 # otherwise proc/sys not yet ready?
     mount -o remount,rw /
     rm /var/grow_root_part
     touch /var/grow_root_fs
@@ -41,7 +41,7 @@ fi
 if [ -f /var/grow_root_fs ]; then
     mount -t proc proc /proc
     mount -t sysfs sys /sys
-    sleep 1 # otherwise proc/sys not yet ready?
+    sleep 3 # otherwise proc/sys not yet ready?
     mount -o remount,rw /
     rm /var/grow_root_fs
     rm -f /etc/init.d/resize2fs_once # so we don't get error messages on boot
