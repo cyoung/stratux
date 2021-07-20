@@ -151,11 +151,12 @@ func applyNetworkSettings(force bool) {
 		tplSettings.WiFiSSID = "stratux"
 	}
 
-
-	writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/etc/dhcp/dhcpd.conf", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/etc/network/interfaces", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/etc/hostapd/hostapd.conf", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
+	overlayctl("unlock")
+	writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/overlay/robase/etc/dhcp/dhcpd.conf", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/overlay/robase/etc/network/interfaces", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/overlay/robase/etc/hostapd/hostapd.conf", tplSettings)
+	writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
+	overlayctl("lock")
 
 	go func() {
 		time.Sleep(time.Second)

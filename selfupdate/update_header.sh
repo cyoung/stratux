@@ -85,6 +85,7 @@ if [ "$(cat /boot/stratux.conf | grep 'PersistentLogging.:true')" != "" ]; then
 else
     /sbin/overlayctl enable
 fi
+mkdir -p /overlay/robase
 
 exit 0
 

@@ -98,15 +98,6 @@ func handleGDL90WS(conn *websocket.Conn) {
 	}
 }
 
-func overlayctl(cmd string) {
-	out, err := exec.Command("/bin/sh", "/sbin/overlayctl", cmd).Output()
-	if err != nil {
-		log.Printf("overlayctl error: %s\n%s", err.Error(), out)
-	} else {
-		log.Printf("overlayctl: %s\n", out)
-	}
-}
-
 // Situation updates channel.
 var situationUpdate *uibroadcaster
 
@@ -527,21 +518,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func setPersistentLogging(persistent bool) {
-	bytes, err := ioutil.ReadFile("/etc/fstab")
-	if err != nil {
-		addSingleSystemErrorf("save-settings", "can't read /etc/fstab: %s", err.Error())
-		return
-	}
-	fstab := string(bytes)
 	if persistent {
 		overlayctl("disable")
 	} else {
 		overlayctl("enable")
-	}
-	err = ioutil.WriteFile("/etc/fstab", []byte(fstab), 0644)
-	if err != nil {
-		addSingleSystemErrorf("save-settings", "can't write /etc/fstab: %s", err.Error())
-		return
 	}
 }
 
