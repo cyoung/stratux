@@ -79,14 +79,14 @@ def main(argv):
     for zoom in range(0, ZOOM_MAX+1):
         xstart = 0
         ystart = 0
-        xend = 2**zoom
-        yend = 2**zoom
+        xend = 2**zoom-1
+        yend = 2**zoom-1
         if BBOX is not None:
             xstart, yend = deg2num(BBOX[1], BBOX[0], zoom)
             xend, ystart = deg2num(BBOX[3], BBOX[2], zoom)
 
-        for x in range(xstart, xend):
-            for y in range(ystart, yend):
+        for x in range(xstart, xend+1):
+            for y in range(ystart, yend+1):
                 download_url(zoom, x, y, cur)
             
             conn.commit()
