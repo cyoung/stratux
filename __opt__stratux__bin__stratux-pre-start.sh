@@ -6,7 +6,7 @@
 SCRIPT=`basename ${BASH_SOURCE[0]}`
 STX_LOG="/var/log/stratux.log"
 function wLog () {
-	echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> ${STX_LOG}
+	echo "$(date +"%Y/%m/%d %H:%M:%S")  - $SCRIPT - $1" >> ${STX_LOG}
 }
 wLog "Running Stratux Updater Script."
 
