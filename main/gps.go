@@ -233,7 +233,9 @@ func initGPSSerial() bool {
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
-		baudrates[0] = 4800
+		// default to 4800 for SiRFStar config port, we then change and detect it with 38400.
+		// We also try 9600 just in case this is something else, as this is the most popular value
+		baudrates = []int{4800, 38400, 9600}
 		device = "/dev/prolific0"
 		globalStatus.GPS_detected_type = GPS_TYPE_PROLIFIC
 	} else if _, err := os.Stat("/dev/serialin"); err == nil {
@@ -268,19 +270,9 @@ func initGPSSerial() bool {
 
 	if isSirfIV {
 		log.Printf("Using SiRFIV config.\n")
-		// Enable 38400 baud.
-		p.Write(makeNMEACmd("PSRF100,1,38400,8,1,0"))
-		baudrates[0] = 38400
-		p.Close()
-
-		time.Sleep(250 * time.Millisecond)
-		// Re-open port at newly configured baud so we can configure 5Hz messages.
-		serialConfig = &serial.Config{Name: device, Baud: baudrates[0]}
-		p, err = serial.OpenPort(serialConfig)
 
 		// Enable 5Hz. (To switch back to 1Hz: $PSRF103,00,7,00,0*22)
 		p.Write(makeNMEACmd("PSRF103,00,6,00,0"))
-
 		// Enable GGA.
 		p.Write(makeNMEACmd("PSRF103,00,00,01,01"))
 		// Enable GSA.
@@ -291,6 +283,8 @@ func initGPSSerial() bool {
 		p.Write(makeNMEACmd("PSRF103,05,00,01,01"))
 		// Enable GSV (once every 5 position updates)
 		p.Write(makeNMEACmd("PSRF103,03,00,05,01"))
+		// Enable 38400 baud.
+		p.Write(makeNMEACmd("PSRF100,1,38400,8,1,0"))
 
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
