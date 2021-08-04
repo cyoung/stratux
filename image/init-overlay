@@ -29,20 +29,20 @@ insmodule()
 
 # Make sure partition is expanded on first boot..
 if [ -f /var/grow_root_part ]; then
-    mount -t proc proc /proc
-    mount -t sysfs sys /sys
+    mount -n -t proc proc /proc
+    mount -n -t sysfs sys /sys
     sleep 1 # otherwise proc/sys not yet ready?
-    mount -o remount,rw $(findmnt / -o source -n) /
+    mount -n -o remount,rw $(findmnt / -o source -n) /
     rm /var/grow_root_part
     touch /var/grow_root_fs
     /usr/lib/raspi-config/init_resize.sh
 fi
 # On second boot, we then increase the filesystem itself..
 if [ -f /var/grow_root_fs ]; then
-    mount -t proc proc /proc
-    mount -t sysfs sys /sys
+    mount -n -t proc proc /proc
+    mount -n -t sysfs sys /sys
     sleep 1 # otherwise proc/sys not yet ready?
-    mount -o remount,rw $(findmnt / -o source -n) /
+    mount -n -o remount,rw $(findmnt / -o source -n) /
     rm /var/grow_root_fs
     rm -f /etc/init.d/resize2fs_once # so we don't get error messages on boot
     resize2fs $(findmnt / -o source -n)
@@ -56,9 +56,14 @@ if [ -e "/overlay/disable" ] ; then
     echo "Overlay disabled"
     # Stratux: make sure we always have something usable in /overlay/robase, so we can upload update .sh files there
     mkdir -p /overlay/robase
-    mount -o bind / /overlay/robase
+    mount -n -o bind / /overlay/robase
     exec /sbin/init
 fi
+
+# If overlay enabled, explicitly mount /var/log as tmpfs as well.
+# Otherwise it could happen that there are a lot of large files in there, then logrotate will move them all around,
+# which will then laod them into the overlay, i.e. old logfiles filling it up...
+mount -n -t tmpfs -o size=100M none /var/log
 
 if [ -e /sbin/init-overlay-get-mode ] ; then
     . /sbin/init-overlay-get-mode
@@ -162,7 +167,7 @@ if [ "$OVERLAY_RW_LAYER" = "persistent" ] ; then
     echo "After bind mount "$OVERLAY_RW_LAYER_DIR" for overlay rwdata"
 else
     # Stratux: max overlay size=250m
-    /bin/mount -o size=250m -n -t tmpfs none ${ovr_rwdata}
+    /bin/mount -o size=100m -n -t tmpfs none ${ovr_rwdata}
 fi
 
 case "$OVERLAY" in
