@@ -60,11 +60,6 @@ if [ -e "/overlay/disable" ] ; then
     exec /sbin/init
 fi
 
-# If overlay enabled, explicitly mount /var/log as tmpfs as well.
-# Otherwise it could happen that there are a lot of large files in there, then logrotate will move them all around,
-# which will then laod them into the overlay, i.e. old logfiles filling it up...
-mount -n -t tmpfs -o size=100M none /var/log
-
 if [ -e /sbin/init-overlay-get-mode ] ; then
     . /sbin/init-overlay-get-mode
 fi
@@ -167,7 +162,7 @@ if [ "$OVERLAY_RW_LAYER" = "persistent" ] ; then
     echo "After bind mount "$OVERLAY_RW_LAYER_DIR" for overlay rwdata"
 else
     # Stratux: max overlay size=250m
-    /bin/mount -o size=100m -n -t tmpfs none ${ovr_rwdata}
+    /bin/mount -o size=250m -n -t tmpfs none ${ovr_rwdata}
 fi
 
 case "$OVERLAY" in
@@ -235,4 +230,8 @@ echo "Ready to proceed by pivot_root"
 #/bin/sh
 
 /sbin/pivot_root . overlay/pivot
+
+# Stratux: remove old logs from the overlay so that logrotate doesn't start to rotate and fill up the overlay
+rm -r /var/log/*
+
 exec /usr/sbin/chroot . sbin/init
