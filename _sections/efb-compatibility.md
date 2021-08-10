@@ -20,5 +20,6 @@ order: 5
 | iFly GPS 9.4+ (iOS and Android) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | DroidEFB 2.1.1+ (Android) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | OzRunways EFB 5.4.2+ (iOS) | :white_check_mark: | :white_check_mark: | :x: |
+| Enroute Flight Navigation (Android) | :white_check_mark: | :white_check_mark: | :x: |
 | GRT Avionics EFIS (latest firmware) | :white_check_mark: | :white_check_mark: | :x: |
 | Garmin Pilot | :x: | :x: | :x: |
