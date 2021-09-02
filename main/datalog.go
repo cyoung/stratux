@@ -509,7 +509,7 @@ func dataLog() {
 */
 
 func setDataLogTimeWithGPS(sit SituationData) {
-	if isGPSClockValid() {
+	if dataLogStarted && isGPSClockValid() {
 		var ts StratuxTimestamp
 		// Piggyback a GPS time update from this update.
 		ts.id = 0
