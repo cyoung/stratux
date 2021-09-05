@@ -54,8 +54,6 @@ systemctl disable regenerate_ssh_host_keys
 /lib/console-setup/console-setup.sh
 
 
-sed -i 's/INTERFACESv4=""/INTERFACESv4="wlan0"/g' /etc/default/isc-dhcp-server
-
 rm -r /proc/*
 rm -r /root/fake
 
@@ -136,7 +134,6 @@ cp -f motd /etc/motd
 cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f interfaces /etc/network/interfaces
-cp -f isc-dhcp-server /etc/default/isc-dhcp-server
 
 #logrotate conf
 cp -f logrotate.conf /etc/logrotate.conf
