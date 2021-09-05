@@ -119,7 +119,9 @@ func setWifiClientPassword(password string) {
 }
 
 
-func applyNetworkSettings(force bool) {
+// if onlyWriteFiles is true, we only write the config files. Otherwise we also reconfigure the network
+// Also, if we only write the files, this function runs synchroneously. Otherwise the long-running network reconfiguration is done async.
+func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 	if !hasChanged && !force {
 		return
 	}
@@ -168,14 +170,16 @@ func applyNetworkSettings(force bool) {
 		tplSettings.WiFiSSID = "stratux"
 	}
 
-	go func() {
+	f := func() {
 		time.Sleep(time.Second)
-		cmd := exec.Command("ifdown", "wlan0")
-		if err := cmd.Start(); err != nil {
-			log.Printf("Error shutting down WiFi: %s\n", err.Error())
-		}
-		if err := cmd.Wait(); err != nil {
-			log.Printf("Error shutting down WiFi: %s\n", err.Error())
+		if !onlyWriteFiles {
+			cmd := exec.Command("ifdown", "wlan0")
+			if err := cmd.Start(); err != nil {
+				log.Printf("Error shutting down WiFi: %s\n", err.Error())
+			}
+			if err := cmd.Wait(); err != nil {
+				log.Printf("Error shutting down WiFi: %s\n", err.Error())
+			}
 		}
 
 		overlayctl("unlock")
@@ -185,14 +189,23 @@ func applyNetworkSettings(force bool) {
 		writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
 		overlayctl("lock")
 
-		cmd = exec.Command("ifup", "wlan0")
-		if err := cmd.Start(); err != nil {
-			log.Printf("Error starting WiFi: %s\n", err.Error())
+		if !onlyWriteFiles {
+			cmd := exec.Command("ifup", "wlan0")
+			if err := cmd.Start(); err != nil {
+				log.Printf("Error starting WiFi: %s\n", err.Error())
+			}
+			if err := cmd.Wait(); err != nil {
+				log.Printf("Error starting WiFi: %s\n", err.Error())
+			}
 		}
-		if err := cmd.Wait(); err != nil {
-			log.Printf("Error starting WiFi: %s\n", err.Error())
-		}
-	}()
+	}
+
+
+	if onlyWriteFiles {
+		f()
+	} else {
+		go f()
+	}
 }
 
 

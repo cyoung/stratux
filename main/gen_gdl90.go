@@ -1622,6 +1622,7 @@ func main() {
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
+	writeNetworkConfig := flag.Bool("write-network-config", false, "Only write network configuration files as configured in stratux.conf and exit")
 
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 
@@ -1655,7 +1656,15 @@ func main() {
 		syscall.Dup3(int(fp.Fd()), 2, 0)
 	}
 
+	// Read settings.
+	readSettings()
+
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
+	if *writeNetworkConfig {
+		log.Printf("Only writing network settings...")
+		applyNetworkSettings(true, true)
+		return
+	}
 
 	ADSBTowers = make(map[string]ADSBTower)
 	ADSBTowerMutex = &sync.Mutex{}
@@ -1670,8 +1679,6 @@ func main() {
 	pingInit()
 	initTraffic()
 
-	// Read settings.
-	readSettings()
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
 	// Override after reading in the settings.

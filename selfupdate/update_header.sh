@@ -78,6 +78,9 @@ cat /etc/fstab | grep -v tmpfs > /tmp/fstab
 mv /tmp/fstab /etc/fstab
 mv /etc/stratux.conf /boot/stratux.conf
 
+# Rewrite network settings to make sure the format is up to date for next boot
+/opt/stratux/bin/gen_gdl90 -write-network-config
+
 # Add optional usb stick mount if it's not already there
 if [ "$(grep /dev/sda1 /etc/fstab)" == "" ]; then
     echo -e "\n/dev/sda1             /var/log        auto    defaults,nofail,noatime,x-systemd.device-timeout=1ms  0       2" >> /etc/fstab

@@ -505,7 +505,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 				saveSettings()
-				applyNetworkSettings(false)
+				applyNetworkSettings(false, false)
 				if reconfigureOgnTracker {
 					configureOgnTrackerFromSettings()
 				}
