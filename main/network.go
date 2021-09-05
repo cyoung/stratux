@@ -121,14 +121,30 @@ func getDHCPLeases() (map[string]string, error) {
 		}
 	}
 
+	// Check kernel ARP table - useful when in client mode. We skip reverse hostname lookup since it can be very slow..
+	dat2, err := ioutil.ReadFile("/proc/net/arp")
+	if err != nil {
+		return ret, nil
+	}
+	iplines := strings.Split(string(dat2), "\n")
+	for _, ipline := range iplines {
+		spacedip := strings.Split(ipline, " ")
+		if len(spacedip) > 1 {
+			ip := spacedip[0]
+			if ip[0] >= '0' && ip[0] <= '2' {
+				ret[ip] = ""
+			}
+		}
+	}
+
 	// Added the ability to have static IP hosts stored in /etc/stratux-static-hosts.conf
 
-	dat2, err := ioutil.ReadFile(extra_hosts_file)
+	dat3, err := ioutil.ReadFile(extra_hosts_file)
 	if err != nil {
 		return ret, nil
 	}
 
-	iplines := strings.Split(string(dat2), "\n")
+	iplines = strings.Split(string(dat3), "\n")
 	block_ip2 := ""
 	for _, ipline := range iplines {
 		spacedip := strings.Split(ipline, " ")
