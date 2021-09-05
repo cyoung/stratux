@@ -70,6 +70,9 @@ cp -f overlayctl init-overlay /sbin/
 systemctl disable apt-daily.timer
 systemctl disable apt-daily-upgrade.timer
 
+# We now start dhcpd manually on selected interfaces...
+systemctl disable isc-dhcp-server
+
 # cleanup after switch to overlayfs: remove tmpfs lines from fstab, move stratux.conf to /boot and potentially enable the overlay depending on user settings
 cat /etc/fstab | grep -v tmpfs > /tmp/fstab
 mv /tmp/fstab /etc/fstab

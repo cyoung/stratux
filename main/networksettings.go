@@ -37,6 +37,8 @@ type NetworkTemplateParams struct {
 	WiFiChannel      int
 	WiFiDirectPin    string
 	WiFiPassPhrase   string
+	WiFiClientSSID   string
+	WiFiClientPassword string
 }
 
 var hasChanged bool
@@ -102,6 +104,19 @@ func setWifiDirectPin(pin string) {
 	}
 }
 
+func setWifiClientSSID(ssid string) {
+	if globalSettings.WiFiClientSSID != ssid {
+		globalSettings.WiFiClientSSID = ssid
+		hasChanged = true
+	}
+}
+
+func setWifiClientPassword(password string) {
+	if globalSettings.WiFiClientPassword != password {
+		globalSettings.WiFiClientPassword = password
+		hasChanged = true
+	}
+}
 
 
 func applyNetworkSettings(force bool) {
@@ -139,6 +154,8 @@ func applyNetworkSettings(force bool) {
 	tplSettings.WiFiChannel = globalSettings.WiFiChannel
 	tplSettings.WiFiSSID = globalSettings.WiFiSSID
 	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
+	tplSettings.WiFiClientSSID = globalSettings.WiFiClientSSID
+	tplSettings.WiFiClientPassword = globalSettings.WiFiClientPassword
 	
 	if tplSettings.WiFiChannel == 0 {
 		tplSettings.WiFiChannel = 1
@@ -151,13 +168,6 @@ func applyNetworkSettings(force bool) {
 		tplSettings.WiFiSSID = "stratux"
 	}
 
-	overlayctl("unlock")
-	writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/overlay/robase/etc/dhcp/dhcpd.conf", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/overlay/robase/etc/network/interfaces", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/overlay/robase/etc/hostapd/hostapd.conf", tplSettings)
-	writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
-	overlayctl("lock")
-
 	go func() {
 		time.Sleep(time.Second)
 		cmd := exec.Command("ifdown", "wlan0")
@@ -167,6 +177,14 @@ func applyNetworkSettings(force bool) {
 		if err := cmd.Wait(); err != nil {
 			log.Printf("Error shutting down WiFi: %s\n", err.Error())
 		}
+
+		overlayctl("unlock")
+		writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/overlay/robase/etc/dhcp/dhcpd.conf", tplSettings)
+		writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/overlay/robase/etc/network/interfaces", tplSettings)
+		writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/overlay/robase/etc/hostapd/hostapd.conf", tplSettings)
+		writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
+		overlayctl("lock")
+
 		cmd = exec.Command("ifup", "wlan0")
 		if err := cmd.Start(); err != nil {
 			log.Printf("Error starting WiFi: %s\n", err.Error())

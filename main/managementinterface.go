@@ -469,6 +469,10 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						setWiFiMode(int(val.(float64)))
 					case "WiFiDirectPin":
 						setWifiDirectPin(val.(string))
+					case "WiFiClientSSID":
+						setWifiClientSSID(val.(string))
+					case "WiFiClientPassword":
+						setWifiClientPassword(val.(string))
 					case "SkyDemonAndroidHack":
 						globalSettings.SkyDemonAndroidHack = val.(bool)
 					case "EstimateBearinglessDist":

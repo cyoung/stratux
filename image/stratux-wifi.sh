@@ -16,6 +16,19 @@ function wLog () {
 }
 wLog "Running Stratux WiFI Script."
 
+interface=$1 # for dhcp and wpa_supplicant
+mode=$2 # 0=ap, 1=wifi-direct, 2=ap+client
+pin=$3 # wifi-direct pin
+
+if [ "$1" == "0" ] || [ "$1" == "1" ] || [ "$1" == "2" ]; then
+	# compatibility to old /etc/network/interfaces before eu027
+        echo "COMPAT MODE"
+	interface="wlan0"
+	mode=$1
+	pin=$2
+fi
+
+echo "interface=${interface},mode=${mode}"
 
 function prepare-start {
 	# Preliminaries. Kill off old services.
@@ -26,6 +39,7 @@ function prepare-start {
 	/usr/bin/killall -9 hostapd
 	wLog "Stopping DHCP services "
 	/bin/systemctl stop isc-dhcp-server
+	/usr/bin/killall dhcpd
 
 	# Sometimes the PID file seems to remain and dhcpd becomes unable to start again?
 	# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=868240
@@ -49,23 +63,24 @@ function ap-start {
 
 	wLog "Restarting DHCP services"
 
-	/bin/systemctl restart isc-dhcp-server
+	/usr/sbin/dhcpd -4 -q -cf /etc/dhcp/dhcpd.conf $interface & disown
 }
 
 function wifi-direct-start {
 	echo "Starting wifi direct mode"
-	pin=$1
 
-	/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
-	wpa_cli -i wlan0 p2p_group_add persistent=0 freq=2
+	/sbin/wpa_supplicant -B -i $interface -c /etc/wpa_supplicant/wpa_supplicant.conf
+	wpa_cli -i $interface p2p_group_add persistent=0 freq=2
 	(while wpa_cli -i p2p-wlan0-0 wps_pin any $pin > /dev/null; do sleep 1; done) & disown
 	ifup p2p-wlan0-0
+
+	/usr/sbin/dhcpd -4 -q -cf /etc/dhcp/dhcpd.conf p2p-wlan0-0 & disown
 }
 
 # function to build /tmp/hostapd.conf and start AP
 prepare-start
-if [ "$1" == "1" ]; then
-	wifi-direct-start $2
+if [ "$mode" == "1" ]; then
+	wifi-direct-start
 else
 	ap-start
 fi

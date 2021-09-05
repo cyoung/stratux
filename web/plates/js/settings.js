@@ -74,6 +74,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.WiFiMode = settings.WiFiMode.toString();
 		$scope.WiFiDirectPin = settings.WiFiDirectPin;
 
+		$scope.WiFiClientSSID = settings.WiFiClientSSID;
+		$scope.WiFiClientPassword = settings.WiFiClientPassword;
+
         $scope.Channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 		$scope.OGNAddrType = settings.OGNAddrType.toString();
@@ -356,7 +359,9 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 				"WiFiSmartEnabled": $scope.WiFiSmartEnabled,
 				"WiFiIPAddress" : $scope.WiFiIPAddress,
 				"WiFiMode" : parseInt($scope.WiFiMode),
-				"WiFiDirectPin": $scope.WiFiDirectPin
+				"WiFiDirectPin": $scope.WiFiDirectPin,
+				"WiFiClientSSID": $scope.WiFiClientSSID,
+				"WiFiClientPassword": $scope.WiFiClientPassword
             };
 
             // console.log(angular.toJson(newsettings));

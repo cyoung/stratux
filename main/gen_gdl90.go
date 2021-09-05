@@ -1193,6 +1193,8 @@ type settings struct {
 	WiFiMode             int
 	WiFiDirectPin        string
 	WiFiIPAddress        string
+	WiFiClientSSID       string
+	WiFiClientPassword   string
 	SkyDemonAndroidHack  bool
 	EstimateBearinglessDist bool
 	RadarLimits          int

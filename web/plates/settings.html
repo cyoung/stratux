@@ -231,6 +231,7 @@
                                 ng-change="WiFiSecurityEnabled=(WiFiSecurityEnabled || WiFiMode=='1')">
                                 <option value="0" ng-selected="WiFiMode=='0'">AccessPoint</option>
                                 <option value="1" ng-selected="WiFiMode=='1'">WiFi-Direct</option>
+                                <option value="2" ng-selected="WiFiMode=='2'">AP+Client</option>
                             </select>
                         </div>
                         <div class="form-group reset-flow">
@@ -238,7 +239,7 @@
                             <input class="col-xs-7" type="text" ssid-input ng-model="WiFiSSID"
                                 placeholder="WiFi Network Name" />
                         </div>
-                        <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
+                        <div class="form-group reset-flow" ng-show="(WiFiMode=='0' || WiFiMode=='2')">
                             <label class="control-label col-xs-5">Network Security</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSecurityEnabled" settings-change></ui-switch>
@@ -271,6 +272,15 @@
                             <input class="col-xs-7" type="text" ip-addr-input ng-model="WiFiIPAddress"
                                 placeholder="192.168.10.1" />
                         </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <label class="control-label col-xs-5">WiFi Client SSID</label>
+                            <input class="col-xs-7" type="text" ssid-input ng-model="WiFiClientSSID" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <label class="control-label col-xs-5">WiFi Client Passphrase</label>
+                            <input class="col-xs-7" type="text" wpa-input ng-model="WiFiClientPassword" />
+                        </div>
+
                         <div class="form-group reset-flow">
                             <button class="btn btn-primary btn-block" ng-click="updateWiFi()">Submit WiFi
                                 Changes</button>

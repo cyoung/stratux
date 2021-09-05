@@ -3,20 +3,48 @@ auto lo
 iface lo inet loopback
 
 allow-hotplug eth0
+auto eth0 # shouldn't be needed?
 iface eth0 inet dhcp
 
 allow-hotplug wlan0
 
-{{if eq .WiFiMode 0}}
-iface wlan0 inet static
+{{if or (eq .WiFiMode 0) (eq .WiFiMode 2)}}
+# AP or AP+Client -> create seperate ap0 virtual interface for the AP; optionally use wlan0 for client connection
+
+iface ap0 inet static
   address {{.IpAddr}}
   netmask 255.255.255.0
-  pre-up /usr/sbin/rfkill unblock wifi
-{{else}}
+  post-up /opt/stratux/bin/stratux-wifi.sh ap0 0;
+
+{{end}}
+
+
+
+{{if eq .WiFiMode 0}}
+# Pure AP mode
+iface wlan0 inet manual
+  pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  wireless-power off
+  post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
+{{end}}
+
+
+{{if eq .WiFiMode 2}}
+# AP+Client mode
+iface wlan0 inet dhcp
+  pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  wireless-power off
+  post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
+  wpa-ssid {{.WiFiClientSSID}}
+  wpa-psk {{.WiFiClientPassword}}
+{{end}}
+
+{{if eq .WiFiMode 1}}
+# Wifi-Direct -> run stratux-wifi on wlan0, p2p-wlan0-0 will be created by it / by wpa_supplicant
+
 iface wlan0 inet manual
   pre-down ifdown p2p-wlan0-0
-{{end}}
-  post-up /opt/stratux/bin/stratux-wifi.sh {{.WiFiMode}} {{.WiFiDirectPin}}
+  post-up /opt/stratux/bin/stratux-wifi.sh wlan0 1 {{.WiFiDirectPin}}
   wireless-power off
 
 allow-hotplug p2p-wlan0-0
@@ -24,50 +52,5 @@ iface p2p-wlan0-0 inet static
   address {{.IpAddr}}
   pre-up /usr/sbin/rfkill unblock wifi
   netmask 255.255.255.0
-  post-up /bin/systemctl restart isc-dhcp-server
   post-down wpa_cli -i wlan0 terminate
-
-
-#####################################################################
-##               Custom settings not for novice users!!!!!!  
-##               Modify at your own risk!!!!!!!!!!!!!!!!!!!
-##
-##  Second Wifi Dongle for local work and internet access
-##  This template is for adding a second wifi dongle to your PI for internet access while debugging
-##  You need to create a file /etc/wpa_supplicant/wpa_supplicant_wlan1.conf with your settings (see below)
-##
-##  Uncomment the following lines as needed. 
-
-# allow-hotplug wlan1
-# iface wlan1 inet manual
-#     wpa-roam /etc/wpa_supplicant/wpa_supplicant_wlan1.conf
-# iface name_of_WPA_Config inet dhcp
-# iface name_of_other_WPA_Config inet dhcp
-
-
-## End of interfaces
-
-
-#contents of /etc/wpa_supplicant/wpa_supplicant_wlan1.conf
-#############################################################
-# ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-# update_config=1
-
-# network={
-#     ssid="SSID_1"
-#     id_str="name_of_WPA_Config"
-#     scan_ssid=1
-#     key_mgmt=WPA-PSK
-#     psk="mypassword"
-#     priority=1
-# }
-
-# network={
-#     ssid="SSID_2"
-#     id_str="name_of_other_WPA_Config"
-#     scan_ssid=1
-#     key_mgmt=WPA-PSK
-#     psk="mypassword"
-#     priority=3
-# }
-#############################################################
+{{end}}

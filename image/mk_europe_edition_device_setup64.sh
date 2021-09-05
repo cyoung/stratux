@@ -35,8 +35,9 @@ apt autoremove -y
 apt clean
 #echo y | rpi-update
 
-systemctl enable isc-dhcp-server
+
 systemctl enable ssh
+systemctl disable isc-dhcp-server # we start it manually on respective interfaces
 systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable hostapd
