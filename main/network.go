@@ -131,7 +131,7 @@ func getDHCPLeases() (map[string]string, error) {
 		spacedip := strings.Split(ipline, " ")
 		if len(spacedip) > 1 {
 			ip := spacedip[0]
-			if ip[0] >= '0' && ip[0] <= '2' {
+			if _, contained := ret[ip]; !contained && ip[0] >= '0' && ip[0] <= '2' {
 				ret[ip] = ""
 			}
 		}
