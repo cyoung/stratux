@@ -18,4 +18,10 @@ subnet {{.IpPrefix}}.0 netmask 255.255.255.0 {
 	{{else}}
 	option routers {{.IpAddr}};
 	{{end}}
+
+	# Set DNS Server in case of AP+Client mode.. TODO: Should switch to dnsmasq with local caching DNS instead
+	{{if eq .WiFiMode 2}}
+	option routers {{.IpAddr}};
+	option domain-name-servers 8.8.8.8;
+	{{end}}
 }

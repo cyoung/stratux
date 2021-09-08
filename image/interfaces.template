@@ -22,6 +22,7 @@ iface ap0 inet static
 {{if eq .WiFiMode 0}}
 # Pure AP mode
 iface wlan0 inet manual
+  pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
   pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
   wireless-power off
   post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
@@ -30,18 +31,28 @@ iface wlan0 inet manual
 
 {{if eq .WiFiMode 2}}
 # AP+Client mode
-iface wlan0 inet dhcp
+iface wlan0 inet manual
+  pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
   pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  # Enable routing
+  pre-up echo 1 > /proc/sys/net/ipv4/ip_forward
+  post-up iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+  post-up iptables -A FORWARD -i wlan0 -o ap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+  post-up iptables -A FORWARD -i ap0 -o wlan0 -j ACCEPT
   wireless-power off
+  wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
   post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
-  wpa-ssid {{.WiFiClientSSID}}
-  wpa-psk {{.WiFiClientPassword}}
+  # The post-down hook seems to be buggy when wpa-roam is used. Because of that, we run this as pre-up for all other configurations as well to make sure everything is gone
+
+# pseudo iface triggered by wpa_supplicant
+iface stratuxclient inet dhcp
 {{end}}
 
 {{if eq .WiFiMode 1}}
 # Wifi-Direct -> run stratux-wifi on wlan0, p2p-wlan0-0 will be created by it / by wpa_supplicant
 
 iface wlan0 inet manual
+  pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
   pre-down ifdown p2p-wlan0-0
   post-up /opt/stratux/bin/stratux-wifi.sh wlan0 1 {{.WiFiDirectPin}}
   wireless-power off

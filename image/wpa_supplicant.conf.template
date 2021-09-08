@@ -1,4 +1,7 @@
 ctrl_interface=DIR=/var/run/wpa_supplicant
+
+{{if eq .WiFiMode 1}}
+# WiFi Direct config
 driver_param=use_p2p_group_interface=1
 device_name={{.WiFiSSID}}
 device_type=6-0050F204-1
@@ -6,7 +9,6 @@ p2p_go_intent=15
 p2p_ssid_postfix=-{{.WiFiSSID}}
 persistent_reconnect=1
 p2p_go_ht40=1
-
 
 network={
 	ssid="DIRECT-{{.WiFiSSID}}"
@@ -18,3 +20,14 @@ network={
 	mode=3
 	disabled=2
 }
+{{end}}
+
+{{if eq .WiFiMode 2}}
+# AP+Client config
+ap_scan=1
+network={
+	id_str="stratuxclient"
+	ssid="{{.WiFiClientSSID}}"
+	psk="{{.WiFiClientPassword}}"
+}
+{{end}}
