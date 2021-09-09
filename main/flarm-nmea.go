@@ -579,7 +579,7 @@ func handleNmeaOutConnection(c net.Conn, msgchan chan<- string, addchan chan<- t
 		conn: c,
 		ch:   make(chan string),
 	}
-	io.WriteString(c, "PASS?")
+	//io.WriteString(c, "PASS?")
 
 	// disabling passcode checks. RunwayHD and SkyDemon don't send CR / LF, and PIN check is something else that can go wrong.
 	//time.Sleep(100 * time.Millisecond)
@@ -599,8 +599,8 @@ func handleNmeaOutConnection(c net.Conn, msgchan chan<- string, addchan chan<- t
 		log.Printf("Received passcode %s from client %s\n", passcode, c.RemoteAddr())
 	}
 	*/
-	io.WriteString(c, "AOK") // correct passcode received; continue to writes
-	log.Printf("Correct passcode on client %s. Unlocking.\n", c.RemoteAddr())
+	//io.WriteString(c, "AOK") // correct passcode received; continue to writes
+	//log.Printf("Correct passcode on client %s. Unlocking.\n", c.RemoteAddr())
 	// Register user
 	addchan <- client
 	defer func() {
