@@ -35,10 +35,14 @@ iface wlan0 inet manual
   pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
   pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
   # Enable routing
+  {{if .WiFiInternetPassThroughEnabled}}
   pre-up echo 1 > /proc/sys/net/ipv4/ip_forward
   post-up iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
   post-up iptables -A FORWARD -i wlan0 -o ap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
   post-up iptables -A FORWARD -i ap0 -o wlan0 -j ACCEPT
+  {{else}}
+  pre-up echo 0 > /proc/sys/net/ipv4/ip_forward
+  {{end}}
   wireless-power off
   wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
   post-down ifdown ap0; ifconfig ap0 down; iw ap0 del

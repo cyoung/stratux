@@ -39,6 +39,7 @@ type NetworkTemplateParams struct {
 	WiFiPassPhrase   string
 	WiFiClientSSID   string
 	WiFiClientPassword string
+	WiFiInternetPassThroughEnabled bool
 }
 
 var hasChanged bool
@@ -118,6 +119,13 @@ func setWifiClientPassword(password string) {
 	}
 }
 
+func setWifiInternetPassthroughEnabled(enabled bool) {
+	if globalSettings.WiFiInternetPassThroughEnabled != enabled {
+		globalSettings.WiFiInternetPassThroughEnabled = enabled;
+		hasChanged = true;
+	}
+}
+
 
 // if onlyWriteFiles is true, we only write the config files. Otherwise we also reconfigure the network
 // Also, if we only write the files, this function runs synchroneously. Otherwise the long-running network reconfiguration is done async.
@@ -158,6 +166,7 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
 	tplSettings.WiFiClientSSID = globalSettings.WiFiClientSSID
 	tplSettings.WiFiClientPassword = globalSettings.WiFiClientPassword
+	tplSettings.WiFiInternetPassThroughEnabled = globalSettings.WiFiInternetPassThroughEnabled
 	
 	if tplSettings.WiFiChannel == 0 {
 		tplSettings.WiFiChannel = 1

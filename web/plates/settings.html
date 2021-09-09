@@ -261,7 +261,7 @@
                             <select id="WiFiChannel" class="input-small col-sm-2 form-control-sm" ng-model="WiFiChannel"
                                 ng-options="x for x in Channels"></select>
                         </div>
-                        <div class="form-group reset-flow">
+                        <div class="form-group reset-flow" ng-show="WiFiMode!='2'">
                             <label class="control-label col-xs-5">Smart WiFi</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSmartEnabled" settings-change></ui-switch>
@@ -279,6 +279,12 @@
                         <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
                             <label class="control-label col-xs-5">WiFi Client Passphrase</label>
                             <input class="col-xs-7" type="text" wpa-input ng-model="WiFiClientPassword" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <label class="control-label col-xs-5">Internet Passthrough</label>
+                            <div class="col-xs-5">
+                                <ui-switch ng-model="WiFiInternetPassThroughEnabled" settings-change></ui-switch>
+                            </div>
                         </div>
 
                         <div class="form-group reset-flow">

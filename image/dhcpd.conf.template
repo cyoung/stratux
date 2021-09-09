@@ -9,9 +9,6 @@ subnet {{.IpPrefix}}.0 netmask 255.255.255.0 {
 	default-lease-time 12000;
 	max-lease-time 12000;
 	
-	# Note: this is different from original stratux dhcpd.conf.
-	# We do not use domain settings - it will make DNS requests time out, which
-	# can make buggy EFB software hang
 	{{if .WiFiSmartEnabled}}
 	#option domain-name "stratux.local";
 	#option domain-name-servers 4.2.2.2;
@@ -20,7 +17,7 @@ subnet {{.IpPrefix}}.0 netmask 255.255.255.0 {
 	{{end}}
 
 	# Set DNS Server in case of AP+Client mode.. TODO: Should switch to dnsmasq with local caching DNS instead
-	{{if eq .WiFiMode 2}}
+	{{if and .WiFiInternetPassThroughEnabled (eq .WiFiMode 2)}}
 	option routers {{.IpAddr}};
 	option domain-name-servers 8.8.8.8;
 	{{end}}

@@ -473,6 +473,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						setWifiClientSSID(val.(string))
 					case "WiFiClientPassword":
 						setWifiClientPassword(val.(string))
+					case "WiFiInternetPassThroughEnabled":
+						setWifiInternetPassthroughEnabled(val.(bool))
 					case "SkyDemonAndroidHack":
 						globalSettings.SkyDemonAndroidHack = val.(bool)
 					case "EstimateBearinglessDist":
