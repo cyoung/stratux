@@ -32,7 +32,6 @@ type NetworkTemplateParams struct {
 	IpPrefix         string
 	DhcpRangeStart   string
 	DhcpRangeEnd     string
-	WiFiSmartEnabled bool
 	WiFiSSID         string
 	WiFiChannel      int
 	WiFiDirectPin    string
@@ -54,13 +53,6 @@ func setWifiSSID(ssid string) {
 func setWifiPassphrase(passphrase string) {
 	if passphrase != globalSettings.WiFiPassphrase {
 		globalSettings.WiFiPassphrase = passphrase
-		hasChanged = true
-	}
-}
-
-func setWifiSmartEnabled(enabled bool) {
-	if enabled != globalSettings.WiFiSmartEnabled {
-		globalSettings.WiFiSmartEnabled = enabled
 		hasChanged = true
 	}
 }
@@ -160,7 +152,6 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 	tplSettings.IpPrefix = ipPrefix
 	tplSettings.DhcpRangeStart = dhcpRangeStart
 	tplSettings.DhcpRangeEnd = dhcpRangeEnd
-	tplSettings.WiFiSmartEnabled = globalSettings.WiFiSmartEnabled
 	tplSettings.WiFiChannel = globalSettings.WiFiChannel
 	tplSettings.WiFiSSID = globalSettings.WiFiSSID
 	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
