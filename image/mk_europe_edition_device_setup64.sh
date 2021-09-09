@@ -124,6 +124,7 @@ cd /root/stratux
 
 rm -r /root/go_path/* # safe space again..
 make install
+rm -r /root/.cache
 
 ##### Some device setup - copy files from image directory ####
 cd /root/stratux/image
