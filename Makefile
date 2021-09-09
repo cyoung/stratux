@@ -81,7 +81,7 @@ optinstall: www ogn/ddb.json
 	chmod 755 $(STRATUX_HOME)/bin/*
 
 	# Config templates
-	cp -f image/dhcpd.conf.template $(STRATUX_HOME)/cfg/
+	cp -f image/stratux-dnsmasq.conf.template $(STRATUX_HOME)/cfg/
 	cp -f image/hostapd.conf.template $(STRATUX_HOME)/cfg/
 	cp -f image/interfaces.template $(STRATUX_HOME)/cfg/
 	cp -f image/wpa_supplicant.conf.template $(STRATUX_HOME)/cfg/

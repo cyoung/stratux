@@ -73,14 +73,14 @@ const (
 	NETWORK_AHRS_GDL90     = 4
 	NETWORK_FLARM_NMEA     = 8
 	NETWORK_POSITION_FFSIM = 16
-	dhcp_lease_file        = "/var/lib/dhcp/dhcpd.leases"
-	dhcp_lease_dir         = "/var/lib/dhcp"
+	dhcp_lease_file        = "/var/lib/misc/dnsmasq.leases"
+	dhcp_lease_dir         = "/var/lib/misc/"
 	extra_hosts_file       = "/etc/stratux-static-hosts.conf"
 )
 
 var dhcpLeaseDirectoryLastTest time.Time // Last time fsWriteTest() was run on the DHCP lease directory.
 
-// Read the "dhcpd.leases" file and parse out IP/hostname.
+// Read the "dnsmasq.leases" file and parse out IP/hostname.
 func getDHCPLeases() (map[string]string, error) {
 	// Do a write test. Even if we are able to read the file, it may be out of date because there's a fs write issue.
 	// Only perform the test once every 5 minutes to minimize writes.
@@ -97,20 +97,15 @@ func getDHCPLeases() (map[string]string, error) {
 		return ret, err
 	}
 	lines := strings.Split(string(dat), "\n")
-	open_block := false
-	block_ip := ""
 	for _, line := range lines {
 		spaced := strings.Split(line, " ")
-		if len(spaced) > 2 && spaced[0] == "lease" {
-			open_block = true
-			block_ip = spaced[1]
-		} else if open_block && len(spaced) >= 4 && spaced[2] == "client-hostname" {
-			hostname := strings.TrimRight(strings.TrimLeft(strings.Join(spaced[3:], " "), "\""), "\";")
-			ret[block_ip] = hostname
-			open_block = false
-		} else if open_block && strings.HasPrefix(spaced[0], "}") { // No hostname.
-			open_block = false
-			ret[block_ip] = ""
+		if len(spaced) >= 4 {
+			ip := spaced[2]
+			host := spaced[3]
+			if host == "*" {
+				host = ""
+			}
+			ret[ip] = host
 		}
 	}
 

@@ -24,7 +24,7 @@ apt update
 #PATH=/root/fake:$PATH apt dist-upgrade --yes
 apt clean
 
-PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update hostapd isc-dhcp-server tcpdump git cmake \
+PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update hostapd dnsmasq tcpdump git cmake \
     libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python-serial jq
 
 # try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
@@ -37,7 +37,7 @@ apt clean
 
 
 systemctl enable ssh
-systemctl disable isc-dhcp-server # we start it manually on respective interfaces
+systemctl disable dnsmasq # we start it manually on respective interfaces
 systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable hostapd
@@ -131,7 +131,7 @@ cd /root/stratux/image
 cp -f motd /etc/motd
 
 #network default config. TODO: can't we just implement gen_gdl90 -write_network_settings or something to generate them from template?
-cp -f dhcpd.conf /etc/dhcp/dhcpd.conf
+cp -f stratux-dnsmasq.conf /etc/dnsmasq.d/stratux-dnsmasq.conf
 cp -f hostapd.conf /etc/hostapd/hostapd.conf
 cp -f interfaces /etc/network/interfaces
 

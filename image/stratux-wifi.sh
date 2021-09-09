@@ -38,14 +38,13 @@ function prepare-start {
 	sleep 1
 	/usr/bin/killall -9 hostapd
 	wLog "Stopping DHCP services "
-	/bin/systemctl stop isc-dhcp-server
-	/usr/bin/killall dhcpd
+	/bin/systemctl stop dnsmasq
+	/usr/bin/killall dnsmasq
 
 	# Sometimes the PID file seems to remain and dhcpd becomes unable to start again?
 	# See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=868240
 	sleep 1
-	/usr/bin/killall -9 dhcpd
-	rm /var/run/dhcpd.pid
+	/usr/bin/killall -9 dnsmasq
 
 	/usr/bin/killall wpa_supplicant
 	sleep 1
@@ -63,7 +62,7 @@ function ap-start {
 
 	wLog "Restarting DHCP services"
 
-	/usr/sbin/dhcpd -4 -q -cf /etc/dhcp/dhcpd.conf $interface & disown
+	dnsmasq -u dnsmasq --conf-dir=/etc/dnsmasq.d -i $interface
 }
 
 function wifi-direct-start {
@@ -74,7 +73,7 @@ function wifi-direct-start {
 	(while wpa_cli -i p2p-wlan0-0 wps_pin any $pin > /dev/null; do sleep 1; done) & disown
 	ifup p2p-wlan0-0
 
-	/usr/sbin/dhcpd -4 -q -cf /etc/dhcp/dhcpd.conf p2p-wlan0-0 & disown
+	dnsmasq -u dnsmasq --conf-dir=/etc/dnsmasq.d -i p2p-wlan0-0
 }
 
 # function to build /tmp/hostapd.conf and start AP

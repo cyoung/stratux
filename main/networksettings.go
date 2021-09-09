@@ -183,7 +183,7 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 		}
 
 		overlayctl("unlock")
-		writeTemplate(STRATUX_HOME + "/cfg/dhcpd.conf.template", "/overlay/robase/etc/dhcp/dhcpd.conf", tplSettings)
+		writeTemplate(STRATUX_HOME + "/cfg/stratux-dnsmasq.conf.template", "/overlay/robase/etc/dnsmasq.d/stratux-dnsmasq.conf", tplSettings)
 		writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/overlay/robase/etc/network/interfaces", tplSettings)
 		writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/overlay/robase/etc/hostapd/hostapd.conf", tplSettings)
 		writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
