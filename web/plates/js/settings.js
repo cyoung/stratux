@@ -372,6 +372,14 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
         }
     };
 
+	$scope.wifiModeStr = function() {
+		switch(parseInt($scope.WiFiMode)) {
+			case 0: return "AP";
+			case 1: return "WiFi-Direct";
+			case 2: return "AP+Client";
+		}
+		return "???";
+	}
 
 	$scope.updateOgnTrackerConfig = function(action) {
 		var newsettings = {
