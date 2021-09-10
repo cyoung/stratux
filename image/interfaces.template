@@ -49,7 +49,7 @@ iface wlan0 inet manual
   # The post-down hook seems to be buggy when wpa-roam is used. Because of that, we run this as pre-up for all other configurations as well to make sure everything is gone
 
 # pseudo iface triggered by wpa_supplicant
-iface stratuxclient inet dhcp
+iface default inet dhcp
 {{end}}
 
 {{if eq .WiFiMode 1}}

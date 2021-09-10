@@ -174,6 +174,10 @@ sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ //"
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
 
+# Set hostname
+echo "stratux" > /etc/hostname
+sed -i /etc/hosts -e "s/raspberrypi/stratux/g"
+
 # Clean up source tree - we don't need it at runtime
 rm -r /root/stratux
 
