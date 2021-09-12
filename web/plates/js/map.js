@@ -84,10 +84,12 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 	let aircraftSymbolsLayer = new ol.layer.Vector({
 		title: 'Aircraft symbols',
 		source: $scope.aircraftSymbols,
+		zIndex: 10
 	});
 	let aircraftTrailsLayer = new ol.layer.Vector({
 		title: 'Aircraft trails 5NM',
 		source: $scope.aircraftTrails,
+		zIndex: 9
 	});
 
 	$scope.map = new ol.Map({
