@@ -6,7 +6,7 @@
         {
             "label": "Build",
             "type": "shell",
-            "command": "make gen_gdl90",
+            "command": "make gen_gdl90 debug=true",
             "problemMatcher": "$go",
             "group": {
                 "kind": "build",

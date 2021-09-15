@@ -9,6 +9,10 @@ else
 	PLATFORMDEPENDENT=fancontrol
 endif
 
+ifeq ($(debug),true)
+	BUILDINFO := -gcflags '-N -l' $(BUILDINFO)
+endif
+
 ARCH=$(shell arch)
 ifeq ($(ARCH),aarch64)
 	OGN_RX_BINARY=ogn/ogn-rx-eu_aarch64
