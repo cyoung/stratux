@@ -62,11 +62,8 @@ const (
 	defaultPwmDutyMin = 50
 
 	/* Maximum duty for PWM controller */
-	pwmDutyMax        = 100
-	pwmFanFrequency   = 3000
-
-	// Temperature at which we give up attempting active fan speed control and set it to full speed.
-	failsafeTemp = 65
+	pwmDutyMax        = 100   // Must be kept at 100
+	defaultPwmFrequency   = 64000
 
 	// how often to update
 	updateDelayMS = 5000
@@ -83,12 +80,16 @@ const (
 
 	// Address on which daemon should be listen.
 	addr = ":9977"
+
+	// When set to true, we do not turn of the fan below targetCPU temperature
+	alwaysOn = true
 )
 
 type FanControl struct {
 	TempTarget           float64
 	TempCurrent          float64
 	PWMDutyMin           uint32
+	PWMFrequency		 uint32
 	PWMDuty80PStartDelay uint32
 	PWMDutyCurrent       uint32
 	PWMPin               int
@@ -113,6 +114,7 @@ func updateStats() {
 	}
 }
 
+// Map a incomming range to a outgoing range
 func fmap( x, in_min, in_max, out_min, out_max float64) float64 {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
@@ -142,21 +144,41 @@ func fanControl() {
 	// Set PWM Mode
 	pin := rpio.Pin(myFanControl.PWMPin)
 	pin.Mode(rpio.Pwm)
-	pin.Freq(pwmFanFrequency)
+	setFanFrequency := func(frequency uint32) {
+		if (frequency < 2500) {
+			frequency = 2500
+		} else if (frequency > 1000000) {
+			frequency = 1000000
+		}
+		pin.Freq(int(frequency))
+	}
+	setFanFrequency(myFanControl.PWMFrequency)
+
  
-	// Calculate the dutyCycle to the hardware value
-	dutyCycleToHW := func(dutyCycle float64) uint32 {
+	// func to Calculate the dutyCycle to the hardware value that 
+	// is approprate for the HW and minimum fan speed allowed
+	// Result is appropriate duty value for the fan
+	dutyCycleToFan := func(dutyCycle float64) float64 {
 		mappedMinimum := fmap(float64(myFanControl.PWMDutyMin), 0.0, 100.0, 0, float64(pwmDutyMax))
-		return uint32(math.Ceil(fmap(dutyCycle, 0.0, 100.0, mappedMinimum, float64(pwmDutyMax))))
+		return fmap(dutyCycle, 0.0, 100.0, mappedMinimum, 100.0)
 	}
 	
+	// Setup HW to a specific duty cycle 0..100
+	setHWDutyCycle := func(value float64) {
+		if (value<0.0) {
+			value = 0.0
+		} else if (value>100.0) {
+			value = 100.0
+		}
+		myFanControl.PWMDutyCurrent = uint32(value)
+		pin.DutyCycle(uint32(math.Ceil(fmap(value, 0.0, 100.0, 0.0, float64(pwmDutyMax)))), pwmDutyMax)
+	}
+
 	// Fan test function
 	turnOnFanTest := func () {
-		myFanControl.PWMDutyCurrent = 100
-		pin.DutyCycle(dutyCycleToHW(100.0), pwmDutyMax)
+		setHWDutyCycle(100.0)
 		time.Sleep(time.Duration(myFanControl.PWMDuty80PStartDelay) * time.Millisecond)	
-		myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
-		pin.DutyCycle(dutyCycleToHW(float64(myFanControl.PWMDutyMin)), pwmDutyMax)
+		setHWDutyCycle(float64(myFanControl.PWMDutyMin))
 		time.Sleep(10 * time.Second)
 	}
 
@@ -183,33 +205,35 @@ func fanControl() {
 		pidValueOut := -pidControl.UpdateDuration(myFanControl.TempCurrent, updateDelayMS * time.Millisecond)
 
 		// If fan is starting up eg from 0 to some value, start it up for myFanControl.PWMDuty80PStartDelay at 80%
-		if (lastPWMControlValue <=5.0 && pidValueOut>5.0) {
-			log.Println("Starting up fan for" ,myFanControl.PWMDuty80PStartDelay, "ms")
-			myFanControl.PWMDutyCurrent = 100
-			pin.DutyCycle(pwmDutyMax, pwmDutyMax)
+		if (lastPWMControlValue <=5.0 && pidValueOut>5.0 && !alwaysOn) {
+//			log.Println("Starting up fan for" ,myFanControl.PWMDuty80PStartDelay, "ms")
+			setHWDutyCycle(100.0)
 			time.Sleep(time.Duration(myFanControl.PWMDuty80PStartDelay) * time.Millisecond)
 		}
 
-		var pwmDutyMapped uint32 = 0
-		if (pidValueOut > 5.0) {
-			pwmDutyMapped = dutyCycleToHW(pidValueOut)
-			myFanControl.PWMDutyCurrent = uint32(pidValueOut)
+		var fanRequiredDuty float64 = 0 // The duty cycle required by the fan
+		if (pidValueOut > 5.0 || lastPWMControlValue != 0.0) {
+			lastPWMControlValue = pidValueOut
+			fanRequiredDuty = dutyCycleToFan(pidValueOut)
 		} else {
-			myFanControl.PWMDutyCurrent = 0
+			lastPWMControlValue = 0
+			if (alwaysOn) {
+				fanRequiredDuty = dutyCycleToFan(1)
+			} else {
+				fanRequiredDuty = 0.0
+			}
 		}
-		log.Println(myFanControl.TempCurrent, " ", pwmDutyMapped, " ",lastPWMControlValue, " ", pidValueOut)
-		pin.DutyCycle(pwmDutyMapped, pwmDutyMax)
 
-		lastPWMControlValue = pidValueOut
+		setHWDutyCycle(fanRequiredDuty)
+//		log.Println("Temp:", myFanControl.TempCurrent, 
+//		            "Current PWM:", myFanControl.PWMDutyCurrent)
 
 		select {
 			case <-updateControlDelay.C:
 				break;
 			case <-configChan:
+				setFanFrequency(myFanControl.PWMFrequency)
 				pidControl.Set(myFanControl.TempTarget)
-				// set lastPWMControlValue so we go through a cycle of starting the fan
-				lastPWMControlValue = 0
-				turnOnFanTest()
 		}
 	}
 
@@ -227,6 +251,7 @@ func (service *Service) Manage() (string, error) {
 
 	tempTarget := flag.Float64("temp", defaultTempTarget, "Target CPU Temperature, degrees C")
 	pwmDutyMin := flag.Int("minduty", defaultPwmDutyMin, "Minimum PWM duty cycle")
+	pwmFrequency := flag.Int("frequency", defaultPwmFrequency, "PWM Frequency")
 	pin := flag.Int("pin", defaultPin, "PWM pin (BCM numbering)")
 	flag.Parse()
 
@@ -250,11 +275,12 @@ func (service *Service) Manage() (string, error) {
 		}
 	}
 
+	readSettings()
+
 	myFanControl.TempTarget = float64(*tempTarget)
 	myFanControl.PWMDutyMin = uint32(*pwmDutyMin)
+	myFanControl.PWMFrequency = uint32(*pwmFrequency)
 	myFanControl.PWMPin = *pin
-
-	readSettings()
 
 	go fanControl()
 

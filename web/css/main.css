@@ -474,9 +474,9 @@ input.ng-invalid:not(.grayout){
 	}
 	.sidebar-right-in .app {
 		width: auto;
-		-webkit-transform: translate3d(-320px, 0, 0)!important;
-		-moz-transform: translate3d(-320px, 0, 0)!important;
-		transform: translate3d(-320px, 0, 0)!important;
+		-webkit-transform: translate3d(-300px, 0, 0)!important;
+		-moz-transform: translate3d(-300px, 0, 0)!important;
+		transform: translate3d(-300px, 0, 0)!important;
 		position: relative;
 		-webkit-transition: -webkit-transform 0 ease;
 		-moz-transition: -moz-transform 0 ease;
