@@ -86,6 +86,7 @@ type TrafficInfo struct {
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
 	TargetType          uint8     // types decribed in const above
 	SignalLevel         float64   // Signal level, dB RSSI.
+	SignalLevelHist     []float64 // last 8 values. For 1090ES we store the last 8 values here. SignalLevel will then become the minimum of these to get more stable data with antenna diversity
 	Squawk              int       // Squawk code
 	Position_valid      bool      //TODO: set when position report received. Unset after n seconds?
 	Lat                 float32   // decimal common.Degrees, north positive
@@ -1097,7 +1098,17 @@ func esListen() {
 			}
 
 			if newTi.SignalLevel > 0 {
-				ti.SignalLevel = 10 * math.Log10(newTi.SignalLevel)
+				power := 10 * math.Log10(newTi.SignalLevel)
+				ti.SignalLevelHist = append(ti.SignalLevelHist, power)
+				if len(ti.SignalLevelHist) > 8 {
+					ti.SignalLevelHist = ti.SignalLevelHist[len(ti.SignalLevelHist)-8:]
+				}
+				ti.SignalLevel = -999
+				for _, level := range(ti.SignalLevelHist) {
+					if level > ti.SignalLevel {
+						ti.SignalLevel = level
+					}
+				}
 			} else {
 				ti.SignalLevel = -999
 			}
