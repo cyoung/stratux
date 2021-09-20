@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,13 +13,13 @@ import (
 	"time"
 
 	"github.com/b3nn0/stratux/common"
+	"github.com/felixge/pidctrl"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/stianeikeland/go-rpio/v4"
 	"github.com/takama/daemon"
 )
 
-// #include <wiringPi.h>
-// #cgo LDFLAGS: -lwiringPi
 import "C"
 
 // Initialize Prometheus metrics.
@@ -26,6 +27,11 @@ var (
 	currentTemp = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "current_temp",
 		Help: "Current CPU temp.",
+	})
+
+	currentPWM = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "current_pwm",
+		Help: "Current PWM Value",
 	})
 
 	totalFanOnTime = prometheus.NewCounterVec(
@@ -50,24 +56,23 @@ const (
 
 	// CPU temperature target, degrees C
 	defaultTempTarget = 50.
-	hysteresis        = float32(1.)
 
-	pwmClockDivisor = 100
+	/* Minimum duty cycle in % is the point below which the fan  */
+	/* stops running nicely from a running situation */
+	defaultPwmDutyMin = 50
 
-	/* Minimum duty cycle is the point below which the fan does
-	/* not spin. This depends on both your fan and the switching
-	/* transistor used. */
-	defaultPwmDutyMin = 1
-	pwmDutyMax        = 100
-
-	// Temperature at which we give up attempting active fan speed control and set it to full speed.
-	failsafeTemp = 65
+	/* Maximum duty for PWM controller */
+	pwmDutyMax        = 100   // Must be kept at 100
+	defaultPwmFrequency   = 6400000
 
 	// how often to update
-	delaySeconds = 30
+	updateDelayMS = 5000
 
-	// GPIO-1/BCM "18"/Pin 12 on a Raspberry Pi 3
-	defaultPin = 1
+	// start delay of the fan to start the fan to 80% to give the fan a kick to start spinning
+	PWMDuty80PStartDelay = 500
+
+	// GPIO-1/BCM "18"/Pin 12 on a Rev 2 and 3,4 Raspberry Pi   
+	defaultPin = 18
 
 	// name of the service
 	name        = "fancontrol"
@@ -75,15 +80,19 @@ const (
 
 	// Address on which daemon should be listen.
 	addr = ":9977"
+
+	// When set to true, we do not turn of the fan below targetCPU temperature
+	alwaysOn = true
 )
 
 type FanControl struct {
-	TempTarget     float32
-	TempCurrent    float32
-	PWMDutyMin     int
-	PWMDutyMax     int
-	PWMDutyCurrent int
-	PWMPin         int
+	TempTarget           float64
+	TempCurrent          float64
+	PWMDutyMin           uint32
+	PWMFrequency		 uint32
+	PWMDuty80PStartDelay uint32
+	PWMDutyCurrent       uint32
+	PWMPin               int
 }
 
 var myFanControl FanControl
@@ -98,77 +107,138 @@ func updateStats() {
 		<-updateTicker.C
 		totalUptime.With(prometheus.Labels{"all": "all"}).Inc()
 		currentTemp.Set(float64(myFanControl.TempCurrent))
+		currentPWM.Set(float64(myFanControl.PWMDutyCurrent))
 		if myFanControl.PWMDutyCurrent > 0 {
 			totalFanOnTime.With(prometheus.Labels{"all": "all"}).Inc()
 		}
 	}
 }
 
+// Map a incomming range to a outgoing range
+func fmap( x, in_min, in_max, out_min, out_max float64) float64 {
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+
+
 func fanControl() {
-	prometheus.MustRegister(currentTemp)
-	prometheus.MustRegister(totalFanOnTime)
-	prometheus.MustRegister(totalUptime)
-
-	go updateStats()
-
-	cPin := C.int(myFanControl.PWMPin)
-
-	C.wiringPiSetup()
-
-	// Power on "test". Allows the user to verify that their fan is working.
-	C.pinMode(cPin, C.OUTPUT)
-	C.digitalWrite(cPin, C.HIGH)
-	time.Sleep(5 * time.Second)
-	C.digitalWrite(cPin, C.LOW)
-
-	
+	myFanControl.PWMDuty80PStartDelay = PWMDuty80PStartDelay
 	myFanControl.TempCurrent = 0
+	myFanControl.PWMDutyCurrent = 0
+	updateControlDelay := time.NewTicker(updateDelayMS * time.Millisecond)
+
+	// Monitor Temperature
 	go common.CpuTempMonitor(func(cpuTemp float32) {
 		if common.IsCPUTempValid(cpuTemp) {
-			myFanControl.TempCurrent = cpuTemp
+			myFanControl.TempCurrent = float64(cpuTemp)
 		}
 	})
 
-	myFanControl.PWMDutyCurrent = 0
+	// Open Raspberry GPIO pins		
+	err := rpio.Open()
+	if err != nil {
+			os.Exit(1)
+	}
+	defer rpio.Close()
 
-	delay := time.NewTicker(delaySeconds * time.Second)
+	// Set PWM Mode
+	pin := rpio.Pin(myFanControl.PWMPin)
+	pin.Mode(rpio.Pwm)
+	setFanFrequency := func(frequency uint32) {
+		if (frequency < 250000) {
+			frequency = 250000
+		} else if (frequency > 100000000) {
+			frequency = 100000000
+		}
+		pin.Freq(int(frequency))
+	}
+	setFanFrequency(myFanControl.PWMFrequency)
 
+ 
+	// func to Calculate the dutyCycle to the hardware value that 
+	// is approprate for the HW and minimum fan speed allowed
+	// Result is appropriate duty value for the fan
+	dutyCycleToFan := func(dutyCycle float64) float64 {
+		mappedMinimum := fmap(float64(myFanControl.PWMDutyMin), 0.0, 100.0, 0, float64(pwmDutyMax))
+		return fmap(dutyCycle, 0.0, 100.0, mappedMinimum, 100.0)
+	}
+	
+	// Setup HW to a specific duty cycle 0..100
+	setHWDutyCycle := func(value float64) {
+		if (value<0.0) {
+			value = 0.0
+		} else if (value>100.0) {
+			value = 100.0
+		}
+		myFanControl.PWMDutyCurrent = uint32(value)
+		pin.DutyCycle(uint32(math.Ceil(fmap(value, 0.0, 100.0, 0.0, float64(pwmDutyMax)))), pwmDutyMax)
+	}
+
+	// Fan test function
+	turnOnFanTest := func () {
+		setHWDutyCycle(100.0)
+		time.Sleep(time.Duration(myFanControl.PWMDuty80PStartDelay) * time.Millisecond)	
+		setHWDutyCycle(float64(myFanControl.PWMDutyMin))
+		time.Sleep(10 * time.Second)
+	}
+
+	// Power on "test". Allows the user to verify that their fan is working at the selected minimum duty cycle
+	// Turns on the fan at minimum duty for 10 seconds. User should see that the fan keeps running all the time
+	turnOnFanTest()
+
+	// Start Prometheus		
+	prometheus.MustRegister(currentTemp)
+	prometheus.MustRegister(currentPWM)
+	prometheus.MustRegister(totalFanOnTime)
+	prometheus.MustRegister(totalUptime)
+	go updateStats()
+
+	// Create a PID controller
+	pidControl := pidctrl.NewPIDController(0.2, 0.2, 0.1)
+	pidControl.SetOutputLimits(-100, 0.0)
+	pidControl.Set(myFanControl.TempTarget)
+
+	var lastPWMControlValue float64 = 0.0
 	for {
-		// Make sure we have 10 fanspeed steps, but if it's more than 90% duty cycle, we just increase by one every time
-		pwmDutyStep := (myFanControl.PWMDutyMax - myFanControl.PWMDutyMin) / 10.0
-		if pwmDutyStep < 1 {
-			pwmDutyStep = 1
+
+		// Update the PID controller.
+		pidValueOut := -pidControl.UpdateDuration(myFanControl.TempCurrent, updateDelayMS * time.Millisecond)
+
+		// If fan is starting up eg from 0 to some value, start it up for myFanControl.PWMDuty80PStartDelay at 80%
+		if (lastPWMControlValue <=5.0 && pidValueOut>5.0 && !alwaysOn) {
+//			log.Println("Starting up fan for" ,myFanControl.PWMDuty80PStartDelay, "ms")
+			setHWDutyCycle(100.0)
+			time.Sleep(time.Duration(myFanControl.PWMDuty80PStartDelay) * time.Millisecond)
 		}
 
-		if myFanControl.TempCurrent > (myFanControl.TempTarget + hysteresis) {
-			myFanControl.PWMDutyCurrent = common.IMax(common.IMin(myFanControl.PWMDutyMax, myFanControl.PWMDutyCurrent+pwmDutyStep), myFanControl.PWMDutyMin)
-		} else if myFanControl.TempCurrent < (myFanControl.TempTarget - hysteresis) {
-			myFanControl.PWMDutyCurrent = common.IMax(myFanControl.PWMDutyCurrent-pwmDutyStep, 0)
-			if myFanControl.PWMDutyCurrent < myFanControl.PWMDutyMin {
-				myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
+		var fanRequiredDuty float64 = 0 // The duty cycle required by the fan
+		if (pidValueOut > 5.0 || lastPWMControlValue != 0.0) {
+			lastPWMControlValue = pidValueOut
+			fanRequiredDuty = dutyCycleToFan(pidValueOut)
+		} else {
+			lastPWMControlValue = 0
+			if (alwaysOn) {
+				fanRequiredDuty = dutyCycleToFan(1)
+			} else {
+				fanRequiredDuty = 0.0
 			}
 		}
-		//log.Println(myFanControl.TempCurrent, " ", myFanControl.PWMDutyCurrent)
-		C.pwmSetMode(C.PWM_MODE_MS)
-		C.pinMode(cPin, C.PWM_OUTPUT)
-		C.pwmSetRange(C.uint(myFanControl.PWMDutyMax))
-		C.pwmSetClock(pwmClockDivisor)
-		C.pwmWrite(cPin, C.int(myFanControl.PWMDutyCurrent))
+
+		setHWDutyCycle(fanRequiredDuty)
+//		log.Println("Temp:", myFanControl.TempCurrent, 
+//		            "Current PWM:", myFanControl.PWMDutyCurrent)
+
 		select {
-		case <-delay.C:
-			if myFanControl.PWMDutyCurrent == myFanControl.PWMDutyMax && myFanControl.TempCurrent >= failsafeTemp {
-				// Reached the maximum temperature. We stop using PWM control and set the fan to "on" permanently.
-				break
-			}
-		case <-configChan:
-			// Make sure we don't change speed again immediately
-			myFanControl.TempCurrent = myFanControl.TempTarget
+			case <-updateControlDelay.C:
+				break;
+			case <-configChan:
+				setFanFrequency(myFanControl.PWMFrequency)
+				pidControl.Set(myFanControl.TempTarget)
 		}
 	}
 
-	// Default to "ON".
-	C.pinMode(cPin, C.OUTPUT)
-	C.digitalWrite(cPin, C.HIGH)
+	// Default to "ON" when we bail out
+	pin.DutyCycle(pwmDutyMax, pwmDutyMax)
 }
 
 // Service has embedded daemon
@@ -181,7 +251,8 @@ func (service *Service) Manage() (string, error) {
 
 	tempTarget := flag.Float64("temp", defaultTempTarget, "Target CPU Temperature, degrees C")
 	pwmDutyMin := flag.Int("minduty", defaultPwmDutyMin, "Minimum PWM duty cycle")
-	pin := flag.Int("pin", defaultPin, "PWM pin (wiringPi numbering)")
+	pwmFrequency := flag.Int("frequency", defaultPwmFrequency, "PWM Frequency")
+	pin := flag.Int("pin", defaultPin, "PWM pin (BCM numbering)")
 	flag.Parse()
 
 	usage := "Usage: " + name + " install | remove | start | stop | status"
@@ -204,12 +275,12 @@ func (service *Service) Manage() (string, error) {
 		}
 	}
 
-	myFanControl.TempTarget = float32(*tempTarget)
-	myFanControl.PWMDutyMin = *pwmDutyMin
-	myFanControl.PWMDutyMax = pwmDutyMax
-	myFanControl.PWMPin = *pin
-
 	readSettings()
+
+	myFanControl.TempTarget = float64(*tempTarget)
+	myFanControl.PWMDutyMin = uint32(*pwmDutyMin)
+	myFanControl.PWMFrequency = uint32(*pwmFrequency) * 100
+	myFanControl.PWMPin = *pin
 
 	go fanControl()
 
@@ -231,7 +302,6 @@ func (service *Service) Manage() (string, error) {
 			return "Daemon was interrupted by system signal", nil
 		} else if (killSignal == syscall.SIGUSR1) {
 			readSettings()
-			myFanControl.PWMDutyCurrent = myFanControl.PWMDutyMin
 			configChan<-true
 		} else {
 			return "Daemon was killed", nil

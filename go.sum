@@ -63,6 +63,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 h1:Yzb9+7DPaBjB8zlTR87/ElzFsnQfuHnVUVqpZZIcV5Y=
 github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5/go.mod h1:a2zkGnVExMxdzMo3M0Hi/3sEU+cWnZpSni0O6/Yb/P0=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
+github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243 h1:QMnlBy37k7MuFqwzUQsbsALRyoKQidWlOv5zNUmqj3w=
+github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243/go.mod h1:YjeiQT/MWPDtPKgk/UAVJ9ZvZLSczA9gobU202W8gPY=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0 h1:/7zJX8F6AaYQc57WQCyN9cAIz+4bCJGO9B+dyW29am8=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
@@ -299,6 +301,8 @@ github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4k
 github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
 github.com/spf13/pflag v1.0.1/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
+github.com/stianeikeland/go-rpio/v4 v4.5.1-0.20210920090620-2ab4c0432c52 h1:HFIcHyN2nkgaODFDifF0ixiC6ZDbE9ocwa9PKpYTZx4=
+github.com/stianeikeland/go-rpio/v4 v4.5.1-0.20210920090620-2ab4c0432c52/go.mod h1:A3GvHxC1Om5zaId+HqB3HKqx4K/AqeckxB7qRjxMK7o=
 github.com/stratux/serial v0.0.0-19700101022104-87f23b1d3198 h1:oK0CezUdK1uo3P4aboNpRkdErS4sTOUk50eW3qaqgeA=
 github.com/stratux/serial v0.0.0-19700101022104-87f23b1d3198/go.mod h1:i4vrHzYiaNeMMsal0bm/fq/MzXwQIB4zxBi9kJtntKg=
 github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
