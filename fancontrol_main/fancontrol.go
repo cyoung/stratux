@@ -63,7 +63,7 @@ const (
 
 	/* Maximum duty for PWM controller */
 	pwmDutyMax        = 100   // Must be kept at 100
-	defaultPwmFrequency   = 6400000
+	defaultPwmFrequency   = 64000
 
 	// how often to update
 	updateDelayMS = 5000
