@@ -5,19 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"math"
 
 	"github.com/b3nn0/stratux/common"
+	"github.com/felixge/pidctrl"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/takama/daemon"
-	"github.com/felixge/pidctrl"
 	"github.com/stianeikeland/go-rpio/v4"
+	"github.com/takama/daemon"
 )
 
 import "C"
@@ -63,7 +63,7 @@ const (
 
 	/* Maximum duty for PWM controller */
 	pwmDutyMax        = 100   // Must be kept at 100
-	defaultPwmFrequency   = 64000
+	defaultPwmFrequency   = 6400000
 
 	// how often to update
 	updateDelayMS = 5000
@@ -145,10 +145,10 @@ func fanControl() {
 	pin := rpio.Pin(myFanControl.PWMPin)
 	pin.Mode(rpio.Pwm)
 	setFanFrequency := func(frequency uint32) {
-		if (frequency < 2500) {
-			frequency = 2500
-		} else if (frequency > 1000000) {
-			frequency = 1000000
+		if (frequency < 250000) {
+			frequency = 250000
+		} else if (frequency > 100000000) {
+			frequency = 100000000
 		}
 		pin.Freq(int(frequency))
 	}
@@ -279,7 +279,7 @@ func (service *Service) Manage() (string, error) {
 
 	myFanControl.TempTarget = float64(*tempTarget)
 	myFanControl.PWMDutyMin = uint32(*pwmDutyMin)
-	myFanControl.PWMFrequency = uint32(*pwmFrequency)
+	myFanControl.PWMFrequency = uint32(*pwmFrequency) * 100
 	myFanControl.PWMPin = *pin
 
 	go fanControl()

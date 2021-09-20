@@ -58,15 +58,6 @@ rm -r /proc/*
 rm -r /root/fake
 
 
-
-# Prepare wiringpi for fancontrol and some more tools. Need latest version for pi4 support
-cd /root && git clone https://github.com/WiringPi/WiringPi.git && cd WiringPi/wiringPi && make -j8 && make install
-cd /root && rm -r WiringPi
-#wget https://project-downloads.drogon.net/wiringpi-latest.deb
-#dpkg -i wiringpi-latest.deb
-#rm wiringpi-latest.deb
-
-
 cd /root/stratux
 cp image/bashrc.txt /root/.bashrc
 source /root/.bashrc

@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/prometheus/client_golang v1.10.0
 	github.com/ricochet2200/go-disk-usage v0.0.0-20150921141558-f0d1b743428f
-	github.com/stianeikeland/go-rpio/v4 v4.5.0
+	github.com/stianeikeland/go-rpio/v4 v4.5.1-0.20210920090620-2ab4c0432c52
 	github.com/stratux/serial v0.0.0-19700101022104-87f23b1d3198
 	github.com/takama/daemon v1.0.0
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
@@ -24,5 +24,4 @@ require (
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/net v0.0.0-20210326220855-61e056675ecf
 	gonum.org/v1/plot v0.9.0
-	gotest.tools/v3 v3.0.3 // indirect
 )
