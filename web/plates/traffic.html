@@ -9,8 +9,7 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg"><strong>Callsign</strong></span>
-					<span class="col-xs-3" ng-show="showReg"><strong>Tail Num</strong></span>
+					<span class="col-xs-3"><strong>{{showReg ? "Tail Num" : "Callsign"}}</strong></span>
 					<span class="col-xs-2" ng-hide="showSquawk"><strong>Code</strong></span>
 					<span class="col-xs-2" ng-show="showSquawk"><strong>Squawk</strong></span>
 					<span class="col-xs-2" ng-show="showCategory"><strong>Categ</strong></span>
@@ -31,13 +30,11 @@
 			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
-					</span>					
-					<span class="col-xs-3" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3">
+						<span ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">
+							<img src="img/logo-transparent.png" style="height:1em" ng-show="aircraft.isStratux" />
+							<span ng-hide="aircraft.isStratux">{{aircraft.addr_symb}}</span>
+							<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
 					</span>
 					<span class="col-xs-2">
 						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
@@ -104,8 +101,7 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg"><strong>Callsign</strong></span>
-					<span class="col-xs-3" ng-show="showReg"><strong>Tail Num</strong></span>
+					<span class="col-xs-3"><strong>{{showReg ? "Tail Num" : "Callsign"}}</strong></span>
 					<span class="col-xs-2"><strong>Code</strong></span>
 					<span class="col-xs-2" ng-show="showCategory"><strong>Categ</strong></span>
 					<span class="col-xs-2 text-right"><strong>DistEst</strong></span>
@@ -124,13 +120,8 @@
 			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
-					</span>					
-					<span class="col-xs-3" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3">
+						<span ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
 					</span>
 					<span class="col-xs-2" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 					<span class="col-xs-2" ng-show="showCategory">

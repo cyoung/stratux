@@ -53,6 +53,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
+		new_traffic.isStratux = obj.IsStratux;
 		new_traffic.signal = obj.SignalLevel;
 	        //console.log('Emitter Category:' + obj.Emitter_category);
 		switch(obj.Emitter_category) {
@@ -111,7 +112,13 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
+		if (!new_traffic.tail || new_traffic.tail.trim().length == 0)
+			new_traffic.tail = "[--N/A--]";
+
 		new_traffic.reg = obj.Reg;
+		if (!new_traffic.reg || new_traffic.reg.trim().length == 0)
+			new_traffic.reg = "[--N/A--]";
+
 		if (obj.Squawk == 0) {
 			new_traffic.squawk = "----";
 		} else {

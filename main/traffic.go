@@ -128,6 +128,7 @@ type TrafficInfo struct {
 	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
 	DistanceEstimatedLastTs time.Time // Used to compute moving average
 	ReceivedMsgs         uint64    // Number of messages received by this aircraft
+	IsStratux            bool      // Target is equipped with a Stratux that transmits via OGN tracker
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 

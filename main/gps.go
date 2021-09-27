@@ -555,10 +555,12 @@ func configureOgnTracker() {
 
 	gpsTimeOffsetPpsMs = 200 * time.Millisecond
 	serialPort.Write([]byte(appendNmeaChecksum("$POGNS,NavRate=5") + "\r\n")) // Also force NavRate directly, just to make sure it's always set
+	msgVersion := appendNmeaChecksum(fmt.Sprintf("$POGNS,Hard=STX,Soft=%s", stratuxVersion[1:])) + "\r\n"
+	serialPort.Write([]byte(msgVersion))
+
 	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // query current configuration
 
-	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config, but
-
+	// Configuration for OGN Tracker T-Beam is similar to normal Ublox config
 	writeUblox8ConfigCommands(serialPort)
 	writeUbloxGenericCommands(5, serialPort)
 
