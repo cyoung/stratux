@@ -3,6 +3,7 @@ module github.com/b3nn0/stratux
 go 1.16
 
 require (
+	github.com/BertoldVdb/go-ais v0.1.0 // indirect
 	github.com/b3nn0/goflying v0.0.0-20210424141101-d83dac8fdc36
 	github.com/dustin/go-humanize v1.0.0
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect

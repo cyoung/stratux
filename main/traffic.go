@@ -66,6 +66,7 @@ const (
 	TRAFFIC_SOURCE_1090ES = 1
 	TRAFFIC_SOURCE_UAT    = 2
 	TRAFFIC_SOURCE_OGN    = 4
+	TRAFFIC_SOURCE_AIS    = 8
 	TARGET_TYPE_MODE_S    = 0
 	TARGET_TYPE_ADSB      = 1
 	TARGET_TYPE_ADSR      = 2
@@ -1694,4 +1695,5 @@ func initTraffic() {
 	trafficMutex = &sync.Mutex{}
 	go esListen()
 	go ognListen()
+	go aisListen()
 }

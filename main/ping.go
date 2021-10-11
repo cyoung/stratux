@@ -88,7 +88,7 @@ func pingNetworkRepeater() {
 		}
 	}
 
-	log.Println("Executed " + STRATUX_HOME + "/bin/dump1090 successfully...")
+	log.Println("Executed " + cmd.String() + " successfully...")
 
 	scanStdout := bufio.NewScanner(stdout)
 	scanStderr := bufio.NewScanner(stderr)

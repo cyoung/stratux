@@ -343,6 +343,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						globalSettings.ES_Enabled = val.(bool)
 					case "OGN_Enabled":
 						globalSettings.OGN_Enabled = val.(bool)
+					case "AIS_Enabled":
+						globalSettings.AIS_Enabled = val.(bool)
 					case "Ping_Enabled":
 						globalSettings.Ping_Enabled = val.(bool)
 					case "GPS_Enabled":

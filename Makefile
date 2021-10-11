@@ -25,7 +25,7 @@ endif
 
 
 all:
-	make xdump978 xdump1090 gen_gdl90 $(PLATFORMDEPENDENT)
+	make xdump978 xdump1090 xrtlais gen_gdl90 $(PLATFORMDEPENDENT)
 
 gen_gdl90: main/*.go common/*.go
 	LIBRARY_PATH=$(CURDIR) CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
@@ -39,6 +39,11 @@ xdump1090:
 
 xdump978:
 	cd dump978 && make lib
+
+xrtlais:
+	git submodule update --init
+	cd rtl-ais && sed -i 's/^LDFLAGS+=-lpthread.*/LDFLAGS+=-lpthread -lm -lrtlsdr -L \/usr\/lib\//' Makefile && make
+
 
 .PHONY: test
 test:
@@ -62,14 +67,13 @@ optinstall: www ogn/ddb.json
 	# binaries
 	cp -f gen_gdl90 $(STRATUX_HOME)/bin/
 	cp -f fancontrol $(STRATUX_HOME)/bin/
-	chmod 755 $(STRATUX_HOME)/bin/*
-
 	cp -f dump1090/dump1090 $(STRATUX_HOME)/bin
+	cp -f rtl-ais/rtl_ais $(STRATUX_HOME)/bin
 	cp -f $(OGN_RX_BINARY) $(STRATUX_HOME)/bin/ogn-rx-eu
+	chmod +x $(STRATUX_HOME)/bin/*
 
 	# Libs
 	cp -f libdump978.so $(STRATUX_HOME)/lib/
-
 
 	# map data
 	cp -ru mapdata/* $(STRATUX_HOME)/mapdata/
@@ -107,3 +111,4 @@ clean:
 	rm -f gen_gdl90 libdump978.so fancontrol ahrs_approx
 	cd dump1090 && make clean
 	cd dump978 && make clean
+	cd rtl-ais && make clean

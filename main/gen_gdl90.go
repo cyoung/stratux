@@ -1162,6 +1162,7 @@ type settings struct {
 	UAT_Enabled          bool
 	ES_Enabled           bool
 	OGN_Enabled        bool
+	AIS_Enabled        bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	BMP_Sensor_Enabled   bool
@@ -1225,6 +1226,7 @@ type status struct {
 	OGN_messages_last_minute                 uint
 	OGN_messages_max                         uint
 	OGN_connected                            bool
+	AIS_connected                            bool
 	UAT_traffic_targets_tracking               uint16
 	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool

@@ -581,6 +581,12 @@ func logDump1090TermMessage(m Dump1090TermMessage) {
 	}
 }
 
+func logAISTermMessage(m AISTermMessage) {
+	if globalSettings.DEBUG && globalSettings.ReplayLog && isDataLogReady() {
+		dataLogChan <- DataLogRow{tbl: "ais_message", data: m}
+	}
+}
+
 func initDataLog() {
 	//log.Printf("dataLogStarted = %t. dataLogReadyToWrite = %t\n", dataLogStarted, dataLogReadyToWrite) //REMOVE -- DEBUG
 	insertString = make(map[string]string)
