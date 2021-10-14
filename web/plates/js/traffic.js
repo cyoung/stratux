@@ -1,9 +1,10 @@
 angular.module('appControllers').controller('TrafficCtrl', TrafficCtrl); // get the main module contollers set
 TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
 
-var cutoff = 59;   //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
-
-
+var TARGET_TYPE_AIS = 5
+//cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
+let TRAFFIC_MAX_AGE_SECONDS = 15;
+let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30-60;
 
 // create our controller function with all necessary logic
 function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
@@ -53,6 +54,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.targettype = obj.TargetType;
+		new_traffic.emittercategory = obj.Emitter_category;
 		new_traffic.signal = obj.SignalLevel;
 	        //console.log('Emitter Category:' + obj.Emitter_category);
 		switch(obj.Emitter_category) {
@@ -105,9 +107,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
   			default:
 				new_traffic.category="----";   
 		}
-		new_traffic.addr_symb ='\u2708';    // undefined, use aircraft as default
-		if (new_traffic.targettype > 3) {
-			new_traffic.addr_symb ='\ud83d\udce1';
+		if (new_traffic.targettype ===  TARGET_TYPE_AIS) {
+			new_traffic.addr_symb = '\uD83D\uDEA2';
+		} else {
+			new_traffic.addr_symb = '\uD83D\uDEE9';
 		}
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
@@ -135,7 +138,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.age = obj.Age;
 		new_traffic.ageLastAlt = obj.AgeLastAlt;
-		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT, 4=OGN
+		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT, 4=OGN, 8=AIS
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
 		new_traffic.dist = (obj.Distance/1852); // nautical miles
 		new_traffic.distEst = obj.DistanceEstimated / 1852;
@@ -265,7 +268,14 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 	}, 500, 0, false);
 		
 
-
+	var isTrafficAged = function(aircraft, targetVar ) {
+		const value = aircraft[targetVar];
+		if (aircraft.targettype === TARGET_TYPE_AIS) {
+			return value > TRAFFIC_AIS_MAX_AGE_SECONDS;
+		} else { // For other sources it's based on seconds
+			return value > TRAFFIC_MAX_AGE_SECONDS;
+		}
+	}
 
 
 	// perform cleanup every 10 seconds
@@ -274,15 +284,15 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 		// Clean up "valid position" table.
 		for (var i = $scope.data_list.length; i > 0; i--) {
-			if ($scope.data_list[i - 1].age >= cutoff) {
+			if (isTrafficAged($scope.data_list[i - 1], 'age')) {
 				$scope.data_list.splice(i - 1, 1);
 			}
 		}
 
 		// Clean up "invalid position" table.
-		for (var i = $scope.data_list_invalid.length; i > 0; i--) {
-			if (($scope.data_list_invalid[i - 1].age >= cutoff) || ($scope.data_list_invalid[i - 1].ageLastAlt >= cutoff)) {
-				$scope.data_list_invalid.splice(i - 1, 1);
+		for (var i = $scope.data_list_invalid.length; i > 0; i--) {			
+			if (isTrafficAged($scope.data_list_invalid[i - 1], 'age') || isTrafficAged($scope.data_list_invalid[i - 1], 'ageLastAlt')) {
+				$scope.data_list.splice(i - 1, 1);
 			}
 		}
 	}, (1000 * 10), 0, false);

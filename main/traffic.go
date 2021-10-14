@@ -76,6 +76,7 @@ const (
 	// If we see a proper emitter category and NIC > 7, they'll be reassigned to TYPE_ADSR.
 	TARGET_TYPE_TISB_S = 3
 	TARGET_TYPE_TISB   = 4
+	TARGET_TYPE_AIS    = 5
 )
 
 type TrafficInfo struct {
@@ -179,7 +180,12 @@ func convertMetersToFeet(meters float32) float32 {
 
 func cleanupOldEntries() {
 	for key, ti := range traffic {
-		if stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 30 seconds, so we don't lose tail number, etc...
+		
+		if ti.Last_source != TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 30 seconds, so we don't lose tail number, etc...
+			delete(traffic, key)
+		}
+
+		if ti.Last_source == TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60*30 { // keep it in the database for up to 30 minutes, so we don't lose tail number, etc...
 			delete(traffic, key)
 		}
 	}

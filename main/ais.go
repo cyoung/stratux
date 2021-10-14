@@ -38,10 +38,10 @@ func aisPublishNmea(nmea string) {
 var aisOutgoingMsgChan chan string = make(chan string, 100)
 var aisIncomingMsgChan chan string = make(chan string, 100)
 var aisExitChan chan bool = make(chan bool, 1)
-var aisTailNumberCache = make(map[uint32]string)
 
 func aisListen() {
 	//go predTest()
+	nm := aisnmea.NMEACodecNew(ais.CodecNew(false, false))
 	for {
 		if !globalSettings.AIS_Enabled || AISDev == nil {
 			// wait until AIS is enabled
@@ -76,18 +76,14 @@ func aisListen() {
 			aisExitChan <- true
 		}()
 
-		nm := aisnmea.NMEACodecNew(ais.CodecNew(false, false))
-		
-
 		loop: for globalSettings.AIS_Enabled {
 			select {
 			case data := <- aisOutgoingMsgChan:
-				//fmt.Printf(data)
 				aisReadWriter.Write([]byte(data))
 				aisReadWriter.Flush()
 			case data := <- aisIncomingMsgChan:
-//				log.Printf("AIS: " + data)
-				msg, _ := nm.ParseSentence(data)
+				msg, err := nm.ParseSentence(data)
+
 //				if msg.Sys == "status" {
 //					importAISStatusMessage(msg)
 //				} else {
@@ -98,8 +94,10 @@ func aisListen() {
 //				}
 				if (msg!=nil) {
 					importAISTrafficMessage(msg)
+				} else if err!=nil {
+					log.Printf("Invalid Data from AIS: " + err.Error())
 				} else {
-					log.Printf("Invalid Data from AIS: " + data)
+					// Multiline sentences will have msg as nill without err 
 				}
 			case <- aisExitChan:
 				break loop
@@ -121,15 +119,14 @@ func aisListen() {
 
 func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	var ti TrafficInfo
-	var isPositionReport = false
 	
 	var header *ais.Header = msg.Packet.GetHeader()
 	var key = header.UserID
 
 	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
-	} else {
-		ti.Tail = fmt.Sprintf("%d", header.UserID)
+	} else {		
+		ti.Reg = fmt.Sprintf("%d", header.UserID)
 	}
 	
 	trafficMutex.Lock()
@@ -144,10 +141,16 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 
 	// Handle Ship Static Data
 	if header.MessageID == 5 {
-		// !AIVDM,2,1,5,B,A02VqLPA4I6C07h5G`Qh>?k52kdgwT42>kOtfhls9gqW13daw?;w>jStig4s,0*78
-		// !AIVDM,2,2,5,B,<?me6SdWwml0>rbb,0*47
 		var shipStaticData ais.ShipStaticData = msg.Packet.(ais.ShipStaticData);
-		ti.Tail = shipStaticData.Name
+		ti.Tail = strings.TrimSpace(shipStaticData.CallSign)
+
+		// txt, _ := json.Marshal(shipStaticData)
+		// log.Printf("ShipStaticData: " + string(txt))
+
+		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
+		ti.Emitter_category = shipStaticData.Type
+
+		//log.Printf("ShipStatic: " + fmt.Sprintf("%d", header.UserID) + ":" + shipStaticData.Name)
 	}
 
 	// TODO: RVT further implement LongRangeAisBroadcastMessage ??
@@ -158,15 +161,15 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	// Handle MessageID 1,2 & 3 Position reports
 	if header.MessageID==1 || header.MessageID==2 || header.MessageID==3 {
 		// !AIVDM,1,1,,A,13aIhV?P140H?T@MVbNJVOvT00Ss,0*6D
-		isPositionReport = true
+		//log.Printf("ShipPosition: " + fmt.Sprintf("%d", header.UserID))
+
 		var positionReport ais.PositionReport = msg.Packet.(ais.PositionReport);
 	
-		ti.Reg = ""
+	//	ti.Reg = ""
 	//	ti.Tail // Set above
-		ti.Emitter_category = 0
 		ti.OnGround = true
 		ti.Addr_type = uint8(1) // Non-ICAO Address
-		ti.TargetType = uint8(1) // Non-ICAO Address
+		ti.TargetType = TARGET_TYPE_AIS 
 		ti.SignalLevel = 0.0
 	//    ti.SignalLevelHist
 		ti.Squawk = 0
@@ -178,74 +181,90 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	//	ti.AltIsGNSS = 0
 	//	ti.NIC = 0
 	//	ti.NACp = 0
-		ti.Track = float32(positionReport.TrueHeading)
-		ti.TurnRate = float32(positionReport.RateOfTurn)
-		ti.Speed = uint16(positionReport.Sog)
+
+		var sog uint16 = 0
+		if positionReport.Sog<102.3 {
+			sog=uint16(positionReport.Sog)
+		}
+		ti.Speed = sog // I think Sog is in knt
 		ti.Speed_valid = true
-	//	ti.Vvel = 0 
+
+		// We assume that when we have speed, we also have a proper course.
+		if (positionReport.Sog > 0.0) { // Using positionReport.Sog gives us more accuracy then using sog
+			var cog float32 = 0.0
+			if positionReport.Cog!=360 {
+				cog=float32(positionReport.Cog)
+			}
+			ti.Track = cog
+		} else {
+			var heading float32 = 0.0
+			if positionReport.TrueHeading!=511 {
+				heading=float32(positionReport.TrueHeading)	
+			}
+			ti.Track = heading
+		}
+
+//		txt, _ := json.Marshal(positionReport)
+//		log.Printf("Position report: " + string(txt))
+
+
+		var rot float32 = 0.0
+		if positionReport.RateOfTurn!=-128 {
+			rot=float32(positionReport.RateOfTurn)
+		}
+		ti.TurnRate = (rot/4.733)*(rot/4.733)
+
+		//	ti.Vvel = 0 
 		ti.Timestamp = time.Now().UTC()	
 	//	ti.PriorityStatus
 		ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
-	//	ti.AgeLastAlt           float64   // Age of last altitude message, seconds ago.
+		//ti.AgeLastAlt = time.Now().UTC().Sub(ti.Timestamp).Seconds()
 		ti.Last_seen = stratuxClock.Time
 		ageMs := int64(ti.Age * 1000)
+
 		ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
 		ti.Last_alt = ti.Last_seen
 		ti.Last_speed = ti.Last_seen
 	
-	//	Last_GnssDiff        
-	//	Last_GnssDiffAlt     
+	//	ti.Last_GnssDiff        
+	//	ti.Last_GnssDiffAlt     
 		ti.Last_source = TRAFFIC_SOURCE_AIS
 		ti.ExtrapolatedPosition = false
 	//	ti.Last_extrapolation   time.Time
-	//	AgeExtrapolation     float64
-	//	Lat_fix              float32   // Last real, non-extrapolated latitude
-	//	Lng_fix              float32   // Last real, non-extrapolated longitude
-	//	Alt_fix              int32     // Last real, non-extrapolated altitude		return
+	//	ti.AgeExtrapolation     float64
+	//	ti.Lat_fix              float32   // Last real, non-extrapolated latitude
+	//	ti.Lng_fix              float32   // Last real, non-extrapolated longitude
+	//	ti.Alt_fix              int32     // Last real, non-extrapolated altitude		return
 	}
-
-	// Validate the position report 
-	if isPositionReport {
-		if isGPSValid() {
-			ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
-			ti.BearingDist_valid = true
-		}
-	
 	//	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
 	//	DistanceEstimatedLastTs time.Time // Used to compute moving average
 	//	ReceivedMsgs         uint64    // Number of messages received by this aircraft
+
+	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
+	if ti.Lat > 360 || ti.Lat < -360 || ti.Lng > 360 || ti.Lng < -360 {
+		return
+	}
+
+	// Validate the position report 
+	if isGPSValid() && (ti.Lat!=0 && ti.Lng!=0) {
+		ti.Distance, ti.Bearing = common.Distance(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
+		ti.BearingDist_valid = true
+	}
 	
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// Validations and checks                                                                                     //
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-		// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
-		if ti.Lat > 360 || ti.Lat < -360 || ti.Lng > 360 || ti.Lng < -360 {
-		//	return
-		}
-	
-		if ti.TurnRate > 360 || ti.TurnRate < -360 {
-			ti.TurnRate = 0
-		}
-	
-		// Basic plausibility check:
-		dist, _, _, _ := common.DistRect(float64(mySituation.GPSLatitude), float64(mySituation.GPSLongitude), float64(ti.Lat), float64(ti.Lng))
-		if (isGPSValid() && dist >= 100000) {
-			// more than 100km away? Ignore. Most likely invalid data
-		//	return
-		}
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+	if ti.TurnRate==-128 || ti.TurnRate > 1080 || ti.TurnRate < -1080 {
+		ti.TurnRate = 0
+	}
+
+	// Basic plausibility check and ensure we do not overload you map
+	if ti.BearingDist_valid == true && ti.Distance >= 150000 {
+		// more than 150km away or invalid positions
+		return
 	}
 
 	traffic[key] = ti
-
-	// postProcessTraffic(&ti) For AIS we do need to post process traffic, we always get positions
-	if (isPositionReport) {
-		registerTrafficUpdate(ti)
-		seenTraffic[key] = true	
-	}
+	postProcessTraffic(&ti) // This will not estimate distance for non ES sources, pffff
+	registerTrafficUpdate(ti) // Sends this one to the web interface
+	seenTraffic[key] = true	
 
 	if globalSettings.DEBUG {
 		txt, _ := json.Marshal(ti)
