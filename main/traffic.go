@@ -195,7 +195,7 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_OGNTRACKER {
 		ognTrackerCodeInt, _ := strconv.ParseUint(globalSettings.OGNAddr, 16, 32)
 		if uint32(ognTrackerCodeInt) == ti.Icao_addr {
-			isOwnshipInfo = true
+			isOwnshipInfo = !isGPSValid() // only use OGN tracker as ownship position if we are not equipped with a GPS..
 			shouldIgnore = true
 			return
 		}
