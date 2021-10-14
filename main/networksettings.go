@@ -4,7 +4,7 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
-	networksettings.go: Management functions for network settings (hostapd, IP, DHCP)
+	networksettings.go: Management functions for network settings (wpa_supplicant, IP, DHCP)
 */
 
 package main
@@ -23,6 +23,7 @@ import (
 const (
 	WifiModeAp = 0
 	WifiModeDirect = 1
+	WifiModeApClient = 2
 )
 
 // NetworkTemplateParams is passed to the template engine to write settings
@@ -185,8 +186,8 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 		overlayctl("unlock")
 		writeTemplate(STRATUX_HOME + "/cfg/stratux-dnsmasq.conf.template", "/overlay/robase/etc/dnsmasq.d/stratux-dnsmasq.conf", tplSettings)
 		writeTemplate(STRATUX_HOME + "/cfg/interfaces.template", "/overlay/robase/etc/network/interfaces", tplSettings)
-		writeTemplate(STRATUX_HOME + "/cfg/hostapd.conf.template", "/overlay/robase/etc/hostapd/hostapd.conf", tplSettings)
 		writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant.conf", tplSettings)
+		writeTemplate(STRATUX_HOME + "/cfg/wpa_supplicant_ap.conf.template", "/overlay/robase/etc/wpa_supplicant/wpa_supplicant_ap.conf", tplSettings)
 		overlayctl("lock")
 
 		if !onlyWriteFiles {

@@ -1,0 +1,45 @@
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+
+p2p_disabled=1
+ap_scan=1
+network={
+{{if .WiFiSSID}}
+	ssid="{{.WiFiSSID}}"
+{{else}}
+	ssid="stratux"
+{{end}}
+
+{{if .WiFiPassPhrase}}
+	psk="{{.WiFiPassPhrase}}"
+	key_mgmt=WPA-PSK
+{{else}}
+	key_mgmt=NONE
+{{end}}
+	mode=2
+
+{{if eq .WiFiChannel 1}}
+	frequency=2412
+{{end}}{{if eq .WiFiChannel 2}}
+	frequency=2417
+{{end}}{{if eq .WiFiChannel 3}}
+	frequency=2422
+{{end}}{{if eq .WiFiChannel 4}}
+	frequency=2427
+{{end}}{{if eq .WiFiChannel 5}}
+	frequency=2432
+{{end}}{{if eq .WiFiChannel 6}}
+	frequency=2437
+{{end}}{{if eq .WiFiChannel 7}}
+	frequency=2442
+{{end}}{{if eq .WiFiChannel 8}}
+	frequency=2447
+{{end}}{{if eq .WiFiChannel 9}}
+	frequency=2452
+{{end}}{{if eq .WiFiChannel 10}}
+	frequency=2457	
+{{end}}{{if eq .WiFiChannel 11}}
+	frequency=2462
+{{end}}
+
+}
