@@ -1033,6 +1033,20 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		mySituation.muGPS.Unlock()
 	}()
+	// Simulate in-flight moving GPS, useful in combination with demo traffic in gen_gdl90.go
+	/*defer func() {
+		tmpSituation := mySituation
+		if strings.Contains(l, "GGA,") || strings.Contains(l, "RMC,") {
+			tmpSituation.GPSLatitude += float32(stratuxClock.Milliseconds) / 1000.0 / 60.0 / 30.0
+		}
+
+		tmpSituation.GPSTrueCourse = 0
+		tmpSituation.GPSGroundSpeed = 110
+		tmpSituation.GPSAltitudeMSL = 5000
+		tmpSituation.GPSHeightAboveEllipsoid = 5000
+		tmpSituation.BaroPressureAltitude = 4800
+		mySituation = tmpSituation
+	}()*/
 
 	// Local variables for GPS attitude estimation
 	thisGpsPerf := gpsPerf                              // write to myGPSPerfStats at end of function IFF
