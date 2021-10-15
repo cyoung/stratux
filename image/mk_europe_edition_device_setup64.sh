@@ -41,6 +41,7 @@ systemctl disable dnsmasq # we start it manually on respective interfaces
 systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable triggerhappy
+systemctl disable wpa_supplicant
 
 systemctl disable apt-daily.timer
 systemctl disable apt-daily-upgrade.timer

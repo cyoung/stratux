@@ -48,7 +48,7 @@ SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}==
 SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", SYMLINK+="serialin"
 
 # TTGO T-Echo
-SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="2109", ATTRS{idProduct}=="3431", SYMLINK+="serialin"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="8029", SYMLINK+="serialin"
 
 
 # TTGO dongle edition (0483:5740 STMicroelectronics Virtual COM Port)
