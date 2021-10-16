@@ -1326,6 +1326,20 @@ func addSystemError(err error) {
 var systemErrsMutex *sync.Mutex
 var systemErrs map[string]string
 
+func removeSingleSystemError(ident string) {
+	systemErrsMutex.Lock()
+	if oldMsg, ok := systemErrs[ident]; ok {
+		for i, v := range globalStatus.Errors {
+			if v == oldMsg {
+				globalStatus.Errors = append(globalStatus.Errors[:i], globalStatus.Errors[i+1:]...)
+				break
+			}
+		}
+	}
+	delete(systemErrs, ident)
+	systemErrsMutex.Unlock()
+}
+
 func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
 	systemErrsMutex.Lock()
 	if _, ok := systemErrs[ident]; !ok {

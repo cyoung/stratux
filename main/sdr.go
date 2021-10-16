@@ -715,12 +715,12 @@ func sdrWatcher() {
 		}
 		atomic.StoreUint32(&globalStatus.Devices, uint32(interfaceCount))
 
-		// support up to two dongles
+		// support up to 3 dongles
 		if count > 3 {
 			count = 3
 		}
 
-		if count == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled {
+		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled {
 			continue
 		}
 
@@ -739,7 +739,7 @@ func sdrWatcher() {
 		}
 		configDevices(count, esEnabled, uatEnabled, ognEnabled)
 
-		prevCount = count
+		prevCount = interfaceCount
 		prevUATEnabled = uatEnabled
 		prevESEnabled = esEnabled
 		prevOGNEnabled = ognEnabled
@@ -749,16 +749,18 @@ func sdrWatcher() {
 		if uatEnabled { countEnabled++ }
 		if esEnabled { countEnabled++ }
 		if ognEnabled { countEnabled++ }
-		if countEnabled > count {
+		if countEnabled > interfaceCount {
 			// User enabled too many protocols. Show error..
 			used := make([]string, 0)
 			if UATDev != nil { used = append(used, "UAT") }
 			if ESDev != nil { used = append(used, "1090ES") }
 			if OGNDev != nil { used = append(used, "OGN") }
 			addSingleSystemErrorf("sdrconfig", "You have enabled more protocols than you have receivers for. " +
-				"You have %d receivers, but enabled %d protocols. Please disable %d of them for things to work correctly. For now we are only using %s",
+				"You have %d receivers, but enabled %d protocols. Please disable %d of them for things to work correctly. For now we are only using %s.",
 				count, countEnabled, countEnabled - count, strings.Join(used, ", "))
 
+		} else {
+			removeSingleSystemError("sdrconfig")
 		}
 
 	}
