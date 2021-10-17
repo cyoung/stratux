@@ -31,13 +31,13 @@
 			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3" ng-if="!showReg">
+						<span ng-show="aircraft.tail" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>					
-					<span class="col-xs-3" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3" ng-if="showReg">
+						<span ng-show="aircraft.reg" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
+						<span ng-hide="aircraft.reg" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
 					<span class="col-xs-2">
 						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
@@ -124,13 +124,13 @@
 			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3" ng-if="!showReg">
+						<span ng-show="aircraft.tail" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor }">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
+						<span ng-hide="aircraft.tail" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor }">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>					
-					<span class="col-xs-3" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3" ng-if="showReg">
+						<span ng-show="aircraft.reg" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor }">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
+						<span ng-hide="aircraft.reg" class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor }">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
 					</span>
 					<span class="col-xs-2" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 					<span class="col-xs-2" ng-show="showCategory">

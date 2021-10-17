@@ -136,4 +136,86 @@ app.controller('MainCtrl', function ($scope, $http) {
             }
         }
     };
+})
+.service('colorService',function(){ 
+
+	// Must match the traffic-style in style.css
+	// THis ensures that the colors used in traffic.js and map.js for the vessels are the same
+	let aircraftColors = {
+		1: "cornflowerblue",
+		10: "cornflowerblue",
+		11: "cornflowerblue",
+
+		12: "skyblue",
+		13: "skyblue",
+		14: "skyblue",
+
+		2: "darkkhaki",
+		20: "darkkhaki",
+		21: "darkkhaki",
+
+		22: "khaki",
+		23: "khaki",
+		24: "khaki",
+
+		4: "green",
+		40: "green",
+		41: "green",
+
+		42: "greenyellow",
+		43: "greenyellow",
+		44: "greenyellow"
+	}
+
+	const getAircraftColor = (aircraft) => {
+		let code = "" + aircraft.Last_source+""+aircraft.TargetType;			
+		if (aircraftColors[code] === undefined) {
+			return "white";
+		} else {
+			return aircraftColors[code];
+		}
+	};
+
+	const getVesselColor = (vessel) => {
+		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
+		firstDigit = Math.floor(vessel.Emitter_category / 10)
+		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
+
+		const categoryFirst= {
+			6: "blue",
+			7: "green",
+			8: "red"
+		};		
+		const categorySecond= {
+			0: "orange",
+			1: "cyan",
+			2: "cyan",
+			3: "LightSkyBlue",
+			4: "LightSkyBlue",
+			5: "darkolivegreen",
+			6: "maroon",
+			7: "purple"
+		};		
+
+		if (categoryFirst[firstDigit]) {
+			return categoryFirst[firstDigit];
+		} else if (firstDigit===3 && categorySecond[secondDigit]) {
+			return categorySecond[secondDigit];
+		} else {
+			return 'gray';			
+		}
+	};
+
+	return {
+
+		getTransportColor: (craft) => {
+			if (craft.TargetType === TARGET_TYPE_AIS) {
+				return getVesselColor(craft);
+			} else {
+				return getAircraftColor(craft);
+			}
+		}
+	
+	};
+
 });

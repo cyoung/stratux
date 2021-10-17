@@ -123,21 +123,30 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	var header *ais.Header = msg.Packet.GetHeader()
 	var key = header.UserID
 
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+
 	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
 	} else {		
 		ti.Reg = fmt.Sprintf("%d", header.UserID)
 	}
 	
-	trafficMutex.Lock()
-	defer trafficMutex.Unlock()
-
+	ti.TargetType = TARGET_TYPE_AIS 
+	ti.Last_source = TRAFFIC_SOURCE_AIS
 	ti.Icao_addr = header.UserID
+	ti.Addr_type = uint8(1) // Non-ICAO Address
+	ti.SignalLevel = 0.0
+	ti.Squawk = 0
+	ti.Timestamp = time.Now().UTC()	
+	//	ti.Vvel = 0 
+	//	ti.PriorityStatus
+	ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
+	//ti.AgeLastAlt = time.Now().UTC().Sub(ti.Timestamp).Seconds()
+	ti.Last_seen = stratuxClock.Time
+	ageMs := int64(ti.Age * 1000)
 
-	// Binary Broadcast, we will ignore this
-	// !AIVDM,3,1,8,A,8h30otA?0@<o;NPPPP<i>nskl4tSp1m>@00o;NPPPP<iCnsm<4tPG286@00o;NPP,0*3D
-	// !AIVDM,3,2,8,A,PP<j>nsphTtHBR7@@00o;NPPPP<jCnssG4tCk2N0@00o;NPPPP<k>nsuPTt6m2Mt,0*44
-    // !AIVDM,3,3,8,A,@00o;NPPPP<kCnsuwTt3?2lB@00,2*3D
+	ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
 
 	// Handle Ship Static Data
 	if header.MessageID == 5 {
@@ -168,11 +177,6 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	//	ti.Reg = ""
 	//	ti.Tail // Set above
 		ti.OnGround = true
-		ti.Addr_type = uint8(1) // Non-ICAO Address
-		ti.TargetType = TARGET_TYPE_AIS 
-		ti.SignalLevel = 0.0
-	//    ti.SignalLevelHist
-		ti.Squawk = 0
 		ti.Position_valid = true
 		ti.Lat = float32(positionReport.Latitude)
 		ti.Lng = float32(positionReport.Longitude)
@@ -214,31 +218,11 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		}
 		ti.TurnRate = (rot/4.733)*(rot/4.733)
 
-		//	ti.Vvel = 0 
-		ti.Timestamp = time.Now().UTC()	
-	//	ti.PriorityStatus
-		ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
-		//ti.AgeLastAlt = time.Now().UTC().Sub(ti.Timestamp).Seconds()
-		ti.Last_seen = stratuxClock.Time
-		ageMs := int64(ti.Age * 1000)
-
-		ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
 		ti.Last_alt = ti.Last_seen
 		ti.Last_speed = ti.Last_seen
 	
-	//	ti.Last_GnssDiff        
-	//	ti.Last_GnssDiffAlt     
-		ti.Last_source = TRAFFIC_SOURCE_AIS
 		ti.ExtrapolatedPosition = false
-	//	ti.Last_extrapolation   time.Time
-	//	ti.AgeExtrapolation     float64
-	//	ti.Lat_fix              float32   // Last real, non-extrapolated latitude
-	//	ti.Lng_fix              float32   // Last real, non-extrapolated longitude
-	//	ti.Alt_fix              int32     // Last real, non-extrapolated altitude		return
 	}
-	//	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
-	//	DistanceEstimatedLastTs time.Time // Used to compute moving average
-	//	ReceivedMsgs         uint64    // Number of messages received by this aircraft
 
 	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
 	if ti.Lat > 360 || ti.Lat < -360 || ti.Lng > 360 || ti.Lng < -360 {

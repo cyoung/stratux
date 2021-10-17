@@ -1,5 +1,5 @@
 angular.module('appControllers').controller('TrafficCtrl', TrafficCtrl); // get the main module contollers set
-TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
+TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'colorService']; // Inject my dependencies
 
 var TARGET_TYPE_AIS = 5
 //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
@@ -7,7 +7,7 @@ let TRAFFIC_MAX_AGE_SECONDS = 15;
 let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30-60;
 
 // create our controller function with all necessary logic
-function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
+function TrafficCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
@@ -50,68 +50,68 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 				min < 10 ? "0" + min : min,
 				"' "].join('');
 	}
+
+	function getVesselCategory(vessel) {
+		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
+		firstDigit = Math.floor(vessel.Emitter_category / 10)
+		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
+
+		const categoryFirst= {
+			6: "Passanger",
+			7: "Cargo",
+			8: "Tanker",
+		};		
+		const categorySecond= {
+			0: "Fishing",
+			1: "Tugs",
+			2: "Tugs",
+			3: "dredging",
+			4: "Diving",
+			5: "Military",
+			6: "Sailing",
+			7: "Pleasure",
+		};		
+
+		if (categoryFirst[firstDigit]) {
+			return categoryFirst[firstDigit];
+		} else if (firstDigit===3 && categorySecond[secondDigit]) {
+			return categorySecond[secondDigit];
+		} else {
+			return '---';			
+		}
+	}
+
+	function getAircraftCategory(aircraft) {
+		const category = {
+			1: "Light",
+			2: "Small",
+			3: "Large",
+			4: "VLarge",
+			5: "Heavy",
+			6: "Fight",
+			7: "Helic",
+			9: "Glide",
+			10: "Ballo",
+			11: "Parac",
+			12: "Ultrl",
+			14: "Drone",
+			15: "Space",
+			16: "VLarge",
+			18: "Vehic",
+			19: "Obstc"
+		};		
+		return category[aircraft.Emitter_Category]?category[aircraft.Emitter_Category]:'---';
+	}
+
 	
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
-		new_traffic.targettype = obj.TargetType;
+		new_traffic.TargetType = obj.TargetType;
+		new_traffic.Last_source = obj.Last_source; // 1=ES, 2=UAT, 4=OGN, 8=AIS
 		new_traffic.emittercategory = obj.Emitter_category;
 		new_traffic.signal = obj.SignalLevel;
 	        //console.log('Emitter Category:' + obj.Emitter_category);
-		switch(obj.Emitter_category) {
-  			case 1:		// piston or up to 15500 lbs
-				new_traffic.category="Light";   
-    				break;
-  			case 2: 	// small up to 75500lbs
-				new_traffic.category="Small";   
-    				break;
-			case 3:		// up to 300000 lbs
-				new_traffic.category="Large";   
-    				break;
-			case 4:		// high vortex
-				new_traffic.category="VLarge";   
-    				break;
-			case 5:		// heavy aircraft  
-				new_traffic.category="Heavy";   
-    				break;
-			case 6:		// >5G and 400 kts, fighter
-				new_traffic.category="Fight";   
-    				break;
-  			case 7:		//Helicopter  according to GDL90
-				new_traffic.category="Helic";   
-    				break;
-  			case 9:		//glider
-				new_traffic.category="Glide";   
-    				break;
-			case 10:	//balloon
-				new_traffic.category="Ballo";   
-    				break;
-  			case 11:		//Skydiver
-				new_traffic.category="Parac";   
-    				break;
-  			case 12:	// ultralight
-				new_traffic.category="Ultrl";   
-    				break;
-			case 14:	// unmanned 
-				new_traffic.category="Drone";   
-    				break;
-			case 15:	// space aircraft
-				new_traffic.category="Space";   
-    				break;
-			case 17:	// emgn vehicle
-			case 18:	// surface vehicle 
-				new_traffic.category="Vehic";   
-    				break;
-			case 19:	// surface vehicle 
-				new_traffic.category="Obstc";   
-    				break;
-  			default:
-				new_traffic.category="----";   
-		}
-		if (new_traffic.targettype ===  TARGET_TYPE_AIS) {
-			new_traffic.addr_symb = '\uD83D\uDEA2';
-		} else {
-			new_traffic.addr_symb = '\uD83D\uDEE9';
-		}
+		
 		new_traffic.icao = obj.Icao_addr.toString(16).toUpperCase();
 		new_traffic.tail = obj.Tail;
 		new_traffic.reg = obj.Reg;
@@ -138,10 +138,18 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 		new_traffic.time = utcTimeString(timestamp);
 		new_traffic.age = obj.Age;
 		new_traffic.ageLastAlt = obj.AgeLastAlt;
-		new_traffic.src = obj.Last_source; // 1=ES, 2=UAT, 4=OGN, 8=AIS
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
-		new_traffic.dist = (obj.Distance/1852); // nautical miles
+		new_traffic.dist = obj.Distance / 1852; // nautical miles
 		new_traffic.distEst = obj.DistanceEstimated / 1852;
+
+		new_traffic.trafficColor = colorService.getTransportColor(obj);
+		if (new_traffic.TargetType ===  TARGET_TYPE_AIS) {
+			new_traffic.category = getVesselCategory(obj);
+			new_traffic.addr_symb = '\uD83D\uDEA2';
+		} else {
+			new_traffic.category = getAircraftCategory(obj);
+			new_traffic.addr_symb = '\uD83D\uDEE9';
+		}
 		// return new_aircraft;
 	}
 
@@ -270,9 +278,9 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval) {
 
 	var isTrafficAged = function(aircraft, targetVar ) {
 		const value = aircraft[targetVar];
-		if (aircraft.targettype === TARGET_TYPE_AIS) {
+		if (aircraft.TargetType === TARGET_TYPE_AIS) {
 			return value > TRAFFIC_AIS_MAX_AGE_SECONDS;
-		} else { // For other sources it's based on seconds
+		} else { 
 			return value > TRAFFIC_MAX_AGE_SECONDS;
 		}
 	}

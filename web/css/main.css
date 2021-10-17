@@ -180,47 +180,8 @@
 	color: white;
 }
 
-.traffic-style1,
-.traffic-style10,
-.traffic-style11 {
+.traffic-style {
 	color: #000000;
-	background-color: cornflowerblue;
-}
-
-.traffic-style12,
-.traffic-style13,
-.traffic-style14 {
-	color: #000000;
-	background-color: skyblue;
-}
-
-.traffic-style2,
-.traffic-style20,
-.traffic-style21 {
-	color: #000000;
-	background-color: darkkhaki
-}
-
-.traffic-style22,
-.traffic-style23,
-.traffic-style24 {
-	color: #000000;
-	background-color: khaki
-}
-
-.paperairplane_left,
-.traffic-style4,
-.traffic-style40,
-.traffic-style41 {
-	color: #000000;
-	background-color: green;
-}
-
-.traffic-style42,
-.traffic-style43,
-.traffic-style44 {
-	color: #000000;
-	background-color: greenyellow;
 }
 
 .icon-red {

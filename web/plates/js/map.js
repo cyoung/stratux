@@ -1,12 +1,11 @@
 angular.module('appControllers').controller('MapCtrl', MapCtrl);           // get the main module contollers set
-MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval'];  // Inject my dependencies
+MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'colorService'];  // Inject my dependencies
 var TARGET_TYPE_AIS = 5
 
 
-function MapCtrl($rootScope, $scope, $state, $http, $interval) {
+function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 	let TRAFFIC_MAX_AGE_SECONDS = 15;
 	let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30;
-
 
 	$scope.$parent.helppage = 'plates/radar-help.html';
 
@@ -147,58 +146,10 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 	}
 
-	let colorCache = {};
-	function getColorForAircraft(aircraft) {
-		let key = 'traffic-style' + aircraft.Last_source + aircraft.TargetType;
-		if (colorCache[key])
-			return colorCache[key];
-
-		let dummyElem = document.createElement('div');
-		dummyElem.classList.add(key);
-		document.body.appendChild(dummyElem);
-		let style = window.getComputedStyle(dummyElem);
-		let color = style.getPropertyValue('background-color');
-		document.body.removeChild(dummyElem);
-		colorCache[key] = color;
-		return color;
-	}
-
-	function getColorForVessel(craft) {
-		firstDigit = Math.floor(craft.Emitter_category / 10)
-		secondDigit = craft.Emitter_category - Math.floor(craft.Emitter_category / 10)*10;
-
-		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
-		if (firstDigit===7) { // Cargo
-			return 'green';
-		} else if (firstDigit===8) { // Tanker
-			return 'red';
-		} else if (firstDigit===6) { // Passanger
-			return 'blue';
-		} else if (firstDigit===3) { // Passanger
-			if (secondDigit===0) {   // Fishing
-				return 'orange';
-			} else if(secondDigit===1 || secondDigit===2) { // Tugs etc
-				return 'cyan';
-			} else if(secondDigit===3 || secondDigit===4) { // dredging/diving
-				return 'LightSkyBlue';
-			} else if(secondDigit===5) { // military
-				return 'darkolivegreen';
-			} else if(secondDigit===6) { // sailing 
-				return 'maroon';
-			} else if(secondDigit===7) { // pleasure
-				return 'purple';
-			}
-		}
-		return 'gray';
-	}
-
 	function createPlaneSvg(aircraft) {
 		let html = ``;
+		let color = colorService.getTransportColor(aircraft);	
 		if (aircraft.TargetType === TARGET_TYPE_AIS) {
-			let color = getColorForVessel(aircraft);	
-			if (color!=='gray') {
-				console.log(JSON.stringify(aircraft))
-			}	
 		    html = `
 			<svg width="11" height="25" xmlns="http://www.w3.org/2000/svg" version="1.1">
 			<g>
@@ -208,7 +159,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		   </svg>
 			`;
 		} else {
-			let color = getColorForAircraft(aircraft);		
 			html = `
 				<svg height="30" width="30" viewBox="0 0 250 250" version="1.1" xmlns="http://www.w3.org/2000/svg" >
 					<path fill="${color}" stroke="white" stroke-width="5" d="M 247.51404,152.40266 139.05781,71.800946 c 0.80268,-12.451845 1.32473,-40.256266 0.85468,-45.417599 -3.94034,-43.266462 -31.23018,-24.6301193 -31.48335,-5.320367 -0.0693,5.281361 -1.01502,32.598388 -1.10471,50.836622 L 0.2842717,154.37562 0,180.19575 l 110.50058,-50.48239 3.99332,80.29163 -32.042567,22.93816 -0.203845,16.89693 42.271772,-11.59566 0.008,0.1395 42.71311,10.91879 -0.50929,-16.88213 -32.45374,-22.39903 2.61132,-80.35205 111.35995,48.50611 -0.73494,-25.77295 z" fill-rule="evenodd"/>
@@ -344,6 +294,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		// 1 = non-icao, everything else = icao
 		if ((addrType1 == 1 && addrType2 == 1) || (addrType1 != 1 && addrType2 != 1))
 			return true;
+		
+		return false;
 	}
 
 	$scope.onMessage = function(msg) {
@@ -351,7 +303,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		if (!aircraft.Position_valid || $scope.isTrafficAged(aircraft)) {
 			return;
 		}
-
 		aircraft.receivedTs = Date.now();
 		let prevColor = undefined;
 
@@ -362,7 +313,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		for (let i in $scope.aircraft) {
 			if (isSameAircraft($scope.aircraft[i].Icao_addr, $scope.aircraft[i].Addr_type, aircraft.Icao_addr, aircraft.Addr_type)) {
 				let oldAircraft = $scope.aircraft[i];
-				prevColor = getColorForAircraft(oldAircraft);
+				prevColor = colorService.getTransportColor(oldAircraft);
 				aircraft.marker = oldAircraft.marker;
 				aircraft.trail = oldAircraft.trail;
 				aircraft.posHistory = oldAircraft.posHistory;
@@ -420,7 +371,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 
 		updateVehicleText(aircraft);
-		if (!prevColor || prevColor != getColorForAircraft(aircraft)) {
+		if (!prevColor || prevColor != colorService.getTransportColor(aircraft)) {
 			let imageStyle = new ol.style.Icon({
 				opacity: 1.0,
 				src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
