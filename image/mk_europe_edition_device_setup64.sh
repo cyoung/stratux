@@ -25,7 +25,7 @@ apt update
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq tcpdump git cmake \
-    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python-serial jq
+    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python-serial jq ifplugd
 
 # try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
 # Disable swap...
@@ -46,6 +46,9 @@ systemctl disable wpa_supplicant
 systemctl disable apt-daily.timer
 systemctl disable apt-daily-upgrade.timer
 systemctl disable man-db.timer
+
+# Run DHCP on eth0 when cable is plugged in
+sed -i -e 's/INTERFACES=""/INTERFACES="eth0"/g' /etc/default/ifplugd
 
 # Generate ssh key for all installs. Otherwise it would have to be done on each boot, which takes a couple of seconds
 ssh-keygen -A -v
