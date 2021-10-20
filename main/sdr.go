@@ -910,6 +910,28 @@ func sdrWatcher() {
 		prevESEnabled = esEnabled
 		prevOGNEnabled = ognEnabled
 		prevAISEnabled = aisEnabled
+
+		countEnabled := 0
+
+		if uatEnabled { countEnabled++ }
+		if esEnabled { countEnabled++ }
+		if ognEnabled { countEnabled++ }
+		if aisEnabled { countEnabled++ }
+		if countEnabled > interfaceCount {
+			// User enabled too many protocols. Show error..
+			used := make([]string, 0)
+			if UATDev != nil { used = append(used, "UAT") }
+			if ESDev != nil { used = append(used, "1090ES") }
+			if OGNDev != nil { used = append(used, "OGN") }
+			if AISDev != nil { used = append(used, "AIS") }
+			addSingleSystemErrorf("sdrconfig", "You have enabled more protocols than you have receivers for. " +
+				"You have %d receivers, but enabled %d protocols. Please disable %d of them for things to work correctly. For now we are only using %s.",
+				count, countEnabled, countEnabled - count, strings.Join(used, ", "))
+
+		} else {
+			removeSingleSystemError("sdrconfig")
+		}
+
 	}
 }
 

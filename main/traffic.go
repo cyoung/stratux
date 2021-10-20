@@ -186,7 +186,7 @@ func cleanupOldEntries() {
 			delete(traffic, key)
 		}
 
-		if ti.Last_source == TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60*30 { // keep it in the database for up to 30 minutes, so we don't lose tail number, etc...
+		if ti.Last_source == TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60*15 { // keep it in the database for up to 15 minutes, so we don't lose tail number, etc...
 			delete(traffic, key)
 		}
 	}
