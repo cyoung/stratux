@@ -230,7 +230,7 @@ app.controller('MainCtrl', function ($scope, $http) {
 			2: "Cargo",
 			4: "Cargo",
 			5: "Cargo",
-			6: "Passanger",
+			6: "Passenger",
 			7: "Cargo",
 			8: "Tanker",
 			9: "Cargo",

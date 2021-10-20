@@ -7,4 +7,4 @@
 	url = https://github.com/pjalocha/esp32-ogn-tracker.git
 [submodule "rtl-ais"]
 	path = rtl-ais
-	url = https://github.com/dgiardini/rtl-ais
+	url = https://github.com/mik3y/rtl-ais

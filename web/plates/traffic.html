@@ -31,7 +31,7 @@
 				<div class="separator"></div>
 				<div class="col-sm-6">
 					<span class="col-xs-3">
-						<span ng-class="'label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">
+						<span class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">
 							<img src="img/logo-transparent.png" style="height:1em" ng-show="aircraft.isStratux" />
 							<span ng-hide="aircraft.isStratux">{{aircraft.addr_symb}}</span>
 							<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
@@ -121,7 +121,7 @@
 				<div class="separator"></div>
 				<div class="col-sm-6">
 					<span class="col-xs-3">
-						<span ng-class="'label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
+						<span class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
 					</span>
 					<span class="col-xs-2" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 					<span class="col-xs-2" ng-show="showCategory">

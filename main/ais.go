@@ -12,7 +12,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-//	"io/ioutil"
 	"log"
 	"net"
 	"strings"
