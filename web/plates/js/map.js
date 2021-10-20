@@ -4,7 +4,7 @@ MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craf
 
 function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 	let TRAFFIC_MAX_AGE_SECONDS = 15;
-	let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30;
+	let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*15;
 
 	$scope.$parent.helppage = 'plates/radar-help.html';
 
