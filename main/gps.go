@@ -1034,7 +1034,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		mySituation.muGPS.Unlock()
 	}()
 	// Simulate in-flight moving GPS, useful in combination with demo traffic in gen_gdl90.go
-	/*defer func() {
+	defer func() {
 		tmpSituation := mySituation
 		if strings.Contains(l, "GGA,") || strings.Contains(l, "RMC,") {
 			tmpSituation.GPSLatitude += float32(stratuxClock.Milliseconds) / 1000.0 / 60.0 / 30.0
@@ -1046,7 +1046,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		tmpSituation.GPSHeightAboveEllipsoid = 5000
 		tmpSituation.BaroPressureAltitude = 4800
 		mySituation = tmpSituation
-	}()*/
+	}()
 
 	// Local variables for GPS attitude estimation
 	thisGpsPerf := gpsPerf                              // write to myGPSPerfStats at end of function IFF
@@ -1899,7 +1899,8 @@ func gpsSerialReader() {
 }
 
 func makeAHRSSimReport() {
-	sendXPlane(createXPlaneAttitudeMsg(float32(mySituation.AHRSGyroHeading), float32(mySituation.AHRSPitch), float32(mySituation.AHRSRoll)), false)
+	msg := createXPlaneAttitudeMsg(float32(mySituation.AHRSGyroHeading), float32(mySituation.AHRSPitch), float32(mySituation.AHRSRoll))
+	sendXPlane(msg, 100 * time.Millisecond, 1)
 }
 
 /*
@@ -1951,7 +1952,7 @@ func makeFFAHRSMessage() {
 	msg[10] = byte((tas >> 8) & 0xFF)
 	msg[11] = byte(tas & 0xFF)
 
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, 200 * time.Millisecond, 3)
 }
 
 /*
@@ -2049,7 +2050,7 @@ func makeAHRSGDL90Report() {
 	msg[22] = 0x7F
 	msg[23] = 0xFF
 
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, 100 * time.Millisecond, 3)
 }
 
 func gpsAttitudeSender() {

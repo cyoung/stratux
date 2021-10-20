@@ -296,9 +296,6 @@ func sendTrafficUpdates() {
 		currAlt = mySituation.GPSAltitudeMSL
 	}
 
-	msgs := make([][]byte, 1)
-	msgFLARM := ""
-	msgFlarmCount := 0
 	var bestEstimate TrafficInfo
 	var highestAlarmLevel uint8
 	var highestAlarmTraffic TrafficInfo
@@ -368,27 +365,12 @@ func sendTrafficUpdates() {
 				}
 				OwnshipTrafficInfo = ti
 			} else if !shouldIgnore {
-				cur_n := len(msgs) - 1
-				if len(msgs[cur_n]) >= 35 {
-					// Batch messages into packets with at most 35 traffic reports
-					//  to keep each packet under 1KB.
-					cur_n++
-					msgs = append(msgs, make([]byte, 0))
-				}
-				msgs[cur_n] = append(msgs[cur_n], makeTrafficReportMsg(ti)...)
+				priority := computeTrafficPriority(&ti)
+				sendGDL90(makeTrafficReportMsg(ti), time.Second, priority)
 				thisMsgFLARM, validFLARM, alarmLevel := makeFlarmPFLAAString(ti)
 				if alarmLevel > highestAlarmLevel {
 					highestAlarmLevel = alarmLevel
 					highestAlarmTraffic = ti
-				}
-				//log.Printf(thisMsgFLARM)
-				if validFLARM {
-					//sendNetFLARM(thisMsgFLARM)
-					msgFLARM += thisMsgFLARM
-					msgFlarmCount++
-					//log.Printf("%v\n",[]byte(thisMsgFLARM))
-				} else {
-					//log.Printf("FLARM output: Traffic %X couldn't be translated\n", ti.Icao_addr)
 				}
 
 				var trafficCallsign string
@@ -399,38 +381,49 @@ func sendTrafficUpdates() {
 				}
 
 				// send traffic message to X-Plane
-				sendXPlane(createXPlaneTrafficMsg(ti.Icao_addr, ti.Lat, ti.Lng, ti.Alt, uint32(ti.Speed), int32(ti.Vvel), ti.OnGround, uint32(ti.Track), trafficCallsign), false)
+				sendXPlane(createXPlaneTrafficMsg(ti.Icao_addr, ti.Lat, ti.Lng, ti.Alt, uint32(ti.Speed), int32(ti.Vvel), ti.OnGround, uint32(ti.Track), trafficCallsign), 1000, priority)
+				if validFLARM {
+					sendNetFLARM(thisMsgFLARM, time.Second, priority)
+				}
 			}
 		}
 	}
 
-	for i := 0; i < len(msgs); i++ {
-		msg := msgs[i]
-		if len(msg) > 0 {
-			sendGDL90(msg, false)
-		}
-	}
-
-	sendNetFLARM(msgFLARM)
 	// Also send the nearest best bearingless
 	if bestEstimate.DistanceEstimated > 0 && bestEstimate.DistanceEstimated < 15000 {
-		msg, valid, _ := makeFlarmPFLAAString(bestEstimate)
-		if valid { 
-			sendNetFLARM(msg)
-		}
-
 		if globalSettings.EstimateBearinglessDist && isGPSValid() {
 			fakeTargets := calculateModeSFakeTargets(bestEstimate)
 			fakeMsg :=  make([]byte, 0)
 			for _, ti := range fakeTargets {
 				fakeMsg = append(fakeMsg, makeTrafficReportMsg(ti)...)
 			}
-			sendGDL90(fakeMsg, false)
+			prio := computeTrafficPriority(&fakeTargets[0])
+			sendGDL90(fakeMsg, time.Second, prio)
+			msg, valid, _ := makeFlarmPFLAAString(bestEstimate)
+			if valid { 
+				sendNetFLARM(msg, time.Second, prio)
+			}
 		}
 	}
 
 	msgPFLAU := makeFlarmPFLAUString(highestAlarmTraffic)
-	sendNetFLARM(msgPFLAU)
+	sendNetFLARM(msgPFLAU, time.Second, 0)
+}
+
+func computeTrafficPriority(ti *TrafficInfo) int32 {
+	if !ti.BearingDist_valid || ti.Alt == 0 {
+		return 9999999
+	}
+	var myAlt float32
+	if isTempPressValid() {
+		myAlt = mySituation.BaroPressureAltitude
+	} else {
+		myAlt = mySituation.GPSAltitudeMSL
+	}
+	altDiff := math.Abs(float64(myAlt) - float64(ti.Alt))
+	// assumes 333ft vertical difference has same priority 1000m horizontal
+	// This will usually produce priorities ranging from around 0-10
+	return int32((altDiff / 3.33 + ti.Distance) / 10000.0)
 }
 
 // Used to tune to our radios. We compare our estimate to real values for ADS-B Traffic.

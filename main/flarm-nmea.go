@@ -33,14 +33,6 @@ import (
 		the message into a channel so it can be	sent out to a TCP server.
 */
 
-func sendNetFLARM(msg string) {
-	sendMsg([]byte(msg), NETWORK_FLARM_NMEA, false) // UDP (and possibly future serial) output. Traffic messages are always non-queuable.
-	if len(msgchan) < cap(msgchan) {
-		msgchan <- msg // TCP output.
-	}
-
-}
-
 // Append checksum and to nmea string
 func appendNmeaChecksum(nmea string) string {
 	start := 0
@@ -471,7 +463,7 @@ func makeAHRSLevilReport() {
 
 	msg := fmt.Sprintf("$RPYL,%d,%d,%d,%d,%d,%d,0", roll, pitch, hdg, slip_skid, yaw_rate, g)
 	appendNmeaChecksum(msg)
-	sendNetFLARM(msg + "\r\n")
+	sendNetFLARM(msg + "\r\n", 100 * time.Millisecond, 4)
 }
 
 /*
@@ -486,31 +478,6 @@ type tcpClient struct {
 	ch   chan string
 }
 
-var msgchan chan string
-
-func tcpNMEAOutListener() {
-	ln, err := net.Listen("tcp", ":2000")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	msgchan = make(chan string, 1024) // buffered channel n = 1024
-	addchan := make(chan tcpClient)
-	rmchan := make(chan tcpClient)
-
-	go handleMessages(msgchan, addchan, rmchan)
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		go handleNmeaOutConnection(conn, msgchan, addchan, rmchan)
-	}
-}
 
 /* Server that can be used to feed NMEA data to, e.g. to connect OGN Tracker wirelessly */
 func tcpNMEAInListener() {

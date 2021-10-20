@@ -302,7 +302,10 @@ func handleSatellitesRequest(w http.ResponseWriter, r *http.Request) {
 func handleSettingsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
-	settingsJSON, _ := json.Marshal(&globalSettings)
+	settingsJSON, err := json.Marshal(&globalSettings)
+	if err != nil {
+		log.Printf("%s", err)
+	}
 	fmt.Fprintf(w, "%s\n", settingsJSON)
 }
 
@@ -398,13 +401,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 								}
 								log.Printf("changing %s baud rate from %d to %d.\n", dev, serialOut.Baud, newBaud)
 								serialOut.Baud = newBaud
-								// Close the port if it is open.
-								if serialOut.serialPort != nil {
-									log.Printf("closing %s for baud rate change.\n", dev)
-									serialOut.serialPort.Close()
-									serialOut.serialPort = nil
-								}
 								globalSettings.SerialOutputs[dev] = serialOut
+								closeSerial(dev)
 							}
 						}
 					case "WatchList":
@@ -685,7 +683,7 @@ func handleClientsGetRequest(w http.ResponseWriter, r *http.Request) {
 	setNoCache(w)
 	setJSONHeaders(w)
 	netMutex.Lock()
-	clientsJSON, _ := json.Marshal(&outSockets)
+	clientsJSON, _ := json.Marshal(&clientConnections)
 	netMutex.Unlock()
 	fmt.Fprintf(w, "%s\n", clientsJSON)
 }

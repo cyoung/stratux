@@ -446,8 +446,8 @@ func makeOwnshipReport() bool {
 		msg[19+i] = myReg[i]
 	}
 
-	sendGDL90(prepareMessage(msg), false)
-	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL, groundTrack, float32(gdSpeed)), false)
+	sendGDL90(prepareMessage(msg), time.Second, -1)
+	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL, groundTrack, float32(gdSpeed)), time.Second, -1)
 
 	return true
 }
@@ -470,7 +470,7 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	msg[3] = 0x00
 	msg[4] = 0x0A
 
-	sendGDL90(prepareMessage(msg), false)
+	sendGDL90(prepareMessage(msg), time.Second, -1)
 	return true
 }
 
@@ -742,7 +742,7 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret), true)
+	sendGDL90(prepareMessage(ret), 15 * time.Minute, 4)
 }
 
 func blinkStatusLED() {
@@ -761,10 +761,10 @@ func blinkStatusLED() {
 
 func sendAllOwnshipInfo() {
 	//log.Printf("Sending ownship info")
-	sendGDL90(makeHeartbeat(), false)
-	sendGDL90(makeStratuxHeartbeat(), false)
-	sendGDL90(makeStratuxStatus(), false)
-	sendGDL90(makeFFIDMessage(), false)
+	sendGDL90(makeHeartbeat(), time.Second, 0)
+	sendGDL90(makeStratuxHeartbeat(), time.Second, 0)
+	sendGDL90(makeStratuxStatus(), time.Second, 0)
+	sendGDL90(makeFFIDMessage(), time.Second, 0)
 	makeOwnshipReport()
 	makeOwnshipGeometricAltitudeReport()
 }
@@ -792,16 +792,16 @@ func heartBeatSender() {
 
 			sendAllOwnshipInfo()
 
-			sendNetFLARM(makeGPRMCString())
-			sendNetFLARM(makeGPGGAString())
+			sendNetFLARM(makeGPRMCString(), time.Second, -1)
+			sendNetFLARM(makeGPGGAString(), time.Second, 0)
 			if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
-				sendNetFLARM(makePGRMZString())
+				sendNetFLARM(makePGRMZString(), time.Second, 0)
 			}
-			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n")
+			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n", time.Second, 1)
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
-			/*
+			
 				numTargets := uint32(36)
 				hexCode := uint32(0xFF0000)
 
@@ -814,7 +814,7 @@ func heartBeatSender() {
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-			*/
+			
 
 			// ---end traffic demo code ---
 			sendTrafficUpdates()
@@ -1230,13 +1230,9 @@ type status struct {
 	CPUTempMin                                 float32
 	CPUTempMax                                 float32
 	NetworkDataMessagesSent                    uint64
-	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
-	NetworkDataBytesSentNonqueueable           uint64
 	NetworkDataMessagesSentLastSec             uint64
-	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
-	NetworkDataBytesSentNonqueueableLastSec    uint64
 	UAT_METAR_total                            uint32
 	UAT_TAF_total                              uint32
 	UAT_NEXRAD_total                           uint32
@@ -1421,7 +1417,7 @@ func printStats() {
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f [%.02f - %.02f] deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, globalStatus.CPUTempMin, globalStatus.CPUTempMax, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
-		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
+		log.Printf(" - Network data messages sent: %d total.  Network data bytes sent: %d total.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataBytesSent)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.GPSLastFixLocalTime), mySituation.GPSFixQuality, mySituation.GPSSatellites, mySituation.GPSSatellitesSeen, mySituation.GPSSatellitesTracked, mySituation.GPSNACp, mySituation.GPSHorizontalAccuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVerticalSpeed, mySituation.GPSVerticalAccuracy)
@@ -1438,6 +1434,9 @@ func printStats() {
 			log.Printf("- " + strings.Join(sensorsOutput, ", ") + "\n")
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
+		if usage == nil { // happens after startup when in debugger
+			usage = du.NewDiskUsage("/")
+		}
 		if usage.Usage() > 0.95 {
 			addSingleSystemErrorf("disk-space", "Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		}
