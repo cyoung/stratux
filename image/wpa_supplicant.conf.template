@@ -9,6 +9,7 @@ p2p_go_intent=15
 p2p_ssid_postfix=-{{.WiFiSSID}}
 persistent_reconnect=1
 p2p_go_ht40=1
+config_methods=keypad
 
 network={
 	ssid="DIRECT-{{.WiFiSSID}}"

@@ -34,20 +34,3 @@ It also shows how you can modify your pre-built Stratux US version to run the EU
 
 If you want to customize beyond that, or have different needs, you can find a full list of supported hardware/attachments [here](https://github.com/b3nn0/stratux/wiki/Supported-Hardware).
 
-
-
-## Notes to SkyDemon Users
-SkyDemon is probably the most popular EFB in Europe, and we are trying hard to make Stratux work as good as possible in SkyDemon, which is not always easy. Most notably, with original Stratux on a RaspberryPI 2b, you can often observe disconnects, which will show as many red dots in your track log.
-
-Thorough analysis has shown that this is caused by a mix of
-- RaspberryPI's brcmfmac wifi driver and its behaviour when UDP package delivery is slow
-- Androids/iOSs handling of UDP packets under load
-- A wonky GDL90 implementation in SkyDemon (which is not very error tolerant, even though the UDP RFC explicitly says that applications should expect errors and work around them).
-
-If you will suffer from these problems depends on many factors, but it is certainly possible.
-The real solution would be, that SkyDemon behaves more error tolerant, but they seem to be resiliant to do so.
-As of version 1.5b2-eu004, the web interface has a settings switch labeled "SkyDemon Android disconnect bug workaround". Enabling this will cause Stratux to send position reports to the EFB every 150ms instead of every second.
-Experiments show that SkyDemon handles this relatively well and will show disconnects much rarer.
-Note that this is an ugly hack and does not conform the GDL90 specification, but it seems to do the job for SkyDemon.
-
-

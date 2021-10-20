@@ -45,6 +45,7 @@ type OgnMessage struct {
 	DOP float64
 	SNR_dB float64
 	Rx_err int32
+	Hard string
 
 	// Status message (Sys=status):
 	Bkg_noise_db float32
@@ -197,10 +198,18 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 
 	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
-		// ogn-rx sends 2 types of messages.. normal ones with coords etc, and ones that only supply registration info. These usually don't have
+		// ogn-rx sends 2 types of messages.. normal ones with coords etc, and ones that only supply additional info (registration, Hardware, ...). These usually don't have
 		// coords, so we can't validate them easily. Therefore, this is handled before other validations and only if we already received the traffic earlier
+		hasInfo := false
 		if len(msg.Reg) > 0 {
 			ti.Tail = msg.Reg
+			hasInfo = true
+		}
+		if msg.Hard == "STX" {
+			ti.IsStratux = true
+			hasInfo = true
+		}
+		if hasInfo {
 			traffic[key] = ti
 		}
 		if msg.Time > 0 && !ti.Timestamp.IsZero() {

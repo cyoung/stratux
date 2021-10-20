@@ -42,8 +42,14 @@ SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout NMEA", SYMLINK+="serialo
 
 # SoftRF Standalone (NodeMCU or DoIt ESP32 devkit with CP2102 chip)
 SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="DIY SoftRF", SYMLINK+="serialin"
-# TTGO T-Beam (ESP32 with OTP CP2104 chip)
+
+# TTGO T-Beam (ESP32 with OTP CP2104 or QinHeng Electronics chip)
 SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="CP2104 USB to UART Bridge Controller", SYMLINK+="serialin"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", SYMLINK+="serialin"
+
+# TTGO T-Echo
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="8029", SYMLINK+="serialin"
+
+
 # TTGO dongle edition (0483:5740 STMicroelectronics Virtual COM Port)
 SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="softrf_dongle"
-

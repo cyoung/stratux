@@ -877,16 +877,12 @@ func sdrWatcher() {
 		}
 		atomic.StoreUint32(&globalStatus.Devices, uint32(interfaceCount))
 
-		// support up to two dongles
+		// support up to 3 dongles
 		if count > 3 {
 			count = 3
 		}
 
-		if count == prevCount && 
-			prevESEnabled == esEnabled && 
-			prevUATEnabled == uatEnabled && 
-			prevOGNEnabled == ognEnabled && 
-			prevAISEnabled == aisEnabled {
+		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled && prevAISEnabled == aisEnabled {
 			continue
 		}
 
@@ -909,7 +905,7 @@ func sdrWatcher() {
 		}
 		configDevices(count, esEnabled, uatEnabled, ognEnabled, aisEnabled)
 
-		prevCount = count
+		prevCount = interfaceCount
 		prevUATEnabled = uatEnabled
 		prevESEnabled = esEnabled
 		prevOGNEnabled = ognEnabled

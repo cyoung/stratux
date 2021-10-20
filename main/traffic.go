@@ -130,6 +130,7 @@ type TrafficInfo struct {
 	DistanceEstimated    float64   // Estimated distance of the target if real distance can't be calculated, Estimated from signal strength with exponential smoothing.
 	DistanceEstimatedLastTs time.Time // Used to compute moving average
 	ReceivedMsgs         uint64    // Number of messages received by this aircraft
+	IsStratux            bool      // Target is equipped with a Stratux that transmits via OGN tracker
 	//FIXME: Rename variables for consistency, especially "Last_".
 }
 
@@ -201,7 +202,7 @@ func isOwnshipTrafficInfo(ti TrafficInfo) (isOwnshipInfo bool, shouldIgnore bool
 	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_OGNTRACKER {
 		ognTrackerCodeInt, _ := strconv.ParseUint(globalSettings.OGNAddr, 16, 32)
 		if uint32(ognTrackerCodeInt) == ti.Icao_addr {
-			isOwnshipInfo = true
+			isOwnshipInfo = !isGPSValid() // only use OGN tracker as ownship position if we are not equipped with a GPS..
 			shouldIgnore = true
 			return
 		}
