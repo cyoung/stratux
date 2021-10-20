@@ -26,16 +26,6 @@ import (
 )
 
 
-func aisPublishNmea(nmea string) {
-	if globalStatus.AIS_connected {
-		if !strings.HasSuffix(nmea, "\r\n") {
-			nmea += "\r\n"
-		}
-		aisOutgoingMsgChan <- nmea
-	}
-}
-
-var aisOutgoingMsgChan chan string = make(chan string, 100)
 var aisIncomingMsgChan chan string = make(chan string, 100)
 var aisExitChan chan bool = make(chan bool, 1)
 
@@ -64,7 +54,6 @@ func aisListen() {
 			<- aisExitChan
 		}
 
-
 		go func() {
 			scanner := bufio.NewScanner(aisReadWriter.Reader)
 			for scanner.Scan() {
@@ -78,9 +67,6 @@ func aisListen() {
 
 		loop: for globalSettings.AIS_Enabled {
 			select {
-			case data := <- aisOutgoingMsgChan:
-				aisReadWriter.Write([]byte(data))
-				aisReadWriter.Flush()
 			case data := <- aisIncomingMsgChan:
 				msg, err := nm.ParseSentence(data)
 
@@ -92,7 +78,7 @@ func aisListen() {
 					// TODO: RVT Renable
 					//logMsg(thisMsg) // writes to replay logs
 //				}
-				if (msg!=nil) {
+				if (err==nil && msg!=nil && msg.Packet!=nil) {
 					importAISTrafficMessage(msg)
 				} else if err!=nil {
 					log.Printf("Invalid Data from AIS: " + err.Error())
@@ -110,13 +96,7 @@ func aisListen() {
 	}
 }
 
-// Update something....
-// func importAISStatusMessage(msg AISMessage) {
-// 	if msg.Tx_enabled {
-// 		aisPublishNmea(getOgnTrackerConfigString())
-// 	}
-// }
-
+// Datastructure explanation can be found at https://www.navcen.uscg.gov/?pageName=AISMessages
 func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	var ti TrafficInfo
 	
@@ -134,67 +114,82 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	
 	ti.TargetType = TARGET_TYPE_AIS 
 	ti.Last_source = TRAFFIC_SOURCE_AIS
+	ti.Alt = 0 
 	ti.Icao_addr = header.UserID
 	ti.Addr_type = uint8(1) // Non-ICAO Address
 	ti.SignalLevel = 0.0
 	ti.Squawk = 0
 	ti.Timestamp = time.Now().UTC()	
-	//	ti.Vvel = 0 
-	//	ti.PriorityStatus
-	ti.Age = time.Now().UTC().Sub(ti.Timestamp).Seconds()
-	//ti.AgeLastAlt = time.Now().UTC().Sub(ti.Timestamp).Seconds()
+	ti.AltIsGNSS = false
+	ti.GnssDiffFromBaroAlt = 0
+	ti.NIC = 0
+	ti.NACp = 0
+	ti.Vvel = 0 
+	ti.PriorityStatus = 0
+	
+	ti.Age = 0
+	ti.AgeLastAlt = 0
 	ti.Last_seen = stratuxClock.Time
-	ageMs := int64(ti.Age * 1000)
+	ti.Last_alt = stratuxClock.Time
 
-	ti.Last_seen = ti.Last_seen.Add(-time.Duration(ageMs) * time.Millisecond)
-
-	// Handle Ship Static Data
+	// Handle ShipStaticData
 	if header.MessageID == 5 {
 		var shipStaticData ais.ShipStaticData = msg.Packet.(ais.ShipStaticData);
-		ti.Tail = strings.TrimSpace(shipStaticData.CallSign)
 
-		// txt, _ := json.Marshal(shipStaticData)
-		// log.Printf("ShipStaticData: " + string(txt))
+//		txt, _ := json.Marshal(shipStaticData)
+//		log.Printf("shipStaticData: " + string(txt))
 
-		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
+		var logLine=fmt.Sprintf("%s : %s : %d", shipStaticData.CallSign, shipStaticData.Name, shipStaticData.Type)
+
+		log.Printf(logLine)
+
+		ti.Tail = strings.TrimSpace(shipStaticData.Name)
+		ti.Reg = strings.TrimSpace(shipStaticData.CallSign)
 		ti.Emitter_category = shipStaticData.Type
-
-		//log.Printf("ShipStatic: " + fmt.Sprintf("%d", header.UserID) + ":" + shipStaticData.Name)
+		// Store in case this was the first message and we disgard it later
+		traffic[key] = ti
 	}
 
-	// TODO: RVT further implement LongRangeAisBroadcastMessage ??
+	// Handle LongRangeAisBroadcastMessage
 	if header.MessageID==27 {
-		// var positionReport ais.LongRangeAisBroadcastMessage = msg.Packet.(ais.LongRangeAisBroadcastMessage);
+		var positionReport ais.LongRangeAisBroadcastMessage = msg.Packet.(ais.LongRangeAisBroadcastMessage);
+
+//		txt, _ := json.Marshal(positionReport)
+//		log.Printf("LongRangeAisBroadcastMessage: " + string(txt))
+
+		ti.Lat = float32(positionReport.Latitude)
+		ti.Lng = float32(positionReport.Longitude)
+
+		if positionReport.Cog!=511 {
+			cog:=float32(positionReport.Cog)
+			ti.Track = cog
+		}
+		if positionReport.Sog<63 {
+			ti.Speed = uint16(positionReport.Sog) 
+			ti.Speed_valid = true
+		}
 	}
 
 	// Handle MessageID 1,2 & 3 Position reports
 	if header.MessageID==1 || header.MessageID==2 || header.MessageID==3 {
-		// !AIVDM,1,1,,A,13aIhV?P140H?T@MVbNJVOvT00Ss,0*6D
-		//log.Printf("ShipPosition: " + fmt.Sprintf("%d", header.UserID))
-
 		var positionReport ais.PositionReport = msg.Packet.(ais.PositionReport);
 	
-	//	ti.Reg = ""
-	//	ti.Tail // Set above
+//		txt, _ := json.Marshal(positionReport)
+//		log.Printf("Position report: " + string(txt))
+
 		ti.OnGround = true
 		ti.Position_valid = true
 		ti.Lat = float32(positionReport.Latitude)
 		ti.Lng = float32(positionReport.Longitude)
-		ti.Alt = 0 // pressure altitude
-	//	ti.GnssDiffFromBaroAlt = 0
-	//	ti.AltIsGNSS = 0
-	//	ti.NIC = 0
-	//	ti.NACp = 0
 
-		var sog uint16 = 0
 		if positionReport.Sog<102.3 {
-			sog=uint16(positionReport.Sog)
+			ti.Speed = uint16(positionReport.Sog) // I think Sog is in knt
+			ti.Speed_valid = true
+			ti.Last_speed = ti.Last_seen
 		}
-		ti.Speed = sog // I think Sog is in knt
-		ti.Speed_valid = true
 
 		// We assume that when we have speed, we also have a proper course.
-		if (positionReport.Sog > 0.0) { // Using positionReport.Sog gives us more accuracy then using sog
+		if positionReport.Sog > 0.0 && positionReport.Sog<102.3 { 
 			var cog float32 = 0.0
 			if positionReport.Cog!=360 {
 				cog=float32(positionReport.Cog)
@@ -208,23 +203,16 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 			ti.Track = heading
 		}
 
-//		txt, _ := json.Marshal(positionReport)
-//		log.Printf("Position report: " + string(txt))
-
-
 		var rot float32 = 0.0
 		if positionReport.RateOfTurn!=-128 {
 			rot=float32(positionReport.RateOfTurn)
 		}
 		ti.TurnRate = (rot/4.733)*(rot/4.733)
-
-		ti.Last_alt = ti.Last_seen
-		ti.Last_speed = ti.Last_seen
 	
 		ti.ExtrapolatedPosition = false
 	}
 
-	// Sometimes there seems to be wildly invalid lat/lons, which can trip over distRect's normailization..
+	// Prevent wild lat/long
 	if ti.Lat > 360 || ti.Lat < -360 || ti.Lng > 360 || ti.Lng < -360 {
 		return
 	}
@@ -235,13 +223,8 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		ti.BearingDist_valid = true
 	}
 	
-	if ti.TurnRate==-128 || ti.TurnRate > 1080 || ti.TurnRate < -1080 {
-		ti.TurnRate = 0
-	}
-
-	// Basic plausibility check and ensure we do not overload you map
-	if ti.BearingDist_valid == true && ti.Distance >= 150000 {
-		// more than 150km away or invalid positions
+	// Basic plausibility check and do not display targets more than 150km
+	if ti.BearingDist_valid == false || ti.Distance >= 150000 {
 		return
 	}
 

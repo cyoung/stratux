@@ -1,13 +1,11 @@
 angular.module('appControllers').controller('TrafficCtrl', TrafficCtrl); // get the main module contollers set
-TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'colorService']; // Inject my dependencies
+TrafficCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craftService']; // Inject my dependencies
 
-var TARGET_TYPE_AIS = 5
 //cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
-let TRAFFIC_MAX_AGE_SECONDS = 15;
-let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30-60;
+
 
 // create our controller function with all necessary logic
-function TrafficCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
+function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
@@ -51,64 +49,11 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, colorService)
 				"' "].join('');
 	}
 
-	function getVesselCategory(vessel) {
-		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
-		firstDigit = Math.floor(vessel.Emitter_category / 10)
-		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
-
-		const categoryFirst= {
-			6: "Passanger",
-			7: "Cargo",
-			8: "Tanker",
-		};		
-		const categorySecond= {
-			0: "Fishing",
-			1: "Tugs",
-			2: "Tugs",
-			3: "dredging",
-			4: "Diving",
-			5: "Military",
-			6: "Sailing",
-			7: "Pleasure",
-		};		
-
-		if (categoryFirst[firstDigit]) {
-			return categoryFirst[firstDigit];
-		} else if (firstDigit===3 && categorySecond[secondDigit]) {
-			return categorySecond[secondDigit];
-		} else {
-			return '---';			
-		}
-	}
-
-	function getAircraftCategory(aircraft) {
-		const category = {
-			1: "Light",
-			2: "Small",
-			3: "Large",
-			4: "VLarge",
-			5: "Heavy",
-			6: "Fight",
-			7: "Helic",
-			9: "Glide",
-			10: "Ballo",
-			11: "Parac",
-			12: "Ultrl",
-			14: "Drone",
-			15: "Space",
-			16: "VLarge",
-			18: "Vehic",
-			19: "Obstc"
-		};		
-		return category[aircraft.Emitter_Category]?category[aircraft.Emitter_Category]:'---';
-	}
-
-	
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
 		new_traffic.TargetType = obj.TargetType;
 		new_traffic.Last_source = obj.Last_source; // 1=ES, 2=UAT, 4=OGN, 8=AIS
-		new_traffic.emittercategory = obj.Emitter_category;
+		new_traffic.Emitter_category = obj.Emitter_category;
 		new_traffic.signal = obj.SignalLevel;
 	        //console.log('Emitter Category:' + obj.Emitter_category);
 		
@@ -136,18 +81,16 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, colorService)
 		new_traffic.vspeed = Math.round(obj.Vvel / 100) * 100
 		var timestamp = Date.parse(obj.Timestamp);
 		new_traffic.time = utcTimeString(timestamp);
-		new_traffic.age = obj.Age;
-		new_traffic.ageLastAlt = obj.AgeLastAlt;
+		new_traffic.Age = obj.Age;
+		new_traffic.AgeLastAlt = obj.AgeLastAlt;
 		new_traffic.bearing = Math.round(obj.Bearing); // degrees true 
 		new_traffic.dist = obj.Distance / 1852; // nautical miles
 		new_traffic.distEst = obj.DistanceEstimated / 1852;
-
-		new_traffic.trafficColor = colorService.getTransportColor(obj);
+		new_traffic.trafficColor = craftService.getTransportColor(obj);
+		new_traffic.category = craftService.getCategory(obj);
 		if (new_traffic.TargetType ===  TARGET_TYPE_AIS) {
-			new_traffic.category = getVesselCategory(obj);
 			new_traffic.addr_symb = '\uD83D\uDEA2';
 		} else {
-			new_traffic.category = getAircraftCategory(obj);
 			new_traffic.addr_symb = '\uD83D\uDEE9';
 		}
 		// return new_aircraft;
@@ -276,30 +219,20 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, colorService)
 	}, 500, 0, false);
 		
 
-	var isTrafficAged = function(aircraft, targetVar ) {
-		const value = aircraft[targetVar];
-		if (aircraft.TargetType === TARGET_TYPE_AIS) {
-			return value > TRAFFIC_AIS_MAX_AGE_SECONDS;
-		} else { 
-			return value > TRAFFIC_MAX_AGE_SECONDS;
-		}
-	}
-
-
 	// perform cleanup every 10 seconds
 	var clearStaleTraffic = $interval(function () {
 		// remove stale aircraft = anything more than cutoff seconds without a position update
 
 		// Clean up "valid position" table.
 		for (var i = $scope.data_list.length; i > 0; i--) {
-			if (isTrafficAged($scope.data_list[i - 1], 'age')) {
+			if (craftService.isTrafficAged($scope.data_list[i - 1])) {
 				$scope.data_list.splice(i - 1, 1);
 			}
 		}
 
 		// Clean up "invalid position" table.
 		for (var i = $scope.data_list_invalid.length; i > 0; i--) {			
-			if (isTrafficAged($scope.data_list_invalid[i - 1], 'age') || isTrafficAged($scope.data_list_invalid[i - 1], 'ageLastAlt')) {
+			if (craftService.isTrafficAged($scope.data_list_invalid[i - 1]) || craftService.isTrafficAged2($scope.data_list_invalid[i - 1], 'AgeLastAlt')) {
 				$scope.data_list.splice(i - 1, 1);
 			}
 		}

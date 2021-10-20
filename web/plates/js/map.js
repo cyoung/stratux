@@ -1,9 +1,8 @@
 angular.module('appControllers').controller('MapCtrl', MapCtrl);           // get the main module contollers set
-MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'colorService'];  // Inject my dependencies
-var TARGET_TYPE_AIS = 5
+MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craftService'];  // Inject my dependencies
 
 
-function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
+function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 	let TRAFFIC_MAX_AGE_SECONDS = 15;
 	let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30;
 
@@ -148,7 +147,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 
 	function createPlaneSvg(aircraft) {
 		let html = ``;
-		let color = colorService.getTransportColor(aircraft);	
+		let color = craftService.getTransportColor(aircraft);	
 		if (aircraft.TargetType === TARGET_TYPE_AIS) {
 		    html = `
 			<svg width="11" height="25" xmlns="http://www.w3.org/2000/svg" version="1.1">
@@ -244,10 +243,10 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 			if (aircraft.Age >= TRAFFIC_AIS_MAX_AGE_SECONDS)
 				opacity = 0;	
 		} else { // For other sources it's based on seconds
-			if (aircraft.Age >= 15)
+			if (aircraft.Age >= TRAFFIC_MAX_AGE_SECONDS)
 				opacity = 0;
 			else 
-				opacity = 1.0 - (aircraft.Age / 15.0);
+				opacity = 1.0 - (aircraft.Age / TRAFFIC_MAX_AGE_SECONDS);
 		}
 		
 		return aircraft.marker.getStyle().getImage().setOpacity(opacity);
@@ -260,7 +259,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 		if (aircraft.TargetType !== TARGET_TYPE_AIS) {
 			text.push(aircraft.Alt + 'ft');
 		}
-		if (aircraft.Speed_valid)
+		if (aircraft.Speed_valid && aircraft.Speed>0.1)
 			text.push(aircraft.Speed + 'kt')
 		aircraft.marker.getStyle().getText().setText(text.join('\n'));
 	}
@@ -300,7 +299,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 
 	$scope.onMessage = function(msg) {
 		let aircraft = JSON.parse(msg.data);
-		if (!aircraft.Position_valid || $scope.isTrafficAged(aircraft)) {
+		if (!aircraft.Position_valid || craftService.isTrafficAged(aircraft)) {
 			return;
 		}
 		aircraft.receivedTs = Date.now();
@@ -313,7 +312,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 		for (let i in $scope.aircraft) {
 			if (isSameAircraft($scope.aircraft[i].Icao_addr, $scope.aircraft[i].Addr_type, aircraft.Icao_addr, aircraft.Addr_type)) {
 				let oldAircraft = $scope.aircraft[i];
-				prevColor = colorService.getTransportColor(oldAircraft);
+				prevColor = craftService.getTransportColor(oldAircraft);
 				aircraft.marker = oldAircraft.marker;
 				aircraft.trail = oldAircraft.trail;
 				aircraft.posHistory = oldAircraft.posHistory;
@@ -371,7 +370,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 		}
 
 		updateVehicleText(aircraft);
-		if (!prevColor || prevColor != colorService.getTransportColor(aircraft)) {
+		if (!prevColor || prevColor != craftService.getTransportColor(aircraft)) {
 			let imageStyle = new ol.style.Icon({
 				opacity: 1.0,
 				src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
@@ -397,19 +396,11 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, colorService) {
 		}
 	}
 
-	$scope.isTrafficAged = function(aircraft) {
-		if (aircraft.TargetType === TARGET_TYPE_AIS) {
-			return aircraft.Age > TRAFFIC_AIS_MAX_AGE_SECONDS;
-		} else { // For other sources it's based on seconds
-			return aircraft.Age > TRAFFIC_MAX_AGE_SECONDS;
-		}
-	}
-
 	$scope.removeStaleTraffic = function() {
 		let now = Date.now();
 		for (let i = 0; i < $scope.aircraft.length; i++) {
 			let aircraft = $scope.aircraft[i];
-			if ($scope.isTrafficAged(aircraft)) {
+			if (craftService.isTrafficAged(aircraft)) {
 				if (aircraft.marker)
 					$scope.aircraftSymbols.removeFeature(aircraft.marker);
 				if (aircraft.trail)

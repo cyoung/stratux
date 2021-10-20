@@ -303,7 +303,7 @@ func (f *OGN) read() {
 func (e *AIS) read() {
 	defer e.wg.Done()
 	log.Println("Entered AIS read() ...")
-	cmd := exec.Command(STRATUX_HOME + "/bin/rtl_ais", "-T", "-n", "-p", strconv.Itoa(e.ppm), "-d", strconv.Itoa(e.indexID))
+	cmd := exec.Command(STRATUX_HOME + "/bin/rtl_ais", "-T", "-k", "-p", strconv.Itoa(e.ppm), "-d", strconv.Itoa(e.indexID))
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 

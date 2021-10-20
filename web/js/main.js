@@ -37,7 +37,9 @@ var URL_RADAR_WS            = "ws://" + URL_HOST_BASE + "/radar";
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
 var app = angular.module('stratux', ['ui.router', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
 var appControllers = angular.module('appControllers', []);
-
+let TRAFFIC_MAX_AGE_SECONDS = 15;
+let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*10-60;
+let TARGET_TYPE_AIS = 5;
 
 app.config(function ($stateProvider, $urlRouterProvider) {
 	$stateProvider
@@ -137,7 +139,7 @@ app.controller('MainCtrl', function ($scope, $http) {
         }
     };
 })
-.service('colorService',function(){ 
+.service('craftService',function(){ 
 
 	// Must match the traffic-style in style.css
 	// THis ensures that the colors used in traffic.js and map.js for the vessels are the same
@@ -182,14 +184,18 @@ app.controller('MainCtrl', function ($scope, $http) {
 		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
 
 		const categoryFirst= {
+			2: "orange",
+			4: "orange",
+			5: "orange",
 			6: "blue",
 			7: "green",
-			8: "red"
+			8: "red",
+			9: "red"
 		};		
 		const categorySecond= {
-			0: "orange",
+			0: "silver",
 			1: "cyan",
-			2: "cyan",
+			2: "darkblue",
 			3: "LightSkyBlue",
 			4: "LightSkyBlue",
 			5: "darkolivegreen",
@@ -206,7 +212,87 @@ app.controller('MainCtrl', function ($scope, $http) {
 		}
 	};
 
+	const isTrafficAged = (aircraft, targetVar ) => {
+		const value = aircraft[targetVar];
+		if (aircraft.TargetType === TARGET_TYPE_AIS) {
+			return value > TRAFFIC_AIS_MAX_AGE_SECONDS;
+		} else { 
+			return value > TRAFFIC_MAX_AGE_SECONDS;
+		}
+	};
+
+	const getVesselCategory = (vessel) => {
+		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
+		firstDigit = Math.floor(vessel.Emitter_category / 10)
+		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
+
+		const categoryFirst= {
+			2: "Cargo",
+			4: "Cargo",
+			5: "Cargo",
+			6: "Passanger",
+			7: "Cargo",
+			8: "Tanker",
+			9: "Cargo",
+		};		
+		const categorySecond= {
+			0: "Fishing",
+			1: "Tugs",
+			2: "Tugs",
+			3: "Dredging",
+			4: "Diving",
+			5: "Military",
+			6: "Sailing",
+			7: "Pleasure",
+		};		
+
+		if (categoryFirst[firstDigit]) {
+			return categoryFirst[firstDigit];
+		} else if (firstDigit===3 && categorySecond[secondDigit]) {
+			return categorySecond[secondDigit];
+		} else {
+			return '---';			
+		}
+	};
+
+	const getAircraftCategory = (aircraft) => {
+		const category = {
+			1: "Light",
+			2: "Small",
+			3: "Large",
+			4: "VLarge",
+			5: "Heavy",
+			6: "Fight",
+			7: "Helic",
+			9: "Glide",
+			10: "Ballo",
+			11: "Parac",
+			12: "Ultrl",
+			14: "Drone",
+			15: "Space",
+			16: "VLarge",
+			18: "Vehic",
+			19: "Obstc"
+		};		
+		return category[aircraft.Emitter_Category]?category[aircraft.Emitter_Category]:'---';
+	};
+
 	return {
+		getCategory: (craft) => {
+			if (craft.TargetType === TARGET_TYPE_AIS) {
+				return getVesselCategory(craft);
+			} else {
+				return getAircraftCategory(craft);
+			}
+		},
+
+		isTrafficAged: (craft) => {
+			return isTrafficAged(craft, 'Age');
+		},
+
+		isTrafficAged2: (craft, targetVar) => {
+			return isTrafficAged(craft, targetVar);
+		},
 
 		getTransportColor: (craft) => {
 			if (craft.TargetType === TARGET_TYPE_AIS) {
