@@ -62,7 +62,8 @@ func (queue *MessageQueue) Put(prio int32, maxAge time.Duration, data interface{
 		}
 	}
 
-	if len(queue.entries) > queue.maxSize {
+	// Allow 10% over-use before we prune, so the pruning is done in batches to save CPU
+	if float32(len(queue.entries)) > float32(queue.maxSize) * 1.1 {
 		queue.prune()
 	}
 	if len(queue.entries) != 0 {
@@ -131,24 +132,51 @@ func (queue *MessageQueue) GetQueueDump(pruneFirst bool) []interface{} {
 	return data
 }
 
+// Removes elements from the queue so it fits its maxSize
+// - All outdated elements are discarded
+// - Low priority elements are discarded, starting with the oldest ones
 func (queue *MessageQueue) prune() {
-	newEntries := make([]QueueEntry, 0)
+	// Group into priority categories, so we can then strip the beginning of each category is needed (remove oldest messages)
+	newEntries := make([][]QueueEntry, 0)
 	//npruned := 0
+	totalUsable := 0
+	prevPrio := int32(999999999)
 	for _, entry := range queue.entries {
-		if entry.outdatedAt.After(stratuxClock.Time) {
-			newEntries = append(newEntries, entry)
-		} else {
-			//npruned++
-			
+		if entry.outdatedAt.Before(stratuxClock.Time) {
+			continue // outdated, remove completely
 		}
-		if len(newEntries) == int(queue.maxSize) {
-			break
+		totalUsable++
+		if len(newEntries) == 0 || entry.priority != prevPrio {
+			// new prio-category
+			newEntries = append(newEntries, make([]QueueEntry, 0))
+		}
+		newEntries[len(newEntries)-1] = append(newEntries[len(newEntries)-1], entry)
+		prevPrio = entry.priority
+	}
+	toBeRemoved := totalUsable - queue.maxSize
+	if toBeRemoved > 0 {
+		for i := len(newEntries) - 1; i >= 0; i-- {
+			//fmt.Printf("%p: Pruning %d prio %d entries (%d available)\n", queue, toBeRemoved, newEntries[i][0].priority, len(newEntries[i]))
+			// From lowerst to highest prio, remove the oldest messages of each category until we have few enough in total
+			if len(newEntries[i]) >= toBeRemoved {
+				// can remove enough in this category
+				newEntries[i] = newEntries[i][toBeRemoved:]
+				break
+			} else {
+				// remove this category, then proceed with next higher prio one
+				toBeRemoved -= len(newEntries[i])
+				newEntries[i] = nil
+			}
 		}
 	}
-	queue.entries = newEntries
-	//if npruned > 0 {
-	//	fmt.Printf("Pruned %d entries\n", npruned)
-	//}
+
+	// finally, copy everything back to our queue
+	queue.entries = make([]QueueEntry, 0)
+	for _, category := range newEntries {
+		if category != nil {
+			queue.entries = append(queue.entries, category...)
+		}
+	}
 }
 
 func (queue *MessageQueue) findInsertPosition(priority int32) int {

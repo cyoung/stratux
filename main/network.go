@@ -329,19 +329,23 @@ func onConnectionClosed(conn connection) {
 }
 
 
-func collectMessages(queue *MessageQueue, targetPkgSize int, throttled bool) []byte {
+func collectMessages(conn connection) []byte {
 	data := make([]byte, 0)
 	maxMsgLen := 0
 	for {
-		if throttled {
-			// If we are throttled, don't return unimportant data (only prios <= 0)
-			_, prio := queue.PeekFirst()
-			if prio > 0 {
+		if conn.IsSleeping() || conn.IsThrottled() {
+			_, prio := conn.MessageQueue().PeekFirst()
+			if conn.IsSleeping() && prio > -10 {
+				// If we are sleeping, only send heartbeats do detect a client becoming available
+				return data
+			}
+			if conn.IsThrottled() && prio > 0 {
+				// if throttled, only send important stuff (position, status, crucial traffic)
 				return data
 			}
 		}
 
-		newData, _ := queue.PopFirst()
+		newData, _ := conn.MessageQueue().PopFirst()
 		if newData == nil {
 			return data // no more data to send
 		}
@@ -351,7 +355,7 @@ func collectMessages(queue *MessageQueue, targetPkgSize int, throttled bool) []b
 		if len(msg) > maxMsgLen {
 			maxMsgLen = len(data)
 		}
-		if len(data) + maxMsgLen > targetPkgSize {
+		if len(data) + maxMsgLen > conn.GetDesiredPacketSize() {
 			// Probably can't fit in another message
 			return data
 		}
@@ -366,13 +370,9 @@ func connectionWriter(connection connection) {
 			if queue.Closed {
 				return
 			}
-			if connection.IsSleeping() {
-				time.Sleep(1 * time.Second)
-				break // check again when more data is in the queue
-			}
 
 			// Try to send around 1kb of data per packet to reduce IOPS when queue is full
-			msg := collectMessages(queue, connection.GetDesiredPacketSize(), connection.IsThrottled())
+			msg := collectMessages(connection)
 			if msg == nil || len(msg) == 0 {
 				break // Wait for next time that the DataAvailable channel has more for us
 			}

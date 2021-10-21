@@ -742,7 +742,11 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret), 15 * time.Minute, 4)
+	durability := 1 * time.Second
+	if msgtype == MSGTYPE_UPLINK {
+		durability = 15 * time.Minute // queue weather messages
+	}
+	sendGDL90(prepareMessage(ret), durability, 4)
 }
 
 func blinkStatusLED() {
@@ -761,7 +765,7 @@ func blinkStatusLED() {
 
 func sendAllOwnshipInfo() {
 	//log.Printf("Sending ownship info")
-	sendGDL90(makeHeartbeat(), time.Second, 0)
+	sendGDL90(makeHeartbeat(), time.Second, -20) // Highest priority, always needs to be send because we use it to detect when a client becomes available
 	sendGDL90(makeStratuxHeartbeat(), time.Second, 0)
 	sendGDL90(makeStratuxStatus(), time.Second, 0)
 	sendGDL90(makeFFIDMessage(), time.Second, 0)
@@ -801,7 +805,7 @@ func heartBeatSender() {
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
-			
+			/*
 				numTargets := uint32(36)
 				hexCode := uint32(0xFF0000)
 
@@ -814,7 +818,7 @@ func heartBeatSender() {
 					updateDemoTraffic(i|hexCode, tail, alt, spd, hdg)
 
 				}
-			
+			*/
 
 			// ---end traffic demo code ---
 			sendTrafficUpdates()

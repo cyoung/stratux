@@ -40,13 +40,13 @@ type networkConnection struct {
 	Capability      uint8
 	Queue           *MessageQueue `json:"-"` // don't store in settings
 
+	LastPingResponse time.Time // last time the client responded
+	LastUnreachable time.Time // Last time the device sent an ICMP Unreachable packet.
 	/*
 		Sleep mode/throttle variables. "sleep mode" is actually now just a very reduced packet rate, since we don't know positively
 		 when a client is ready to accept packets - we just assume so if we don't receive ICMP Unreachable packets in 5 secs.
 	*/
-	LastPingResponse time.Time // last time the client responded
-	LastUnreachable time.Time // Last time the device sent an ICMP Unreachable packet.
-	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging (relies on messages being sent to update this flag in sendToAllConnectedClients()).
+	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging
 	FFCrippled      bool
 }
 
@@ -63,8 +63,7 @@ func (conn *networkConnection) Writer() io.Writer {
 	isThrottled().
 	 Checks if a client identifier 'ip:port' is throttled.
 	 Throttle mode is for testing port open and giving some start-up time to the app.
-	 Throttling is 0.1% data rate for first 15 seconds.
-	 ***WARNING***: netMutex must be locked before calling this function.
+	 Throttling means that we only send important packets for first 15 seconds (location, status, very close traffic).
 */
 func (conn *networkConnection) IsThrottled() bool {
 	return (rand.Int()%1000 != 0) && stratuxClock.Since(conn.LastUnreachable) < (15*time.Second)
@@ -73,7 +72,6 @@ func (conn *networkConnection) IsThrottled() bool {
 /*
 	isSleeping().
 	 Check if a client identifier 'ip:port' is in either a sleep or active state.
-	 ***WARNING***: netMutex must be locked before calling this function.
 */
 func (conn *networkConnection) IsSleeping() bool {
 	// Unable to listen to ICMP without root - send to everything. Just for debugging.
