@@ -12,14 +12,11 @@
 package main
 
 import (
-	"bufio"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"log"
 	"math"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -464,142 +461,6 @@ func makeAHRSLevilReport() {
 	msg := fmt.Sprintf("$RPYL,%d,%d,%d,%d,%d,%d,0", roll, pitch, hdg, slip_skid, yaw_rate, g)
 	appendNmeaChecksum(msg)
 	sendNetFLARM(msg + "\r\n", 100 * time.Millisecond, 4)
-}
-
-/*
-Basic TCP server for sending NMEA messages to TCP-based (i.e. AIR Connect compatible)
-software: SkyDemon, RunwayHD, etc.
-Based on Andreas Krennmair's "Let's build a network application!" chat server demo
-http://synflood.at/tmp/golang-slides/mrmcd2012.html#2
-*/
-
-type tcpClient struct {
-	conn net.Conn
-	ch   chan string
-}
-
-
-/* Server that can be used to feed NMEA data to, e.g. to connect OGN Tracker wirelessly */
-func tcpNMEAInListener() {
-	ln, err := net.Listen("tcp", ":30011")
-	if err != nil {
-		log.Printf(err.Error())
-		return
-	}
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Printf(err.Error())
-			continue
-		}
-		go handleNmeaInConnection(conn)
-	}	
-}
-
-func handleNmeaInConnection(c net.Conn) {
-	defer c.Close()
-	reader := bufio.NewReader(c)
-	// Set to fixed GPS_TYPE_NETWORK in the beginning, to override previous detected NMEA types
-	globalStatus.GPS_detected_type = GPS_TYPE_NETWORK
-	globalStatus.GPS_NetworkRemoteIp = strings.Split(c.RemoteAddr().String(), ":")[0]
-	for {
-		globalStatus.GPS_connected = true
-		// Keep detected protocol, only ensure type=network
-		globalStatus.GPS_detected_type = GPS_TYPE_NETWORK | (globalStatus.GPS_detected_type & 0xf0)
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			break
-		}
-		processNMEALine(line)
-	}
-	globalStatus.GPS_connected = false
-	globalStatus.GPS_detected_type = 0
-	globalStatus.GPS_NetworkRemoteIp = ""
-}
-
-/*
-func (c tcpClient) ReadLinesInto(ch chan<- string) {
-	bufc := bufio.NewReader(c.conn)
-	for {
-		line, err := bufc.ReadString('\n')
-		if err != nil {
-			break
-		}
-		ch <- fmt.Sprintf("%s: %s", c.nickname, line)
-	}
-}
-*/
-
-func (c tcpClient) WriteLinesFrom(ch <-chan string) {
-	for msg := range ch {
-		_, err := io.WriteString(c.conn, msg)
-		if err != nil {
-			return
-		}
-	}
-}
-
-func handleNmeaOutConnection(c net.Conn, msgchan chan<- string, addchan chan<- tcpClient, rmchan chan<- tcpClient) {
-	//bufc := bufio.NewReader(c)
-	defer c.Close()
-	client := tcpClient{
-		conn: c,
-		ch:   make(chan string),
-	}
-	//io.WriteString(c, "PASS?")
-
-	// disabling passcode checks. RunwayHD and SkyDemon don't send CR / LF, and PIN check is something else that can go wrong.
-	//time.Sleep(100 * time.Millisecond)
-
-	//code, _, _ := bufc.ReadLine()
-	//log.Printf("Passcode entry was %v\n",code)
-
-	//passcode := ""
-	/*for passcode != "6000" {
-		io.WriteString(c, "PASS?")
-		code, _, err := bufc.ReadLine()
-		if err != nil {
-			log.Printf("Error scanning passcode from client %s: %s\n",c.RemoteAddr(), err)
-			continue
-		}
-		passcode = string(code)
-		log.Printf("Received passcode %s from client %s\n", passcode, c.RemoteAddr())
-	}
-	*/
-	//io.WriteString(c, "AOK") // correct passcode received; continue to writes
-	//log.Printf("Correct passcode on client %s. Unlocking.\n", c.RemoteAddr())
-	// Register user
-	addchan <- client
-	defer func() {
-		log.Printf("Connection from %s closed.\n", c.RemoteAddr())
-		rmchan <- client
-	}()
-
-	// I/O
-	//go client.ReadLinesInto(msgchan)  //treating the port as read-only once it's opened
-	client.WriteLinesFrom(client.ch)
-}
-
-func handleMessages(msgchan <-chan string, addchan <-chan tcpClient, rmchan <-chan tcpClient) {
-	clients := make(map[net.Conn]chan<- string)
-
-	for {
-		select {
-		case msg := <-msgchan:
-			if globalSettings.DEBUG {
-				log.Printf("New message: %s", msg)
-			}
-			for _, ch := range clients {
-				go func(mch chan<- string) { mch <- msg }(ch)
-			}
-		case client := <-addchan:
-			log.Printf("New client: %v\n", client.conn.RemoteAddr().String())
-			clients[client.conn] = client.ch
-		case client := <-rmchan:
-			log.Printf("Client disconnects: %v\n", client.conn.RemoteAddr().String())
-			delete(clients, client.conn)
-		}
-	}
 }
 
 func atof32(val string) float32 {

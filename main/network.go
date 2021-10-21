@@ -10,6 +10,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -201,7 +202,7 @@ func serialOutWatcher() {
 	}
 }
 
-
+// TCP port 2000 for Airconnect-like NMEA-Out
 func tcpNMEAOutListener() {
 	ln, err := net.Listen("tcp", ":2000")
 	if err != nil {
@@ -226,6 +227,44 @@ func tcpNMEAOutListener() {
 		clientConnections[tcpConn.GetConnectionKey()] = tcpConn
 		go connectionWriter(tcpConn)
 	}
+}
+
+
+/* Server that can be used to feed NMEA data to, e.g. to connect OGN Tracker wirelessly */
+func tcpNMEAInListener() {
+	ln, err := net.Listen("tcp", ":30011")
+	if err != nil {
+		log.Printf(err.Error())
+		return
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Printf(err.Error())
+			continue
+		}
+		go handleNmeaInConnection(conn)
+	}	
+}
+func handleNmeaInConnection(c net.Conn) {
+	defer c.Close()
+	reader := bufio.NewReader(c)
+	// Set to fixed GPS_TYPE_NETWORK in the beginning, to override previous detected NMEA types
+	globalStatus.GPS_detected_type = GPS_TYPE_NETWORK
+	globalStatus.GPS_NetworkRemoteIp = strings.Split(c.RemoteAddr().String(), ":")[0]
+	for {
+		globalStatus.GPS_connected = true
+		// Keep detected protocol, only ensure type=network
+		globalStatus.GPS_detected_type = GPS_TYPE_NETWORK | (globalStatus.GPS_detected_type & 0xf0)
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		processNMEALine(line)
+	}
+	globalStatus.GPS_connected = false
+	globalStatus.GPS_detected_type = 0
+	globalStatus.GPS_NetworkRemoteIp = ""
 }
 
 // Returns the number of DHCP leases and prints queue lengths.
