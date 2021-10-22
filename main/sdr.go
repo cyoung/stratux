@@ -57,7 +57,7 @@ var ESDev *ES
 // OGNDev holds an 868 MHz dongle object
 var OGNDev *OGN
 
-// AISDev holds a 1090 MHz dongle object
+// AISDev holds a 162 MHz dongle object
 var AISDev *AIS
 
 type Dump1090TermMessage struct {
