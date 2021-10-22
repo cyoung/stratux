@@ -137,9 +137,8 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		//		txt, _ := json.Marshal(shipStaticData)
 		//		log.Printf("shipStaticData: " + string(txt))
 
-		var logLine = fmt.Sprintf("%s : %s : %d", shipStaticData.CallSign, shipStaticData.Name, shipStaticData.Type)
-
-		log.Printf(logLine)
+		// var logLine = fmt.Sprintf("%s : %s : %d", shipStaticData.CallSign, shipStaticData.Name, shipStaticData.Type)
+		// log.Printf(logLine)
 
 		ti.Tail = strings.TrimSpace(shipStaticData.Name)
 		ti.Reg = strings.TrimSpace(shipStaticData.CallSign)
