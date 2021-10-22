@@ -269,39 +269,45 @@ func handleNmeaInConnection(c net.Conn) {
 
 // Returns the number of DHCP leases and prints queue lengths.
 func getNetworkStats() {
+	timer := time.NewTicker(15 * time.Second)
 
-	netMutex.Lock()
-	defer netMutex.Unlock()
+	for {
+		<-timer.C
+		netMutex.Lock()
+		
 
-	var numNonSleepingClients uint
+		var numNonSleepingClients uint
 
-	for k, conn := range clientConnections {
-		// only use net conns
-		netconn, ok := conn.(*networkConnection)
-		if netconn == nil || !ok {
-			continue
-		}
-
-		if globalSettings.DEBUG {
-			queueBytes := 0
-			queueDump := netconn.Queue.GetQueueDump(true)
-			for _, msg := range queueDump {
-				queueBytes += len(msg.([]byte))
+		for k, conn := range clientConnections {
+			// only use net conns
+			netconn, ok := conn.(*networkConnection)
+			if netconn == nil || !ok {
+				continue
 			}
-			log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(queueDump), queueBytes)
-		}
-		ipAndPort := strings.Split(k, ":")
-		if len(ipAndPort) != 2 {
-			continue
-		}
-		// Don't count the ping time if it is the same as stratuxClock epoch.
-		// If the client has responded to a ping in the last 15 minutes, count it as "connected" or "recent".
-		if !netconn.LastPingResponse.IsZero() && stratuxClock.Since(netconn.LastPingResponse) < 15*time.Minute {
-			numNonSleepingClients++
-		}
-	}
 
-	globalStatus.Connected_Users = numNonSleepingClients
+			if globalSettings.DEBUG {
+				queueBytes := 0
+				queueDump := netconn.Queue.GetQueueDump(true)
+				for _, msg := range queueDump {
+					queueBytes += len(msg.([]byte))
+				}
+				log.Printf("On  %s:%d,  Queue length = %d messages / %d bytes\n", netconn.Ip, netconn.Port, len(queueDump), queueBytes)
+			}
+			ipAndPort := strings.Split(k, ":")
+			if len(ipAndPort) != 2 {
+				continue
+			}
+			// Don't count the ping time if it is the same as stratuxClock epoch.
+			// If the client has responded to a ping in the last 15 minutes, count it as "connected" or "recent".
+			if !netconn.LastPingResponse.IsZero() && stratuxClock.Since(netconn.LastPingResponse) < 15*time.Minute {
+				numNonSleepingClients++
+			}
+		}
+
+		globalStatus.Connected_Users = numNonSleepingClients
+
+		netMutex.Unlock()
+	}
 }
 
 // See who has a DHCP lease and make a UDP connection to each of them.
@@ -631,51 +637,6 @@ func networkStatsCounter() {
 	}
 }
 
-/*
-	ffMonitor().
-		Watches for "i-want-to-play-ffm-udp", "i-can-play-ffm-udp", and "i-cannot-play-ffm-udp" UDP messages broadcasted on
-		 port 50113. Tags the client, issues a warning, and disables AHRS GDL90 output.
-
-*/
-
-func ffMonitor() {
-	addr := net.UDPAddr{Port: 50113, IP: net.ParseIP("0.0.0.0")}
-	conn, err := net.ListenUDP("udp", &addr)
-	if err != nil {
-		log.Printf("ffMonitor(): error listening on port 50113: %s\n", err.Error())
-		return
-	}
-	defer conn.Close()
-	for {
-		buf := make([]byte, 1024)
-		n, addr, err := conn.ReadFrom(buf)
-		ipAndPort := strings.Split(addr.String(), ":")
-		ip := ipAndPort[0]
-		if err != nil {
-			log.Printf("err: %s\n", err.Error())
-			return
-		}
-		// Got message, check if it's in the correct format.
-		if n < 3 || buf[0] != 0xFF || buf[1] != 0xFE {
-			continue
-		}
-		s := string(buf[2:n])
-		s = strings.Replace(s, "\x00", "", -1)
-		ffIpAndPort := ip + ":4000"
-
-		p := getNetworkConn(ffIpAndPort)
-		if p == nil {
-			continue // Can't do anything, the client isn't even technically connected.
-		}
-		netMutex.Lock()
-		if strings.HasPrefix(s, "i-want-to-play-ffm-udp") || strings.HasPrefix(s, "i-can-play-ffm-udp") || strings.HasPrefix(s, "i-cannot-play-ffm-udp") {
-			p.FFCrippled = true
-			//FIXME: AHRS output doesn't need to be disabled globally, just on the ForeFlight client IPs.
-			addSingleSystemErrorf("ff-warn", "Stratux is not supported by your EFB app. Your EFB app is known to regularly make changes that cause compatibility issues with Stratux. See the README for a list of apps that officially support Stratux.")
-		}
-		netMutex.Unlock()
-	}
-}
 
 func initNetwork() {
 	networkGDL90Chan = make(chan []byte, 1024)
@@ -690,4 +651,5 @@ func initNetwork() {
 	go networkOutWatcher() // Pushes to websocket
 	go tcpNMEAOutListener()
 	go tcpNMEAInListener()
+	go getNetworkStats()
 }

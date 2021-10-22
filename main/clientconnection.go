@@ -47,7 +47,6 @@ type networkConnection struct {
 		 when a client is ready to accept packets - we just assume so if we don't receive ICMP Unreachable packets in 5 secs.
 	*/
 	SleepFlag       bool      // Whether or not this client has been marked as sleeping - only used for debugging
-	FFCrippled      bool
 }
 
 func (conn *networkConnection) MessageQueue() *MessageQueue {
