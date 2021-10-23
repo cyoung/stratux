@@ -140,6 +140,7 @@ cp -f interfaces /etc/network/interfaces
 
 #logrotate conf
 cp -f logrotate.conf /etc/logrotate.conf
+cp -f logrotate_d_stratux /etc/logrotate.d/stratux
 
 #sshd config
 # Do not copy for now. It contains many deprecated options and isn't needed.
