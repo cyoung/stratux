@@ -1184,8 +1184,7 @@ type settings struct {
 	WiFiMode             int
 	WiFiDirectPin        string
 	WiFiIPAddress        string
-	WiFiClientSSID       string
-	WiFiClientPassword   string
+	WiFiClientNetworks   []wifiClientNetwork
 	WiFiInternetPassThroughEnabled bool
 
 	EstimateBearinglessDist bool
@@ -1288,6 +1287,7 @@ func defaultSettings() {
 	globalSettings.WiFiPassphrase = ""
 	globalSettings.WiFiSSID = "stratux"
 	globalSettings.WiFiSecurityEnabled = false
+	globalSettings.WiFiClientNetworks = make([]wifiClientNetwork, 0)
 
 	globalSettings.RadarLimits = 2000
 	globalSettings.RadarRange = 10

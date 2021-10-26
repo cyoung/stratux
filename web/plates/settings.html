@@ -261,18 +261,33 @@
                                 placeholder="192.168.10.1" />
                         </div>
                         <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
-                            <label class="control-label col-xs-5">WiFi Client SSID</label>
-                            <input class="col-xs-7" type="text" ssid-input ng-model="WiFiClientSSID" />
-                        </div>
-                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
-                            <label class="control-label col-xs-5">WiFi Client Passphrase</label>
-                            <input class="col-xs-7" type="text" wpa-input ng-model="WiFiClientPassword" />
-                        </div>
-                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
                             <label class="control-label col-xs-5">Internet Passthrough</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiInternetPassThroughEnabled" settings-change></ui-switch>
                             </div>
+                        </div>
+
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <button class="btn btn-info btn-block" ng-click="addWiFiClientNetwork()">Add
+                                WiFi Client Network</button>
+                        </div>
+
+                        <hr>
+
+                        <div ng-show="WiFiMode=='2'" ng-repeat="Network in WiFiClientNetworks">
+                            <div class="form-group reset-flow">
+                                <label class="control-label col-xs-5">WiFi Client SSID</label>
+                                <input class="col-xs-7" type="text" ssid-input ng-model="Network.SSID" />
+                            </div>
+                            <div class="form-group reset-flow">
+                                <label class="control-label col-xs-5">WiFi Client Passphrase</label>
+                                <input class="col-xs-7" type="text" wpa-input ng-model="Network.Password" />
+                            </div>
+                            <div class="form-group reset-flow">
+                                <button class="btn btn-info btn-block" ng-click="removeWiFiClientNetwork(Network)">Remove
+                                    WiFi Client Network</button>
+                            </div>
+                            <hr>
                         </div>
 
                         <div class="form-group reset-flow">
