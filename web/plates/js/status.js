@@ -1,8 +1,8 @@
 angular.module('appControllers').controller('StatusCtrl', StatusCtrl); // get the main module contollers set
-StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
+StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craftService']; // Inject my dependencies
 
 // create our controller function with all necessary logic
-function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
+function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 	$scope.$parent.helppage = 'plates/status-help.html';
 
@@ -176,6 +176,11 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.visible_uat = true;
 		$scope.visible_es = true;
 		$scope.visible_gps = true;
+
+		$scope.esStyleColor = craftService.getTrafficSourceColor(1);
+		$scope.uatStyleColor = craftService.getTrafficSourceColor(2);
+		$scope.ognStyleColor = craftService.getTrafficSourceColor(4);
+		$scope.aisStyleColor = craftService.getTrafficSourceColor(5);
 
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_SETTINGS_GET).

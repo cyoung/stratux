@@ -378,7 +378,7 @@ func (e *AIS) read() {
 
 	cmd.Wait()
 
-	// we get here if A) the dump1090 process died
+	// we get here if A) the rvt_ais process died
 	// on its own or B) cmd.Process.Kill() was called
 	// from within the goroutine, either way close
 	// the "done" channel, which ensures we don't leak

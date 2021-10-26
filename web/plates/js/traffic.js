@@ -10,6 +10,11 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService)
 	$scope.$parent.helppage = 'plates/traffic-help.html';
 	$scope.data_list = [];
 	$scope.data_list_invalid = [];
+
+	$scope.$parent.esStyleColor = craftService.getTrafficSourceColor(1);
+	$scope.$parent.uatStyleColor = craftService.getTrafficSourceColor(2);
+	$scope.$parent.ognStyleColor = craftService.getTrafficSourceColor(4);
+	$scope.$parent.aisStyleColor = craftService.getTrafficSourceColor(5);
 	
 	function utcTimeString(epoc) {
 		var time = "";
@@ -23,7 +28,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService)
 		time += ":" + (val < 10 ? "0" + val : "" + val);
 		time += "Z";
 		return time;
-	}
+	}	
 /*
 
 	function dmsString(val) {
@@ -51,7 +56,6 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService)
 
 	function setAircraft(obj, new_traffic) {
 		new_traffic.icao_int = obj.Icao_addr;
-		new_traffic.targettype = obj.TargetType;
 		new_traffic.isStratux = obj.IsStratux;
 		new_traffic.signal = obj.SignalLevel;
 		new_traffic.Last_source = obj.Last_source; // 1=ES, 2=UAT, 4=OGN, 8=AIS

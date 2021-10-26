@@ -4,7 +4,6 @@ MapCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craf
 
 function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 	let TRAFFIC_MAX_AGE_SECONDS = 15;
-	let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*30;
 
 	$scope.$parent.helppage = 'plates/radar-help.html';
 
@@ -150,12 +149,12 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		let color = craftService.getTransportColor(aircraft);	
 		if (aircraft.TargetType === TARGET_TYPE_AIS) {
 		    html = `
-			<svg width="11" height="25" xmlns="http://www.w3.org/2000/svg" version="1.1">
-			<g>
-			 <title>Layer 1</title>
-			 <path stroke="white" fill="${color}" d="m0.22305,11.928l0,12.99329l10.54714,0l0,-12.99329q0,-6.49665 -5.27357,-12.45192q-5.27357,6.49665 -5.27357,12.45192" fill-rule="evenodd" id="svg_1"/>
-			</g>		   
-		   </svg>
+				<svg width="11" height="25" xmlns="http://www.w3.org/2000/svg" version="1.1">
+					<g>
+					<title>Layer 1</title>
+					<path stroke="white" fill="${color}" d="m0.22305,11.928l0,12.99329l10.54714,0l0,-12.99329q0,-6.49665 -5.27357,-12.45192q-5.27357,6.49665 -5.27357,12.45192" fill-rule="evenodd" id="svg_1"/>
+					</g>		   
+				</svg>
 			`;
 		} else {
 			html = `
@@ -238,18 +237,15 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 	function updateOpacity(aircraft) {
 		// For AIS sources we set full opacity for 30 minutes
-		let opacity = 1
-		if (aircraft.TargetType === TARGET_TYPE_AIS) {
-			if (aircraft.Age >= TRAFFIC_AIS_MAX_AGE_SECONDS)
-				opacity = 0;	
+		let opacity
+		if (craftService.isTrafficAged(aircraft)) {
+			opacity = 0.0
+		} else if (aircraft.TargetType === TARGET_TYPE_AIS) {
+			opacity = 1.0;
 		} else { // For other sources it's based on seconds
-			if (aircraft.Age >= TRAFFIC_MAX_AGE_SECONDS)
-				opacity = 0;
-			else 
-				opacity = 1.0 - (aircraft.Age / TRAFFIC_MAX_AGE_SECONDS);
-		}
-		
-		return aircraft.marker.getStyle().getImage().setOpacity(opacity);
+			opacity = 1.0 - (aircraft.Age / TRAFFIC_MAX_AGE_SECONDS);
+		}		
+		aircraft.marker.getStyle().getImage().setOpacity(opacity);
 	}
 
 	function updateVehicleText(aircraft) {
@@ -323,7 +319,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 					aircraft.posHistory.push([aircraft.Lng, aircraft.Lat]);
 				}
 				
-				// At most 10 positions per aircraft
+				// At most 9.25km per aircraft
 				aircraft.posHistroy = clipPosHistory(aircraft, 9.25);
 
 				if (!aircraft.Speed_valid) {

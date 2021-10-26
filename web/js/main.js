@@ -140,39 +140,47 @@ app.controller('MainCtrl', function ($scope, $http) {
     };
 })
 .service('craftService',function(){ 
+	let trafficSourceColors = {
+		1: 'cornflowerblue', // ES
+		2: 'darkkhaki',      // UAT
+		4: 'green',          // OGN
+		5: '#0077be'         // AIS
+	}
 
-	// Must match the traffic-style in style.css
+	const getTrafficSourceColor = (source) => {
+		if (trafficSourceColors[source] !== undefined) {
+			return trafficSourceColors[source];
+		} else {
+			return 'gray';
+		}
+	}
+
 	// THis ensures that the colors used in traffic.js and map.js for the vessels are the same
 	let aircraftColors = {
-		1: "cornflowerblue",
-		10: "cornflowerblue",
-		11: "cornflowerblue",
 
-		12: "skyblue",
-		13: "skyblue",
-		14: "skyblue",
+		10: 'cornflowerblue',
+		11: 'cornflowerblue',
+		12: 'skyblue',
+		13: 'skyblue',
+		14: 'skyblue',
 
-		2: "darkkhaki",
-		20: "darkkhaki",
-		21: "darkkhaki",
+		20: 'darkkhaki',
+		21: 'darkkhaki',
+		22: 'khaki',
+		23: 'khaki',
+		24: 'khaki',
 
-		22: "khaki",
-		23: "khaki",
-		24: "khaki",
-
-		4: "green",
-		40: "green",
-		41: "green",
-
-		42: "greenyellow",
-		43: "greenyellow",
-		44: "greenyellow"
+		40: 'green',
+		41: 'green',
+		42: 'greenyellow',
+		43: 'greenyellow',
+		44: 'greenyellow'
 	}
 
 	const getAircraftColor = (aircraft) => {
-		let code = "" + aircraft.Last_source+""+aircraft.TargetType;			
+		let code = aircraft.Last_source.toString()+aircraft.TargetType.toString();			
 		if (aircraftColors[code] === undefined) {
-			return "white";
+			return 'white';
 		} else {
 			return aircraftColors[code];
 		}
@@ -180,27 +188,27 @@ app.controller('MainCtrl', function ($scope, $http) {
 
 	const getVesselColor = (vessel) => {
 		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
-		firstDigit = Math.floor(vessel.Emitter_category / 10)
-		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
+		firstDigit = Math.floor(vessel.SurfaceVehicleType / 10)
+		secondDigit = vessel.SurfaceVehicleType - Math.floor(vessel.SurfaceVehicleType / 10)*10;
 
 		const categoryFirst= {
-			2: "orange",
-			4: "orange",
-			5: "orange",
-			6: "blue",
-			7: "green",
-			8: "red",
-			9: "red"
+			2: 'orange',
+			4: 'orange',
+			5: 'orange',
+			6: 'blue',
+			7: 'green',
+			8: 'red',
+			9: 'red'
 		};		
 		const categorySecond= {
-			0: "silver",
-			1: "cyan",
-			2: "darkblue",
-			3: "LightSkyBlue",
-			4: "LightSkyBlue",
-			5: "darkolivegreen",
-			6: "maroon",
-			7: "purple"
+			0: 'silver',
+			1: 'cyan',
+			2: 'darkblue',
+			3: 'LightSkyBlue',
+			4: 'LightSkyBlue',
+			5: 'darkolivegreen',
+			6: 'maroon',
+			7: 'purple'
 		};		
 
 		if (categoryFirst[firstDigit]) {
@@ -223,27 +231,27 @@ app.controller('MainCtrl', function ($scope, $http) {
 
 	const getVesselCategory = (vessel) => {
 		// https://www.navcen.uscg.gov/?pageName=AISMessagesAStatic
-		firstDigit = Math.floor(vessel.Emitter_category / 10)
-		secondDigit = vessel.Emitter_category - Math.floor(vessel.Emitter_category / 10)*10;
+		firstDigit = Math.floor(vessel.SurfaceVehicleType / 10)
+		secondDigit = vessel.SurfaceVehicleType - Math.floor(vessel.SurfaceVehicleType / 10)*10;
 
 		const categoryFirst= {
-			2: "Cargo",
-			4: "Cargo",
-			5: "Cargo",
-			6: "Passenger",
-			7: "Cargo",
-			8: "Tanker",
-			9: "Cargo",
+			2: 'Cargo',
+			4: 'Cargo',
+			5: 'Cargo',
+			6: 'Passenger',
+			7: 'Cargo',
+			8: 'Tanker',
+			9: 'Cargo',
 		};		
 		const categorySecond= {
-			0: "Fishing",
-			1: "Tugs",
-			2: "Tugs",
-			3: "Dredging",
-			4: "Diving",
-			5: "Military",
-			6: "Sailing",
-			7: "Pleasure",
+			0: 'Fishing',
+			1: 'Tugs',
+			2: 'Tugs',
+			3: 'Dredging',
+			4: 'Diving',
+			5: 'Military',
+			6: 'Sailing',
+			7: 'Pleasure',
 		};		
 
 		if (categoryFirst[firstDigit]) {
@@ -257,22 +265,23 @@ app.controller('MainCtrl', function ($scope, $http) {
 
 	const getAircraftCategory = (aircraft) => {
 		const category = {
-			1: "Light",
-			2: "Small",
-			3: "Large",
-			4: "VLarge",
-			5: "Heavy",
-			6: "Fight",
-			7: "Helic",
-			9: "Glide",
-			10: "Ballo",
-			11: "Parac",
-			12: "Ultrl",
-			14: "Drone",
-			15: "Space",
-			16: "VLarge",
-			18: "Vehic",
-			19: "Obstc"
+			1: 'Light',
+			2: 'Small',
+			3: 'Large',
+			4: 'VLarge',
+			5: 'Heavy',
+			6: 'Fight',
+			7: 'Helic',
+			9: 'Glide',
+			10: 'Ballo',
+			11: 'Parac',
+			12: 'Ultrl',
+			14: 'Drone',
+			15: 'Space',
+			16: 'VLarge',
+			17: 'Vehic',
+			18: 'Vehic',
+			19: 'Obstc'
 		};		
 		return category[aircraft.Emitter_Category]?category[aircraft.Emitter_Category]:'---';
 	};
@@ -284,6 +293,10 @@ app.controller('MainCtrl', function ($scope, $http) {
 			} else {
 				return getAircraftCategory(craft);
 			}
+		},
+
+		getTrafficSourceColor: (source) => {
+			return getTrafficSourceColor(source);
 		},
 
 		isTrafficAged: (craft) => {

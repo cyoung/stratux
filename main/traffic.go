@@ -84,6 +84,7 @@ type TrafficInfo struct {
 	Reg                 string    // Registration. Calculated from Icao_addr for civil aircraft of US registry.
 	Tail                string    // Callsign. Transmitted by aircraft.
 	Emitter_category    uint8     // Formatted using GDL90 standard, e.g. in a Mode ES report, A7 becomes 0x07, B0 becomes 0x08, etc.
+	SurfaceVehicleType	uint16    // Type of service vehicle (when Emitter_category==18) 0..255 is reserved for AIS vessels
 	OnGround            bool      // Air-ground status. On-ground is "true".
 	Addr_type           uint8     // UAT address qualifier. Used by GDL90 format, so translations for ES TIS-B/ADS-R are needed.
 	TargetType          uint8     // types decribed in const above

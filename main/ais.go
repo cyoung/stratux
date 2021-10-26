@@ -108,25 +108,26 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		ti = existingTi
 	} else {
 		ti.Reg = fmt.Sprintf("%d", header.UserID)
+		ti.Emitter_category = 18 // Ground Vehicle, see also gdl90EmitterCatToNMEA
+		ti.TargetType = TARGET_TYPE_AIS
+		ti.Last_source = TRAFFIC_SOURCE_AIS
+		ti.Alt = 0
+		ti.Addr_type = uint8(1) // Non-ICAO Address
+		ti.SignalLevel = 0.0
+		ti.Squawk = 0
+		ti.AltIsGNSS = false
+		ti.GnssDiffFromBaroAlt = 0
+		ti.NIC = 0
+		ti.NACp = 0
+		ti.Vvel = 0
+		ti.PriorityStatus = 0
+
+		ti.Age = 0
+		ti.AgeLastAlt = 0
 	}
 
-	ti.TargetType = TARGET_TYPE_AIS
-	ti.Last_source = TRAFFIC_SOURCE_AIS
-	ti.Alt = 0
 	ti.Icao_addr = header.UserID
-	ti.Addr_type = uint8(1) // Non-ICAO Address
-	ti.SignalLevel = 0.0
-	ti.Squawk = 0
 	ti.Timestamp = time.Now().UTC()
-	ti.AltIsGNSS = false
-	ti.GnssDiffFromBaroAlt = 0
-	ti.NIC = 0
-	ti.NACp = 0
-	ti.Vvel = 0
-	ti.PriorityStatus = 0
-
-	ti.Age = 0
-	ti.AgeLastAlt = 0
 	ti.Last_seen = stratuxClock.Time
 	ti.Last_alt = stratuxClock.Time
 
@@ -137,12 +138,9 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		//		txt, _ := json.Marshal(shipStaticData)
 		//		log.Printf("shipStaticData: " + string(txt))
 
-		// var logLine = fmt.Sprintf("%s : %s : %d", shipStaticData.CallSign, shipStaticData.Name, shipStaticData.Type)
-		// log.Printf(logLine)
-
 		ti.Tail = strings.TrimSpace(shipStaticData.Name)
 		ti.Reg = strings.TrimSpace(shipStaticData.CallSign)
-		ti.Emitter_category = shipStaticData.Type
+		ti.SurfaceVehicleType = uint16(shipStaticData.Type)
 		// Store in case this was the first message and we disgard it later
 		traffic[key] = ti
 	}
@@ -222,7 +220,7 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 
 	// Basic plausibility check and do not display targets more than 150km
 	if ti.BearingDist_valid == false || ti.Distance >= 150000 {
-		return
+	//	return
 	}
 
 	traffic[key] = ti
