@@ -37,9 +37,12 @@ type NetworkTemplateParams struct {
 	WiFiChannel      int
 	WiFiDirectPin    string
 	WiFiPassPhrase   string
-	WiFiClientSSID   string
-	WiFiClientPassword string
+	WiFiClientNetworks []wifiClientNetwork
 	WiFiInternetPassThroughEnabled bool
+}
+type wifiClientNetwork struct {
+	SSID     string
+	Password string
 }
 
 var hasChanged bool
@@ -98,17 +101,19 @@ func setWifiDirectPin(pin string) {
 	}
 }
 
-func setWifiClientSSID(ssid string) {
-	if globalSettings.WiFiClientSSID != ssid {
-		globalSettings.WiFiClientSSID = ssid
+func setWifiClientNetworks(networks []wifiClientNetwork) {
+	if len(globalSettings.WiFiClientNetworks) != len(networks) {
+		globalSettings.WiFiClientNetworks = networks
 		hasChanged = true
+		return
 	}
-}
 
-func setWifiClientPassword(password string) {
-	if globalSettings.WiFiClientPassword != password {
-		globalSettings.WiFiClientPassword = password
-		hasChanged = true
+	for i, net := range networks {
+		if globalSettings.WiFiClientNetworks[i].SSID != net.SSID || globalSettings.WiFiClientNetworks[i].Password != net.Password {
+			globalSettings.WiFiClientNetworks = networks
+			hasChanged = true
+			return
+		}
 	}
 }
 
@@ -156,8 +161,7 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 	tplSettings.WiFiChannel = globalSettings.WiFiChannel
 	tplSettings.WiFiSSID = globalSettings.WiFiSSID
 	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
-	tplSettings.WiFiClientSSID = globalSettings.WiFiClientSSID
-	tplSettings.WiFiClientPassword = globalSettings.WiFiClientPassword
+	tplSettings.WiFiClientNetworks = globalSettings.WiFiClientNetworks
 	tplSettings.WiFiInternetPassThroughEnabled = globalSettings.WiFiInternetPassThroughEnabled
 	
 	if tplSettings.WiFiChannel == 0 {

@@ -12,9 +12,10 @@ package main
 
 import (
 	"encoding/json"
-	"golang.org/x/net/websocket"
 	"sync"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 type uibroadcaster struct {
@@ -34,7 +35,9 @@ func NewUIBroadcaster() *uibroadcaster {
 }
 
 func (u *uibroadcaster) Send(msg []byte) {
-	u.messages <- msg
+	if u != nil && u.messages != nil {
+		u.messages <- msg
+	}
 }
 
 func (u *uibroadcaster) SendJSON(i interface{}) {

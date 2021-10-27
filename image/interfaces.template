@@ -23,7 +23,7 @@ iface ap0 inet static
 # Pure AP mode
 iface wlan0 inet manual
   pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
-  pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  pre-up iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
   wireless-power off
   post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
 {{end}}
@@ -33,7 +33,7 @@ iface wlan0 inet manual
 # AP+Client mode
 iface wlan0 inet manual
   pre-up ifdown ap0; ifconfig ap0 down; iw ap0 del || true
-  pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  pre-up iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
   # Enable routing
   {{if .WiFiInternetPassThroughEnabled}}
   pre-up echo 1 > /proc/sys/net/ipv4/ip_forward
@@ -64,7 +64,6 @@ iface wlan0 inet manual
 allow-hotplug p2p-wlan0-0
 iface p2p-wlan0-0 inet static
   address {{.IpAddr}}
-  pre-up /usr/sbin/rfkill unblock wifi
   netmask 255.255.255.0
   post-down wpa_cli -i wlan0 terminate
 {{end}}

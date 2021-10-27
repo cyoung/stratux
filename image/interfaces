@@ -19,7 +19,7 @@ iface ap0 inet static
 
 # Pure AP mode
 iface wlan0 inet manual
-  pre-up /usr/sbin/rfkill unblock wifi; iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
+  pre-up iw wlan0 set type managed; iw phy0 interface add ap0 type __ap; ifup ap0
   wireless-power off
   post-down ifdown ap0; ifconfig ap0 down; iw ap0 del
 

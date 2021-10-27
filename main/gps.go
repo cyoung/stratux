@@ -1899,7 +1899,8 @@ func gpsSerialReader() {
 }
 
 func makeAHRSSimReport() {
-	sendXPlane(createXPlaneAttitudeMsg(float32(mySituation.AHRSGyroHeading), float32(mySituation.AHRSPitch), float32(mySituation.AHRSRoll)), false)
+	msg := createXPlaneAttitudeMsg(float32(mySituation.AHRSGyroHeading), float32(mySituation.AHRSPitch), float32(mySituation.AHRSRoll))
+	sendXPlane(msg, 100 * time.Millisecond, 1)
 }
 
 /*
@@ -1951,7 +1952,7 @@ func makeFFAHRSMessage() {
 	msg[10] = byte((tas >> 8) & 0xFF)
 	msg[11] = byte(tas & 0xFF)
 
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, 200 * time.Millisecond, 3)
 }
 
 /*
@@ -2049,7 +2050,7 @@ func makeAHRSGDL90Report() {
 	msg[22] = 0x7F
 	msg[23] = 0xFF
 
-	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, false)
+	sendMsg(prepareMessage(msg), NETWORK_AHRS_GDL90, 100 * time.Millisecond, 3)
 }
 
 func gpsAttitudeSender() {

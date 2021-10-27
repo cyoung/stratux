@@ -10,6 +10,7 @@
             "program": "${workspaceRoot}/gen_gdl90",
             "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
             "args": ["-log_dir", "/tmp/", "-logtostderr"],
+            //"args": ["-log_dir", "/tmp/", "-logtostderr", "-replay", "-uatlog",  "test-data/cyoung-09062015-noproblem-stratux-uat.log"],
             "preLaunchTask": "Build",
             "internalConsoleOptions": "openOnSessionStart"
         }

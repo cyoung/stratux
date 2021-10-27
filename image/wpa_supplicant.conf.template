@@ -26,8 +26,12 @@ network={
 {{if eq .WiFiMode 2}}
 # AP+Client config
 ap_scan=1
+
+{{range .WiFiClientNetworks}}
 network={
-	ssid="{{.WiFiClientSSID}}"
-	psk="{{.WiFiClientPassword}}"
+	ssid="{{.SSID}}"
+	psk="{{.Password}}"
 }
+{{end}}
+
 {{end}}
