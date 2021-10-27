@@ -8,3 +8,4 @@
 [submodule "rtl-ais"]
 	path = rtl-ais
 	url = https://github.com/mik3y/rtl-ais
+	ignore = dirty

@@ -102,7 +102,10 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService)
 		if (new_traffic.TargetType ===  TARGET_TYPE_AIS) {
 			new_traffic.addr_symb = '\uD83D\uDEA2';
 		} else {
-			new_traffic.addr_symb = '\uD83D\uDEE9';
+			new_traffic.addr_symb ='\u2708';    // undefined, use aircraft as default
+			if (new_traffic.targettype > 3) {
+				new_traffic.addr_symb ='\ud83d\udce1';
+			}
 		}
 		// return new_aircraft;
 	}
