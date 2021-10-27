@@ -5,7 +5,7 @@ After=network.target
 [Service]
 ExecStartPre=/opt/stratux/bin/stratux-pre-start.sh
 ExecStart=/opt/stratux/bin/gen_gdl90
-ExecStopPost=/usr/bin/killall dump1090 ogn-rx-eu
+ExecStopPost=/usr/bin/killall dump1090 ogn-rx-eu rtl_ais
 KillMode=process
 Restart=always
 RestartSec=5

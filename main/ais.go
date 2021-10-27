@@ -37,7 +37,7 @@ func aisListen() {
 			continue
 		}
 		// log.Printf("ais connecting...")
-		aisAddr := "127.0.0.1:10111"
+		aisAddr := "127.0.0.1:10110"
 		conn, err := net.Dial("tcp", aisAddr)
 		if err != nil { // Local connection failed.
 			time.Sleep(3 * time.Second)
@@ -94,7 +94,8 @@ func aisListen() {
 	}
 }
 
-// Datastructure explanation can be found at https://www.navcen.uscg.gov/?pageName=AISMessages
+// Datastructure for AIS parsing 
+// explanation can be found at https://www.navcen.uscg.gov/?pageName=AISMessages
 func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	var ti TrafficInfo
 
@@ -135,22 +136,16 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	if header.MessageID == 5 {
 		var shipStaticData ais.ShipStaticData = msg.Packet.(ais.ShipStaticData)
 
-		//		txt, _ := json.Marshal(shipStaticData)
-		//		log.Printf("shipStaticData: " + string(txt))
-
 		ti.Tail = strings.TrimSpace(shipStaticData.Name)
 		ti.Reg = strings.TrimSpace(shipStaticData.CallSign)
 		ti.SurfaceVehicleType = uint16(shipStaticData.Type)
-		// Store in case this was the first message and we disgard it later
+		// Store in case this was the first message and we disgard die to GPS not available 
 		traffic[key] = ti
 	}
 
 	// Handle LongRangeAisBroadcastMessage
 	if header.MessageID == 27 {
 		var positionReport ais.LongRangeAisBroadcastMessage = msg.Packet.(ais.LongRangeAisBroadcastMessage)
-
-		//		txt, _ := json.Marshal(positionReport)
-		//		log.Printf("LongRangeAisBroadcastMessage: " + string(txt))
 
 		ti.Lat = float32(positionReport.Latitude)
 		ti.Lng = float32(positionReport.Longitude)
@@ -169,9 +164,6 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 	if header.MessageID == 1 || header.MessageID == 2 || header.MessageID == 3 {
 		var positionReport ais.PositionReport = msg.Packet.(ais.PositionReport)
 
-		//		txt, _ := json.Marshal(positionReport)
-		//		log.Printf("Position report: " + string(txt))
-
 		ti.OnGround = true
 		ti.Position_valid = true
 		ti.Lat = float32(positionReport.Latitude)
@@ -183,7 +175,9 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 			ti.Last_speed = ti.Last_seen
 		}
 
-		// We assume that when we have speed, we also have a proper course over ground so we take thgat over heading.
+		// We assume that when we have speed, 
+		// we also have a proper course over ground so we take that over heading.
+		// Otherwise Track will be heading so boats will orient correctly
 		if positionReport.Sog > 0.0 && positionReport.Sog < 102.3 {
 			var cog float32 = 0.0
 			if positionReport.Cog != 360 {
@@ -207,7 +201,7 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		ti.ExtrapolatedPosition = false
 	}
 
-	// Prevent wild lat/long
+	// Prevent wild lat/long coordinates
 	if ti.Lat > 360 || ti.Lat < -360 || ti.Lng > 360 || ti.Lng < -360 {
 		return
 	}
@@ -218,9 +212,9 @@ func importAISTrafficMessage(msg *aisnmea.VdmPacket) {
 		ti.BearingDist_valid = true
 	}
 
-	// Basic plausibility check and do not display targets more than 150km
+	// Do not display targets more than 150km
 	if ti.BearingDist_valid == false || ti.Distance >= 150000 {
-	//	return
+		return
 	}
 
 	traffic[key] = ti

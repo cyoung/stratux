@@ -303,7 +303,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 		// It is only a 'real' update, if the traffic's Age actually changes.
 		// If it doesn't, don't restart animation (only interpolated position).
-		let isActualUpdate = true;
 		let updateIndex = -1;
 		for (let i in $scope.aircraft) {
 			if (isSameAircraft($scope.aircraft[i].Icao_addr, $scope.aircraft[i].Addr_type, aircraft.Icao_addr, aircraft.Addr_type)) {
@@ -326,8 +325,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 					// Compute fake track from last to current position
 					aircraft.Track = computeTrackFromPositions(aircraft);
 				}
-				isActualUpdate = (aircraft.Age < oldAircraft.Age);
-
 				$scope.aircraft[i] = aircraft;
 				updateIndex = i;
 			}
