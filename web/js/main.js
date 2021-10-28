@@ -283,7 +283,7 @@ app.controller('MainCtrl', function ($scope, $http) {
 			18: 'Vehic',
 			19: 'Obstc'
 		};		
-		return category[aircraft.Emitter_Category]?category[aircraft.Emitter_Category]:'---';
+		return category[aircraft.Emitter_category]?category[aircraft.Emitter_category]:'---';
 	};
 
 	return {

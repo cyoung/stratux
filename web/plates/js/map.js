@@ -144,27 +144,38 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		};
 	}
 
+	/** 
+		Returns path to SVG icon and bool indicating if it's a rotatable icon (not ballon/skydiver)
+	 */
 	function createPlaneSvg(aircraft) {
 		let html = ``;
 		let color = craftService.getTransportColor(aircraft);	
-		if (aircraft.TargetType === TARGET_TYPE_AIS) {
-		    html = `
-				<svg width="11" height="25" xmlns="http://www.w3.org/2000/svg" version="1.1">
-					<g>
-					<title>Layer 1</title>
-					<path stroke="white" fill="${color}" d="m0.22305,11.928l0,12.99329l10.54714,0l0,-12.99329q0,-6.49665 -5.27357,-12.45192q-5.27357,6.49665 -5.27357,12.45192" fill-rule="evenodd" id="svg_1"/>
-					</g>		   
-				</svg>
-			`;
-		} else {
-			html = `
-				<svg height="30" width="30" viewBox="0 0 250 250" version="1.1" xmlns="http://www.w3.org/2000/svg" >
-					<path fill="${color}" stroke="white" stroke-width="5" d="M 247.51404,152.40266 139.05781,71.800946 c 0.80268,-12.451845 1.32473,-40.256266 0.85468,-45.417599 -3.94034,-43.266462 -31.23018,-24.6301193 -31.48335,-5.320367 -0.0693,5.281361 -1.01502,32.598388 -1.10471,50.836622 L 0.2842717,154.37562 0,180.19575 l 110.50058,-50.48239 3.99332,80.29163 -32.042567,22.93816 -0.203845,16.89693 42.271772,-11.59566 0.008,0.1395 42.71311,10.91879 -0.50929,-16.88213 -32.45374,-22.39903 2.61132,-80.35205 111.35995,48.50611 -0.73494,-25.77295 z" fill-rule="evenodd"/>
-				</svg>
-				`;
+		if (aircraft.TargetType === TARGET_TYPE_AIS)
+			return ['img/actype/vessel.svg', true];
+
+		switch (aircraft.Emitter_category) {
+			case 1:
+			case 6:
+				return ['img/actype/light.svg', true];
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+				return ['img/actype/heavy.svg', true];
+			case 7:
+				return ['img/actype/helicopter.svg', true];
+			case 9:
+				return ['img/actype/glider.svg', true];
+			case 10:
+				return ['img/actype/lighter-than-air.svg', false];
+			case 11:
+			case 12:
+				return ['img/actype/skydiver.svg', false];
+			default:
+				return ['img/actype/undef.svg', true];
 		}
 
-		return html;
+		return ['img/actype/undef.svg', true];
 	}
 
 	// Converts from degrees to radians.
@@ -364,13 +375,15 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 		updateVehicleText(aircraft);
 		if (!prevColor || prevColor != craftService.getTransportColor(aircraft)) {
+			const [icon, rotatable] = createPlaneSvg(aircraft);
 			let imageStyle = new ol.style.Icon({
 				opacity: 1.0,
-				src: 'data:image/svg+xml;utf8,' + createPlaneSvg(aircraft),
-				rotation: aircraft.Track,
+				src: icon,
+				rotation: rotatable ? aircraft.Track : 0,
 				anchor: [0.5, 0.5],
 				anchorXUnits: 'fraction',
-				anchorYUnits: 'fraction'
+				anchorYUnits: 'fraction',
+				color: craftService.getTransportColor(aircraft)
 			});
 			aircraft.marker.getStyle().setImage(imageStyle); // to update the color if latest source changed
 		}
