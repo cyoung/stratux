@@ -229,6 +229,12 @@
                             </select>
                         </div>
                         <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">WiFi Country</label>
+                            <select class="custom-select" ng-model="WiFiCountry">
+                                <option ng-repeat="(key, value) in countryCodes" value="{{key}}" ng-selected="WiFiCountry=='{{key}}'">{{value}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi SSID</label>
                             <input class="col-xs-7" type="text" ssid-input ng-model="WiFiSSID"
                                 placeholder="WiFi Network Name" />

@@ -29,6 +29,7 @@ const (
 // NetworkTemplateParams is passed to the template engine to write settings
 type NetworkTemplateParams struct {
 	WiFiMode         int
+	WiFiCountry      string
 	IpAddr           string
 	IpPrefix         string
 	DhcpRangeStart   string
@@ -46,6 +47,14 @@ type wifiClientNetwork struct {
 }
 
 var hasChanged bool
+
+
+func setWifiCountry(countryCode string) {
+	if countryCode != globalSettings.WiFiCountry {
+		globalSettings.WiFiCountry = countryCode
+		hasChanged = true
+	}
+}
 
 func setWifiSSID(ssid string) {
 	if ssid != globalSettings.WiFiSSID {
@@ -159,6 +168,7 @@ func applyNetworkSettings(force bool, onlyWriteFiles bool) {
 	tplSettings.DhcpRangeStart = dhcpRangeStart
 	tplSettings.DhcpRangeEnd = dhcpRangeEnd
 	tplSettings.WiFiChannel = globalSettings.WiFiChannel
+	tplSettings.WiFiCountry = globalSettings.WiFiCountry
 	tplSettings.WiFiSSID = globalSettings.WiFiSSID
 	tplSettings.WiFiDirectPin = globalSettings.WiFiDirectPin
 	tplSettings.WiFiClientNetworks = globalSettings.WiFiClientNetworks

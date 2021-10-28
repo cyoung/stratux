@@ -1184,6 +1184,7 @@ type settings struct {
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	WiFiCountry          string
 	WiFiSSID             string
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool

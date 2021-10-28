@@ -453,6 +453,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						globalSettings.StaticIps = ips
+					case "WiFiCountry":
+						setWifiCountry(val.(string))
 					case "WiFiSSID":
 						setWifiSSID(val.(string))
 					case "WiFiChannel":

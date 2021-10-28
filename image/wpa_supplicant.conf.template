@@ -1,5 +1,9 @@
 ctrl_interface=DIR=/var/run/wpa_supplicant
 
+{{if .WiFiCountry}}
+country={{.WiFiCountry}}
+{{end}}
+
 {{if eq .WiFiMode 1}}
 # WiFi Direct config
 driver_param=use_p2p_group_interface=1
