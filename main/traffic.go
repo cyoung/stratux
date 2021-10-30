@@ -183,7 +183,7 @@ func convertMetersToFeet(meters float32) float32 {
 func cleanupOldEntries() {
 	for key, ti := range traffic {
 		
-		if ti.Last_source != TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 30 seconds, so we don't lose tail number, etc...
+		if ti.Last_source != TRAFFIC_SOURCE_AIS && stratuxClock.Since(ti.Last_seen).Seconds() > 60 { // keep it in the database for up to 60 seconds, so we don't lose tail number, etc...
 			delete(traffic, key)
 		}
 
