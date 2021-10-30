@@ -12,10 +12,10 @@ order: 4
 
 * [Stratux 1090ES &amp; UAT - Radios (Low Power) and High Gain Antennas](https://amzn.to/36wQFqv).
 * [UAT Radio](https://amzn.to/3ryTn9Z).
-* [Raspberry Pi 3B Motherboard](https://amzn.to/2ZKzAGT). **NOTE**: The 3B+ will **not** work.
+* [Raspberry Pi 3B Motherboard](https://amzn.to/2ZKzAGT), [Raspberry Pi 3B+](https://amzn.to/3bqniKx), [Raspberry Pi 4](https://amzn.to/3nHLNZl).
 * [AHRS 2.0 and Fan Controller](https://amzn.to/39Kemxs).
 * [Pre-programmed SD Card](https://amzn.to/2FsorkV).
-* [White ABS Case](https://www.amazon.ca/dp/B072ND582W).
+* [White ABS Case](https://www.amazon.ca/dp/B072ND582W). ** Only fits Raspberry Pi 3B, 3B+ **  
 
 * [GPS Internal](https://amzn.to/2N0dhrK).
 * [Removable External GPS Puck](https://amzn.to/3hqjawv).
