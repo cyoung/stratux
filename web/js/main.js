@@ -37,8 +37,9 @@ var URL_RADAR_WS            = "ws://" + URL_HOST_BASE + "/radar";
 //var app = angular.module('stratux', ['ngRoute', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
 var app = angular.module('stratux', ['ui.router', 'mobile-angular-ui', 'mobile-angular-ui.gestures', 'appControllers']);
 var appControllers = angular.module('appControllers', []);
-let TRAFFIC_MAX_AGE_SECONDS = 15;
-let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*10-60;
+//cutoff value to remove targets out of the list, keep in sync with the value in traffic.go for cleanUpOldEntries, keep it just below cutoff value in traffic.go
+let TRAFFIC_MAX_AGE_SECONDS = 59;
+let TRAFFIC_AIS_MAX_AGE_SECONDS = 60*15;
 let TARGET_TYPE_AIS = 5;
 
 app.config(function ($stateProvider, $urlRouterProvider) {
