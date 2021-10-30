@@ -3,8 +3,8 @@ title: DIY Kits and Parts
 icon: fa-check
 order: 4
 ---
-1. [Full Kit - Large Antennas](https://amzn.to/3nWoMRf).
-2. [Full Kit - Normal Antennas](https://amzn.to/3hTeEc8).
+1. [Full Kit - Normal Antennas](https://amzn.to/3hTeEc8).
+2. [Full Kit - Large Antennas](https://amzn.to/3nWoMRf).
 3. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
 4. [Full Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
 
