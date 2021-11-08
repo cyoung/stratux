@@ -21,15 +21,14 @@ ln -s /bin/true /root/fake/deb-systemd-helper
 mkdir -p /proc/sys/vm/
 
 apt update
-#PATH=/root/fake:$PATH apt dist-upgrade --yes
 apt clean
 
-PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq tcpdump git cmake \
-    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python-serial jq ifplugd
+PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq git cmake \
+    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd
 
 # Downgrade to older brcm wifi firmware - the new one seems to be buggy in AP+Client mode
 # see https://github.com/raspberrypi/firmware/issues/1463
-# TODO: disabled again. The old version seems to be even less reliable and drops a lot of packets for some clients.
+# TODO: disabled again. The old version seems to be even less reliable and drops a lot of packets for some clients on the pi4.
 #wget http://archive.raspberrypi.org/debian/pool/main/f/firmware-nonfree/firmware-brcm80211_20190114-1+rpt4_all.deb
 #dpkg -i firmware-brcm80211_20190114-1+rpt4_all.deb
 #rm firmware-brcm80211_20190114-1+rpt4_all.deb
@@ -64,9 +63,6 @@ systemctl disable regenerate_ssh_host_keys
 # This is usually done by the console-setup service that takes quite long of first boot..
 /lib/console-setup/console-setup.sh
 
-
-rm -r /proc/*
-rm -r /root/fake
 
 
 cd /root/stratux
@@ -143,7 +139,6 @@ cp -f logrotate.conf /etc/logrotate.conf
 cp -f logrotate_d_stratux /etc/logrotate.d/stratux
 
 #sshd config
-# Do not copy for now. It contains many deprecated options and isn't needed.
 cp -f sshd_config /etc/ssh/sshd_config
 
 #debug aliases
@@ -185,3 +180,16 @@ sed -i /etc/hosts -e "s/raspberrypi/stratux/g"
 rm -r /root/stratux
 
 
+# Uninstall packages we don't need, clean up temp stuff
+rm -r /root/go /root/go_path /root/.cache
+
+PATH=/root/fake:$PATH apt remove --purge --yes alsa-utils alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
+    v4l-utils rsync pigz pi-bluetooth perl cpp cpp-10
+
+PATH=/root/fake:$PATH apt autoremove --purge --yes
+
+apt clean
+rm -r /var/cache/apt
+
+rm -r /proc/*
+rm -r /root/fake
