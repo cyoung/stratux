@@ -555,8 +555,6 @@ func configureOgnTracker() {
 
 	gpsTimeOffsetPpsMs = 200 * time.Millisecond
 	serialPort.Write([]byte(appendNmeaChecksum("$POGNS,NavRate=5") + "\r\n")) // Also force NavRate directly, just to make sure it's always set
-	msgVersion := appendNmeaChecksum(fmt.Sprintf("$POGNS,Hard=STX,Soft=%s", stratuxVersion[1:])) + "\r\n"
-	serialPort.Write([]byte(msgVersion))
 
 	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // query current configuration
 
@@ -1727,8 +1725,8 @@ func processNMEALine(l string) (sentenceUsed bool) {
 }
 
 func getOgnTrackerConfigString() string {
-	msg := fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s,Reg=%s,TxPower=%d",
-		globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot, globalSettings.OGNReg, globalSettings.OGNTxPower)
+	msg := fmt.Sprintf("$POGNS,Address=0x%s,AddrType=%d,AcftType=%d,Pilot=%s,Reg=%s,TxPower=%d,Hard=STX,Soft=%s",
+		globalSettings.OGNAddr, globalSettings.OGNAddrType, globalSettings.OGNAcftType, globalSettings.OGNPilot, globalSettings.OGNReg, globalSettings.OGNTxPower, stratuxVersion[1:])
 	msg = appendNmeaChecksum(msg)
 	return msg + "\r\n"
 }
