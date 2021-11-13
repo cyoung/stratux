@@ -755,12 +755,17 @@ func blinkStatusLED() {
 	ledON := false
 	for {
 		<-timer.C
+
 		if ledON {
 			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
 		} else {
 			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
 		}
 		ledON = !ledON
+		if ledON != globalStatus.NightMode && len(globalStatus.Errors) == 0 { // System error was cleared - leave it on again
+			return
+		}
+
 	}
 }
 

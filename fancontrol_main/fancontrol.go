@@ -59,7 +59,7 @@ const (
 
 	/* Minimum duty cycle in % is the point below which the fan  */
 	/* stops running nicely from a running situation */
-	defaultPwmDutyMin = 50
+	defaultPwmDutyMin = 0
 
 	/* Maximum duty for PWM controller */
 	pwmDutyMax        = 100   // Must be kept at 100
@@ -152,7 +152,7 @@ func fanControl() {
 		}
 		pin.Freq(int(frequency))
 	}
-	setFanFrequency(myFanControl.PWMFrequency)
+	setFanFrequency(myFanControl.PWMFrequency * 100)
 
  
 	// func to Calculate the dutyCycle to the hardware value that 
@@ -232,7 +232,7 @@ func fanControl() {
 			case <-updateControlDelay.C:
 				break;
 			case <-configChan:
-				setFanFrequency(myFanControl.PWMFrequency)
+				setFanFrequency(myFanControl.PWMFrequency * 100)
 				pidControl.Set(myFanControl.TempTarget)
 		}
 	}
@@ -248,11 +248,14 @@ type Service struct {
 
 // Manage by daemon commands or run the daemon
 func (service *Service) Manage() (string, error) {
+	// initialize defaults or from settings
+	readSettings()
 
-	tempTarget := flag.Float64("temp", defaultTempTarget, "Target CPU Temperature, degrees C")
-	pwmDutyMin := flag.Int("minduty", defaultPwmDutyMin, "Minimum PWM duty cycle")
-	pwmFrequency := flag.Int("frequency", defaultPwmFrequency, "PWM Frequency")
-	pin := flag.Int("pin", defaultPin, "PWM pin (BCM numbering)")
+	// potentially override from command line
+	myFanControl.TempTarget = *flag.Float64("temp", myFanControl.TempTarget, "Target CPU Temperature, degrees C")
+	myFanControl.PWMDutyMin = uint32(*flag.Int("minduty", int(myFanControl.PWMDutyMin), "Minimum PWM duty cycle"))
+	myFanControl.PWMFrequency = uint32(*flag.Int("frequency", int(myFanControl.PWMFrequency), "PWM Frequency"))
+	myFanControl.PWMPin = *flag.Int("pin", myFanControl.PWMPin, "PWM pin (BCM numbering)")
 	flag.Parse()
 
 	usage := "Usage: " + name + " install | remove | start | stop | status"
@@ -274,13 +277,6 @@ func (service *Service) Manage() (string, error) {
 			return usage, nil
 		}
 	}
-
-	readSettings()
-
-	myFanControl.TempTarget = float64(*tempTarget)
-	myFanControl.PWMDutyMin = uint32(*pwmDutyMin)
-	myFanControl.PWMFrequency = uint32(*pwmFrequency) * 100
-	myFanControl.PWMPin = *pin
 
 	go fanControl()
 
@@ -324,6 +320,12 @@ func readSettings() {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		return
 	}
+
+	myFanControl.PWMDutyMin = defaultPwmDutyMin
+	myFanControl.TempTarget = defaultTempTarget
+	myFanControl.PWMFrequency = defaultPwmFrequency
+	myFanControl.PWMPin = defaultPin
+
 	err = json.Unmarshal(buf[0:count], &myFanControl)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
