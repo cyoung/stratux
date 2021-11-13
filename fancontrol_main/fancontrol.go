@@ -252,10 +252,10 @@ func (service *Service) Manage() (string, error) {
 	readSettings()
 
 	// potentially override from command line
-	myFanControl.TempTarget = *flag.Float64("temp", myFanControl.TempTarget, "Target CPU Temperature, degrees C")
-	myFanControl.PWMDutyMin = uint32(*flag.Int("minduty", int(myFanControl.PWMDutyMin), "Minimum PWM duty cycle"))
-	myFanControl.PWMFrequency = uint32(*flag.Int("frequency", int(myFanControl.PWMFrequency), "PWM Frequency"))
-	myFanControl.PWMPin = *flag.Int("pin", myFanControl.PWMPin, "PWM pin (BCM numbering)")
+	tempTarget := flag.Float64("temp", myFanControl.TempTarget, "Target CPU Temperature, degrees C")
+	dutyMin := flag.Int("minduty", int(myFanControl.PWMDutyMin), "Minimum PWM duty cycle")
+	frequency := flag.Int("frequency", int(myFanControl.PWMFrequency), "PWM Frequency")
+	pin := flag.Int("pin", myFanControl.PWMPin, "PWM pin (BCM numbering)")
 	flag.Parse()
 
 	usage := "Usage: " + name + " install | remove | start | stop | status"
@@ -277,6 +277,10 @@ func (service *Service) Manage() (string, error) {
 			return usage, nil
 		}
 	}
+	myFanControl.TempTarget = *tempTarget
+	myFanControl.PWMDutyMin = uint32(*dutyMin)
+	myFanControl.PWMFrequency = uint32(*frequency)
+	myFanControl.PWMPin = *pin
 
 	go fanControl()
 

@@ -96,6 +96,12 @@ make -j8
 make install
 cd /root && rm -rf kalibrate-rtl
 
+
+# Prepare wiringpi for ogn trx via GPIO
+cd /root && git clone https://github.com/WiringPi/WiringPi.git
+cd WiringPi && ./build
+cd /root && rm -r WiringPi
+
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
 #sed -i -e 's/prefix=/prefix=\/usr/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
 #sed -i -e 's/libdir=/libdir=${prefix}\/lib\/arm-linux-gnueabihf/g' /usr/lib/arm-linux-gnueabihf/pkgconfig/librtlsdr.pc
