@@ -37,6 +37,10 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="
 SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout0"
 SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout NMEA", SYMLINK+="serialout_nmea0"
 
+# i2c based serial converters for additional ports
+SUBSYSTEM=="tty",SUBSYSTEMS=="i2c",ATTRS{name}=="sc16is752",ATTR{port}=="0x0", SYMLINK+="serialout_nmea1"
+SUBSYSTEM=="tty",SUBSYSTEMS=="i2c",ATTRS{name}=="sc16is752",ATTR{port}=="0x1", SYMLINK+="serialout_nmea2"
+
 
 # SoftRF.
 

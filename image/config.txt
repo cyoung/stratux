@@ -11,6 +11,9 @@ dtparam=spi=on
 # move RPi3 Bluetooth off of hardware UART to free up connection for GPS
 dtoverlay=disable-bt
 
+# i2c serial support
+dtoverlay=sc16is752-i2c,int_pin=4,addr=0x4d,xtal=1843900
+
 # disable default (mmc0) behavior on the ACT LED.
 dtparam=act_led_trigger=none
 dtparam=act_led_activelow=off
