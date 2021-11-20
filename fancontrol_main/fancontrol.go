@@ -312,6 +312,12 @@ func (service *Service) Manage() (string, error) {
 }
 
 func readSettings() {
+	myFanControl.PWMDutyMin = defaultPwmDutyMin
+	myFanControl.TempTarget = defaultTempTarget
+	myFanControl.PWMFrequency = defaultPwmFrequency
+	myFanControl.PWMPin = defaultPin
+	myFanControl.PWMDuty80PStartDelay = PWMDuty80PStartDelay
+
 	fd, err := os.Open(configLocation)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
@@ -324,11 +330,6 @@ func readSettings() {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
 		return
 	}
-
-	myFanControl.PWMDutyMin = defaultPwmDutyMin
-	myFanControl.TempTarget = defaultTempTarget
-	myFanControl.PWMFrequency = defaultPwmFrequency
-	myFanControl.PWMPin = defaultPin
 
 	err = json.Unmarshal(buf[0:count], &myFanControl)
 	if err != nil {

@@ -13,6 +13,18 @@
             //"args": ["-log_dir", "/tmp/", "-logtostderr", "-replay", "-uatlog",  "test-data/cyoung-09062015-noproblem-stratux-uat.log"],
             "preLaunchTask": "Build",
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Launch Fancontrol",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/fancontrol",
+            "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
+            //"args": ["-log_dir", "/tmp/", "-logtostderr", "-replay", "-uatlog",  "test-data/cyoung-09062015-noproblem-stratux-uat.log"],
+            "preLaunchTask": "Build Fancontrol",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
