@@ -177,7 +177,7 @@ func fanControl() {
 	// Fan test function
 	turnOnFanTest := func () {
 		setHWDutyCycle(100.0)
-		time.Sleep(time.Duration(myFanControl.PWMDuty80PStartDelay) * time.Millisecond)	
+		time.Sleep(5 * time.Second) // to show user we are running
 		setHWDutyCycle(float64(myFanControl.PWMDutyMin))
 		time.Sleep(10 * time.Second)
 	}
