@@ -37,7 +37,7 @@ unzip $ZIPNAME || die "Extracting image failed"
 sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
 partoffset=$(( 512*sector ))
 bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $2}')
-if [[ $bootoffset=="*" ]]; then
+if [[ $bootoffset == "*" ]]; then
     bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $3}') # if boot flag is set...
 fi
 bootoffset=$(( 512*bootoffset ))
