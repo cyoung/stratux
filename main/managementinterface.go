@@ -535,14 +535,12 @@ func setPersistentLogging(persistent bool) {
 
 func handleShutdownRequest(w http.ResponseWriter, r *http.Request) {
 	syscall.Sync()
-	gracefulShutdown()
-	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
+	exec.Command("systemctl", "poweroff").Run()
 }
 
 func doReboot() {
 	syscall.Sync()
-	gracefulShutdown()
-	syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+	exec.Command("systemctl", "reboot").Run()
 }
 
 func handleDeleteLogFile(w http.ResponseWriter, r *http.Request) {
