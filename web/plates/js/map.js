@@ -35,6 +35,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			let format = meta.format ? meta.format : 'png';
 			let minzoom = meta.minzoom ? parseInt(meta.minzoom) : 1;
 			let maxzoom = meta.maxzoom ? parseInt(meta.maxzoom) : 18;
+			let styleurl = meta.stratux_style_url
 			
 			let ext = [-180, -85, 180, 85];
 			if (meta.bounds) {
@@ -42,16 +43,39 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			}
 			ext = ol.proj.transformExtent(ext, 'EPSG:4326', 'EPSG:3857')
 
-			let layer = new ol.layer.Tile({
-				title: '[offline] ' + name,
-				type: baselayer ? 'base' : 'overlay',
-				source: new ol.source.XYZ({
-					url: URL_GET_TILE + '/' + file  + '/{z}/{x}/{-y}.' + format,
-					maxZoom: maxzoom,
-					minZoom: minzoom,
-				}),
-				extent: ext		
-			});
+			let layer = undefined;
+			if (format.toLowerCase() == 'pbf') {
+				const vt = new ol.layer.VectorTile({
+					title: '[offline] ' + name,
+					type: baselayer ? 'base' : 'overlay',
+					extent: ext,
+					source: new ol.source.VectorTile({
+						url: URL_GET_TILE + '/' + file  + '/{z}/{x}/{-y}.' + format,
+						format: new ol.format.MVT(),
+						maxZoom: maxzoom,
+						minZoom: minzoom,
+					})
+				});
+				if (styleurl) {
+					fetch(styleurl).then(function(response) {
+						response.json().then(function(style) {
+							olms.stylefunction(vt, style, meta.id);
+						});
+					});
+				}
+				layer = vt;
+			} else {
+				layer = new ol.layer.Tile({
+					title: '[offline] ' + name,
+					type: baselayer ? 'base' : 'overlay',
+					extent: ext,
+					source: new ol.source.XYZ({
+						url: URL_GET_TILE + '/' + file  + '/{z}/{x}/{-y}.' + format,
+						maxZoom: maxzoom,
+						minZoom: minzoom,
+					})						
+				});
+			}
 			if (baselayer)
 				$scope.map.getLayers().insertAt(0, layer);
 			else

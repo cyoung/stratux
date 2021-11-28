@@ -11,6 +11,8 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
+	"compress/gzip"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -48,7 +50,9 @@ type SettingMessage struct {
 type MbTileConnectionCacheEntry struct {
 	Path string
 	Conn *sql.DB
+	Metadata map[string]string
 	fileTime time.Time
+	
 }
 
 func (this *MbTileConnectionCacheEntry) IsOutdated() bool {
@@ -65,7 +69,7 @@ func NewMbTileConnectionCacheEntry(path string, conn *sql.DB) *MbTileConnectionC
 	if err != nil {
 		return nil
 	}
-	return &MbTileConnectionCacheEntry{path, conn, file.ModTime()}
+	return &MbTileConnectionCacheEntry{path, conn, nil, file.ModTime()}
 }
 
 var mbtileCacheLock = sync.Mutex{}
@@ -923,25 +927,26 @@ func viewLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func connectMbTilesArchive(path string) (*sql.DB, error) {
+func connectMbTilesArchive(path string) (*sql.DB, map[string]string, error) {
 	mbtileCacheLock.Lock()
 	defer mbtileCacheLock.Unlock()
 	if conn, ok := mbtileConnectionCache[path]; ok {
 		if !conn.IsOutdated() {
-			return conn.Conn, nil
+			return conn.Conn, conn.Metadata, nil
 		}
 		log.Printf("Reloading MBTiles " + path)
 	}
 
 	conn, err := sql.Open("sqlite3", "file:" + path + "?mode=ro")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cacheEntry := NewMbTileConnectionCacheEntry(path, conn)
+	cacheEntry.Metadata = readMbTilesMetadata(path, conn)
 	if cacheEntry != nil {
-		mbtileConnectionCache[path] = *NewMbTileConnectionCacheEntry(path, conn)
+		mbtileConnectionCache[path] = *cacheEntry
 	}
-	return conn, nil
+	return conn, cacheEntry.Metadata, nil
 }
 
 func tileToDegree(z, x, y int) (lon, lat float64) {
@@ -951,6 +956,52 @@ func tileToDegree(z, x, y int) (lon, lat float64) {
 	lat = 180.0 / math.Pi * math.Atan(0.5*(math.Exp(n)-math.Exp(-n)))
 	lon = float64(x)/math.Exp2(float64(z))*360.0 - 180.0
 	return lon, lat
+}
+
+func readMbTilesMetadata(fname string, db *sql.DB) map[string]string {
+	rows, err := db.Query(`SELECT name, value FROM metadata 
+		UNION SELECT 'minzoom', min(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='minzoom' and value is not null and value != '')
+		UNION SELECT 'maxzoom', max(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='maxzoom' and value is not null and value != '')`);
+	if err != nil {
+		log.Printf("SQLite read error %s: %s", fname, err.Error())
+		return nil
+	}
+	defer rows.Close()
+	meta := make(map[string]string)
+	for rows.Next() {
+		var name, val string
+		rows.Scan(&name, &val)
+		if len(val) > 0 {
+			meta[name] = val
+		}
+	}
+	// determine extent of layer if not given.. Openlayers kinda needs this, or it can happen that it tries to do
+	// a billion request do down-scale high-res pngs that aren't even there (i.e. all 404s)
+	if _, ok := meta["bounds"]; !ok {
+		maxZoomInt, _ := strconv.ParseInt(meta["maxzoom"], 10, 32)
+		rows, err = db.Query("SELECT min(tile_column), min(tile_row), max(tile_column), max(tile_row) FROM tiles WHERE zoom_level=?", maxZoomInt)
+		if err != nil {
+			log.Printf("SQLite read error %s: %s", fname, err.Error())
+			return nil
+		}
+		rows.Next()
+		var xmin, ymin, xmax, ymax int
+		rows.Scan(&xmin, &ymin, &xmax, &ymax)
+		lonmin, latmin := tileToDegree(int(maxZoomInt), xmin, ymin)
+		lonmax, latmax := tileToDegree(int(maxZoomInt), xmax+1, ymax+1)
+		meta["bounds"] = fmt.Sprintf("%f,%f,%f,%f", lonmin, latmin, lonmax, latmax)
+	}
+
+	// check if it is vectortiles and we have a style, then add the URL to metadata...
+	if format, ok := meta["format"]; ok && format == "pbf" {
+		_, file := filepath.Split(fname)
+		if _, err := os.Stat(STRATUX_HOME + "/mapdata/styles/" + file + "/style.json"); err == nil {
+			// We found a style!
+			meta["stratux_style_url"] = "/mapdata/styles/" + file + "/style.json"
+		}
+		
+	}
+	return meta
 }
 
 // Scans mapdata dir for all .db and .mbtiles files and returns json representation of all metadata values
@@ -966,42 +1017,11 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if strings.HasSuffix(f.Name(), ".mbtiles") || strings.HasSuffix(f.Name(), ".db") {
-			db, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + f.Name())
+			_, meta, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + f.Name())
 			if err != nil {
 				log.Printf("SQLite open " + f.Name() + " failed: %s", err.Error())
 				continue
 			}
-			rows, err := db.Query(`SELECT name, value FROM metadata 
-				UNION SELECT 'minzoom', min(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='minzoom')
-				UNION SELECT 'maxzoom', max(zoom_level) FROM tiles WHERE NOT EXISTS (SELECT * FROM metadata WHERE name='maxzoom')`);
-			if err != nil {
-				log.Printf("SQLite read error %s: %s", f.Name(), err.Error())
-				continue
-			}
-			defer rows.Close()
-			meta := make(map[string]string)
-			for rows.Next() {
-				var name, val string
-				rows.Scan(&name, &val)
-				meta[name] = val
-			}
-			// determine extent of layer if not given.. Openlayers kinda needs this, or it can happen that it tries to do
-			// a billion request do down-scale high-res pngs that aren't even there (i.e. all 404s)
-			if _, ok := meta["bounds"]; !ok {
-				maxZoomInt, _ := strconv.ParseInt(meta["maxzoom"], 10, 32)
-				rows, err = db.Query("SELECT min(tile_column), min(tile_row), max(tile_column), max(tile_row) FROM tiles WHERE zoom_level=?", maxZoomInt)
-				if err != nil {
-					log.Printf("SQLite read error %s: %s", f.Name(), err.Error())
-					continue
-				}
-				rows.Next()
-				var xmin, ymin, xmax, ymax int
-				rows.Scan(&xmin, &ymin, &xmax, &ymax)
-				lonmin, latmin := tileToDegree(int(maxZoomInt), xmin, ymin)
-				lonmax, latmax := tileToDegree(int(maxZoomInt), xmax+1, ymax+1)
-				meta["bounds"] = fmt.Sprintf("%f,%f,%f,%f", lonmin, latmin, lonmax, latmax)
-			}
-
 			result[f.Name()] = meta
 		}
 	}
@@ -1010,7 +1030,7 @@ func handleTilesets(w http.ResponseWriter, r *http.Request) {
 }
 
 func loadTile(fname string, z, x, y int) ([]byte, error) {
-	db, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + fname)
+	db, meta, err := connectMbTilesArchive(STRATUX_HOME + "/mapdata/" + fname)
 	if err != nil {
 		return nil, err
 	}
@@ -1019,10 +1039,22 @@ func loadTile(fname string, z, x, y int) ([]byte, error) {
 		log.Printf("Failed to query mbtiles: %s", err.Error())
 		return nil, nil
 	}
+	
 	defer rows.Close()
 	for rows.Next() {
 		var res []byte
 		rows.Scan(&res)
+		// sometimes pbfs are gzipped...
+		if format, ok := meta["format"]; ok && format == "pbf" && len(res) >= 2 && res[0] == 0x1f && res[1] == 0x8b {
+			reader := bytes.NewReader(res)
+			gzreader, _ := gzip.NewReader(reader)
+			unzipped, err := ioutil.ReadAll(gzreader)
+			if err != nil {
+				log.Printf("Failed to unzip gzipped PBF data")
+				return nil, nil
+			}
+			res = unzipped
+		}
 		return res, nil
 	}
 	return nil, nil
@@ -1065,6 +1097,7 @@ func managementInterface() {
 
 	http.HandleFunc("/", defaultServer)
 	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
+	http.Handle("/mapdata/styles/", http.StripPrefix("/mapdata/styles/", http.FileServer(http.Dir(STRATUX_HOME + "/mapdata/styles"))))
 	http.HandleFunc("/view_logs/", viewLogs)
 
 	http.HandleFunc("/gdl90",
