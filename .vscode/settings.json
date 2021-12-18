@@ -5,12 +5,14 @@
         "CGO_CFLAGS_ALLOW": "-L${workspaceRoot}",
     },
     "go.buildOnSave": "off",
-    "editor.formatOnSave": false,
     
     "terminal.integrated.env.linux": {
         "CGO_CFLAGS_ALLOW": "-L${workspaceRoot}",
     },
 
+    "[go]": {
+        "editor.formatOnSave": false
+    },
 
     // Use this to make it possible to hide the gen_gdl90 vs fancontrol redeclaration errors..
     "files.exclude": {
