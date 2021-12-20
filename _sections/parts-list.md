@@ -23,9 +23,8 @@ order: 4
 
 * [Slim Battery with Built in Wall Plug and Micro USB](https://amzn.to/3aPGtys).
 * [High Capacity Battery Pack](https://amzn.to/2Js2KHl).
-* [USB Power Switch](https://amzn.to/34N9eYE).
-* [USB Cables with 90 Degree Connection](https://amzn.to/3mTJ78v).
-* [USB Car Charger with Digital Volt Display](https://amzn.to/3aOIMSh).
+* [USB Cable with On-Off Switch and 90 Degree Connection](https://amzn.to/3J0kZxv).
+* [USB Car/Plane Charger](https://amzn.to/30JuVKk).
 * [Rubberized Battery Strap](https://amzn.to/2WRGDgp).
 
 * [Suction Mount](https://amzn.to/37R6Sav).
