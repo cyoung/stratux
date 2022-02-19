@@ -49,6 +49,8 @@ systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable triggerhappy
 systemctl disable wpa_supplicant
+systemctl disable systemd-timesyncd # We sync time with GPS. Make sure there is no conflict if we have internet connection
+
 
 systemctl disable apt-daily.timer
 systemctl disable apt-daily-upgrade.timer
