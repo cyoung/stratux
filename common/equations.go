@@ -24,7 +24,7 @@ func LinReg(x, y []float64) (slope, intercept float64, valid bool) {
 	nf := float64(n)
 
 	if n != len(y) {
-		fmt.Printf("linReg: Lengths not equal\n")
+		//fmt.Printf("linReg: Lengths not equal\n")
 		return math.NaN(), math.NaN(), false
 	}
 
@@ -44,7 +44,7 @@ func LinReg(x, y []float64) (slope, intercept float64, valid bool) {
 	}
 
 	if nf*Sxx == Sx*Sx {
-		fmt.Printf("linReg: Infinite slope\n")
+		//fmt.Printf("linReg: Infinite slope\n")
 		return math.NaN(), math.NaN(), false
 	}
 
@@ -65,12 +65,12 @@ func LinRegWeighted(x, y, w []float64) (slope, intercept float64, valid bool) {
 	n := len(x)
 
 	if n != len(y) || n != len(w) {
-		fmt.Printf("linRegWeighted: Lengths not equal\n")
+		//fmt.Printf("linRegWeighted: Lengths not equal\n")
 		return math.NaN(), math.NaN(), false
 	}
 
 	if n < 2 {
-		fmt.Printf("linRegWeighted: Lengths too short\n")
+		//fmt.Printf("linRegWeighted: Lengths too short\n")
 		return math.NaN(), math.NaN(), false
 	}
 
@@ -94,12 +94,12 @@ func LinRegWeighted(x, y, w []float64) (slope, intercept float64, valid bool) {
 	}
 
 	if Sw == 0 {
-		fmt.Printf("linRegWeighted: Sum of weights is zero\n")
+		//fmt.Printf("linRegWeighted: Sum of weights is zero\n")
 		return math.NaN(), math.NaN(), false
 	}
 
 	if Sw*Swxx == Swx*Swx {
-		fmt.Printf("linRegWeighted: Infinite slope\n")
+		//fmt.Printf("linRegWeighted: Infinite slope\n")
 		return math.NaN(), math.NaN(), false
 	}
 
@@ -171,7 +171,7 @@ func ArrayRange(x []float64) (float64, bool) {
 // mean returns the arithmetic mean of array x
 func Mean(x []float64) (float64, bool) {
 	if len(x) < 1 {
-		fmt.Printf("mean: Length too short\n")
+		//fmt.Printf("mean: Length too short\n")
 		return math.NaN(), false
 	}
 
