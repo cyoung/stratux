@@ -7,6 +7,9 @@ fwfile="esp32-ogn-tracker-bin-10+.zip"
 if [ "$1" == "07" ] || [ "$1" == "0.7" ]; then
     fwfile="esp32-ogn-tracker-bin-07.zip"
 fi
+if [ "$1" == "sx1262" ]; then
+    fwfile="esp32-ogn-tracker-bin-10+-sx1262.zip"
+fi
 
 unzip $fwfile -d /tmp/
 systemctl stop stratux

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 cd "$(dirname "$0")"
 
@@ -53,16 +54,16 @@ enable WITH_BME280
 enable WITH_PAW
 enable WITH_LORAWAN
 
+rm -rf stratux # cleanup of old build
+
 
 # First build for old T-Beams
 disable WITH_TBEAM_V10
 disable WITH_AXP
 disable WITH_GPS_PPS
 enable WITH_TBEAM
-
 make -B -j16 > /dev/null
 source bin-arch.sh
-rm -r stratux
 mkdir stratux
 cd stratux
 tar xzf ../esp32-ogn-tracker-bin.tgz && zip -r esp32-ogn-tracker-bin-07.zip *
@@ -86,6 +87,23 @@ mv esp32-ogn-tracker-bin-10+.zip ../../
 cd ..
 rm -r stratux
 
+
+# Third build SX1262 variant
+enable WITH_SX1262
+disable WITH_LORAWAN
+disable WITH_RFM95
+
+make -B -j16 > /dev/null
+source bin-arch.sh
+mkdir stratux
+cd stratux
+tar xzf ../esp32-ogn-tracker-bin.tgz && zip -r esp32-ogn-tracker-bin-10+-sx1262.zip *
+mv esp32-ogn-tracker-bin-10+-sx1262.zip ../../
+cd ..
+rm -r stratux
+
 # Clean up
 git checkout .
 rm -r esp32-ogn-tracker-bin.tgz utils/read_log utils/serial_dump build
+
+
