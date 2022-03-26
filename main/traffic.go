@@ -193,6 +193,13 @@ func cleanupOldEntries() {
 	}
 }
 
+
+func removeTarget(id uint32) {
+	trafficMutex.Lock()
+	defer trafficMutex.Unlock()
+	delete(traffic, id)
+}
+
 // Checks if the given TrafficInfo is our ownship. As the user can specify multiple ownship
 // hex codes, this is able to smartly identify if it really is our ownship.
 // If the ti is very close and at same altitude, it is considered to be us

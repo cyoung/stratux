@@ -1661,6 +1661,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 		}
 		// OGN tracker sent us its configuration
 		log.Printf("Received OGN Tracker configuration: " + strings.Join(x, ","))
+		oldAddr := globalSettings.OGNAddr
 		for i := 1; i < len(x); i++ {
 			kv := strings.SplitN(x[i], "=", 2);
 			if len(kv) < 2 {
@@ -1684,6 +1685,14 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				pwr, _ := strconv.ParseInt(kv[1], 10, 16)
 				globalSettings.OGNTxPower = int(pwr)
 			}
+		}
+		// OGN Tracker can change its address arbitrarily. However, if it does,
+		// ownship detection would fail for the old target. Therefore we remove the old one from the traffic list
+		if oldAddr != globalSettings.OGNAddr && globalSettings.OGNAddrType == 0 {
+			oldAddrInt, _ := strconv.ParseUint(globalSettings.OGNAddr, 16, 32)
+			removeTarget(uint32(oldAddrInt))
+			// potentially other address type before
+			removeTarget(uint32((1 << 24) | oldAddrInt))
 		}
 	}
 

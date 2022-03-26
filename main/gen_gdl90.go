@@ -1207,7 +1207,7 @@ type settings struct {
 	RadarRange           int
 
 	OGNAddr              string
-	OGNAddrType          int
+	OGNAddrType          int            // 0=random, 1=ICAO, 2=Flarm, 3=OGN
 	OGNAcftType          int
 	OGNPilot             string
 	OGNReg               string
