@@ -1206,6 +1206,7 @@ type settings struct {
 	RadarLimits          int
 	RadarRange           int
 
+	OGNI2CTXEnabled      bool
 	OGNAddr              string
 	OGNAddrType          int            // 0=random, 1=ICAO, 2=Flarm, 3=OGN
 	OGNAcftType          int
@@ -1314,6 +1315,8 @@ func defaultSettings() {
 	globalSettings.AltitudeOffset = 0
 
 	globalSettings.PWMDutyMin = 0
+
+	globalSettings.OGNI2CTXEnabled = true
 }
 
 func readSettings() {

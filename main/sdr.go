@@ -207,7 +207,11 @@ func (f *OGN) read() {
 		}
 	}
 
-	cmd := exec.Command(STRATUX_HOME + "/bin/ogn-rx-eu", "-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/")
+	args := []string {"-d", strconv.Itoa(f.indexID), "-p", strconv.Itoa(f.ppm), "-L/var/log/"}
+	if !globalSettings.OGNI2CTXEnabled {
+		args = append(args, "-t", "off")
+	}
+	cmd := exec.Command(STRATUX_HOME + "/bin/ogn-rx-eu", args...)
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 	autoRestart := true // automatically restart crashing child process
@@ -795,6 +799,7 @@ func sdrWatcher() {
 	prevESEnabled := false
 	prevOGNEnabled := false
 	prevAISEnabled := false
+	prevOGNTXEnabled := false
 
 	// Get the system (RPi) uptime.
 	info := syscall.Sysinfo_t{}
@@ -872,6 +877,7 @@ func sdrWatcher() {
 		uatEnabled := globalSettings.UAT_Enabled
 		ognEnabled := globalSettings.OGN_Enabled
 		aisEnabled := globalSettings.AIS_Enabled
+		ognTXEnabled := globalSettings.OGNI2CTXEnabled
 		count := rtl.GetDeviceCount()
 		interfaceCount := count
 		if globalStatus.UATRadio_connected {
@@ -884,7 +890,7 @@ func sdrWatcher() {
 			count = 3
 		}
 
-		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled && prevAISEnabled == aisEnabled {
+		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled && prevAISEnabled == aisEnabled && prevOGNTXEnabled == ognTXEnabled {
 			continue
 		}
 
@@ -912,6 +918,7 @@ func sdrWatcher() {
 		prevESEnabled = esEnabled
 		prevOGNEnabled = ognEnabled
 		prevAISEnabled = aisEnabled
+		prevOGNTXEnabled = ognTXEnabled
 
 		countEnabled := 0
 
