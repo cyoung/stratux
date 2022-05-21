@@ -8,7 +8,7 @@ if [[ ! -d esp-idf ]]; then
     read -p "Install esp-idf? [y/n]" -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        git clone -b v4.1 --recursive https://github.com/espressif/esp-idf.git
+        git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git
         cd esp-idf && ./install.sh
         cd ..
     else
