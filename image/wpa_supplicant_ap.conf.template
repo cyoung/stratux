@@ -5,7 +5,7 @@ country={{.WiFiCountry}}
 {{end}}
 
 p2p_disabled=1
-ap_scan=2
+ap_scan=1
 
 network={
 	wps_disabled=1
