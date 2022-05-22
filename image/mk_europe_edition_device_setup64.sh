@@ -161,6 +161,10 @@ cp -f modules.txt /etc/modules
 #boot settings
 cp -f config.txt /boot/
 
+#Create default pi password as in old times, and disable initial user creation
+systemctl disable userconfig
+echo "pi:raspberry" | chpasswd
+
 #rootfs overlay stuff
 cp -f overlayctl init-overlay /sbin/
 overlayctl install
