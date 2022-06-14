@@ -14,6 +14,7 @@ import (
 	"github.com/b3nn0/stratux/sensors"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
+	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 const (
@@ -377,7 +378,7 @@ func sensorAttitudeSender() {
 			}
 
 			// Log it to csv for later analysis.
-			if globalSettings.AHRSLog && usage.Usage() < 0.95 {
+			if globalSettings.AHRSLog && du.NewDiskUsage("/").Usage() < 0.95 {
 				if analysisLogger == nil {
 					analysisFilename := fmt.Sprintf("sensors_%s.csv", time.Now().Format("20060102_150405"))
 					logMap = s.GetLogMap()

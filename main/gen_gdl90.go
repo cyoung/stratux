@@ -110,7 +110,6 @@ const (
 )
 
 var logFileHandle *os.File
-var usage *du.DiskUsage
 
 var maxSignalStrength int
 
@@ -966,7 +965,7 @@ func updateStatus() {
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
 
-	usage = du.NewDiskUsage("/")
+	usage := du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
 	fileInfo, err := logFileHandle.Stat()
 	if err == nil {
@@ -1440,6 +1439,8 @@ func printStats() {
 		<-statTimer.C
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
+		usage := du.NewDiskUsage("/")
+
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f [%.02f - %.02f] deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, globalStatus.CPUTempMin, globalStatus.CPUTempMax, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
@@ -1461,9 +1462,6 @@ func printStats() {
 			log.Printf("- " + strings.Join(sensorsOutput, ", ") + "\n")
 		}
 		// Check if we're using more than 95% of the free space. If so, throw a warning (only once).
-		if usage == nil { // happens after startup when in debugger
-			usage = du.NewDiskUsage("/")
-		}
 		if usage.Usage() > 0.95 {
 			addSingleSystemErrorf("disk-space", "Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		}
