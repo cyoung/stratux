@@ -1389,7 +1389,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 					svStr = fmt.Sprintf("R%d", sv-64)	// GLONASS 65-96
 				} else if sv <= 158 {
 					svType = SAT_TYPE_SBAS
-					svStr = fmt.Sprintf("S%d", sv-151)	// SBAS 152-158
+					svStr = fmt.Sprintf("S%d", sv)		// SBAS 152-158
 				} else if sv <= 202 {
 					svType = SAT_TYPE_QZSS
 					svStr = fmt.Sprintf("Q%d", sv-192)	// QZSS 193-202
@@ -1527,7 +1527,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				svStr = fmt.Sprintf("R%d", sv-64)	// GLONASS 65-96
 			} else if sv <= 158 {
 				svType = SAT_TYPE_SBAS
-				svStr = fmt.Sprintf("S%d", sv-151)	// SBAS 152-158
+				svStr = fmt.Sprintf("S%d", sv)		// SBAS 152-158
 			} else if sv <= 202 {
 				svType = SAT_TYPE_QZSS
 				svStr = fmt.Sprintf("Q%d", sv-192)	// QZSS 193-202
