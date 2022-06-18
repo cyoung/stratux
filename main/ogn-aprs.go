@@ -26,14 +26,8 @@ var aprsOutgoingMsgChan chan string = make(chan string, 100)
 var aprsIncomingMsgChan chan string = make(chan string, 100)
 var aprsExitChan chan bool = make(chan bool, 1)
 
-func connect() net.Conn {
-	connection, err := net.Dial("tcp", "aprs.glidernet.org:14580")
-	if err != nil {
-		panic(err)
-	} else {
-		return connection
-	}
-}
+var ognUser = "969696"
+
 
 func ognPass(user string) uint16 {
 	hashb, _ := hex.DecodeString("73e2")
@@ -54,13 +48,12 @@ func ognPass(user string) uint16 {
 }
 
 func authenticate(c net.Conn) {
-	// auth := fmt.Sprintf("user N0CALL pass -1 vers python-ogn-client 1.2 filter r/48.8589465/2.2768241/100\n")
-
-	user := "NOCALL"
-	passwd := ognPass(user)
+	// passwd := ognPass("OGN" + ognUser)
+	passwd := -1
 	filter := "r/48.8589465/2.2768241/500"
 	// filter := "m/500"
-	auth := fmt.Sprintf("user %s pass %d vers stratux 0.28 filter %s\n", user, passwd, filter)
+	auth := fmt.Sprintf("user OGN%s pass %d vers stratux 0.28 filter %s\n", ognUser, passwd, filter)
+	fmt.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
 
@@ -69,27 +62,38 @@ func keepalive(c net.Conn) {
 
 	go func() {
 		for t := range ticker.C {
-			// fmt.Fprintf(c, "# libfapGo keepalive %s\n", t)
-			fmt.Fprintf(c, "#keepalive\n", t)
-			fmt.Printf("# libfapGo keepalive %s\n", t)
+			fmt.Fprintf(c, "# stratux keepalive %s\n", t)
+			fmt.Printf("# stratux keepalive %s\n", t)
 		}
 	}()
 }
 
-func aprsConnect() net.Conn {
-	log.Printf("APRS connecting...")
-	connection, err := net.Dial("tcp", "aprs.glidernet.org:14580")
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	// connection := connect()
-	log.Printf("APRS connected")
-
-	authenticate(connection)
-	log.Printf("APRS authentication sent...")
-	keepalive(connection)
-
-	return connection
+func sendPosition(c net.Conn) {
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for range ticker.C {
+			fmt.Printf("%f %f %d\n", mySituation.GPSLatitude, mySituation.GPSLongitude, mySituation.GPSFixQuality)
+			if true || mySituation.GPSFixQuality > 0  && globalSettings.OGNAddr != "" {
+				// OGN123456>OGNAPP:/123456h5123.45N/00123.45E'180/025/A=001000 !W66! id07123456 +100fpm +1.0rot FL011.00 gps4x5
+				position_report := fmt.Sprintf(
+					"OGN%s>OGSTUX:/%sh4634.27N/00706.68E'%03.0f/%03.0f/A=%06.0f !W52! id07%s +%.0ffpm +1.0rot FL%03.2f gps%.0fx%.0f",
+					// globalSettings.OGNAddr,
+					ognUser,
+					time.Now().UTC().Format("150405"),
+					// mySituation.GPSLastFixLocalTime.UTC().Format("150405"),
+					mySituation.GPSTrueCourse,
+					mySituation.GPSGroundSpeed,
+					mySituation.GPSAltitudeMSL,
+					globalSettings.OGNAddr,
+					mySituation.BaroVerticalSpeed,
+					mySituation.BaroPressureAltitude/100,
+					mySituation.GPSHorizontalAccuracy,
+					mySituation.GPSVerticalAccuracy)
+				fmt.Println(position_report)
+				// fmt.Fprintf(c, position_report)
+			}
+		}
+	}()
 }
 
 func aprsListen() {
@@ -123,6 +127,7 @@ func aprsListen() {
 		authenticate(conn)
 		log.Printf("APRS authentication sent...")
 		keepalive(conn)
+		sendPosition(conn)
 
 		aprsReader := bufio.NewReader(conn)
 
@@ -172,10 +177,10 @@ func aprsListen() {
 				} else if len(res) == 0 { // no group capture
 					log.Printf("No group capture: " + data)
 				} else if len(res) > 0 && len(res[14]) > 0 {
-					for i := range res {
-						fmt.Printf("%s(%d)|", res[i], len(res[i]))
-					}
-					fmt.Printf("\n")
+					// for i := range res {
+					// 	fmt.Printf("%s(%d)|", res[i], len(res[i]))
+					// }
+					// fmt.Printf("\n")
 					// fmt.Printf("%+v\n", res)
 
 					lat, err := strconv.ParseFloat(res[5][:2], 64)
@@ -243,8 +248,8 @@ func aprsListen() {
 						Track_deg: track,
 						Speed_mps: speed * 0.514444}
 
-					// fmt.Printf("%+v\n", res)
-					fmt.Printf("%+v\n", msg)
+					fmt.Printf("%+v\n", res)
+					// fmt.Printf("%+v\n", msg)
 
 					importOgnTrafficMessage(msg, data)
 				}
