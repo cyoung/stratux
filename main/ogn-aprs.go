@@ -50,9 +50,9 @@ func ognPass(user string) uint16 {
 func authenticate(c net.Conn) {
 	// passwd := ognPass("OGN" + ognUser)
 	passwd := -1
-	filter := "r/48.8589465/2.2768241/500"
-	// filter := "m/500"
-	auth := fmt.Sprintf("user OGN%s pass %d vers stratux 0.28 filter %s\n", ognUser, passwd, filter)
+	// filter := "filter r/48.8589465/2.2768241/500"
+	filter := ""
+	auth := fmt.Sprintf("user OGN%s pass %d vers stratux 0.28 %s\r\n", ognUser, passwd, filter)
 	fmt.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
@@ -96,9 +96,24 @@ func sendPosition(c net.Conn) {
 	}()
 }
 
-func aprsListen() {
-	//go predTest()
+func updateFilter(c net.Conn) {
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for range ticker.C {
+			// fmt.Printf("%f %f %d\n", mySituation.GPSLatitude, mySituation.GPSLongitude, mySituation.GPSFixQuality)
+			if mySituation.GPSFixQuality > 0 {
+				filter := fmt.Sprintf(
+					"filter r/%f/%f/%d", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
+				// filter = "#filter r/48.8589465/2.2768241/50\r\n"
+				// filter = "#filter?\r\n"
+				// fmt.Printf(filter)
+				fmt.Fprintf(c, filter)
+			}
+		}
+	}()
+}
 
+func aprsListen() {
 	// https://regex101.com/r/Cv9mSq/1
 	// rex := regexp.MustCompile(`(ICA|FLR|SKY|PAW|FNT)([\dA-Z]{6})>[A-Z]+,qAS,([\d\w]+):\/(\d{6})h(\d*\.?\d*[NS])[\/\\](\d*\.?\d*[EW])['\^nX](\d{3})\/(\d{3})\/A=\d*\s!W(\d+)!\sid([\dA-F]{8})`)
 	rex := regexp.MustCompile(
@@ -127,7 +142,8 @@ func aprsListen() {
 		authenticate(conn)
 		log.Printf("APRS authentication sent...")
 		keepalive(conn)
-		sendPosition(conn)
+		// sendPosition(conn)
+		updateFilter(conn)
 
 		aprsReader := bufio.NewReader(conn)
 
