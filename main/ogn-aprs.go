@@ -11,7 +11,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -26,33 +25,11 @@ var aprsOutgoingMsgChan chan string = make(chan string, 100)
 var aprsIncomingMsgChan chan string = make(chan string, 100)
 var aprsExitChan chan bool = make(chan bool, 1)
 
-var ognUser = "969696"
-
-
-func ognPass(user string) uint16 {
-	hashb, _ := hex.DecodeString("73e2")
-	userc := strings.ToUpper(user)
-	userc = strings.Replace(userc, "-", "0", -1)
-	for i := range userc {
-		// log.Printf("%s", i)
-		fmt.Printf("%c", userc[i])
-		if i%2 == 0 {
-			hashb[0] ^= userc[i]
-		} else {
-			hashb[1] ^= userc[i]
-		}
-	}
-	hashb[0] &= 127
-	hashb[1] &= 255
-	return binary.BigEndian.Uint16(hashb)
-}
 
 func authenticate(c net.Conn) {
-	// passwd := ognPass("OGN" + ognUser)
-	passwd := -1
 	// filter := "filter r/48.8589465/2.2768241/500"
 	filter := ""
-	auth := fmt.Sprintf("user OGN%s pass %d vers stratux 0.28 %s\r\n", ognUser, passwd, filter)
+	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux 0.28 %s\r\n", filter)
 	fmt.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
@@ -64,34 +41,6 @@ func keepalive(c net.Conn) {
 		for t := range ticker.C {
 			fmt.Fprintf(c, "# stratux keepalive %s\n", t)
 			fmt.Printf("# stratux keepalive %s\n", t)
-		}
-	}()
-}
-
-func sendPosition(c net.Conn) {
-	ticker := time.NewTicker(1 * time.Second)
-	go func() {
-		for range ticker.C {
-			fmt.Printf("%f %f %d\n", mySituation.GPSLatitude, mySituation.GPSLongitude, mySituation.GPSFixQuality)
-			if true || mySituation.GPSFixQuality > 0  && globalSettings.OGNAddr != "" {
-				// OGN123456>OGNAPP:/123456h5123.45N/00123.45E'180/025/A=001000 !W66! id07123456 +100fpm +1.0rot FL011.00 gps4x5
-				position_report := fmt.Sprintf(
-					"OGN%s>OGSTUX:/%sh4634.27N/00706.68E'%03.0f/%03.0f/A=%06.0f !W52! id07%s +%.0ffpm +1.0rot FL%03.2f gps%.0fx%.0f",
-					// globalSettings.OGNAddr,
-					ognUser,
-					time.Now().UTC().Format("150405"),
-					// mySituation.GPSLastFixLocalTime.UTC().Format("150405"),
-					mySituation.GPSTrueCourse,
-					mySituation.GPSGroundSpeed,
-					mySituation.GPSAltitudeMSL,
-					globalSettings.OGNAddr,
-					mySituation.BaroVerticalSpeed,
-					mySituation.BaroPressureAltitude/100,
-					mySituation.GPSHorizontalAccuracy,
-					mySituation.GPSVerticalAccuracy)
-				fmt.Println(position_report)
-				// fmt.Fprintf(c, position_report)
-			}
 		}
 	}()
 }
@@ -142,7 +91,6 @@ func aprsListen() {
 		authenticate(conn)
 		log.Printf("APRS authentication sent...")
 		keepalive(conn)
-		// sendPosition(conn)
 		updateFilter(conn)
 
 		aprsReader := bufio.NewReader(conn)
