@@ -242,6 +242,13 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 	}
 	ti.Last_source = TRAFFIC_SOURCE_OGN
 	if msg.Time > 0 {
+		if msg.Time < ti.Timestamp.Unix() {
+			//log.Printf("Discarding traffic message from %d as it is %fs too old", ti.Icao_addr, ti.Timestamp.Unix() - msg.Time)
+			return
+		}
+
+
+
 		ti.Timestamp = time.Unix(msg.Time, 0)
 	} else {
 		ti.Timestamp = time.Now().UTC()

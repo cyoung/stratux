@@ -153,6 +153,16 @@ func aprsListen() {
 				} else if len(res) == 0 { // no group capture
 					log.Printf("No group capture: " + data)
 				} else if len(res) > 0 && len(res[14]) > 0 {
+					ts := time.Now().UTC()
+					hh, _ := strconv.ParseInt(res[4][:2], 10, 8)
+					mm, _ := strconv.ParseInt(res[4][2:4], 10, 8)
+					ss, err := strconv.ParseInt(res[4][4:], 10, 8)
+					if err != nil {
+						log.Printf(err.Error())
+					}
+					ts = time.Date(ts.Year(), ts.Month(), ts.Day(), int(hh), int(mm), int(ss), 0, time.UTC)
+
+
 					lat, err := strconv.ParseFloat(res[5][:2], 64)
 					if err != nil {
 						log.Printf(err.Error())
@@ -207,7 +217,7 @@ func aprsListen() {
 
 					msg := OgnMessage{
 						Sys:       res[1],
-						Time:      0,
+						Time:      ts.Unix(),
 						Addr:      res[2],
 						Addr_type: int32(addr_type),
 						Acft_type: fmt.Sprintf("%d", acft_type),
