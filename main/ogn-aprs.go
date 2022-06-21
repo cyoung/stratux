@@ -35,7 +35,7 @@ func authenticate(c net.Conn) {
 			globalSettings.RadarRange*2)   // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
 	}
 	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux %s %s\r\n",  globalStatus.Version, filter)
-	fmt.Printf(auth)
+	log.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
 
@@ -44,7 +44,6 @@ func keepalive(c net.Conn) {
 
 	go func() {
 		for t := range ticker.C {
-			fmt.Fprintf(c, "# stratux keepalive %s\n", t)
 			fmt.Printf("# stratux keepalive %s\n", t)
 		}
 	}()
@@ -59,7 +58,6 @@ func updateFilter(c net.Conn) {
 					"#filter r/%.7f/%.7f/%d\r\n", 
 					mySituation.GPSLatitude, mySituation.GPSLongitude, 
 					globalSettings.RadarRange*2)  // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
-				// filter = "#filter?\r\n"
 				fmt.Fprintf(c, filter)
 			}
 		}
@@ -85,16 +83,15 @@ func aprsListen() {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		log.Printf("aprs connecting...")
+		if globalSettings.DeveloperMode {
+			log.Printf("aprs connecting...")
+		}
 		conn, err := net.Dial("tcp", "aprs.glidernet.org:14580")
-		// conn, err := net.Dial("tcp6", "[2a01:4f8:160:6065:229]:14580")
 		if err != nil { // Local connection failed.
 			time.Sleep(3 * time.Second)
 			continue
 		}
-		log.Printf("APRS connected")
 		authenticate(conn)
-		log.Printf("APRS authentication sent...")
 		keepalive(conn)
 		updateFilter(conn)
 
@@ -112,11 +109,12 @@ func aprsListen() {
 			scanner := bufio.NewScanner(aprsReader)
 			for scanner.Scan() {
 				var temp string = scanner.Text()
-				// log.Printf(temp)
 				select {
 				case aprsIncomingMsgChan <- temp: // Put in the channel unless it is full
 				default:
-					fmt.Println("aprsIncomingMsgChan full. Discarding " + temp)
+					if globalSettings.DeveloperMode {
+						log.Println("aprsIncomingMsgChan full. Discarding " + temp)
+					}
 				}
 			}
 			if scanner.Err() != nil {
@@ -129,29 +127,23 @@ func aprsListen() {
 
 	loop:
 		for globalSettings.APRS_Enabled {
-			// log.Println(len(aprsIncomingMsgChan))
 			select {
 			case data := <-aprsIncomingMsgChan:
 				// APRS,qAS: aircraft beacon
 				// APRS,TCPIP*,qAC: ground station beacon
-
 				res := rex.FindStringSubmatch(data)
 				if res == nil { // no match
 					if strings.Contains(data, "TCPIP*") {
 						// log.Printf("GW data: " + data)
 					} else {
-						log.Printf("No match for: " + data)
+						if globalSettings.DeveloperMode {
+							log.Printf("No match for: " + data)
+						}
 					}
 					continue
 				} else if len(res) == 0 { // no group capture
 					log.Printf("No group capture: " + data)
 				} else if len(res) > 0 && len(res[14]) > 0 {
-					// for i := range res {
-					// 	fmt.Printf("%s(%d)|", res[i], len(res[i]))
-					// }
-					// fmt.Printf("\n")
-					// fmt.Printf("%+v\n", res)
-
 					lat, err := strconv.ParseFloat(res[5][:2], 64)
 					if err != nil {
 						log.Printf(err.Error())
@@ -182,7 +174,6 @@ func aprsListen() {
 					if strings.Contains(res[6], "W") {
 						lon = -lon
 					}
-					// log.Printf(res[6][:2] + " " + res[6][2:len(res[6])-1] + " " + res[12][1:])
 
 					track, err := strconv.ParseFloat(res[8], 64)
 					if err != nil {
@@ -217,8 +208,9 @@ func aprsListen() {
 						Track_deg: track,
 						Speed_mps: speed * 0.514444}
 
-					fmt.Printf("%+v\n", res)
-					// fmt.Printf("%+v\n", msg)
+					if globalSettings.DeveloperMode {
+						log.Printf("%+v\n", res)
+					}
 
 					importOgnTrafficMessage(msg, data)
 				}
@@ -232,8 +224,6 @@ func aprsListen() {
 				}
 			case <-aprsExitChan:
 				break loop
-				// default:
-				// 	fmt.Println("nothing to do here")
 			}
 		}
 		globalStatus.APRS_connected = false
