@@ -30,7 +30,9 @@ func authenticate(c net.Conn) {
 	filter := ""
 	if mySituation.GPSFixQuality > 0 {
 		filter = fmt.Sprintf(
-			"filter r/%.7f/%.7f/%d\r\n", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
+			"filter r/%.7f/%.7f/%d\r\n", 
+			mySituation.GPSLatitude, mySituation.GPSLongitude, 
+			globalSettings.RadarRange*2)   // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
 	}
 	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux %s %s\r\n",  globalStatus.Version, filter)
 	fmt.Printf(auth)
@@ -54,7 +56,9 @@ func updateFilter(c net.Conn) {
 		for range ticker.C {
 			if mySituation.GPSFixQuality > 0 {
 				filter := fmt.Sprintf(
-					"#filter r/%.7f/%.7f/%d\r\n", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
+					"#filter r/%.7f/%.7f/%d\r\n", 
+					mySituation.GPSLatitude, mySituation.GPSLongitude, 
+					globalSettings.RadarRange*2)  // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
 				// filter = "#filter?\r\n"
 				fmt.Fprintf(c, filter)
 			}
