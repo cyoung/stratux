@@ -211,8 +211,8 @@ func aprsListen() {
 						Addr:      res[2],
 						Addr_type: int32(addr_type),
 						Acft_type: fmt.Sprintf("%d", acft_type),
-						Lat_deg:   float32(lat + lat_m/60 + lat_m3d/1000),
-						Lon_deg:   float32(lon + lon_m/60 + lon_m3d/1000),
+						Lat_deg:   float32(lat + lat_m/60 + lat_m3d/60000),
+						Lon_deg:   float32(lon + lon_m/60 + lon_m3d/60000),
 						Alt_msl_m: float32(alt * 0.3048),
 						Track_deg: track,
 						Speed_mps: speed * 0.514444}
