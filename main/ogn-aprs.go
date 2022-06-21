@@ -155,37 +155,37 @@ func aprsListen() {
 					mm, _ := strconv.ParseInt(res[4][2:4], 10, 8)
 					ss, err := strconv.ParseInt(res[4][4:], 10, 8)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					ts = time.Date(ts.Year(), ts.Month(), ts.Day(), int(hh), int(mm), int(ss), 0, time.UTC)
 
 
 					lat, err := strconv.ParseFloat(res[5][:2], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					lat_m, err := strconv.ParseFloat(res[5][2:len(res[5])-1], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					lat_m3d, err := strconv.ParseFloat(res[12][:1], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					if strings.Contains(res[5], "S") {
 						lat = -lat
 					}
 					lon, err := strconv.ParseFloat(res[6][:3], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					lon_m, err := strconv.ParseFloat(res[6][3:len(res[6])-1], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					lon_m3d, err := strconv.ParseFloat(res[12][1:], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					if strings.Contains(res[6], "W") {
 						lon = -lon
@@ -193,15 +193,15 @@ func aprsListen() {
 
 					track, err := strconv.ParseFloat(res[8], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					speed, err := strconv.ParseFloat(res[9], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 					alt, err := strconv.ParseFloat(res[10], 64)
 					if err != nil {
-						log.Printf(err.Error())
+						continue
 					}
 
 					details, err := hex.DecodeString(res[14][:2])
