@@ -34,9 +34,9 @@ func authenticate(c net.Conn) {
 			mySituation.GPSLatitude, mySituation.GPSLongitude, 
 			globalSettings.RadarRange*2)   // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
 	}
-	if globalSettings.DeveloperMode {
-		filter = "filter r/48.8566/2.3522/500\r\n"
-	}
+	// if globalSettings.DeveloperMode {
+	// 	filter = "filter r/48.8566/2.3522/500\r\n"
+	// }
 	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux %s %s\r\n",  globalStatus.Version, filter)
 	log.Printf(auth)
 	fmt.Fprintf(c, auth)
