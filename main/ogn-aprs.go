@@ -40,25 +40,32 @@ func authenticate(c net.Conn) {
 }
 
 func keepalive(c net.Conn) {
-	ticker := time.NewTicker(240 * time.Second)
-
 	go func() {
+		ticker := time.NewTicker(240 * time.Second)
 		for t := range ticker.C {
-			fmt.Printf("# stratux keepalive %s\n", t)
+			if globalStatus.APRS_connected {
+				fmt.Fprintf(c, "# stratux keepalive %s\n", t)
+			} else {
+				break
+			}
 		}
 	}()
 }
 
 func updateFilter(c net.Conn) {
-	ticker := time.NewTicker(10 * time.Second)
 	go func() {
+		ticker := time.NewTicker(10 * time.Second)
 		for range ticker.C {
-			if mySituation.GPSFixQuality > 0 {
-				filter := fmt.Sprintf(
-					"#filter r/%.7f/%.7f/%d\r\n", 
-					mySituation.GPSLatitude, mySituation.GPSLongitude, 
-					globalSettings.RadarRange*2)  // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
-				fmt.Fprintf(c, filter)
+			if globalStatus.APRS_connected {
+				if mySituation.GPSFixQuality > 0 {
+					filter := fmt.Sprintf(
+						"#filter r/%.7f/%.7f/%d\r\n", 
+						mySituation.GPSLatitude, mySituation.GPSLongitude, 
+						globalSettings.RadarRange*2)  // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
+					fmt.Fprintf(c, filter)
+				}
+			} else {
+				break
 			}
 		}
 	}()
