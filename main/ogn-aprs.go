@@ -27,15 +27,18 @@ var aprsExitChan chan bool = make(chan bool, 1)
 
 
 func authenticate(c net.Conn) {
-	// filter := "filter r/48.8589465/2.2768241/500"
 	filter := ""
+	if mySituation.GPSFixQuality > 0 {
+		filter = fmt.Sprintf(
+			"filter r/%.7f/%.7f/%d\r\n", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
+	}
 	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux 0.28 %s\r\n", filter)
 	fmt.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
 
 func keepalive(c net.Conn) {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(240 * time.Second)
 
 	go func() {
 		for t := range ticker.C {
@@ -49,13 +52,10 @@ func updateFilter(c net.Conn) {
 	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		for range ticker.C {
-			// fmt.Printf("%f %f %d\n", mySituation.GPSLatitude, mySituation.GPSLongitude, mySituation.GPSFixQuality)
 			if mySituation.GPSFixQuality > 0 {
 				filter := fmt.Sprintf(
-					"filter r/%f/%f/%d", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
-				// filter = "#filter r/48.8589465/2.2768241/50\r\n"
+					"#filter r/%.7f/%.7f/%d\r\n", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
 				// filter = "#filter?\r\n"
-				// fmt.Printf(filter)
 				fmt.Fprintf(c, filter)
 			}
 		}
@@ -83,6 +83,7 @@ func aprsListen() {
 		}
 		log.Printf("aprs connecting...")
 		conn, err := net.Dial("tcp", "aprs.glidernet.org:14580")
+		// conn, err := net.Dial("tcp6", "[2a01:4f8:160:6065:229]:14580")
 		if err != nil { // Local connection failed.
 			time.Sleep(3 * time.Second)
 			continue
