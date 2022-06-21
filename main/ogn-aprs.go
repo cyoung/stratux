@@ -28,15 +28,15 @@ var aprsExitChan chan bool = make(chan bool, 1)
 
 func authenticate(c net.Conn) {
 	filter := ""
+	if globalSettings.DEBUG {
+		filter = "filter r/48.8566/2.3522/500\r\n"
+	}
 	if mySituation.GPSFixQuality > 0 {
 		filter = fmt.Sprintf(
 			"filter r/%.7f/%.7f/%d\r\n", 
 			mySituation.GPSLatitude, mySituation.GPSLongitude, 
 			globalSettings.RadarRange*2)   // RadarRange is an int in NM, APRS wants an int in km and 2~=1.852
 	}
-	// if globalSettings.DeveloperMode {
-	// 	filter = "filter r/48.8566/2.3522/500\r\n"
-	// }
 	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux %s %s\r\n",  globalStatus.Version, filter)
 	log.Printf(auth)
 	fmt.Fprintf(c, auth)
@@ -75,25 +75,21 @@ func updateFilter(c net.Conn) {
 }
 
 func aprsListen() {
-	// https://regex101.com/r/Cv9mSq/1
-	// rex := regexp.MustCompile(`(ICA|FLR|SKY|PAW|FNT)([\dA-Z]{6})>[A-Z]+,qAS,([\d\w]+):\/(\d{6})h(\d*\.?\d*[NS])[\/\\](\d*\.?\d*[EW])['\^nX](\d{3})\/(\d{3})\/A=\d*\s!W(\d+)!\sid([\dA-F]{8})`)
 	rex := regexp.MustCompile(
-		`(ICA|FLR|SKY|PAW|OGN|RND|FMT|MTK|XCG|FAN|FNT)([\dA-Z]{6})>` + // protocol, id
-			// `(SKY)([\dA-Z]{6})>` + // protocol, id
-			`[A-Z]+,qAS,([\d\w]+):[\/]` +
-			`(\d{6})h(\d*\.?\d*[NS])[\/\\](\d*\.?\d*[EW])` + // time, lon, lat
-			// `[#&0>AW\^_acnsuvz]` +
-			`\D` + // sep
-			`((\d{3})\/(\d{3})\/A=(\d*))*` + // optional track, speed, alt
-			`(\s!W(\d+)!\s)*` + // optional lon lat precision
-			`(id([\dA-F]{8}))*`) // optional id
+		`(?P<protocol>ICA|FLR|SKY|PAW|OGN|RND|FMT|MTK|XCG|FAN|FNT)(?P<id>[\dA-Z]{6})>` +        // protocol, id
+			`[A-Z]+,qAS,([\d\w]+):[\/]` +                                                       //
+			`(?P<time>\d{6})h(?P<longitude>\d*\.?\d*[NS])[\/\\](?P<lattitude>\d*\.?\d*[EW])` +  // time, lon, lat
+			`\D` +                                                                              // sep
+			`((?P<track>\d{3})\/(?P<speed>\d{3})\/A=(?P<altitude>\d*))*` +                      // optional track, speed, alt
+			`(\s!W(?P<lonlatprecision>\d+)!\s)*` +                                              // optional lon lat precision
+			`(id(?P<id>[\dA-F]{8}))*`)                                                          // optional id
 	for {
 		if !globalSettings.APRS_Enabled || OGNDev == nil {
 			// wait until APRS is enabled
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		if globalSettings.DeveloperMode {
+		if globalSettings.DEBUG {
 			log.Printf("aprs connecting...")
 		}
 		conn, err := net.Dial("tcp", "aprs.glidernet.org:14580")
@@ -122,7 +118,7 @@ func aprsListen() {
 				select {
 				case aprsIncomingMsgChan <- temp: // Put in the channel unless it is full
 				default:
-					if globalSettings.DeveloperMode {
+					if globalSettings.DEBUG {
 						log.Println("aprsIncomingMsgChan full. Discarding " + temp)
 					}
 				}
@@ -137,6 +133,11 @@ func aprsListen() {
 		for globalSettings.APRS_Enabled {
 			select {
 			case data := <-aprsIncomingMsgChan:
+
+				if globalSettings.DEBUG {
+					log.Printf("%+v\n", data)
+				}
+
 				// APRS,qAS: aircraft beacon
 				// APRS,TCPIP*,qAC: ground station beacon
 				res := rex.FindStringSubmatch(data)
@@ -144,7 +145,7 @@ func aprsListen() {
 					if strings.Contains(data, "TCPIP*") {
 						// log.Printf("GW data: " + data)
 					} else {
-						if globalSettings.DeveloperMode {
+						if globalSettings.DEBUG {
 							log.Printf("No match for: " + data)
 						}
 					}
@@ -216,8 +217,9 @@ func aprsListen() {
 						Track_deg: track,
 						Speed_mps: speed * 0.514444}
 
-					if globalSettings.DeveloperMode {
-						log.Printf("%+v\n", res)
+					if globalSettings.DEBUG {
+						// log.Printf("%+v\n", res)
+						log.Printf("%+v\n", msg)
 					}
 
 					importOgnTrafficMessage(msg, data)
