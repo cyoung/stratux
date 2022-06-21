@@ -32,7 +32,7 @@ func authenticate(c net.Conn) {
 		filter = fmt.Sprintf(
 			"filter r/%.7f/%.7f/%d\r\n", mySituation.GPSLatitude, mySituation.GPSLongitude, 100)
 	}
-	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux 0.28 %s\r\n", filter)
+	auth := fmt.Sprintf("user OGNNOCALL pass -1 vers stratux %s %s\r\n",  globalStatus.Version, filter)
 	fmt.Printf(auth)
 	fmt.Fprintf(c, auth)
 }
