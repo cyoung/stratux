@@ -28,9 +28,6 @@ var aprsExitChan chan bool = make(chan bool, 1)
 
 func authenticate(c net.Conn) {
 	filter := ""
-	if globalSettings.DEBUG {
-		filter = "filter r/48.8566/2.3522/500\r\n"
-	}
 	if mySituation.GPSFixQuality > 0 {
 		filter = fmt.Sprintf(
 			"filter r/%.7f/%.7f/%d\r\n", 
