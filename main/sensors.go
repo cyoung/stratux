@@ -179,7 +179,7 @@ func initIMU() (ok bool) {
 	} else if v2 == MPUREG_WHO_AM_I_VAL || v2 == MPUREG_WHO_AM_I_VAL_9255 || v2 == MPUREG_WHO_AM_I_VAL_6500 ||
 		v2 == MPUREG_WHO_AM_I_VAL_60X0 || v2 == MPUREG_WHO_AM_I_VAL_UNKNOWN {
 
-		log.Println("MPU detected (%02x).", v2)
+		log.Printf("MPU detected (%02x).\n", v2)
 		imu, err := sensors.NewMPU9250(&i2cbus)
 		if err == nil {
 			myIMUReader = imu
