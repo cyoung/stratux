@@ -672,7 +672,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	}
 }
 
-function isValidSSID(str) { return /^[a-zA-Z0-9() \._-]{1,32}$/g.test(str); }
+function isValidSSID(str) { return /^[a-zA-Z0-9()! \._-]{1,32}$/g.test(str); }
 function isValidWPA(str) { return /^[\u0020-\u007e]{8,63}$/g.test(str); }
 function isValidPin(str) { return /^([\d]{4}|[\d]{8})$/g.test(str); }
 
