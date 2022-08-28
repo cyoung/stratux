@@ -1165,9 +1165,9 @@ type settings struct {
 	DarkMode             bool
 	UAT_Enabled          bool
 	ES_Enabled           bool
-	OGN_Enabled        bool
-	APRS_Enabled        bool
-	AIS_Enabled        bool
+	OGN_Enabled          bool
+	APRS_Enabled         bool
+	AIS_Enabled          bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	BMP_Sensor_Enabled   bool

@@ -81,7 +81,7 @@ func aprsListen() {
 			`(\s!W(?P<lonlatprecision>\d+)!\s)*` +                                              // optional lon lat precision
 			`(id(?P<id>[\dA-F]{8}))*`)                                                          // optional id
 	for {
-		if !globalSettings.APRS_Enabled || OGNDev == nil {
+		if !globalSettings.APRS_Enabled || !isGPSValid() {
 			// wait until APRS is enabled
 			time.Sleep(1 * time.Second)
 			continue
@@ -147,9 +147,9 @@ func aprsListen() {
 						}
 					}
 					continue
-				} else if len(res) == 0 { // no group capture
-					log.Printf("No group capture: " + data)
-				} else if len(res) > 0 && len(res[14]) > 0 {
+				} else if len(res) < 15 { // too few captures
+					log.Printf("Invalid APRS data format: " + data)
+				} else if len(res[14]) > 0 {
 					ts := time.Now().UTC()
 					hh, _ := strconv.ParseInt(res[4][:2], 10, 8)
 					mm, _ := strconv.ParseInt(res[4][2:4], 10, 8)
