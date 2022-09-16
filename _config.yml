@@ -41,7 +41,7 @@ avatar: assets/images/logo.png
 # You'll want to customize url and baseurl for your own site:
 baseurl: "" # the subpath of your site, e.g. /blog
 #TESTING:
-url: "http://stratux.me"
+url: "https://stratux.me"
 #url: "http://updates.stratux.me:4000" # the base hostname & protocol for your site
 
 # Social settings
