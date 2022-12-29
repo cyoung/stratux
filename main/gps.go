@@ -250,6 +250,7 @@ func initGPSSerial() bool {
  	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		device = "/dev/ttyAMA0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
+		baudrates = []int{115200, 38400, 9600}
 	} else {
 		if globalSettings.DEBUG {
 			log.Printf("No GPS device found.\n")
@@ -260,11 +261,13 @@ func initGPSSerial() bool {
 		log.Printf("Using %s for GPS\n", device)
 	}
 
-	// Open port at default baud for config.
-	serialConfig = &serial.Config{Name: device, Baud: baudrates[0]}
-	p, err := serial.OpenPort(serialConfig)
+	// try to open port with previously defined baud rate
+	// port remains opend if detectOpenSerialPort finds matching baurate parameter
+	// and will be closed after reprogramming.
+
+	p, err := detectOpenSerialPort(device, baudrates)
 	if err != nil {
-		log.Printf("serial port err: %s\n", err.Error())
+		log.Printf("serial port/baudrate detection err: %s\n", err.Error())
 		return false
 	}
 
@@ -306,7 +309,6 @@ func initGPSSerial() bool {
 		// load default configuration             |      clearMask     |  |     saveMask       |  |     loadMask       |  deviceMask
 		//p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
 		//time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
-
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
 			if globalSettings.DEBUG {
@@ -400,6 +402,7 @@ func initGPSSerial() bool {
 	// Re-open port at newly configured baud so we can read messages. ReadTimeout is set to keep from blocking the gpsSerialReader() on misconfigures or ttyAMA disconnects
 	// serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
 	// serial.OpenPort(serialConfig)
+	
 	p, err = detectOpenSerialPort(device, baudrates)
 	if err != nil {
 		log.Printf("serial port err: %s\n", err.Error())
@@ -408,6 +411,7 @@ func initGPSSerial() bool {
 
 	serialPort = p
 	return true
+
 }
 
 func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error) {
