@@ -16,7 +16,8 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		source: new ol.source.OSM()
 	});
 
-	let openaip = new ol.layer.Tile({
+	// Not available any more - requires authentication
+	/*let openaip = new ol.layer.Tile({
 		title: '[online] OpenAIP',
 		type: 'overlay',
 		visible: false,
@@ -24,6 +25,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			url: 'http://{1-2}.tile.maps.openaip.net/geowebcache/service/tms/1.0.0/openaip_basemap@EPSG%3A900913@png/{z}/{x}/{-y}.png'
 		})
 	});
+	*/
 
 	// Dynamic MBTiles layers
 	$http.get(URL_GET_TILESETS).then(function(response) {
@@ -119,7 +121,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		target: 'map_display',
 		layers: [
 			osm,
-			openaip,
+			//openaip,
 			aircraftSymbolsLayer,
 			aircraftTrailsLayer
 		],
