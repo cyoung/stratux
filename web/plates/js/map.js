@@ -17,15 +17,15 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 	});
 
 	// Not available any more - requires authentication
-	/*let openaip = new ol.layer.Tile({
+	let openaip = new ol.layer.Tile({
 		title: '[online] OpenAIP',
 		type: 'overlay',
 		visible: false,
 		source: new ol.source.XYZ({
-			url: 'http://{1-2}.tile.maps.openaip.net/geowebcache/service/tms/1.0.0/openaip_basemap@EPSG%3A900913@png/{z}/{x}/{-y}.png'
+			url: 'https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=f64474b4ab9d2f6bacb2f30d4680e8ae'
 		})
 	});
-	*/
+	
 
 	// Dynamic MBTiles layers
 	$http.get(URL_GET_TILESETS).then(function(response) {
@@ -121,7 +121,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		target: 'map_display',
 		layers: [
 			osm,
-			//openaip,
+			openaip,
 			aircraftSymbolsLayer,
 			aircraftTrailsLayer
 		],
