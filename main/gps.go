@@ -1396,9 +1396,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 				} else if sv <= 336 {
 					svType = SAT_TYPE_GALILEO
 					svStr = fmt.Sprintf("E%d", sv-300)	// GALILEO 301-336
-				} else if sv <= 437 {
+				} else if sv <= 463 {
 					svType = SAT_TYPE_BEIDOU
-					svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-437
+					svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-463
 				} else {
 					svType = SAT_TYPE_UNKNOWN
 					svStr = fmt.Sprintf("U%d", sv)
@@ -1534,9 +1534,9 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			} else if sv <= 336 {
 				svType = SAT_TYPE_GALILEO
 				svStr = fmt.Sprintf("E%d", sv-300)	// GALILEO 301-336
-			} else if sv <= 437 {
+			} else if sv <= 463 {
 				svType = SAT_TYPE_BEIDOU
-				svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-437
+				svStr = fmt.Sprintf("B%d", sv-400)	// BEIDOU 401-463
 			} else {
 				svType = SAT_TYPE_UNKNOWN
 				svStr = fmt.Sprintf("U%d", sv)
