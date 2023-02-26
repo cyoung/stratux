@@ -7,7 +7,7 @@
 RTL-SDR UAT tools
 
 
-Use with Raspberry Pi 3B. The 3bb+ and Pi 4B will work but use a lot more power.
+Use with Raspberry Pi 3B. The 3B+ and Pi 4B will work but use a lot more power.
 
 Tested and works well with most common R820T and R820T2 RTL-SDR devices.
 
