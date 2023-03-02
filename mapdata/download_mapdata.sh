@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+cd /
 overlayctl unlock
 cd /overlay/robase/opt/stratux/mapdata
 
@@ -19,9 +19,7 @@ systemctl stop systemd-timesyncd
 echo
 read -p "Download OpenFlightMaps VFR Charts Europe (~700 MiB)? [y/n]" -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    overlayctl unlock
     wget -N https://abatzill.de/stratux/openflightmaps.mbtiles
-    overlayctl lock
 fi
 
 echo
@@ -30,6 +28,8 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     wget -N https://abatzill.de/stratux/vfrsec.mbtiles
 fi
 
+cd /
+sync
 overlayctl lock
 
 systemctl restart stratux
