@@ -16,7 +16,6 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		source: new ol.source.OSM()
 	});
 
-	// Not available any more - requires authentication
 	let openaip = new ol.layer.Tile({
 		title: '[online] OpenAIP',
 		type: 'overlay',
@@ -83,6 +82,9 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			else
 				$scope.map.addLayer(layer);
 		}
+		$scope.map.addLayer(aircraftSymbolsLayer);
+		$scope.map.addLayer(aircraftTrailsLayer);
+
 		// Restore layer visibility
 		$scope.map.getLayers().forEach((layer) => {
 			const title = layer.get('title');
@@ -121,9 +123,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		target: 'map_display',
 		layers: [
 			osm,
-			openaip,
-			aircraftSymbolsLayer,
-			aircraftTrailsLayer
+			openaip
 		],
 		view: new ol.View({
 			center: ol.proj.fromLonLat([10.0, 52.0]),
