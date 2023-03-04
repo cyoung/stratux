@@ -133,7 +133,7 @@ func aprsListen() {
 			select {
 			case data := <-aprsIncomingMsgChan:
 				TraceLog.Record(CONTEXT_APRS, []byte(data))
-				parseAprsMessage(data)
+				parseAprsMessage(data, false)
 
 			case <-aprsExitChan:
 				break loop
@@ -149,7 +149,7 @@ func aprsListen() {
 
 
 
-func parseAprsMessage(data string) {
+func parseAprsMessage(data string, fakeCurrentTime bool) {
 
 	if globalSettings.DEBUG {
 		log.Printf("%+v\n", data)
@@ -249,6 +249,6 @@ func parseAprsMessage(data string) {
 			log.Printf("%+v\n", msg)
 		}
 
-		importOgnTrafficMessage(msg, data)
+		importOgnTrafficMessage(msg, data, fakeCurrentTime)
 	}
 }

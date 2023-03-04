@@ -121,7 +121,7 @@ func (tracer *TraceLogger) IsReplaying() bool {
 	return tracer.isReplaying
 }
 
-func (tracer *TraceLogger) Replay(fname string, speedMultiplier float64, msgtypes []string) {
+func (tracer *TraceLogger) Replay(fname string, speedMultiplier float64, traceSkip int64, msgtypes []string) {
 	fhandle, err := os.Open(fname)
 	if err != nil {
 		log.Printf("Failed to open trace file %s: %s", fname, err.Error())
@@ -133,6 +133,7 @@ func (tracer *TraceLogger) Replay(fname string, speedMultiplier float64, msgtype
 		log.Printf("Failed to open gzip stream for file %s: %s", fname, err.Error())
 		return
 	}
+	startTs := time.Time{}.Add(time.Duration(traceSkip) * time.Minute)
 	csvReader := csv.NewReader(gzReader)
 	for {
 		fields, err := csvReader.Read()
@@ -149,6 +150,12 @@ func (tracer *TraceLogger) Replay(fname string, speedMultiplier float64, msgtype
 			continue
 		}
 		ts, err := time.Parse(time.RFC3339Nano, fields[0])
+		if ts.Before(startTs) {
+			continue
+		}
+		ts = ts.Add(-time.Duration(traceSkip) * time.Minute)
+		
+
 		millis := float64(ts.Sub(time.Time{}).Milliseconds()) / speedMultiplier
 		ts = time.Time{}.Add(time.Duration(millis) * time.Millisecond)
 		if err != nil {
@@ -169,9 +176,9 @@ func injectTraceMessage(context string, ts time.Time, data []byte) {
 		globalStatus.GPS_connected = true
 		processNMEALineLow(string(data), true)
 	} else if context == CONTEXT_APRS {
-		parseAprsMessage(string(data))
+		parseAprsMessage(string(data), true)
 	} else if context == CONTEXT_OGN_RX {
-		parseOgnMessage(string(data))
+		parseOgnMessage(string(data), true)
 	} else if context == CONTEXT_DUMP1090 {
 		parseDump1090Message(string(data))
 	} else if context == CONTEXT_GODUMP978 {

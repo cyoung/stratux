@@ -115,7 +115,7 @@ func ognListen() {
 				ognReadWriter.Flush()
 			case data := <- ognIncomingMsgChan:
 				TraceLog.Record(CONTEXT_OGN_RX, []byte(data))
-				parseOgnMessage(data)				
+				parseOgnMessage(data, false)
 			case <- pgrmzTimer.C:
 				if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
 					ognOutgoingMsgChan <- makePGRMZString()
@@ -131,7 +131,7 @@ func ognListen() {
 	}
 }
 
-func parseOgnMessage(data string) {
+func parseOgnMessage(data string, fakeCurrentTime bool) {
 	var thisMsg msg
 	thisMsg.MessageClass = MSGCLASS_OGN
 	thisMsg.TimeReceived = stratuxClock.Time
@@ -149,7 +149,7 @@ func parseOgnMessage(data string) {
 	} else {
 		msgLogAppend(thisMsg)
 		logMsg(thisMsg) // writes to replay logs
-		importOgnTrafficMessage(msg, data)
+		importOgnTrafficMessage(msg, data, fakeCurrentTime)
 	}
 }
 
@@ -164,7 +164,7 @@ func importOgnStatusMessage(msg OgnMessage) {
 	}
 }
 
-func importOgnTrafficMessage(msg OgnMessage, data string) {
+func importOgnTrafficMessage(msg OgnMessage, data string, fakeCurrentTime bool) {
 	var ti TrafficInfo
 	addressBytes, _ := hex.DecodeString(msg.Addr)
 	addressBytes = append([]byte{0}, addressBytes...) // prepend 0 byte
@@ -250,14 +250,11 @@ func importOgnTrafficMessage(msg OgnMessage, data string) {
 		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}
 	ti.Last_source = TRAFFIC_SOURCE_OGN
-	if msg.Time > 0 {
+	if msg.Time > 0 && !fakeCurrentTime {
 		if msg.Time < ti.Timestamp.Unix() {
 			//log.Printf("Discarding traffic message from %d as it is %fs too old", ti.Icao_addr, ti.Timestamp.Unix() - msg.Time)
 			return
 		}
-
-
-
 		ti.Timestamp = time.Unix(msg.Time, 0)
 	} else {
 		ti.Timestamp = time.Now().UTC()

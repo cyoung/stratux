@@ -1656,6 +1656,7 @@ func main() {
 	traceReplay := flag.String("trace", "", "Replay previously recorded trace file and exit")
 	traceReplaySpeed := flag.Float64("traceSpeed", 1.0, "Trace replay speed multiplier")
 	traceReplayFilter := flag.String("traceFilter", "", "Filter trace data by context. Comma separated list of: ais,nmea,aprs,ogn-rx,dump1090,godump978,lowpower_uat")
+	traceSkip := flag.Int64("traceSkip", 0, "Minutes to skip forward in recorded trace")
 	
 
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
@@ -1776,7 +1777,7 @@ func main() {
 		if len(*traceReplayFilter) > 0 {
 			msgTypes = strings.Split(*traceReplayFilter, ",")
 		}
-		TraceLog.Replay(*traceReplay, *traceReplaySpeed, msgTypes)
+		TraceLog.Replay(*traceReplay, *traceReplaySpeed, *traceSkip, msgTypes)
 		return
 	}
 
