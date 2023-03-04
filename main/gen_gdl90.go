@@ -1629,7 +1629,11 @@ func main() {
 	systemErrs = make(map[string]string)
 
 	// Set up status.
+	if stratuxVersion == "" {
+		stratuxVersion = "v0.0"
+	}
 	globalStatus.Version = stratuxVersion
+
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]string, 0)
 	//FlightBox: detect via presence of /etc/FlightBox file.
