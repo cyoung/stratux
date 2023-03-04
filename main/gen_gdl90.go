@@ -1177,6 +1177,7 @@ type settings struct {
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
+	TraceLog             bool
 	AHRSLog              bool
 	PersistentLogging    bool
 	IMUMapping           [2]int     // Map from aircraft axis to sensor axis: accelerometer
@@ -1393,7 +1394,7 @@ func saveSettings() {
 		return
 	}
 	defer fd.Close()
-	jsonSettings, _ := json.Marshal(&globalSettings)
+	jsonSettings, _ := json.MarshalIndent(&globalSettings, "", "  ")
 	fd.Write(jsonSettings)
 	fd.Sync()
 	log.Printf("wrote settings.\n")
@@ -1652,9 +1653,15 @@ func main() {
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
 	writeNetworkConfig := flag.Bool("write-network-config", false, "Only write network configuration files as configured in stratux.conf and exit")
 
+	traceReplay := flag.String("trace", "", "Replay previously recorded trace file and exit")
+	traceReplaySpeed := flag.Float64("traceSpeed", 1.0, "Trace replay speed multiplier")
+	traceReplayFilter := flag.String("traceFilter", "", "Filter trace data by context. Comma separated list of: ais,nmea,aprs,ogn-rx,dump1090,godump978,lowpower_uat")
+	
+
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 
 	flag.Parse()
+	isTraceReplayMode := *traceReplay != ""
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
@@ -1700,12 +1707,15 @@ func main() {
 
 	// Start the management interface.
 	go managementInterface()
+	go traceLoggerWatchdog()
 
 	crcInit() // Initialize CRC16 table.
 
-	sdrInit()
-	pingInit()
-	initTraffic()
+	if !isTraceReplayMode {
+		sdrInit()
+		pingInit()
+	}
+	initTraffic(isTraceReplayMode)
 
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
@@ -1719,14 +1729,16 @@ func main() {
 		log.Printf("Developer mode set\n")
 	}
 
-	//FIXME: Only do this if data logging is enabled.
-	initDataLog()
+	if !isTraceReplayMode {
+		//FIXME: Only do this if data logging is enabled.
+		initDataLog()
 
-	// Start the AHRS sensor monitoring.
-	initI2CSensors()
+		// Start the AHRS sensor monitoring.
+		initI2CSensors()
+	}
 
 	// Start the GPS external sensor monitoring.
-	initGPS()
+	initGPS(isTraceReplayMode)
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
@@ -1757,7 +1769,16 @@ func main() {
 	})
 
 	// Start reading from serial UAT radio.
-	initUATRadioSerial()
+	initUATRadioSerial(isTraceReplayMode)
+
+	if isTraceReplayMode {
+		msgTypes := []string{}
+		if len(*traceReplayFilter) > 0 {
+			msgTypes = strings.Split(*traceReplayFilter, ",")
+		}
+		TraceLog.Replay(*traceReplay, *traceReplaySpeed, msgTypes)
+		return
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 

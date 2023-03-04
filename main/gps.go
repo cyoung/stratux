@@ -1026,9 +1026,13 @@ return is false if errors occur during parse, or if GPS position is invalid
 return is true if parse occurs correctly and position is valid.
 
 */
-
 func processNMEALine(l string) (sentenceUsed bool) {
+	return processNMEALineLow(l, false)
+}
+
+func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 	mySituation.muGPS.Lock()
+	TraceLog.Record(CONTEXT_NMEA, []byte(l))
 
 	defer func() {
 		if sentenceUsed || globalSettings.DEBUG {
@@ -1254,6 +1258,12 @@ func processNMEALine(l string) (sentenceUsed bool) {
 			gpsTimeStr := fmt.Sprintf("%s %02d:%02d:%06.3f", x[9], hr, min, sec)
 			gpsTime, err := time.Parse("020106 15:04:05.000", gpsTimeStr)
 			gpsTime = gpsTime.Add(gpsTimeOffsetPpsMs) // rough estimate for PPS offset
+
+			if fakeGpsTimeToCurr {
+				// Used during trace replay: pretend gps time equals current time, so stratux accepts the NMEA as current
+				gpsTime = time.Now().UTC()
+			}
+
 			if err == nil && gpsTime.After(time.Date(2016, time.January, 0, 0, 0, 0, 0, time.UTC)) { // Ignore dates before 2016-JAN-01.
 				tmpSituation.GPSLastGPSTimeStratuxTime = stratuxClock.Time
 				tmpSituation.GPSTime = gpsTime
@@ -1267,6 +1277,7 @@ func processNMEALine(l string) (sentenceUsed bool) {
 						log.Printf("Time set from GPS. Current time is %v\n", time.Now())
 					}
 				}
+				TraceLog.OnTimestamp(gpsTime)
 			}
 		}
 
@@ -2202,8 +2213,10 @@ func pollGPS() {
 	}
 }
 
-func initGPS() {
+func initGPS(isReplayMode bool) {
 	Satellites = make(map[string]SatelliteInfo)
 
-	go pollGPS()
+	if !isReplayMode {
+		go pollGPS()
+	}
 }

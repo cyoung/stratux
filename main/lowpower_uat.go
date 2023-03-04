@@ -24,9 +24,12 @@ import "C"
 var radioSerialConfig *serial.Config
 var radioSerialPort *serial.Port
 
-func initUATRadioSerial() error {
+func initUATRadioSerial(isTraceReplayMode bool) error {
 	// Init for FEC routines.
 	C.init_fec()
+	if isTraceReplayMode {
+		return nil
+	}
 	go func() {
 		watchTicker := time.NewTicker(1 * time.Second)
 		for {
@@ -113,6 +116,7 @@ func radioSerialPortReader(serialPort *serial.Port) {
 */
 
 func processRadioMessage(msg []byte) {
+	TraceLog.Record(CONTEXT_LOWPOWERUAT, msg)
 	// RSSI and message timestamp are prepended to the actual packet.
 
 	// RSSI

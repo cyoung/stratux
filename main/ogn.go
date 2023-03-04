@@ -114,25 +114,8 @@ func ognListen() {
 				ognReadWriter.Write([]byte(data))
 				ognReadWriter.Flush()
 			case data := <- ognIncomingMsgChan:
-				var thisMsg msg
-				thisMsg.MessageClass = MSGCLASS_OGN
-				thisMsg.TimeReceived = stratuxClock.Time
-				thisMsg.Data = data
-	
-				var msg OgnMessage
-				err = json.Unmarshal([]byte(data), &msg)
-				if err != nil {
-					log.Printf("Invalid Data from OGN: " + data)
-					continue
-				}
-	
-				if msg.Sys == "status" {
-					importOgnStatusMessage(msg)
-				} else {
-					msgLogAppend(thisMsg)
-					logMsg(thisMsg) // writes to replay logs
-					importOgnTrafficMessage(msg, data)
-				}
+				TraceLog.Record(CONTEXT_OGN_RX, []byte(data))
+				parseOgnMessage(data)				
 			case <- pgrmzTimer.C:
 				if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
 					ognOutgoingMsgChan <- makePGRMZString()
@@ -145,6 +128,28 @@ func ognListen() {
 		globalStatus.OGN_connected = false
 		conn.Close()
 		time.Sleep(3*time.Second)
+	}
+}
+
+func parseOgnMessage(data string) {
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_OGN
+	thisMsg.TimeReceived = stratuxClock.Time
+	thisMsg.Data = data
+
+	var msg OgnMessage
+	err := json.Unmarshal([]byte(data), &msg)
+	if err != nil {
+		log.Printf("Invalid Data from OGN: " + data)
+		return
+	}
+
+	if msg.Sys == "status" {
+		importOgnStatusMessage(msg)
+	} else {
+		msgLogAppend(thisMsg)
+		logMsg(thisMsg) // writes to replay logs
+		importOgnTrafficMessage(msg, data)
 	}
 }
 

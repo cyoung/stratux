@@ -26,10 +26,10 @@ import (
 
 var aisIncomingMsgChan chan string = make(chan string, 100)
 var aisExitChan chan bool = make(chan bool, 1)
+var aisNmeaParser = aisnmea.NMEACodecNew(ais.CodecNew(false, false))
 
 func aisListen() {
 	//go predTest()
-	nm := aisnmea.NMEACodecNew(ais.CodecNew(false, false))
 	for {
 		if !globalSettings.AIS_Enabled || AISDev == nil {
 			// wait until AIS is enabled
@@ -67,22 +67,8 @@ func aisListen() {
 		for globalSettings.AIS_Enabled {
 			select {
 			case data := <-aisIncomingMsgChan:
-
-				var thisMsg msg
-				thisMsg.MessageClass = MSGCLASS_AIS
-				thisMsg.TimeReceived = stratuxClock.Time
-				thisMsg.Data = data
-				msgLogAppend(thisMsg)
-				logMsg(thisMsg) // writes to replay logs
-
-				msg, err := nm.ParseSentence(data)
-				if err == nil && msg != nil && msg.Packet != nil {
-					importAISTrafficMessage(msg)
-				} else if err != nil {
-					log.Printf("Invalid Data from AIS: " + err.Error())
-				} else {
-					// Multiline sentences will have msg as nill without err
-				}
+				TraceLog.Record(CONTEXT_AIS, []byte(data))
+				parseAisMessage(data)
 			case <-aisExitChan:
 				break loop
 
@@ -91,6 +77,24 @@ func aisListen() {
 		globalStatus.AIS_connected = false
 		conn.Close()
 		time.Sleep(3 * time.Second)
+	}
+}
+
+func parseAisMessage(data string) {
+	var thisMsg msg
+	thisMsg.MessageClass = MSGCLASS_AIS
+	thisMsg.TimeReceived = stratuxClock.Time
+	thisMsg.Data = data
+	msgLogAppend(thisMsg)
+	logMsg(thisMsg) // writes to replay logs
+
+	msg, err := aisNmeaParser.ParseSentence(data)
+	if err == nil && msg != nil && msg.Packet != nil {
+		importAISTrafficMessage(msg)
+	} else if err != nil {
+		log.Printf("Invalid Data from AIS: " + err.Error())
+	} else {
+		// Multiline sentences will have msg as nill without err
 	}
 }
 

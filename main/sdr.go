@@ -544,10 +544,15 @@ func uatReader() {
 	log.Println("Entered uatReader() ...")
 	for {
 		uat := <-godump978.OutChan
-		o, msgtype := parseInput(uat)
-		if o != nil && msgtype != 0 {
-			relayMessage(msgtype, o)
-		}
+		TraceLog.Record(CONTEXT_GODUMP978, []byte(uat))
+		handleUatMessage(uat)
+	}
+}
+
+func handleUatMessage(uat string) {
+	o, msgtype := parseInput(uat)
+	if o != nil && msgtype != 0 {
+		relayMessage(msgtype, o)
 	}
 }
 

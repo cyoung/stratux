@@ -26,6 +26,16 @@ var aprsIncomingMsgChan chan string = make(chan string, 100)
 var aprsExitChan chan bool = make(chan bool, 1)
 
 
+var aprsRegex = regexp.MustCompile(
+	`(?P<protocol>ICA|FLR|SKY|PAW|OGN|RND|FMT|MTK|XCG|FAN|FNT)(?P<id>[\dA-Z]{6})>` +        // protocol, id
+		`[A-Z]+,qAS,([\d\w]+):[\/]` +                                                       //
+		`(?P<time>\d{6})h(?P<longitude>\d*\.?\d*[NS])[\/\\](?P<lattitude>\d*\.?\d*[EW])` +  // time, lon, lat
+		`\D` +                                                                              // sep
+		`((?P<track>\d{3})\/(?P<speed>\d{3})\/A=(?P<altitude>\d*))*` +                      // optional track, speed, alt
+		`(\s!W(?P<lonlatprecision>\d+)!\s)*` +                                              // optional lon lat precision
+		`(id(?P<id>[\dA-F]{8}))*`)                                                          // optional id
+
+
 func authenticate(c net.Conn) {
 	filter := ""
 	if mySituation.GPSFixQuality > 0 {
@@ -72,14 +82,6 @@ func updateFilter(c net.Conn) {
 }
 
 func aprsListen() {
-	rex := regexp.MustCompile(
-		`(?P<protocol>ICA|FLR|SKY|PAW|OGN|RND|FMT|MTK|XCG|FAN|FNT)(?P<id>[\dA-Z]{6})>` +        // protocol, id
-			`[A-Z]+,qAS,([\d\w]+):[\/]` +                                                       //
-			`(?P<time>\d{6})h(?P<longitude>\d*\.?\d*[NS])[\/\\](?P<lattitude>\d*\.?\d*[EW])` +  // time, lon, lat
-			`\D` +                                                                              // sep
-			`((?P<track>\d{3})\/(?P<speed>\d{3})\/A=(?P<altitude>\d*))*` +                      // optional track, speed, alt
-			`(\s!W(?P<lonlatprecision>\d+)!\s)*` +                                              // optional lon lat precision
-			`(id(?P<id>[\dA-F]{8}))*`)                                                          // optional id
 	for {
 		if !globalSettings.APRS_Enabled || !isGPSValid() {
 			// wait until APRS is enabled
@@ -130,107 +132,9 @@ func aprsListen() {
 		for globalSettings.APRS_Enabled {
 			select {
 			case data := <-aprsIncomingMsgChan:
+				TraceLog.Record(CONTEXT_APRS, []byte(data))
+				parseAprsMessage(data)
 
-				if globalSettings.DEBUG {
-					log.Printf("%+v\n", data)
-				}
-
-				// APRS,qAS: aircraft beacon
-				// APRS,TCPIP*,qAC: ground station beacon
-				res := rex.FindStringSubmatch(data)
-				if res == nil { // no match
-					if strings.Contains(data, "TCPIP*") {
-						// log.Printf("GW data: " + data)
-					} else {
-						if globalSettings.DEBUG {
-							log.Printf("No match for: " + data)
-						}
-					}
-					continue
-				} else if len(res) < 15 { // too few captures
-					log.Printf("Invalid APRS data format: " + data)
-				} else if len(res[14]) > 0 {
-					ts := time.Now().UTC()
-					hh, _ := strconv.ParseInt(res[4][:2], 10, 8)
-					mm, _ := strconv.ParseInt(res[4][2:4], 10, 8)
-					ss, err := strconv.ParseInt(res[4][4:], 10, 8)
-					if err != nil {
-						continue
-					}
-					ts = time.Date(ts.Year(), ts.Month(), ts.Day(), int(hh), int(mm), int(ss), 0, time.UTC)
-
-
-					lat, err := strconv.ParseFloat(res[5][:2], 64)
-					if err != nil {
-						continue
-					}
-					lat_m, err := strconv.ParseFloat(res[5][2:len(res[5])-1], 64)
-					if err != nil {
-						continue
-					}
-					lat_m3d, err := strconv.ParseFloat(res[12][:1], 64)
-					if err != nil {
-						continue
-					}
-					if strings.Contains(res[5], "S") {
-						lat = -lat
-					}
-					lon, err := strconv.ParseFloat(res[6][:3], 64)
-					if err != nil {
-						continue
-					}
-					lon_m, err := strconv.ParseFloat(res[6][3:len(res[6])-1], 64)
-					if err != nil {
-						continue
-					}
-					lon_m3d, err := strconv.ParseFloat(res[12][1:], 64)
-					if err != nil {
-						continue
-					}
-					if strings.Contains(res[6], "W") {
-						lon = -lon
-					}
-
-					track, err := strconv.ParseFloat(res[8], 64)
-					if err != nil {
-						continue
-					}
-					speed, err := strconv.ParseFloat(res[9], 64)
-					if err != nil {
-						continue
-					}
-					alt, err := strconv.ParseFloat(res[10], 64)
-					if err != nil {
-						continue
-					}
-
-					details, err := hex.DecodeString(res[14][:2])
-					if err != nil {
-						log.Fatal(err)
-					}
-					detail_byte := details[0]
-					addr_type := detail_byte & 0b00000011
-					acft_type := (detail_byte & 0b00111100) >> 2
-
-					msg := OgnMessage{
-						Sys:       res[1],
-						Time:      ts.Unix(),
-						Addr:      res[2],
-						Addr_type: int32(addr_type),
-						Acft_type: fmt.Sprintf("%d", acft_type),
-						Lat_deg:   float32(lat + lat_m/60 + lat_m3d/60000),
-						Lon_deg:   float32(lon + lon_m/60 + lon_m3d/60000),
-						Alt_msl_m: float32(alt * 0.3048),
-						Track_deg: track,
-						Speed_mps: speed * 0.514444}
-
-					if globalSettings.DEBUG {
-						// log.Printf("%+v\n", res)
-						log.Printf("%+v\n", msg)
-					}
-
-					importOgnTrafficMessage(msg, data)
-				}
 			case <-aprsExitChan:
 				break loop
 			}
@@ -239,5 +143,112 @@ func aprsListen() {
 		log.Printf("closing connection")
 		conn.Close()
 		time.Sleep(3 * time.Second)
+	}
+}
+
+
+
+
+func parseAprsMessage(data string) {
+
+	if globalSettings.DEBUG {
+		log.Printf("%+v\n", data)
+	}
+
+	// APRS,qAS: aircraft beacon
+	// APRS,TCPIP*,qAC: ground station beacon
+	res := aprsRegex.FindStringSubmatch(data)
+	if res == nil { // no match
+		if strings.Contains(data, "TCPIP*") {
+			// log.Printf("GW data: " + data)
+		} else {
+			if globalSettings.DEBUG {
+				log.Printf("No match for: " + data)
+			}
+		}
+		return
+	} else if len(res) < 15 { // too few captures
+		log.Printf("Invalid APRS data format: " + data)
+	} else if len(res[14]) > 0 {
+		ts := time.Now().UTC()
+		hh, _ := strconv.ParseInt(res[4][:2], 10, 8)
+		mm, _ := strconv.ParseInt(res[4][2:4], 10, 8)
+		ss, err := strconv.ParseInt(res[4][4:], 10, 8)
+		if err != nil {
+			return
+		}
+		ts = time.Date(ts.Year(), ts.Month(), ts.Day(), int(hh), int(mm), int(ss), 0, time.UTC)
+
+
+		lat, err := strconv.ParseFloat(res[5][:2], 64)
+		if err != nil {
+			return
+		}
+		lat_m, err := strconv.ParseFloat(res[5][2:len(res[5])-1], 64)
+		if err != nil {
+			return
+		}
+		lat_m3d, err := strconv.ParseFloat(res[12][:1], 64)
+		if err != nil {
+			return
+		}
+		if strings.Contains(res[5], "S") {
+			lat = -lat
+		}
+		lon, err := strconv.ParseFloat(res[6][:3], 64)
+		if err != nil {
+			return
+		}
+		lon_m, err := strconv.ParseFloat(res[6][3:len(res[6])-1], 64)
+		if err != nil {
+			return
+		}
+		lon_m3d, err := strconv.ParseFloat(res[12][1:], 64)
+		if err != nil {
+			return
+		}
+		if strings.Contains(res[6], "W") {
+			lon = -lon
+		}
+
+		track, err := strconv.ParseFloat(res[8], 64)
+		if err != nil {
+			return
+		}
+		speed, err := strconv.ParseFloat(res[9], 64)
+		if err != nil {
+			return
+		}
+		alt, err := strconv.ParseFloat(res[10], 64)
+		if err != nil {
+			return
+		}
+
+		details, err := hex.DecodeString(res[14][:2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		detail_byte := details[0]
+		addr_type := detail_byte & 0b00000011
+		acft_type := (detail_byte & 0b00111100) >> 2
+
+		msg := OgnMessage{
+			Sys:       res[1],
+			Time:      ts.Unix(),
+			Addr:      res[2],
+			Addr_type: int32(addr_type),
+			Acft_type: fmt.Sprintf("%d", acft_type),
+			Lat_deg:   float32(lat + lat_m/60 + lat_m3d/60000),
+			Lon_deg:   float32(lon + lon_m/60 + lon_m3d/60000),
+			Alt_msl_m: float32(alt * 0.3048),
+			Track_deg: track,
+			Speed_mps: speed * 0.514444}
+
+		if globalSettings.DEBUG {
+			// log.Printf("%+v\n", res)
+			log.Printf("%+v\n", msg)
+		}
+
+		importOgnTrafficMessage(msg, data)
 	}
 }

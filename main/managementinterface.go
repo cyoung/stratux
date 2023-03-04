@@ -381,6 +381,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						if v != globalSettings.ReplayLog { // Don't mark the files unless there is a change.
 							globalSettings.ReplayLog = v
 						}
+					case "TraceLog":
+						globalSettings.TraceLog = val.(bool)
 					case "AHRSLog":
 						globalSettings.AHRSLog = val.(bool)
 					case "PersistentLogging":

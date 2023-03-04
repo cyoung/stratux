@@ -110,9 +110,9 @@ cd /root && rm -r WiringPi
 
 # Install golang
 cd /root
-wget https://go.dev/dl/go1.18.linux-arm64.tar.gz
-tar xzf go1.18.linux-arm64.tar.gz
-rm go1.18.linux-arm64.tar.gz
+wget https://go.dev/dl/go1.20.1.linux-arm64.tar.gz
+tar xzf go1.20.1.linux-arm64.tar.gz
+rm go1.20.1.linux-arm64.tar.gz
 
 # Compile stratux
 cd /root/stratux

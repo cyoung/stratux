@@ -24,8 +24,7 @@ endif
 
 
 
-all:
-	make xdump978 xdump1090 xrtlais gen_gdl90 $(PLATFORMDEPENDENT)
+all: xdump978 xdump1090 xrtlais gen_gdl90 $(PLATFORMDEPENDENT)
 
 gen_gdl90: main/*.go common/*.go
 	LIBRARY_PATH=$(CURDIR) CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
