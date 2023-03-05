@@ -24,9 +24,9 @@ endif
 
 
 
-all: xdump978 xdump1090 xrtlais gen_gdl90 $(PLATFORMDEPENDENT)
+all: libdump978.so xdump1090 xrtlais gen_gdl90 $(PLATFORMDEPENDENT)
 
-gen_gdl90: main/*.go common/*.go
+gen_gdl90: main/*.go common/*.go libdump978.so
 	LIBRARY_PATH=$(CURDIR) CGO_CFLAGS_ALLOW="-L$(CURDIR)" go build $(BUILDINFO) -o gen_gdl90 -p 4 ./main/
 
 fancontrol: fancontrol_main/*.go common/*.go
@@ -36,7 +36,7 @@ xdump1090:
 	git submodule update --init
 	cd dump1090 && make BLADERF=no
 
-xdump978:
+libdump978.so: dump978/*.c dump978/*.h
 	cd dump978 && make lib
 
 xrtlais:
