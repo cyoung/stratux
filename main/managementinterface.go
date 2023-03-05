@@ -876,7 +876,7 @@ div.foot { font: 90% monospace; color: #787878; padding-top: 4px;}
 <thead><tr><th class="n">Name</th><th>Last Modified</th><th>Size (bytes)</th><th class="dl">Options</th></tr></thead>
 <tbody>
 {{range .Children_files}}
-<tr><td class="n"><a href="/logs/stratux/{{.Name}}">{{.Name}}</a></td><td>{{.Mtime}}</td><td>{{.Size}}</td><td class="dl"><a href="/logs/stratux/{{.Name}}">Download</a></td></tr>
+<tr><td class="n"><a href="/logs/{{.Path}}">{{.Name}}</a></td><td>{{.Mtime}}</td><td>{{.Size}}</td><td class="dl"><a href="/logs/{{.Path}}">Download</a></td></tr>
 {{end}}
 </tbody>
 </table>
@@ -887,6 +887,7 @@ div.foot { font: 90% monospace; color: #787878; padding-top: 4px;}
 
 type fileInfo struct {
 	Name  string
+	Path  string
 	Mtime string
 	Size  string
 }
@@ -900,22 +901,38 @@ type dirlisting struct {
 
 //FIXME: This needs to be switched to show a "sessions log" from the sqlite database.
 func viewLogs(w http.ResponseWriter, r *http.Request) {
-
-	names, err := ioutil.ReadDir("/var/log/stratux/")
+	urlpath := strings.TrimPrefix(r.URL.Path, "/logs/")
+	path := "/var/log/" + urlpath
+	finfo, err := os.Stat(path)
 	if err != nil {
+		w.Write([]byte(fmt.Sprintf("Failed to open %s: %s", path, err.Error())))
 		return
 	}
+
+	if !finfo.IsDir() {
+		http.ServeFile(w, r, path)
+		return
+	}
+	
+	names, err := ioutil.ReadDir(path)
+	if err != nil {
+		return
+	}	
 
 	fi := make([]fileInfo, 0)
 	for _, val := range names {
 		if val.Name()[0] == '.' {
 			continue
 		} // Remove hidden files from listing
-
-		if !val.IsDir() {
+		
+		if val.IsDir() {
+			mtime := val.ModTime().Format("2006-Jan-02 15:04:05")
+			sz := ""
+			fi = append(fi, fileInfo{Name: val.Name() + "/", Path: urlpath + "/" + val.Name(), Mtime: mtime, Size: sz})
+		} else {
 			mtime := val.ModTime().Format("2006-Jan-02 15:04:05")
 			sz := humanize.Comma(val.Size())
-			fi = append(fi, fileInfo{Name: val.Name(), Mtime: mtime, Size: sz})
+			fi = append(fi, fileInfo{Name: val.Name(), Path: urlpath + "/" + val.Name(), Mtime: mtime, Size: sz})
 		}
 	}
 
@@ -1102,9 +1119,9 @@ func managementInterface() {
 	gdl90Update = NewUIBroadcaster()
 
 	http.HandleFunc("/", defaultServer)
-	http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
+	//http.Handle("/logs/", http.StripPrefix("/logs/", http.FileServer(http.Dir("/var/log"))))
 	http.Handle("/mapdata/styles/", http.StripPrefix("/mapdata/styles/", http.FileServer(http.Dir(STRATUX_HOME + "/mapdata/styles"))))
-	http.HandleFunc("/view_logs/", viewLogs)
+	http.HandleFunc("/logs/", viewLogs)
 
 	http.HandleFunc("/gdl90",
 		func(w http.ResponseWriter, req *http.Request) {
