@@ -19,7 +19,7 @@ xgen_gdl90:
 
 fancontrol:
 	go get -t -d -v ./main
-	go build $(BUILDINFO_STATIC) -p 4 main/fancontrol.go main/equations.go main/cputemp.go
+	go build $(BUILDINFO_STATIC) -p 4 -o fancontrol main/fancontrol.go main/equations.go main/cputemp.go
 
 xdump1090:
 	git submodule update --init

@@ -40,6 +40,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.AHRSLog = settings.AHRSLog;
 
 		$scope.PPM = settings.PPM;
+		$scope.AltitudeOffset = settings.AltitudeOffset;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
 		$scope.DeveloperMode = settings.DeveloperMode;
@@ -170,6 +171,20 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 			setSettings(angular.toJson(newsettings));
 		}
 	};
+
+	$scope.updatealtitudeoffset = function () {
+		settings["AltitudeOffset"] = 0;
+		if (($scope.AltitudeOffset !== undefined) && ($scope.AltitudeOffset !== null) && ($scope.AltitudeOffset !== settings["AltitudeOffset"])) {
+			settings["AltitudeOffset"] = parseInt($scope.AltitudeOffset);
+			var newsettings = {
+				"AltitudeOffset": settings["AltitudeOffset"]
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+
+
 
     $scope.updateGLimits = function () {
         if ($scope.GLimits !== settings["GLimits"]) {
