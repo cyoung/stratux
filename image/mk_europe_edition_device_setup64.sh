@@ -172,6 +172,9 @@ overlayctl install
 touch /var/grow_root_part
 mkdir -p /overlay/robase # prepare so we can bind-mount root even if overlay is disabled
 
+# So we can import network settings if needed
+touch /boot/.stratux-first-boot
+
 #startup scripts
 cp -f rc.local /etc/rc.local
 
