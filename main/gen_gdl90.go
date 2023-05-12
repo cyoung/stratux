@@ -754,13 +754,9 @@ func blinkStatusLED() {
 	ledON := false
 	for {
 		<-timer.C
-
-		if ledON {
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
-		} else {
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
-		}
 		ledON = !ledON
+		setActLed(ledON)
+		
 		if ledON != globalStatus.NightMode && len(globalStatus.Errors) == 0 { // System error was cleared - leave it on again
 			return
 		}
@@ -791,7 +787,7 @@ func heartBeatSender() {
 			if len(globalStatus.Errors) == 0 { // Any system errors?
 				if !globalStatus.NightMode { // LED is off by default (/boot/config.txt.)
 					// Turn on green ACT LED on the Pi.
-					ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+					setActLed(true)
 				}
 			} else if !ledBlinking {
 				// This assumes that system errors do not disappear until restart.
@@ -1557,8 +1553,21 @@ func gracefulShutdown() {
 
 	//TODO: Any other graceful shutdown functions.
 
-	// Turn off green ACT LED on the Pi.
-	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
+	// Turn off green ACT LED on the Pi. Path changed around kernel 6.1.21-v8
+	setActLed(false)
+}
+
+// Turn off green ACT LED on the Pi. Path changed to leds/ACT/brighgtness around kernel 6.1.21-v8
+func setActLed(state bool) {
+		ledPath := "/sys/class/leds/led0/brightness"
+		if _, err := os.Stat(ledPath); err != nil {
+			ledPath = "/sys/class/leds/ACT/brightness"
+		}
+		data := []byte("0\n")
+		if state {
+			data = []byte("1\n")
+		}
+		ioutil.WriteFile(ledPath, data, 0644)
 }
 
 // Close log file handle, open new one.
