@@ -206,6 +206,10 @@ func importOgnTrafficMessage(msg OgnMessage, data string, fakeCurrentTime bool) 
 		}
 	}
 
+	if fakeCurrentTime {
+		msg.Time = time.Now().UTC().Unix()
+	}
+
 	if existingTi, ok := traffic[key]; ok {
 		ti = existingTi
 		// ogn-rx sends 2 types of messages.. normal ones with coords etc, and ones that only supply additional info (registration, Hardware, ...). These usually don't have
@@ -250,7 +254,7 @@ func importOgnTrafficMessage(msg OgnMessage, data string, fakeCurrentTime bool) 
 		ti.Tail = getTailNumber(msg.Addr, msg.Sys)
 	}
 	ti.Last_source = TRAFFIC_SOURCE_OGN
-	if msg.Time > 0 && !fakeCurrentTime {
+	if msg.Time > 0 {
 		if msg.Time < ti.Timestamp.Unix() {
 			//log.Printf("Discarding traffic message from %d as it is %fs too old", ti.Icao_addr, ti.Timestamp.Unix() - msg.Time)
 			return
