@@ -89,6 +89,34 @@ func deleteOldestLog() int64 {
 	return stat.Size()
 }
 
+func logFileSize() int64 {
+	if logFileHandle == nil {
+		return 0
+	}
+	fileInfo, err := logFileHandle.Stat()
+	if err != nil {
+		return 0
+	}
+	return fileInfo.Size()
+}
+
+func clearDebugLogFile() {
+	if logFileHandle != nil {
+		_, err := logFileHandle.Seek(0, 0)
+		if err != nil {
+			log.Printf("Could not seek to the beginning of the logfile\n")
+			return
+		} else {
+			err2 := logFileHandle.Truncate(0)
+			if err2 != nil {
+				log.Printf("Could not truncate the logfile\n")
+				return
+			}
+			log.Printf("Logfile truncated\n")
+		}
+	}
+}
+
 
 
 func logFileWatcher() {

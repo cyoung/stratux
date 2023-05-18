@@ -960,10 +960,7 @@ func updateStatus() {
 
 	usage := du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
-	fileInfo, err := logFileHandle.Stat()
-	if err == nil {
-		globalStatus.Logfile_Size = fileInfo.Size()
-	}
+	globalStatus.Logfile_Size = logFileSize()
 
 	var ahrsLogSize int64
 	ahrsLogFiles, _ := ioutil.ReadDir("/var/log")
@@ -1574,23 +1571,6 @@ func signalWatcher() {
 		log.Printf("signal caught: %s - shutting down.\n", sig.String())
 		gracefulShutdown()
 		os.Exit(1)
-	}
-}
-
-func clearDebugLogFile() {
-	if logFileHandle != nil {
-		_, err := logFileHandle.Seek(0, 0)
-		if err != nil {
-			log.Printf("Could not seek to the beginning of the logfile\n")
-			return
-		} else {
-			err2 := logFileHandle.Truncate(0)
-			if err2 != nil {
-				log.Printf("Could not truncate the logfile\n")
-				return
-			}
-			log.Printf("Logfile truncated\n")
-		}
 	}
 }
 
