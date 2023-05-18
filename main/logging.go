@@ -82,7 +82,10 @@ func deleteOldestLog() int64 {
 	if err != nil {
 		return 0
 	}
-	os.Remove(oldest)
+	err = os.Remove(oldest)
+	if err != nil {
+		return 0
+	}
 	return stat.Size()
 }
 
@@ -90,8 +93,8 @@ func deleteOldestLog() int64 {
 
 func logFileWatcher() {
 	for {
-		logSize, _ := os.Stat(debugLogf)
-		if logSize.Size() > 10 * 1024 * 1024 { // 10mb limit
+		logSize, err := os.Stat(debugLogf)
+		if err == nil && logSize.Size() > 10 * 1024 * 1024 { // 10mb limit
 			rotateLogs()
 		}
 
