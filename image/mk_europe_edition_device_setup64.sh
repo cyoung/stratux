@@ -142,10 +142,6 @@ cp -f stratux-dnsmasq.conf /etc/dnsmasq.d/stratux-dnsmasq.conf
 cp -f wpa_supplicant_ap.conf /etc/wpa_supplicant/wpa_supplicant_ap.conf
 cp -f interfaces /etc/network/interfaces
 
-#logrotate conf
-cp -f logrotate.conf /etc/logrotate.conf
-cp -f logrotate_d_stratux /etc/logrotate.d/stratux
-
 #sshd config
 cp -f sshd_config /etc/ssh/sshd_config
 

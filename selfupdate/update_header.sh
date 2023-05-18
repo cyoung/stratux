@@ -26,13 +26,6 @@ cp -f __lib__systemd__system__stratux.service /lib/systemd/system/stratux.servic
 chmod 644 /lib/systemd/system/stratux.service
 ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 
-#rsyslog config
-cp -f rsyslog_d_stratux /etc/rsyslog.d/stratux.conf
-
-#logrotate config
-cp -f logrotate.conf /etc/logrotate.conf
-cp -f logrotate_d_stratux /etc/logrotate.d/stratux
-
 #boot config
 cp -f config.txt /boot/config.txt
 

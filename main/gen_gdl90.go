@@ -43,7 +43,6 @@ import (
 // https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
 var logDirf string      // Directory for all logging
-var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
 
 const (
@@ -51,7 +50,6 @@ const (
 	configLocation = "/boot/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
-	debugLogFile   = "stratux.log"
 	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
 	logDir_FB           = "/root/"
@@ -109,7 +107,6 @@ const (
 
 )
 
-var logFileHandle *os.File
 
 var maxSignalStrength int
 
@@ -1570,31 +1567,13 @@ func setActLed(state bool) {
 		ioutil.WriteFile(ledPath, data, 0644)
 }
 
-// Close log file handle, open new one.
-func handleSIGHUP() {
-	logFileHandle.Close()
-	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
-	} else {
-		// Keep the logfile handle for later use
-		logFileHandle = fp
-		mfp := io.MultiWriter(fp, os.Stdout)
-		log.SetOutput(mfp)
-	}
-	log.Printf("signal caught: SIGHUP, handled.\n")
-}
-
 func signalWatcher() {
 	for {
 		sig := <-sigs
-		if sig == syscall.SIGHUP {
-			handleSIGHUP()
-		} else {
-			log.Printf("signal caught: %s - shutting down.\n", sig.String())
-			gracefulShutdown()
-			os.Exit(1)
-		}
+
+		log.Printf("signal caught: %s - shutting down.\n", sig.String())
+		gracefulShutdown()
+		os.Exit(1)
 	}
 }
 
@@ -1621,7 +1600,7 @@ func isX86DebugMode() bool {
 
 func main() {
 	// Catch signals for graceful shutdown.
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
@@ -1656,7 +1635,6 @@ func main() {
 	if _, err := os.Stat("/etc/Merlin"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "Merlin"
 	}
-	debugLogf = filepath.Join(logDirf, debugLogFile)
 	dataLogFilef = filepath.Join(logDirf, dataLogFile)
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
@@ -1690,20 +1668,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 	}
 
-	// Duplicate log.* output to debugLog.
-	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
-	} else {
-		defer fp.Close()
-		// Keep the logfile handle for later use
-		logFileHandle = fp
-		mfp := io.MultiWriter(fp, os.Stdout)
-		log.SetOutput(mfp)
-
-		// Make sure crash dumps are written to the log as well
-		syscall.Dup3(int(fp.Fd()), 2, 0)
-	}
+	initLogging()
 
 	// Read settings.
 	readSettings()

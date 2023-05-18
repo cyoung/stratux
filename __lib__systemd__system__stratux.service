@@ -11,6 +11,8 @@ Restart=always
 RestartSec=5
 LimitCORE=1073741824
 
+StandardOutput=null
+
 [Install]
 WantedBy=multi-user.target
 
