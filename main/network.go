@@ -61,19 +61,19 @@ func getDHCPLeases() (map[string]string, error) {
 	}
 	dat, err := ioutil.ReadFile(dhcp_lease_file)
 	ret := make(map[string]string)
-	if err != nil {
-		return ret, err
-	}
-	lines := strings.Split(string(dat), "\n")
-	for _, line := range lines {
-		spaced := strings.Split(line, " ")
-		if len(spaced) >= 4 {
-			ip := spaced[2]
-			host := spaced[3]
-			if host == "*" {
-				host = ""
+
+	if err == nil {
+		lines := strings.Split(string(dat), "\n")
+		for _, line := range lines {
+			spaced := strings.Split(line, " ")
+			if len(spaced) >= 4 {
+				ip := spaced[2]
+				host := spaced[3]
+				if host == "*" {
+					host = ""
+				}
+				ret[ip] = host
 			}
-			ret[ip] = host
 		}
 	}
 
