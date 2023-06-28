@@ -93,6 +93,10 @@ func (conn *networkConnection) Capabilities() uint8 {
 }
 
 func (conn *networkConnection) GetDesiredPacketSize() int {
+	if conn.Capabilities() & (NETWORK_POSITION_FFSIM | NETWORK_AHRS_FFSIM) > 0 {
+		// Hack: some software doesn't handle X-Plane as a stream correctly, e.g. SkyDemon, and requires each message in a separate packet, or it will crash.
+		return 1
+	}
 	return 1024
 }
 
