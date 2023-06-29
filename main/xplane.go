@@ -25,7 +25,7 @@ func convertKnotsToXPlaneSpeed(knots float32) float32 {
 
 func createXPlaneGpsMsg(latDeg float32, lonDeg float32, altMslFt float32, trackDeg float32, speedKt float32) []byte {
 	// example: XGPS1,-122.298432,47.450756,420.9961,349.7547,57.9145
-	return []byte(fmt.Sprintf("XGPSStratux,%.6f,%.6f,%.4f,%.4f,%.4f", lonDeg+0.5, latDeg, convertFeetToMeters(altMslFt), trackDeg, convertKnotsToXPlaneSpeed(speedKt)))
+	return []byte(fmt.Sprintf("XGPSStratux,%.6f,%.6f,%.4f,%.4f,%.4f", lonDeg, latDeg, convertFeetToMeters(altMslFt), trackDeg, convertKnotsToXPlaneSpeed(speedKt)))
 }
 
 func createXPlaneAttitudeMsg(headingDeg float32, pitchDeg float32, rollDeg float32) []byte {
