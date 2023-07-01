@@ -31,8 +31,8 @@ func createXPlaneGpsMsg(latDeg float32, lonDeg float32, altMslFt float32, trackD
 func createXPlaneAttitudeMsg(headingDeg float32, pitchDeg float32, rollDeg float32) []byte {
 	// example: XATT1,345.1,-1.1,-12.5,0.1374,0.0954,-0.0444,-17.0,-1.2,-65.0,-0.01,1.63,0.02
 	// TODO find out what the remaining parameters are for
-	//return []byte(fmt.Sprintf("XATT1,%.1f,%.1f,%.1f,%.4f,%.4f,%.4f,%.1f,%.1f,%.1f,%.2f,%.2f,%.2f", headingDeg, pitchDeg, rollDeg, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-	return []byte(fmt.Sprintf("XATTStratux,%.1f,%.1f,%.1f", headingDeg, pitchDeg, rollDeg))
+	return []byte(fmt.Sprintf("XATTStratux,%.1f,%.1f,%.1f,0,0,0,0,0,0,0,0,0", headingDeg, pitchDeg, rollDeg)) // this one makes Garmin Pilot (Android) happy, and is similar to what XPlane does
+	//return []byte(fmt.Sprintf("XATTStratux,%.1f,%.1f,%.1f")) // this one is what the Foreflight spec says
 }
 
 func createXPlaneTrafficMsg(targetId uint32, latDeg float32, lonDeg float32, altFt int32, hSpeedKt uint32, vSpeedFpm int32, onGround bool, trackDeg uint32, callSign string) []byte {
