@@ -116,6 +116,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) 
 				case 12:
 					tempGpsHardwareString = "Network";
 					break;
+				case 15:
+					tempGpsHardwareString = "GxAirCom";
+					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}

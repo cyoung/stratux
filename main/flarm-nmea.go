@@ -519,7 +519,8 @@ func getIdTail(idReceived string) (idStr string, tail string, address uint32) {
 func parseFlarmPFLAU(message []string) {
 	// $PFLAU,<RX>,<TX>,<GPS>,<Power>,<AlarmLevel>,<RelativeBearing>,<AlarmType>,<RelativeVertical>,<RelativeDistance>,<ID>
 	if len(message) < 11 {
-		log.Printf("Discarding invalid NMEA: " + strings.Join(message, ","))
+		// PFLAU without ID is valid FLARM
+		// log.Printf("Discarding invalid NMEA: " + strings.Join(message, ","))
 		return
 	}
 	if len(message[10]) == 0 || len(message[9]) == 0 || len(message[8]) == 0 || len(message[6]) == 0 {

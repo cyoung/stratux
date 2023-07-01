@@ -24,7 +24,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -40,6 +39,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/net/websocket"
+	"github.com/b3nn0/stratux/common"
 )
 
 type SettingMessage struct {
@@ -338,6 +338,7 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 				log.Printf("handleSettingsSetRequest:error: %s\n", err.Error())
 			} else {
 				reconfigureOgnTracker := false
+				reconfigureGXTracker := false
 				reconfigureFancontrol := false
 				for key, val := range msg {
 					// log.Printf("handleSettingsSetRequest:json: testing for key:%s of type %s\n", key, reflect.TypeOf(val))
@@ -509,6 +510,16 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 					case "OGNTxPower":
 						globalSettings.OGNTxPower = int(val.(float64))
 						reconfigureOgnTracker = true
+					case "GXAddr":
+						inter,_ := strconv.ParseInt(val.(string), 16, 0)
+						globalSettings.GXAddr = int(inter) & 0xffffff
+						reconfigureGXTracker = true
+					case "GXAcftType":
+						globalSettings.GXAcftType = int(val.(float64))
+						reconfigureGXTracker = true
+					case "GXPilot":
+						globalSettings.GXPilot = val.(string)
+						reconfigureGXTracker = true
 					case "PWMDutyMin":
 						globalSettings.PWMDutyMin = int(val.(float64))
 						reconfigureFancontrol = true
@@ -521,6 +532,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 				applyNetworkSettings(false, false)
 				if reconfigureOgnTracker {
 					configureOgnTrackerFromSettings()
+				}
+				if reconfigureGXTracker {
+					configureGxAirComTracker()
 				}
 				if reconfigureFancontrol {
 					exec.Command("killall", "-SIGUSR1", "fancontrol").Run();
@@ -832,7 +846,14 @@ func defaultServer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=360") // 5 min, so that if user installs update, he will revalidate soon enough
 	//	setNoCache(w)
 
-	http.FileServer(http.Dir(STRATUX_HOME + "/www")).ServeHTTP(w, r)
+	var wwwDir string
+	if common.IsRunningAsRoot() {
+		wwwDir = "/www"
+	} else {
+		wwwDir = "/web/"
+	}
+
+	http.FileServer(http.Dir(STRATUX_HOME + wwwDir)).ServeHTTP(w, r)
 }
 
 func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {
@@ -1193,14 +1214,14 @@ func managementInterface() {
 	http.HandleFunc("/tiles/tilesets", handleTilesets)
 	http.HandleFunc("/tiles/", handleTile)
 
-	usr, _ := user.Current()
-	addr := managementAddr
-	if usr.Username != "root" {
+	var addr string
+	if common.IsRunningAsRoot() {
+		addr = managementAddr
+	} else {
 		addr = ":8000" // Make sure we can run without root priviledges on different port
 	}
-	err := http.ListenAndServe(addr, nil)
 
-	if err != nil {
+	if err :=http.ListenAndServe(addr, nil); err != nil {
 		log.Printf("managementInterface ListenAndServe: %s\n", err.Error())
 	}
 }

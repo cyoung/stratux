@@ -148,6 +148,51 @@
                 </div>
             </div>
         </div>
+
+         <!-- GxAirCOm Tracker config -->
+         <div class="panel-group col-sm-12" ng-show="hasGXTracker">
+            <!-- TODO -->
+            <div class="panel panel-default">
+                <div class="panel-heading">GxAirCom Tracker (FLARM)</div>
+                <div class="panel-body">
+                    <form name="OGNTrackerSettings" novalidate>
+                      
+                        <!-- Address -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address (Hex)</label>
+                            <input class="col-xs-7" type="text" maxlength="6" hex-input ng-model="GXAddr" />
+                        </div>
+
+                        <!-- Aircraft Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Aircraft Type</label>
+                            <select class="col-xs-7 custom-select" ng-model="GXAcftType">
+                                <option value="0" ng-selected="GXAcftType=='0'">Other Aircraft</option>
+                                <option value="1" ng-selected="GXAcftType=='1'">Para glider</option>
+                                <option value="2" ng-selected="GXAcftType=='2'">Hang glider</option>
+                                <option value="3" ng-selected="GXAcftType=='3'">Balloon</option>
+                                <option value="4" ng-selected="GXAcftType=='4'">Glider/Motorglider</option>
+                                <option value="5" ng-selected="GXAcftType=='5'">Powered Aircraft</option>
+                                <option value="6" ng-selected="GXAcftType=='6'">Helicopter</option>
+                                <option value="7" ng-selected="GXAcftType=='7'">UAV</option>
+                            </select>
+                        </div>
+
+                        <!-- Pilot name -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Pilot Name</label>
+                            <input class="col-xs-7" type="text" maxlength="15" pilotname-input ng-model="GXPilot" />
+                        </div>
+
+                        <div class="form-group reset-flow">
+                            <button class="btn btn-primary btn-block" ng-click="updateGXTrackerConfig()">Configure GxAirCom Tracker</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
     </div>
     <!-- End Left Col -->
     <!-- Begin Right Col -->
