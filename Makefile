@@ -82,9 +82,8 @@ optinstall: www ogn/ddb.json
 	cp -f ogn/ddb.json ogn/esp32-ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn
 
 	# GxAirCom stuff
-	for i in "firmware_psRam.bin" "spiffs.bin" "partitions.bin" "version.txt" "README.md" "bootloader_dio_40m.bin" "boot_app0.bin"
-	do
-		curl -L https://github.com/rvt/GxAirCom/releases/latest/download/$i --output $(STRATUX_HOME)/GxAirCom/$i
+	for artifact in "firmware_psRam.bin" "spiffs.bin" "partitions.bin" "version.txt" "README.md" "bootloader_dio_40m.bin" "boot_app0.bin" ; do \
+		curl -L https://github.com/rvt/GxAirCom/releases/latest/download/$$artifact --output $(STRATUX_HOME)/GxAirCom/$$artifact ; \
 	done
 	cp -f GxAirCom/esptool.py GxAirCom/install-GxAirCom-Stratux-firmware.sh $(STRATUX_HOME)/GxAirCom
 
