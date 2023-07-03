@@ -234,7 +234,7 @@ func parseAprsMessage(data string, fakeCurrentTime bool) {
 
 		msg := OgnMessage{
 			Sys:       res[1],
-			Time:      ts.Unix(),
+			Time:      float64(ts.Unix()),
 			Addr:      res[2],
 			Addr_type: int32(addr_type),
 			Acft_type: fmt.Sprintf("%d", acft_type),

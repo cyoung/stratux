@@ -8,7 +8,7 @@ if [[ ! -d esp-idf ]]; then
     read -p "Install esp-idf? [y/n]" -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        git clone -b v4.4.1 --recursive https://github.com/espressif/esp-idf.git
+        git clone -b v4.4.4 --recursive https://github.com/espressif/esp-idf.git
         cd esp-idf && ./install.sh
         cd ..
     else
@@ -33,7 +33,7 @@ function enable {
     grep $opt -q main/config.h || echo "#define $opt" >> main/config.h # add option if it doesn't exist yet
 }
 
-
+git checkout main/config.h
 
 ## Initial basic configuration
 disable WITH_FollowMe
@@ -45,6 +45,9 @@ disable WITH_GPS_MTK
 disable WITH_SD
 disable WITH_SDLOG
 disable WITH_FANET # not ready yet
+disable WITH_AP
+disable WITH_HTTP
+
 
 # ?? WITH_FANET, WITH_LORAWAN
 enable WITH_GPS_UBX
@@ -53,6 +56,7 @@ enable WITH_GPS_NMEA_PASS
 enable WITH_BME280
 enable WITH_PAW
 enable WITH_LORAWAN
+enable WITH_ADSL
 
 rm -rf stratux # cleanup of old build
 
