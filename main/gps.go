@@ -587,9 +587,10 @@ func configureGxAirComTracker() {
 		return
 	}
 
-	// $PGXCF,<version>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<stratuxNMEA>,<Aircraft Type>,<Address>,<Pilot Name>
-	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
-		1,  // PGXFC Version
+	// $PGXCF,<version>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name>
+	//  0      1         2       3              4              5            6              7                 8                     9              10              11
+	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
+		1,  // PGXCF Version
 		0,  // Airmode
 		0,  // Vario disabled // 0=noVario, 1= LK8EX1, 2=LXPW
 		1,  // Fanet
@@ -597,6 +598,7 @@ func configureGxAirComTracker() {
 		1,  // Flarm
 		1,  // Stratux NMEA
 		globalSettings.GXAcftType,
+		globalSettings.GXAddrType,
 		globalSettings.GXAddr,
 		globalSettings.GXPilot)
 
@@ -1307,7 +1309,13 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 				if time.Since(gpsTime) > 300*time.Millisecond || time.Since(gpsTime) < -300*time.Millisecond {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
-					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
+					var err error
+					if common.IsRunningAsRoot() {
+						err = exec.Command("date", "-s", setStr).Run()
+					} else {
+						err = exec.Command("sudo", "date", "-s", setStr).Run()
+					}					
+					if err != nil {
 						log.Printf("Set Date failure: %s error\n", err)
 					} else {
 						log.Printf("Time set from GPS. Current time is %v\n", time.Now())
@@ -1763,25 +1771,34 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
     }
 
     if x[0] == "PGXCF" && x[1] == "1" {
+		// $PGXCF,<version>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name>
+		//  0      1         2       3              4              5            6              7                 8                     9              10              11
 		log.Printf("Received GxAirCom Tracker configuration: " + strings.Join(x, ","))
 
+		GXAcftType,_ := strconv.ParseInt(x[8], 16, 0)
 		if (globalSettings.GXAcftType==0) {
-			globalSettings.GXAcftType,_ = strconv.Atoi(x[8]) 
+			globalSettings.GXAcftType = int(GXAcftType)
 		}
 
+		GXAddrType,_ := strconv.Atoi(x[9]) 
+		if (globalSettings.GXAddrType==0) {
+			globalSettings.GXAddrType = GXAddrType
+		}
+
+		GXAddr,_ := strconv.ParseInt(x[10], 16, 0)
 		if (globalSettings.GXAddr==0) {
-			inter,_ := strconv.ParseInt(x[9], 16, 0)
-			globalSettings.GXAddr = int(inter)
+			globalSettings.GXAddr = int(GXAddr)
 		}
 
 		if (globalSettings.GXPilot=="") {
-			globalSettings.GXPilot = x[10]
+			globalSettings.GXPilot = x[11]
 		}
 
-        if (x[4] == "0" || x[5] == "0" || x[6] == "0" || x[7] == "0") {
+        if (x[4] == "0" || x[5] == "0" || x[6] == "0" || x[7] == "0" || 
+			int(GXAcftType) != globalSettings.GXAcftType || int(GXAddrType) != globalSettings.GXAddrType || int(GXAddr) != globalSettings.GXAddr) {
 			configureGxAirComTracker()
         } else {
-			log.Printf("GxAirCom tracker comnfiguration ok!")
+			log.Printf("GxAirCom tracker configuration ok!")
 		}
 
         return true

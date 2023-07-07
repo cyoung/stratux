@@ -514,6 +514,9 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 						inter,_ := strconv.ParseInt(val.(string), 16, 0)
 						globalSettings.GXAddr = int(inter) & 0xffffff
 						reconfigureGXTracker = true
+					case "GXAddrType":
+						globalSettings.GXAddrType = int(val.(float64))
+						reconfigureGXTracker = true
 					case "GXAcftType":
 						globalSettings.GXAcftType = int(val.(float64))
 						reconfigureGXTracker = true

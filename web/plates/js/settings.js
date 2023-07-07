@@ -343,6 +343,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.GXAcftType = settings.GXAcftType;
 		$scope.GXPilot = settings.GXPilot;
 		$scope.GXAddr = settings.GXAddr.toString(16);
+		$scope.GXAddrType = settings.GXAddrType.toString();
 
 		$scope.PWMDutyMin = settings.PWMDutyMin;
 
@@ -678,6 +679,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$scope.updateGXTrackerConfig = function(action) {
 		var newsettings = {
 			"GXAddr": $scope.GXAddr,
+			"GXAddrType": parseInt($scope.GXAddrType),
 			"GXAcftType": parseInt($scope.GXAcftType),
 			"GXPilot": $scope.GXPilot,
 		};

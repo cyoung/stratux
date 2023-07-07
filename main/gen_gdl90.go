@@ -1210,8 +1210,9 @@ type settings struct {
 
 	// GxAirCom
 	GXAddr               int
+	GXAddrType           int            // 1=ICAO, 2=Flarm
 	GXAcftType           int
-    GXPilot              string
+	GXPilot              string
 
 	PWMDutyMin           int
 }
