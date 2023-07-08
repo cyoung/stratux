@@ -82,10 +82,14 @@ optinstall: www ogn/ddb.json
 	cp -f ogn/ddb.json ogn/esp32-ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn
 
 	# GxAirCom stuff
+	# Wget -N doesn't work with -O.. need to change directory temporarily
+	# Could also use latest CI build: https://github.com/rvt/GxAirCom/releases/latest/download/$$artifact
+	cd $(STRATUX_HOME)/GxAirCom/; \
+	wget -N https://raw.githubusercontent.com/pjalocha/esp32-ogn-tracker/master/esptool.py; \
 	for artifact in "firmware_psRam.bin" "spiffs.bin" "partitions.bin" "version.txt" "README.md" "bootloader_dio_40m.bin" "boot_app0.bin" ; do \
-		curl -L https://github.com/rvt/GxAirCom/releases/latest/download/$$artifact --output $(STRATUX_HOME)/GxAirCom/$$artifact ; \
+		wget -N https://github.com/rvt/GXAirCom/releases/download/gxaircom-stratux-rc2/$$artifact; \
 	done
-	cp -f GxAirCom/esptool.py GxAirCom/install-GxAirCom-Stratux-firmware.sh $(STRATUX_HOME)/GxAirCom
+	cp -f GxAirCom/install-GxAirCom-Stratux-firmware.sh $(STRATUX_HOME)/GxAirCom
 
 	# Scripts
 	cp __opt__stratux__bin__stratux-pre-start.sh $(STRATUX_HOME)/bin/stratux-pre-start.sh

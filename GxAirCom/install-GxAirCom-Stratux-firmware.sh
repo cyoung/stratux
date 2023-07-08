@@ -13,24 +13,28 @@ trap cleanup EXIT
 
 cd "$(dirname "$0")"
 
-echo ""
-echo "To which USB would you like to install the firmware at?"
-echo ""
-echo -e "${RED}If you are unsure about which USB device is which (sorry we cannot detect..) then unplug${NC}"
-echo -e "${RED}the device you do not want to flash and re-run this script.${NC}"
-echo ""
-list=$(find /dev/ -type c -regextype egrep -regex '\/dev\/(ttyACM|ttyAMA|ttyUSB)[0-9]')
+if [ -e /dev/serialin ]; then
+  usbDevice=/dev/serialin
+else
+  echo ""
+  echo "To which USB would you like to install the firmware at?"
+  echo ""
+  echo -e "${RED}If you are unsure about which USB device is which (sorry we cannot detect..) then unplug${NC}"
+  echo -e "${RED}the device you do not want to flash and re-run this script.${NC}"
+  echo ""
+  list=$(find /dev/ -regextype egrep -regex '\/dev\/(ttyACM|ttyAMA|ttyUSB)[0-9]')
 
-if [ -z "$list" ]; then
-    echo "No connected USB, ACM or AMA device found"
-    exit
+  if [ -z "$list" ]; then
+      echo "No connected USB, ACM or AMA device found"
+      exit
+  fi
+
+  select usbDevice in $list
+    do test -n "$usbDevice" && break; 
+      echo "No USB device selected"
+      exit
+  done
 fi
-
-select usbDevice in $list
-   do test -n "$usbDevice" && break; 
-    echo "No USB device selected"
-    exit
-done
 
 echo "Installing $fwName to $usbDevice"
 echo ""

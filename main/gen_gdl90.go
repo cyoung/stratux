@@ -47,7 +47,7 @@ var dataLogFilef string // Set according to OS config.
 
 const (
 	STRATUX_HOME_PROD  = "/opt/stratux/"
-	STRATUX_HOME_DEV   = "/home/pi/stratux/"
+	STRATUX_HOME_DEV   = "/home/pi/stratux/" // Only fallback, usually we try to determine the binary's dir
 	configLocation = "/boot/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
@@ -1597,7 +1597,13 @@ func main() {
 	if common.IsRunningAsRoot() {
 		STRATUX_HOME = STRATUX_HOME_PROD
 	} else {
-		STRATUX_HOME = STRATUX_HOME_DEV
+		ex, err := os.Executable()
+		if err == nil {
+			ex = filepath.Dir(ex)
+			STRATUX_HOME = ex
+		} else {
+			STRATUX_HOME = STRATUX_HOME_DEV
+		}
 	}
 
 	// Set up mySituation, do it here so logging JSON doesn't panic
