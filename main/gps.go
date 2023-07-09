@@ -587,10 +587,11 @@ func configureGxAirComTracker() {
 		return
 	}
 
-	// $PGXCF,<version>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name>
-	//  0      1         2       3              4              5            6              7                 8                     9              10              11
-	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
+	// $PGXCF,<version>,<Output Serial>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name> 
+	//  0      1         2               3              4              5            6              7                 8                     9              10              11      12
+	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
 		1,  // PGXCF Version
+		3,  // Serial out
 		0,  // Airmode
 		0,  // Vario disabled // 0=noVario, 1= LK8EX1, 2=LXPW
 		1,  // Fanet
@@ -1771,30 +1772,30 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
     }
 
     if x[0] == "PGXCF" && x[1] == "1" {
-		// $PGXCF,<version>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name>
-		//  0      1         2       3              4              5            6              7                 8                     9              10              11
+		// $PGXCF,<version>,<Output Serial>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name> 
+		//  0      1         2               3       4              5            6              7                 8                     9              10              11             12
 		log.Printf("Received GxAirCom Tracker configuration: " + strings.Join(x, ","))
 
-		GXAcftType,_ := strconv.ParseInt(x[8], 16, 0)
+		GXAcftType,_ := strconv.ParseInt(x[9], 16, 0)
 		if (globalSettings.GXAcftType==0) {
 			globalSettings.GXAcftType = int(GXAcftType)
 		}
 
-		GXAddrType,_ := strconv.Atoi(x[9]) 
+		GXAddrType,_ := strconv.Atoi(x[10]) 
 		if (globalSettings.GXAddrType==0) {
 			globalSettings.GXAddrType = GXAddrType
 		}
 
-		GXAddr,_ := strconv.ParseInt(x[10], 16, 0)
+		GXAddr,_ := strconv.ParseInt(x[11], 16, 0)
 		if (globalSettings.GXAddr==0) {
 			globalSettings.GXAddr = int(GXAddr)
 		}
 
 		if (globalSettings.GXPilot=="") {
-			globalSettings.GXPilot = x[11]
+			globalSettings.GXPilot = x[12]
 		}
 
-        if (x[4] == "0" || x[5] == "0" || x[6] == "0" || x[7] == "0" || 
+        if (x[2] != "3" || x[5] == "0" || x[6] == "0" || x[7] == "0" || x[8] == "0" || 
 			int(GXAcftType) != globalSettings.GXAcftType || int(GXAddrType) != globalSettings.GXAddrType || int(GXAddr) != globalSettings.GXAddr) {
 			configureGxAirComTracker()
         } else {
