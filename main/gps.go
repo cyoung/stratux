@@ -591,7 +591,7 @@ func configureGxAirComTracker() {
 	//  0      1         2               3              4              5            6              7                 8                     9              10              11      12
 	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
 		1,  // PGXCF Version
-		3,  // Serial out
+		0,  // Serial out
 		0,  // Airmode
 		0,  // Vario disabled // 0=noVario, 1= LK8EX1, 2=LXPW
 		1,  // Fanet
@@ -1795,7 +1795,7 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 			globalSettings.GXPilot = x[12]
 		}
 
-        if (x[2] != "3" || x[5] == "0" || x[6] == "0" || x[7] == "0" || x[8] == "0" || 
+        if (x[2] != "0" || x[5] == "0" || x[6] == "0" || x[7] == "0" || x[8] == "0" || 
 			int(GXAcftType) != globalSettings.GXAcftType || int(GXAddrType) != globalSettings.GXAddrType || int(GXAddr) != globalSettings.GXAddr) {
 			configureGxAirComTracker()
         } else {
