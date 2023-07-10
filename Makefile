@@ -87,7 +87,7 @@ optinstall: www ogn/ddb.json
 	cd $(STRATUX_HOME)/GxAirCom/; \
 	wget -N https://raw.githubusercontent.com/pjalocha/esp32-ogn-tracker/master/esptool.py; \
 	for artifact in "firmware_psRam.bin" "spiffs.bin" "partitions.bin" "version.txt" "README.md" "bootloader_dio_40m.bin" "boot_app0.bin" ; do \
-		wget -N https://github.com/rvt/GXAirCom/releases/download/gxaircom-stratux-rc3/$$artifact; \
+		wget -N https://github.com/rvt/GXAirCom/releases/download/stratux-eu029/$$artifact; \
 	done
 	cp -f GxAirCom/install-GxAirCom-Stratux-firmware.sh $(STRATUX_HOME)/GxAirCom
 
