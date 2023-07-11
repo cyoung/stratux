@@ -577,7 +577,6 @@ func requestGxAirComTrackerConfig() {
 	if serialPort == nil {
 		return
 	}
-	gpsTimeOffsetPpsMs = 200 * time.Millisecond
 	serialPort.Write([]byte(appendNmeaChecksum("$PGXCF,?") + "\r\n")) // Request configuration
 	serialPort.Flush()
 }
@@ -603,7 +602,6 @@ func configureGxAirComTracker() {
 		globalSettings.GXAddr,
 		globalSettings.GXPilot)
 
-	gpsTimeOffsetPpsMs = 200 * time.Millisecond
 	fullSentence := appendNmeaChecksum(requiredSentence)
 	log.Printf("Configuring GxAirCom Tracker with: " + fullSentence)
 	serialPort.Write([]byte(fullSentence + "\r\n")) // Set configuration
@@ -1761,6 +1759,7 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
     // Only sent by GxAirCOm tracker. We use this to detect that GxAirCom tracker is connected and configure it as needed
     if x[0] == "PFLAV" && x[4] == "GXAircom" {
         if !gxAirComTrackerConfigured {
+			gpsTimeOffsetPpsMs = 130 * time.Millisecond
 			globalStatus.GPS_detected_type = GPS_TYPE_GXAIRCOM
 			gxAirComTrackerConfigured = true
             go func() {
