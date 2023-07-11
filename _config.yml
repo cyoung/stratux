@@ -55,7 +55,12 @@ slack_url:
 twitter_url:
 
 # Google Analytics Tracking ID goes here:
-google_analytics: UA-78463950-1
+google_analytics: G-FYVQ8XFNLN
+
+# Google tag manager
+#google:
+#  tag_manager:
+#    container_id: G-FYVQ8XFNLN
 
 # The following settings are NECESSARY for the Prologue theme to run:
 #TESTING:
@@ -63,6 +68,9 @@ remote_theme: chrisbobbe/jekyll-theme-prologue
 #theme: jekyll-theme-prologue
 collections: [sections]
 
+url: "http://stratux.me" # the base hostname & protocol for your site
+
+
 plugins:
   - jemoji
-
+  - jekyll-sitemap
