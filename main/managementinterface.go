@@ -37,9 +37,9 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/b3nn0/stratux/common"
 	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/net/websocket"
-	"github.com/b3nn0/stratux/common"
 )
 
 type SettingMessage struct {
@@ -848,15 +848,7 @@ func setJSONHeaders(w http.ResponseWriter) {
 func defaultServer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age=360") // 5 min, so that if user installs update, he will revalidate soon enough
 	//	setNoCache(w)
-
-	var wwwDir string
-	if common.IsRunningAsRoot() {
-		wwwDir = "/www"
-	} else {
-		wwwDir = "/web/"
-	}
-
-	http.FileServer(http.Dir(STRATUX_HOME + wwwDir)).ServeHTTP(w, r)
+	http.FileServer(http.Dir(STRATUX_WWW_DIR)).ServeHTTP(w, r)
 }
 
 func handleroPartitionRebuild(w http.ResponseWriter, r *http.Request) {

@@ -46,8 +46,7 @@ var logDirf string      // Directory for all logging
 var dataLogFilef string // Set according to OS config.
 
 const (
-	STRATUX_HOME_PROD  = "/opt/stratux/"
-	STRATUX_HOME_DEV   = "/home/pi/stratux/" // Only fallback, usually we try to determine the binary's dir
+	STRATUX_HOME  = "/opt/stratux/"
 	configLocation = "/boot/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
@@ -109,8 +108,7 @@ const (
 
 )
 
-var STRATUX_HOME string
-
+var STRATUX_WWW_DIR = STRATUX_HOME + "www/"
 var maxSignalStrength int
 
 var stratuxBuild string
@@ -1594,15 +1592,12 @@ func main() {
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
 
-	if common.IsRunningAsRoot() {
-		STRATUX_HOME = STRATUX_HOME_PROD
-	} else {
+	if !common.IsRunningAsRoot() {
+		// mount web server to dev directory..
 		ex, err := os.Executable()
 		if err == nil {
 			ex = filepath.Dir(ex)
-			STRATUX_HOME = ex
-		} else {
-			STRATUX_HOME = STRATUX_HOME_DEV
+			STRATUX_WWW_DIR = ex + "/web/"
 		}
 	}
 
