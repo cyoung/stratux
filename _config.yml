@@ -55,13 +55,13 @@ slack_url: http://slack.stratux.me/
 twitter_url:
 
 # Google Analytics Tracking ID goes here:
-google_analytics: G-FYVQ8XFNLN
+# google_analytics: G-FYVQ8XFNLN
 
 
 # Google tag manager
-#google:
-#  tag_manager:
-#    container_id: G-FYVQ8XFNLN
+google:
+  tag_manager:
+    container_id: G-FYVQ8XFNLN
 
 # The following settings are NECESSARY for the Prologue theme to run:
 #TESTING:
