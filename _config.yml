@@ -35,7 +35,7 @@ subtitle: DIY/Low-cost Portable ADS-B
 description: >- # this means to ignore newlines until "baseurl:"
   Stratux ADS-B receiver software for pilots.
 author: cyoung
-email: website@stratux.me
+email: support@stratux.me
 avatar: assets/images/logo.png
 
 # You'll want to customize url and baseurl for your own site:
@@ -59,9 +59,9 @@ google_analytics: G-FYVQ8XFNLN
 
 
 # Google tag manager
-#google:
-#  tag_manager:
-#    container_id: G-FYVQ8XFNLN
+google:
+  tag_manager:
+    container_id: G-FYVQ8XFNLN
 
 # The following settings are NECESSARY for the Prologue theme to run:
 #TESTING:
