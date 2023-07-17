@@ -10,11 +10,11 @@ order: 4
 
 ## Replacement Parts and Accessories
 
-* [Stratux 1090ES &amp; UAT - Radios (Low Power) and High Gain Antennas](https://amzn.to/36wQFqv).
-* [UAT Radio](https://amzn.to/3ryTn9Z).
-* [Raspberry Pi 3B Motherboard](https://amzn.to/2ZKzAGT), [Raspberry Pi 3B+](https://amzn.to/3bqniKx), [Raspberry Pi 4](https://amzn.to/3nHLNZl).
+* [Stratux 1090ES &amp; UAT - Low Power Radios and High Gain Antennas](https://amzn.to/36wQFqv). ([Alternative)](https://amzn.to/43tcgwz))
+* [UAT Radio](https://amzn.to/3ryTn9Z). [(Alternative)](https://amzn.to/3OfhgAK)
+* [Raspberry Pi 3B](https://amzn.to/2ZKzAGT), [Raspberry Pi 3B+](https://amzn.to/3bqniKx), [Raspberry Pi 4](https://amzn.to/3nHLNZl).
 * [AHRS 2.0 and Fan Controller](https://amzn.to/39Kemxs).
-* [Pre-programmed SD Card](https://amzn.to/2FsorkV).
+* [Pre-programmed SD Card](https://amzn.to/2FsorkV). [(Alternative)](https://amzn.to/3XWOiJ3)
 * [White ABS Case](https://www.amazon.ca/dp/B072ND582W). ** Only fits Raspberry Pi 3B, 3B+ **  
 
 * [GPS Internal](https://amzn.to/2N0dhrK).
@@ -23,6 +23,7 @@ order: 4
 
 * [Slim Battery Packs](https://amzn.to/44I9Mvo).
 * [High Capacity Battery Pack](https://amzn.to/2Js2KHl).
+* [10 Foot Braided MicroUSB Cable](https://amzn.to/3K3aETE).
 * [USB Cable with On-Off Switch and 90 Degree Connection](https://amzn.to/3J0kZxv).
 * [USB Car/Plane Charger](https://amzn.to/30JuVKk).
 * [Rubberized Battery Strap](https://amzn.to/2WRGDgp).
