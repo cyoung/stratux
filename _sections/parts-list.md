@@ -3,7 +3,7 @@ title: DIY Kits and Parts
 icon: fa-check
 order: 4
 ---
-1. [Full Kit - Normal Antennas](https://amzn.to/3nWoMRf).
+1. [Full Kit - Compact Antennas](https://amzn.to/3nWoMRf).
 2. [Full Kit - Large Antennas](https://amzn.to/3hTeEc8).
 3. [Full Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
 4. [Full Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
@@ -21,7 +21,7 @@ order: 4
 * [Removable External GPS Puck](https://amzn.to/3hqjawv).
 * [GPS External](https://amzn.to/36vcKps).
 
-* [Slim Battery with Built in Wall Plug and Micro USB](https://amzn.to/3aPGtys).
+* [Slim Battery Packs](https://amzn.to/44I9Mvo).
 * [High Capacity Battery Pack](https://amzn.to/2Js2KHl).
 * [USB Cable with On-Off Switch and 90 Degree Connection](https://amzn.to/3J0kZxv).
 * [USB Car/Plane Charger](https://amzn.to/30JuVKk).
