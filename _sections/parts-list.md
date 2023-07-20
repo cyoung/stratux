@@ -15,7 +15,7 @@ order: 4
 * [Raspberry Pi 3B](https://amzn.to/2ZKzAGT), [Raspberry Pi 3B+](https://amzn.to/3bqniKx), [Raspberry Pi 4](https://amzn.to/3nHLNZl).
 * [AHRS 2.0 and Fan Controller](https://amzn.to/39Kemxs).
 * [Pre-programmed SD Card](https://amzn.to/2FsorkV). ([Alternate](https://amzn.to/3XWOiJ3))
-* [White ABS Case for Pi 3B, 3B+](https://www.amazon.ca/dp/B072ND582W). ([Alternate](https://amzn.to/3XToHAK))
+* [White ABS Case for Pi 3B, 3B+](https://amzn.to/43BvArR). ([Alternate](https://amzn.to/3XToHAK))
 * [GPS Internal](https://amzn.to/2N0dhrK). ([Alternate](https://amzn.to/3Qi47Zh))
 * [GPS External](https://amzn.to/36vcKps). ([Alternate](https://amzn.to/46RjhKE))
 * [Removable GPS Puck](https://amzn.to/3hqjawv).
