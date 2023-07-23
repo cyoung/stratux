@@ -81,7 +81,7 @@ rm -r stratux
 # Second build for new T-Beams
 disable WITH_TBEAM
 enable WITH_TBEAM_V10
-enable WITH_AXP
+#enable WITH_AXP
 enable WITH_GPS_PPS
 
 make -B -j16 > /dev/null
