@@ -22,4 +22,4 @@ order: 5
 | OzRunways EFB 5.4.2+ (iOS) | :white_check_mark: | :white_check_mark: | :x: |
 | Enroute Flight Navigation (Android) | :white_check_mark: | :white_check_mark: | :x: |
 | GRT Avionics EFIS (latest firmware) | :white_check_mark: | :white_check_mark: | :x: |
-| Garmin Pilot | :x: | :x: | :x: |
+| Garmin Pilot (GDL-90 mode)| :white_check_mark: | :white_check_mark: | :x: |
