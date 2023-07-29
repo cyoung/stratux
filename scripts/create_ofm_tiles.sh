@@ -6,8 +6,8 @@ cd tmp
 
 # OFM.. already mbtiles. THe tiles are already nicely aligned - existing tiles = filled tiles.
 # So we can just merge all DBs together
-AIRAC=2105
-for f in ebbu ed efin ehaa ekdk epww esaa lbsr ldzo lggg lhcc li ljla lkaa lovv lrbb lsas lzbb; do
+AIRAC=2307
+for f in ebbu ed efin ehaa ekdk epww esaa lbsr ldzo lf lggg lhcc li ljla lkaa lovv lrbb lsas lzbb; do
     wget https://snapshots.openflightmaps.org/live/${AIRAC}/tiles/${f}/noninteractive/epsg3857/${f}_256.mbtiles
 done
 
