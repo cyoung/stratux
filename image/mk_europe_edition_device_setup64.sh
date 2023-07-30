@@ -16,6 +16,7 @@ ln -s /bin/true /root/fake/stop
 ln -s /bin/true /root/fake/start-stop-daemon
 ln -s /bin/true /root/fake/service
 ln -s /bin/true /root/fake/deb-systemd-helper
+ln -s /bin/true /root/fake/deb-systemd-invoke
 
 # Fake a proc FS for raspberrypi-sys-mods_20170519_armhf... Extend me as needed
 mkdir -p /proc/sys/vm/
@@ -194,13 +195,12 @@ rm -r /root/stratux
 # Uninstall packages we don't need, clean up temp stuff
 rm -rf /root/go /root/go_path /root/.cache
 
-PATH=/root/fake:$PATH apt remove --purge --yes alsa-utils alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
-    v4l-utils rsync pigz pi-bluetooth perl cpp cpp-10
+PATH=/root/fake:$PATH apt remove --purge --yes alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
+    v4l-utils rsync pigz pi-bluetooth cpp cpp-10  zlib1g-dev
 
 PATH=/root/fake:$PATH apt autoremove --purge --yes
 
 apt clean
 rm -rf /var/cache/apt
 
-rm -rf /proc/*
 rm -r /root/fake

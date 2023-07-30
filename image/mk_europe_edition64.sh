@@ -59,6 +59,7 @@ resize2fs -p ${lo}p2 || die "FS resize failed"
 mkdir -p mnt
 mount -t ext4 ${lo}p2 mnt/ || die "root-mount failed"
 mount -t vfat ${lo}p1 mnt/boot || die "boot-mount failed"
+mount -t proc proc mnt/proc || die "proc-mount failed"
 
 
 cd mnt/root/
@@ -84,6 +85,7 @@ mkdir -p out
 mv mnt/root/update-*.sh out
 
 umount mnt/boot
+umount mnt/proc
 umount mnt
 
 # Shrink the image to minimum size.. it's still larger than it really needs to be, but whatever
@@ -95,7 +97,7 @@ resize2fs -p ${lo}p2 $minsize
 zerofree ${lo}p2 # for smaller zip
 
 bytesEnd=$((partoffset + $minsizeBytes))
-parted  ${lo} resizepart 2 ${bytesEnd}B yes
+echo "Yes" | parted  ${lo} resizepart 2 ${bytesEnd}B yes
 partprobe $lo
 
 losetup -d ${lo}
