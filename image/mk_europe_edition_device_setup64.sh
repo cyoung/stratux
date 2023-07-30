@@ -81,7 +81,7 @@ cd rtl-sdr
 git checkout 0847e93e0869feab50fd27c7afeb85d78ca04631 # Nov. 20, 2020
 mkdir build && cd build
 cmake .. -DENABLE_ZEROCOPY=0
-make -j8
+make -j1
 make install
 cd /root/
 rm -r rtl-sdr
