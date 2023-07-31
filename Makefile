@@ -33,14 +33,14 @@ fancontrol: fancontrol_main/*.go common/*.go
 	go build $(BUILDINFO) -o fancontrol -p 4 ./fancontrol_main/
 
 xdump1090:
-	git submodule update --init
+	git submodule update --init dump1090
 	cd dump1090 && make BLADERF=no
 
 libdump978.so: dump978/*.c dump978/*.h
 	cd dump978 && make lib
 
 xrtlais:
-	git submodule update --init
+	git submodule update --init rtl-ais
 	cd rtl-ais && sed -i 's/^LDFLAGS+=-lpthread.*/LDFLAGS+=-lpthread -lm -lrtlsdr -L \/usr\/lib\//' Makefile && make
 
 
