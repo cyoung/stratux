@@ -59,7 +59,6 @@ resize2fs -p ${lo}p2 || die "FS resize failed"
 mkdir -p mnt
 mount -t ext4 ${lo}p2 mnt/ || die "root-mount failed"
 mount -t vfat ${lo}p1 mnt/boot || die "boot-mount failed"
-mount -t proc proc mnt/proc || die "proc-mount failed"
 
 
 cd mnt/root/
@@ -73,11 +72,11 @@ cd ../../
 
 # Use latest qemu-aarch64-static version, since aarch64 doesn't seem to be that stable yet..
 if [ "$(arch)" != "aarch64" ]; then
-    wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v5.2.0-2/qemu-aarch64-static
+    wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static
     chmod +x mnt/usr/bin/qemu-aarch64-static
-    chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+    unshare -mpfu chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
 else
-    chroot mnt /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+    unshare -mpfu chroot mnt /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
 fi
 mkdir -p out
 
@@ -85,7 +84,6 @@ mkdir -p out
 mv mnt/root/update-*.sh out
 
 umount mnt/boot
-umount mnt/proc
 umount mnt
 
 # Shrink the image to minimum size.. it's still larger than it really needs to be, but whatever

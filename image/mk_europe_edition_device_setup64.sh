@@ -4,6 +4,8 @@
 # This script is called by mk_europe_edition.sh via qemu
 set -ex
 
+mount -t proc proc /proc
+
 cd /root/stratux
 
 # Make sure that the upgrade doesn't restart services in the chroot..
@@ -204,3 +206,6 @@ apt clean
 rm -rf /var/cache/apt
 
 rm -r /root/fake
+
+
+umount /proc
