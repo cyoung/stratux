@@ -3,8 +3,8 @@ title: DIY Kits and Parts
 icon: fa-check
 order: 4
 ---
-* [Full DIY Kit - Compact Antennas](https://amzn.to/3nWoMRf).
 * [Full DIY Kit - Large Antennas](https://amzn.to/3hTeEc8).
+* [Full DIY Kit - Compact Antennas](https://amzn.to/3nWoMRf).
 * [Full DIY Kit - Canada](https://www.amazon.ca/dp/B01N4LEDD1).
 * [Full DIY Kit - FLARM for Europe](https://amzn.to/3hAk0qw).
 
