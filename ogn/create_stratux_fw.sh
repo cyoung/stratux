@@ -46,14 +46,18 @@ disable WITH_GPS_ENABLE
 disable WITH_GPS_MTK
 disable WITH_SD
 disable WITH_SDLOG
-disable WITH_AP
-disable WITH_HTTP
 
 
-# ?? WITH_FANET, WITH_LORAWAN
+
+enable WITH_WIFI
+enable WITH_AP
+enable WITH_AP_BUTTON
+enable WITH_HTTP
+
 enable WITH_GPS_UBX
 enable WITH_GPS_UBX_PASS
 enable WITH_GPS_NMEA_PASS
+
 enable WITH_BME280
 enable WITH_PAW
 enable WITH_LORAWAN
