@@ -45,7 +45,7 @@ url: "https://stratux.me"
 #url: "http://updates.stratux.me:4000" # the base hostname & protocol for your site
 
 # Social settings
-facebook_url:
+facebook_url: https://www.facebook.com/groups/Stratux
 github_url: https://github.com/cyoung/stratux
 googleplus_url:
 instagram_url:
