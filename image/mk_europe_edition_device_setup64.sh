@@ -80,7 +80,8 @@ cd /root/
 rm -rf rtl-sdr
 git clone https://github.com/osmocom/rtl-sdr.git
 cd rtl-sdr
-git checkout 0847e93e0869feab50fd27c7afeb85d78ca04631 # Nov. 20, 2020
+git checkout 1261fbb285297da08f4620b18871b6d6d9ec2a7b # Aug. 23, 2023
+cp rtl-sdr.rules /etc/udev/rules.d/
 mkdir build && cd build
 cmake .. -DENABLE_ZEROCOPY=0
 make -j1
