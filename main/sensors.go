@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/b3nn0/stratux/sensors/bmp388"
 	"log"
 	"math"
 	"path/filepath"
@@ -23,14 +24,15 @@ const (
 	calDLimit        = 10.0
 
 	// WHO_AM_I values to differentiate between the different IMUs.
-	MPUREG_WHO_AM_I     = 0x75
-	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
-	MPUREG_WHO_AM_I_VAL_9255 = 0x73 // Expected value for MPU9255, seems to be compatible to 9250
-	MPUREG_WHO_AM_I_VAL_6500 = 0x70 // Expected value for MPU6500, seems to be same as 9250 but without magnetometer
-	MPUREG_WHO_AM_I_VAL_60X0 = 0x68 // Expected value for MPU6000 and MPU6050 (and MPU9150)
+	MPUREG_WHO_AM_I             = 0x75
+	MPUREG_WHO_AM_I_VAL         = 0x71 // Expected value.
+	MPUREG_WHO_AM_I_VAL_9255    = 0x73 // Expected value for MPU9255, seems to be compatible to 9250
+	MPUREG_WHO_AM_I_VAL_6500    = 0x70 // Expected value for MPU6500, seems to be same as 9250 but without magnetometer
+	MPUREG_WHO_AM_I_VAL_60X0    = 0x68 // Expected value for MPU6000 and MPU6050 (and MPU9150)
 	MPUREG_WHO_AM_I_VAL_UNKNOWN = 0x75 // Unknown MPU found on recent batch of gy91 boards see discussion 182
-	ICMREG_WHO_AM_I     = 0x00
-	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
+	ICMREG_WHO_AM_I             = 0x00
+	ICMREG_WHO_AM_I_VAL         = 0xEA // Expected value.
+	PRESSURE_WHO_AM_I           = 0x77 // Expected value for bosch pressure sensors bmpXXX.
 )
 
 var (
@@ -78,13 +80,23 @@ func pollSensors() {
 }
 
 func initPressureSensor() (ok bool) {
-	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
-	if err == nil {
-		myPressureReader = bmp
-		return true
-	}
 
-	//TODO westphae: make bmp180.go to fit bmp interface
+	v, err := i2cbus.ReadByteFromReg(0x68, PRESSURE_WHO_AM_I)
+
+	if err != nil {
+		log.Printf("Error identifying IMU: %s\n", err.Error())
+		return false
+	}
+	if v == bmp388.ChipId {
+		myPressureReader = sensors.NewBMP388(&i2cbus)
+		return true
+	} else {
+		bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
+		if err == nil {
+			myPressureReader = bmp
+			return true
+		}
+	}
 
 	return false
 }
@@ -133,7 +145,7 @@ func tempAndPressureSender() {
 		}
 
 		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
-		if altitude > 70000 || (isGPSValid() && mySituation.GPSAltitudeMSL != 0 && math.Abs(float64(mySituation.GPSAltitudeMSL) - altitude) > 5000) {
+		if altitude > 70000 || (isGPSValid() && mySituation.GPSAltitudeMSL != 0 && math.Abs(float64(mySituation.GPSAltitudeMSL)-altitude) > 5000) {
 			addSingleSystemErrorf("BaroBroken", "Barometric altitude %d' out of expected range. Ignoring. Pressure sensor potentially broken.", int32(altitude))
 			continue
 		}
