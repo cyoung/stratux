@@ -13,13 +13,24 @@ type BMP388 struct {
 	running     bool
 }
 
-func NewBMP388(i2cbus *embd.I2CBus) *BMP388 {
+func NewBMP388(i2cbus *embd.I2CBus) (*BMP388, error) {
 
-	bmp := bmp388.BMP388{Address: bmp388.Address, Config: bmp388.Config{}, Bus: i2cbus}
-	newbmp := BMP388{
-		sensor: &bmp}
-	go newbmp.run()
-	return &newbmp
+	bmp := bmp388.BMP388{Address: bmp388.Address, Config: bmp388.Config{}, Bus: i2cbus} //new sensor
+	// retry to connect until sensor connected
+	var connected bool
+	for n := 0; n < 5; n++ {
+		if bmp.Connected() {
+			connected = true
+		} else {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	if !connected {
+		return nil, bmp388.ErrNotConnected
+	}
+	newBmp := BMP388{sensor: &bmp}
+	go newBmp.run()
+	return &newBmp, nil
 }
 func (bmp *BMP388) run() {
 	bmp.running = true
@@ -35,24 +46,24 @@ func (bmp *BMP388) run() {
 	}
 }
 
-func (d *BMP388) Close() {
-	d.running = false
-	d.sensor.Config.Mode = bmp388.Sleep
-	_ = d.sensor.Configure(d.sensor.Config)
+func (bmp *BMP388) Close() {
+	bmp.running = false
+	bmp.sensor.Config.Mode = bmp388.Sleep
+	_ = bmp.sensor.Configure(bmp.sensor.Config)
 }
 
 // Temperature returns the current temperature in degrees C measured by the BMP280
-func (d *BMP388) Temperature() (float64, error) {
-	if !d.running {
+func (bmp *BMP388) Temperature() (float64, error) {
+	if !bmp.running {
 		return 0, bmp388.ErrNotConnected
 	}
 
-	return d.temperature, nil
+	return bmp.temperature, nil
 }
 
-func (d *BMP388) Pressure() (float64, error) {
-	if !d.running {
+func (bmp *BMP388) Pressure() (float64, error) {
+	if !bmp.running {
 		return 0, bmp388.ErrNotConnected
 	}
-	return d.pressure, nil
+	return bmp.pressure, nil
 }

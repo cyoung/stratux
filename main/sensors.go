@@ -31,8 +31,8 @@ const (
 	MPUREG_WHO_AM_I_VAL_60X0    = 0x68 // Expected value for MPU6000 and MPU6050 (and MPU9150)
 	MPUREG_WHO_AM_I_VAL_UNKNOWN = 0x75 // Unknown MPU found on recent batch of gy91 boards see discussion 182
 	ICMREG_WHO_AM_I             = 0x00
-	ICMREG_WHO_AM_I_VAL         = 0xEA // Expected value.
-	PRESSURE_WHO_AM_I           = 0x77 // Expected value for bosch pressure sensors bmpXXX.
+	ICMREG_WHO_AM_I_VAL         = 0xEA           // Expected value.
+	PRESSURE_WHO_AM_I           = bmp388.Address // Expected address for bosch pressure sensors bmpXXX.
 )
 
 var (
@@ -88,8 +88,12 @@ func initPressureSensor() (ok bool) {
 		return false
 	}
 	if v == bmp388.ChipId {
-		myPressureReader = sensors.NewBMP388(&i2cbus)
-		return true
+		log.Printf("BMP-388 detected")
+		bmp, err := sensors.NewBMP388(&i2cbus)
+		if err == nil {
+			myPressureReader = bmp
+			return true
+		}
 	} else {
 		bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
 		if err == nil {
