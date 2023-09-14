@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/b3nn0/stratux/sensors/bmp388"
 	"log"
 	"math"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/b3nn0/stratux/sensors/bmp388"
 
 	"github.com/b3nn0/goflying/ahrs"
 	"github.com/b3nn0/goflying/ahrsweb"
@@ -81,7 +82,7 @@ func pollSensors() {
 
 func initPressureSensor() (ok bool) {
 
-	v, err := i2cbus.ReadByteFromReg(0x68, PRESSURE_WHO_AM_I)
+	v, err := i2cbus.ReadByteFromReg(0x76, PRESSURE_WHO_AM_I)
 
 	if err != nil {
 		log.Printf("Error identifying IMU: %s\n", err.Error())
