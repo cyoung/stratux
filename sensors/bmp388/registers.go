@@ -2,7 +2,7 @@
 // The datasheet can be found here: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp388-ds001.pdf
 package bmp388
 
-const Address byte = 0x77 // default I2C address
+const Address byte = 0x76 // default I2C address
 
 const (
 	RegChipId  byte = 0x00 // useful for checking the connection
