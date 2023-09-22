@@ -129,7 +129,7 @@ func (d *BMP388) ReadTemperature() (float64, error) {
 	}
 
 	temp := (tlin * 25) / 16384
-	return float64(temp), nil
+	return float64(temp) / 100, nil
 }
 func (d *BMP388) ReadPressure() (float64, error) {
 
@@ -168,7 +168,7 @@ func (d *BMP388) ReadPressure() (float64, error) {
 	partialData3 = (partialData2 * rawPress) / 128
 	partialData4 = (offset / 4) + partialData1 + partialData5 + partialData3
 	compPress := ((uint64(partialData4) * 25) / uint64(1099511627776))
-	return float64(compPress), nil
+	return float64(compPress) / 10000, nil
 }
 func (d *BMP388) Connected() bool {
 	data, err := d.readRegister(RegChipId, 1)
