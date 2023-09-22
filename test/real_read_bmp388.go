@@ -17,6 +17,7 @@ func main() {
 	clock := time.NewTicker(time.Millisecond)
 	for {
 		for _ = range clock.C {
+
 			p, _ := bmp.ReadPressure()
 			t, _ := bmp.ReadTemperature()
 			fmt.Printf("%3.2f,%4.2f\n", p, t)

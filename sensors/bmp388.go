@@ -28,7 +28,12 @@ func NewBMP388(i2cbus *embd.I2CBus) (*BMP388, error) {
 	if !connected {
 		return nil, bmp388.ErrNotConnected
 	}
+	err := bmp.Configure(bmp.Config)
+	if err != nil {
+		return nil, err
+	}
 	newBmp := BMP388{sensor: &bmp}
+
 	go newBmp.run()
 	return &newBmp, nil
 }
