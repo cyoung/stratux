@@ -15,7 +15,11 @@ type BMP388 struct {
 
 func NewBMP388(i2cbus *embd.I2CBus) (*BMP388, error) {
 
-	bmp := bmp388.BMP388{Address: bmp388.Address, Config: bmp388.Config{}, Bus: i2cbus} //new sensor
+	bmp := bmp388.BMP388{Address: bmp388.Address, Config: bmp388.Config{
+		Temperature: bmp388.Sampling8X,
+		Pressure:    bmp388.Sampling2X,
+		IIR:         bmp388.Coeff0,
+	}, Bus: i2cbus} //new sensor
 	// retry to connect until sensor connected
 	var connected bool
 	for n := 0; n < 5; n++ {
