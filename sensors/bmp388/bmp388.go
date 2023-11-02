@@ -6,6 +6,7 @@ and converted to use embed
 */
 import (
 	"errors"
+
 	"github.com/kidoman/embd"
 )
 
@@ -172,7 +173,7 @@ func (d *BMP388) ReadPressure() (float64, error) {
 }
 func (d *BMP388) Connected() bool {
 	data, err := d.readRegister(RegChipId, 1)
-	return err == nil && data[0] == ChipId // returns true if i2c comm was good and response equals 0x50
+	return err == nil && (data[0] == ChipId || data[0] == ChipId390) // returns true if i2c comm was good and response equals 0x50/0x60
 }
 func (d *BMP388) SetMode(mode Mode) error {
 	d.Config.Mode = mode

@@ -20,6 +20,7 @@ const (
 
 const (
 	ChipId    byte = 0x50 // correct response if reading from chip id register
+	ChipId390 byte = 0x60 // BMP390 is compatible to bmp388, just with different Chip ID, see #252
 	PwrPress  byte = 0x01 // power on pressure sensor
 	PwrTemp   byte = 0x02 // power on temperature sensor
 	SoftReset byte = 0xB6 // command to reset all user configuration

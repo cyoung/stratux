@@ -88,7 +88,7 @@ func initPressureSensor() (ok bool) {
 		log.Printf("Error identifying IMU: %s\n", err.Error())
 		return false
 	}
-	if v == bmp388.ChipId {
+	if v == bmp388.ChipId || v == bmp388.ChipId390 {
 		log.Printf("BMP-388 detected")
 		bmp, err := sensors.NewBMP388(&i2cbus)
 		if err == nil {
