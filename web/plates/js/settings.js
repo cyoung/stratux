@@ -349,9 +349,6 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 		// Update theme
 		$scope.$parent.updateTheme($scope.DarkMode);
-
-
-		$scope.CountryCodeList = countryCodes;
 	}
 
 	function getSettings() {
