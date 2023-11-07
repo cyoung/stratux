@@ -37,6 +37,7 @@ var closeCh chan int
 // 0 => pingEFB - 1090ES
 // 1 => pingUSB - MavLink
 var pingDeviceModel int
+var pingDeviceSuccessfullyWorking int
 
 func initPingSerial() bool {
 	var device string
@@ -159,6 +160,7 @@ func pingSerialReader() {
 
 	scanner := bufio.NewScanner(pingSerialPort)
 	for scanner.Scan() && globalStatus.Ping_connected && globalSettings.Ping_Enabled {
+                pingDeviceSuccessfullyWorking = 1
 		s := scanner.Text()
 		// Trimspace removes newlines as well as whitespace
 		s = strings.TrimSpace(s)
@@ -242,6 +244,7 @@ var shutdownPing bool
 // Watch for config/device changes.
 func pingWatcher() {
 	prevPingEnabled := false
+        pingDeviceSuccessfullyWorking = 0
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -251,6 +254,10 @@ func pingWatcher() {
 			pingShutdown()
 			shutdownPing = false
 		}
+                // Autoreconnect the device
+                if pingDeviceSuccessfullyWorking > 0 && globalSettings.Ping_Enabled && !globalStatus.Ping_connected {
+                        prevPingEnabled = false
+                }
 
 		if prevPingEnabled == globalSettings.Ping_Enabled {
 			continue
@@ -259,6 +266,12 @@ func pingWatcher() {
 		// Global settings have changed, reconfig
 		if globalSettings.Ping_Enabled && !globalStatus.Ping_connected {
 			globalStatus.Ping_connected = initPingSerial()
+                        // This will retry next loop to connect again to the device
+                        if globalStatus.Ping_connected == false {
+                           // Relaxed polling to wait the device to be discovered
+		           time.Sleep(10 * time.Second)
+                           continue
+                        }
 			//count := 0
 			// pingEFB - 1090
 			if globalStatus.Ping_connected && pingDeviceModel == 0 {
@@ -452,6 +465,7 @@ func mavLinkParse(mavLinkFrame []byte) bool {
 		return false
 	}
 	mavLinkFormat(mavLinkFrame)
+	pingDeviceSuccessfullyWorking = 1
 	return true
 }
 
