@@ -5,7 +5,7 @@
 	as part of this header.
 
 	ping.go: uAvionix Ping ADS-B monitoring and management.
-        2023 Added PingUSB MavLink support
+    2023 Added PingUSB MavLink support device 0403:6015
 */
 
 package main
@@ -25,8 +25,8 @@ import (
 
 	// Using forked version of tarm/serial to force Linux
 	// instead of posix code, allowing for higher baud rates
-	"github.com/uavionix/serial"
 	"github.com/b3nn0/stratux/common"
+	"github.com/uavionix/serial"
 )
 
 // Ping device data
@@ -34,10 +34,11 @@ var pingSerialConfig *serial.Config
 var pingSerialPort *serial.Port
 var pingWG *sync.WaitGroup
 var closeCh chan int
+
 // 0 => pingEFB - 1090ES
 // 1 => pingUSB - MavLink
 var pingDeviceModel int
-var pingDeviceSuccessfullyWorking int
+var pingDeviceSuccessfullyWorking bool
 
 func initPingSerial() bool {
 	var device string
@@ -51,10 +52,11 @@ func initPingSerial() bool {
 	} else if _, err := os.Stat("/dev/softrf"); err == nil {
 		device = "/dev/softrf"
 		baudrate = int(38400)
-	} else if _, err := os.Stat("/dev/ttyUSB0"); err == nil {
-		device = "/dev/ttyUSB0"
+	} else if _, err := os.Stat("/dev/pingusb"); err == nil {
+		// 99-uavionix.rules 0403:6015
+		device = "/dev/pingusb"
 		baudrate = int(57600)
-                pingDeviceModel = 1
+		pingDeviceModel = 1
 	} else {
 		log.Printf("No suitable Ping device found.\n")
 		return false
@@ -160,7 +162,7 @@ func pingSerialReader() {
 
 	scanner := bufio.NewScanner(pingSerialPort)
 	for scanner.Scan() && globalStatus.Ping_connected && globalSettings.Ping_Enabled {
-                pingDeviceSuccessfullyWorking = 1
+		pingDeviceSuccessfullyWorking = true
 		s := scanner.Text()
 		// Trimspace removes newlines as well as whitespace
 		s = strings.TrimSpace(s)
@@ -223,8 +225,11 @@ func pingShutdown() {
 	//log.Println("Ping shutdown(): calling pingWG.Wait() ...")
 	//pingWG.Wait() // Wait for the goroutine to shutdown
 	//log.Println("Ping shutdown(): pingWG.Wait() returned...")
-	// RCB TODO FINISH
-	globalStatus.Ping_connected = false
+	// Serial Port Gracefully Close and Read() returns
+	//globalStatus.Ping_connected = false
+	if globalStatus.Ping_connected == true {
+		pingSerialPort.Close()
+	}
 }
 
 func pingKill() {
@@ -244,7 +249,7 @@ var shutdownPing bool
 // Watch for config/device changes.
 func pingWatcher() {
 	prevPingEnabled := false
-        pingDeviceSuccessfullyWorking = 0
+	pingDeviceSuccessfullyWorking = false
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -253,11 +258,13 @@ func pingWatcher() {
 		if shutdownPing {
 			pingShutdown()
 			shutdownPing = false
+			// Shutdown this reconnection loop
+			break
 		}
-                // Autoreconnect the device
-                if pingDeviceSuccessfullyWorking > 0 && globalSettings.Ping_Enabled && !globalStatus.Ping_connected {
-                        prevPingEnabled = false
-                }
+		// Autoreconnect the device
+		if pingDeviceSuccessfullyWorking == true && globalSettings.Ping_Enabled && !globalStatus.Ping_connected {
+			prevPingEnabled = false
+		}
 
 		if prevPingEnabled == globalSettings.Ping_Enabled {
 			continue
@@ -266,12 +273,12 @@ func pingWatcher() {
 		// Global settings have changed, reconfig
 		if globalSettings.Ping_Enabled && !globalStatus.Ping_connected {
 			globalStatus.Ping_connected = initPingSerial()
-                        // This will retry next loop to connect again to the device
-                        if globalStatus.Ping_connected == false {
-                           // Relaxed polling to wait the device to be discovered
-		           time.Sleep(10 * time.Second)
-                           continue
-                        }
+			// This will retry next loop to connect again to the device
+			if globalStatus.Ping_connected == false {
+				// Relaxed polling to wait the device to be discovered
+				time.Sleep(10 * time.Second)
+				continue
+			}
 			//count := 0
 			// pingEFB - 1090
 			if globalStatus.Ping_connected && pingDeviceModel == 0 {
@@ -285,7 +292,7 @@ func pingWatcher() {
 			// pingUSB - MavLink
 			if globalStatus.Ping_connected && pingDeviceModel == 1 {
 				go pingUSBSerialReader()
-                        }
+			}
 			//atomic.StoreUint32(&globalStatus.Devices, uint32(count))
 		} else if !globalSettings.Ping_Enabled {
 			pingShutdown()
@@ -300,19 +307,19 @@ func pingInit() {
 }
 
 type MavlinkTrafficMessageFormat struct {
-   ICAO_address  uint32
-   lat           int32
-   lon           int32
-   altitude      int32
-   heading       uint16
-   hor_velocity  uint16
-   ver_velocity  int16
-   validFlags    uint16
-   squawk        uint16
-   altitude_type uint8
-   callsign      [9]byte
-   emitter_type  uint8
-   tslc          uint8
+	ICAO_address  uint32
+	lat           int32
+	lon           int32
+	altitude      int32
+	heading       uint16
+	hor_velocity  uint16
+	ver_velocity  int16
+	validFlags    uint16
+	squawk        uint16
+	altitude_type uint8
+	callsign      [9]byte
+	emitter_type  uint8
+	tslc          uint8
 }
 
 func mavLinkFormat(x []byte) {
@@ -356,7 +363,9 @@ func mavLinkFormat(x []byte) {
 		mavLink.emitter_type = x[0+pingUsbHeaderLen+pingUsbHeaderCursor]
 		pingUsbHeaderCursor = 37
 		mavLink.tslc = x[0+pingUsbHeaderLen+pingUsbHeaderCursor]
-		log.Printf("ICAO_address %06X lat: %d lon: %d alt: %d head: %d call: %s vspeed: %d speed: %d", mavLink.ICAO_address, mavLink.lat, mavLink.lon, mavLink.altitude, mavLink.heading, mavLink.callsign, mavLink.ver_velocity, mavLink.hor_velocity)
+		if globalSettings.DEBUG {
+			log.Printf("ICAO_address %06X lat: %d lon: %d alt: %d head: %d call: %s vspeed: %d speed: %d", mavLink.ICAO_address, mavLink.lat, mavLink.lon, mavLink.altitude, mavLink.heading, mavLink.callsign, mavLink.ver_velocity, mavLink.hor_velocity)
+		}
 		var ti TrafficInfo
 		trafficMutex.Lock()
 		signalLevelSimulated := -1
@@ -385,31 +394,36 @@ func mavLinkFormat(x []byte) {
 		if mavLink.lat != 0 && mavLink.lon != 0 {
 			lat := float32(mavLink.lat) / 10000000.0
 			lng := float32(mavLink.lon) / 10000000.0
-                        // Low signal may involve into a freeze location, update only if it really changes
-                        if lng != ti.Lng && lat != ti.Lat {
-			  ti.Lat = lat
-			  ti.Lng = lng
-			  if isGPSValid() {
-				lat := float64(mySituation.GPSLatitude)
-				lng := float64(mySituation.GPSLongitude)
-				ti.Distance, ti.Bearing = common.Distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
-				ti.BearingDist_valid = true
-			  } else {
-				ti.BearingDist_valid = false
-			  }
-			  ti.Position_valid = true
-			  ti.ExtrapolatedPosition = false
-			  ti.Last_seen = stratuxClock.Time
-                        }
+			// Low signal may involve into a freeze location, update only if it really changes
+			if lng != ti.Lng && lat != ti.Lat {
+				ti.Lat = lat
+				ti.Lng = lng
+				if isGPSValid() {
+					lat := float64(mySituation.GPSLatitude)
+					lng := float64(mySituation.GPSLongitude)
+					ti.Distance, ti.Bearing = common.Distance(float64(lat), float64(lng), float64(ti.Lat), float64(ti.Lng))
+					ti.BearingDist_valid = true
+				} else {
+					ti.BearingDist_valid = false
+				}
+				ti.Position_valid = true
+				ti.ExtrapolatedPosition = false
+				ti.Last_seen = stratuxClock.Time
+				ti.Timestamp = time.Now().UTC()
+			}
 		} else {
 			ti.Position_valid = false
 			signalLevelSimulated -= 5
 		}
 		altitudeFoot := int32(float32(mavLink.altitude) / 304.8)
 		if altitudeFoot > 0 && altitudeFoot < 70000 {
-			ti.Alt = altitudeFoot
-			ti.Last_alt = stratuxClock.Time
-			ti.Last_seen = stratuxClock.Time
+			// Low signal may involve into a freeze location, update only if it really changes
+			if ti.Alt != altitudeFoot {
+				ti.Alt = altitudeFoot
+				ti.Last_alt = stratuxClock.Time
+				ti.Last_seen = stratuxClock.Time
+				ti.Timestamp = time.Now().UTC()
+			}
 		} else {
 			signalLevelSimulated -= 5
 		}
@@ -444,7 +458,7 @@ func mavLinkFormat(x []byte) {
 				ti.Tail = thisReg
 			}
 		}
-		ti.Timestamp = time.Now()
+		// Timestamp and Last_seen are updated only if Location or Altitude changes
 		ti.NACp = 8
 		ti.NIC = 8
 		ti.Last_source = TRAFFIC_SOURCE_1090ES
@@ -465,10 +479,9 @@ func mavLinkParse(mavLinkFrame []byte) bool {
 		return false
 	}
 	mavLinkFormat(mavLinkFrame)
-	pingDeviceSuccessfullyWorking = 1
+	pingDeviceSuccessfullyWorking = true
 	return true
 }
-
 
 func pingUSBSerialReader() {
 	defer pingSerialPort.Close()
