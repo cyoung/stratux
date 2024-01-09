@@ -7,7 +7,6 @@
 	gps.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
 */
 
-
 package main
 
 import (
@@ -229,7 +228,7 @@ func initGPSSerial() bool {
 		switch chip {
 			case "ublox6":
 			case "ublox7":
-				globalStatus.GPS_detected_type = GPS_TYPE_UBX7
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
 				logDbg("GPS - configuring chip as ublox6 or ublox7")
 				break;
 			case "ublox8":
@@ -249,8 +248,8 @@ func initGPSSerial() bool {
 				logDbg("GPS - configuring chip as generic ublox chip")
 				break;
 			default:
-				globalStatus.GPS_detected_type = GPS_TYPE_UNKNOWN
-				logDbg("GPS - configuring gps chip as unknown -> no further configuration, use gps as it is")
+				globalStatus.GPS_detected_type = GPS_TYPE_ANY
+				logDbg("GPS - configuring gps chip as other -> no further configuration, use gps as it is")
 		}
 		device = globalSettings.GpsManualDevice
 		targetBaudRate = globalSettings.GpsManualTargetBaud
@@ -266,10 +265,10 @@ func initGPSSerial() bool {
 		gpsTimeOffsetPpsMs = 80 * time.Millisecond // Ublox 8 seems to have higher delay
 	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
 		device = "/dev/ublox7"
-		globalStatus.GPS_detected_type = GPS_TYPE_UBX7
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
 	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162 Rev 1).
 		device = "/dev/ublox6"
-		globalStatus.GPS_detected_type = GPS_TYPE_UBX6
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
@@ -287,9 +286,14 @@ func initGPSSerial() bool {
 		device = "/dev/softrf_dongle"
 		globalStatus.GPS_detected_type = GPS_TYPE_SOFTRF_DONGLE
 		baudrates[0] = 115200
- 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { // ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
+ 	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { 
+		// ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
+		// assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
 		device = "/dev/ttyAMA0"
-		globalStatus.GPS_detected_type = GPS_TYPE_UART
+		logDbg("GPS WARN - found a serial device at: %s", device)
+		logDbg("GPS WARN - assuming this an generic u-blox device: %s", device)
+		logDbg("GPS WARN - it is recommended to configure this device in /boot/stratux.conf")
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN	
 		baudrates = []int{115200, 38400, 9600}
 	} else {
 		logDbg("GPS - no gps device found.\n")
@@ -330,12 +334,10 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else if (
-		globalStatus.GPS_detected_type == GPS_TYPE_UBX6  || 
-		globalStatus.GPS_detected_type == GPS_TYPE_UBX7  ||
-	    globalStatus.GPS_detected_type == GPS_TYPE_UBX8  || 
-		globalStatus.GPS_detected_type == GPS_TYPE_UBX9  ||
-		globalStatus.GPS_detected_type == GPS_TYPE_UBX10 ||
-		globalStatus.GPS_detected_type == GPS_TYPE_UART  || 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX6or7  ||
+	    globalStatus.GPS_detected_type == GPS_TYPE_UBX8  	|| 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX9  	||
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX10 	||
 		globalStatus.GPS_detected_type == GPS_TYPE_UBX_GEN ) {
 	
 
@@ -358,11 +360,11 @@ func initGPSSerial() bool {
 			logDbg("GPS - ublox 9 detected\n")
 			// ublox 9
 			writeUblox9ConfigCommands(p)		
-		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) { 
 			logDbg("GPS - ublox 8 detected\n")
 			// ublox 8
 			writeUblox8ConfigCommands(p)
-		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX6or7) {
 			logDbg("GPS - ublox 6 or 7 detected\n")
 			// ublox 6,7
 			cfgGnss := []byte{0x00, 0x00, 0xFF, 0x04} // numTrkChUse=0xFF: number of tracking channels to use will be set to number of tracking channels available in hardware

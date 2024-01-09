@@ -86,8 +86,9 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) 
 			var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
 			var tempGpsHardwareString = "Not installed";
 			switch(gpsHardwareCode) {
+				// Keep in mind that this must be in sync with the enumeration in gps.go
 				case 1:
-					tempGpsHardwareString = "Serial port";
+					tempGpsHardwareString = "Generic GPS device";
 					break;
 				case 2:
 					tempGpsHardwareString = "Prolific USB-serial bridge";
@@ -95,20 +96,23 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) 
 				case 3:
 					tempGpsHardwareString = "OGN Tracker";
 					break;
-				case 6:
-					tempGpsHardwareString = "USB u-blox 6 GPS receiver";
+				case 4:
+					tempGpsHardwareString = "generic u-blox device";
+					break;
+				case 5:
+					tempGpsHardwareString = "u-blox 10 GNSS receiver";
 					break;
 				case 7:
-					tempGpsHardwareString = "USB u-blox 7 GNSS receiver";
+					tempGpsHardwareString = "u-blox 6 or 7 GNSS receiver";
 					break;
 				case 8:
-					tempGpsHardwareString = "USB u-blox 8 GNSS receiver";
+					tempGpsHardwareString = "u-blox 8 GNSS receiver";
 					break;
 				case 9:
-					tempGpsHardwareString = "USB u-blox 9 GNSS receiver";
+					tempGpsHardwareString = "u-blox 9 GNSS receiver";
 					break;
 				case 10:
-					tempGpsHardwareString = "USB Serial IN";
+					tempGpsHardwareString = "USB/Serial IN";
 					break;
 				case 11:
 					tempGpsHardwareString = "SoftRF Dongle";

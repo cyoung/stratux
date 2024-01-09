@@ -92,24 +92,31 @@ const (
 		GPS_TYPE_GARMIN   = 0x06
 	*/
 
-	GPS_TYPE_UBX10    = 0x20   // 0x0A and 0x10 allready in use	below	
-	GPS_TYPE_UBX9     = 0x09
-	GPS_TYPE_UBX8     = 0x08
-	GPS_TYPE_UBX7     = 0x07
-	GPS_TYPE_UBX6     = 0x06
-	GPS_TYPE_UBX_GEN  = 0x05
-	GPS_TYPE_PROLIFIC = 0x02
-	GPS_TYPE_UART     = 0x01
-	GPS_TYPE_SERIAL   = 0x0A
-	GPS_TYPE_OGNTRACKER = 0x03
-	GPS_TYPE_GXAIRCOM = 0x0F
-	GPS_TYPE_SOFTRF_DONGLE = 0x0B
-	GPS_TYPE_NETWORK  = 0x0C
+	// for historical reasons lower nibbe contains gps type, upper nibble containsprotocol type. 
+	// Additionally this enumeration has a javascript duplicte in web/plates/js/status.js, they have to be kept in sync manually
+	// This is somewhat ugly but difficult to change without breaking backward compatibility
 
-	GPS_TYPE_UNKNOWN  = 0xFF
+	// lower nibble gps type   (dont forget to use only numbers form 0 to 15)
+	
+	GPS_TYPE_ANY     	= 1		// Any generic GPS - no reconfiguring applied
+	GPS_TYPE_PROLIFIC 	= 2
+	GPS_TYPE_OGNTRACKER = 3
+	GPS_TYPE_UBX_GEN  	= 4
+	GPS_TYPE_UBX10    	= 5	
+	//GPS_TYPE_UBX6     	= 6
+	GPS_TYPE_UBX6or7    = 7
+	GPS_TYPE_UBX8     	= 8
+	GPS_TYPE_UBX9     	= 9
+	GPS_TYPE_SERIAL   	= 10 		// 0x0A
+	GPS_TYPE_SOFTRF_DONGLE 	= 11	// 0x0B
+	GPS_TYPE_NETWORK  	= 12		// 0x0C
+	GPS_TYPE_GXAIRCOM 	= 15		// 0x0F
+	
+
+	// upper nibble is used for the protocol
 	GPS_PROTOCOL_NMEA = 0x10
-	// other GPS types to be defined as needed
-
+	
+	
 )
 
 var STRATUX_WWW_DIR = STRATUX_HOME + "www/"
