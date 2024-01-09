@@ -240,6 +240,10 @@ func initGPSSerial() bool {
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX9
 				logDbg("GPS - configuring  chip as ublox9")
 				break;
+			case "ublox10":
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX10
+				logDbg("GPS - configuring  chip as ublox10 - no special setup code yet - treated as ublox generic")
+				break;
 			case "ublox":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN
 				logDbg("GPS - configuring chip as generic ublox chip")
@@ -325,9 +329,15 @@ func initGPSSerial() bool {
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
-	} else if globalStatus.GPS_detected_type == GPS_TYPE_UBX6 || globalStatus.GPS_detected_type == GPS_TYPE_UBX7 ||
-	          globalStatus.GPS_detected_type == GPS_TYPE_UBX8 || globalStatus.GPS_detected_type == GPS_TYPE_UBX9 ||
-		  	  globalStatus.GPS_detected_type == GPS_TYPE_UART || globalStatus.GPS_detected_type == GPS_TYPE_UBX_GEN {
+	} else if (
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX6  || 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX7  ||
+	    globalStatus.GPS_detected_type == GPS_TYPE_UBX8  || 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX9  ||
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX10 ||
+		globalStatus.GPS_detected_type == GPS_TYPE_UART  || 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX_GEN ) {
+	
 
 		// Byte order for UBX configuration is little endian.
 

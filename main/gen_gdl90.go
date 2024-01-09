@@ -92,6 +92,7 @@ const (
 		GPS_TYPE_GARMIN   = 0x06
 	*/
 
+	GPS_TYPE_UBX10    = 0x20   // 0x0A and 0x10 allready in use	below	
 	GPS_TYPE_UBX9     = 0x09
 	GPS_TYPE_UBX8     = 0x08
 	GPS_TYPE_UBX7     = 0x07
