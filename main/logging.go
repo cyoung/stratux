@@ -164,3 +164,13 @@ func initLogging() {
 	openLogFile()
 	go logFileWatcher();
 }
+
+
+
+
+
+func logDbg(msg string, args ... any) {
+	if globalSettings.DEBUG {
+		log.Printf(msg, args...)
+	}
+}
