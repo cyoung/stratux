@@ -6,7 +6,7 @@
 
 	gps.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
 */
-// make gen_gdl90 && mv gen_gdl90 /opt/stratux/bin/ && stxrestart
+
 
 package main
 
@@ -288,16 +288,11 @@ func initGPSSerial() bool {
 		globalStatus.GPS_detected_type = GPS_TYPE_UART
 		baudrates = []int{115200, 38400, 9600}
 	} else {
-		if globalSettings.DEBUG {
-			log.Printf("No GPS device found.\n")
-		}
+		logDbg("GPS - no gps device found.\n")
 		return false
 	}
 
 	logDbg("GPS - using device: %s", device)
-	//if globalSettings.DEBUG {
-	//	log.Printf("Using %s for GPS\n", device)
-	//}
 
 	// try to open port with previously defined baud rate
 	// port remains opend if detectOpenSerialPort finds matching baurate parameter
@@ -1586,10 +1581,7 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 		lenGSV := len(x)
 		satsThisMsg := (lenGSV - 4) / 4
 
-		if false {
-		//if globalSettings.DEBUG {
-			log.Printf("%s message [%d of %d] is %v fields long and describes %v satellites\n", x[0], msgIndex, msgNum, lenGSV, satsThisMsg)
-		}
+		logDbg("%s message [%d of %d] is %v fields long and describes %v satellites\n", x[0], msgIndex, msgNum, lenGSV, satsThisMsg)
 
 		var sv, elev, az, cno int
 		var svType uint8
@@ -1684,8 +1676,8 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 				}
 			}
 
-			if false {
-			//if globalSettings.DEBUG {
+			
+			if globalSettings.DEBUG {
 					inSolnStr := " "
 				if thisSatellite.InSolution {
 					inSolnStr = "+"
@@ -2214,9 +2206,7 @@ func gpsAttitudeSender() {
 			<-timer.C
 
 			if !isGPSValid() || !calcGPSAttitude() {
-				if globalSettings.DEBUG {
-					//log.Printf("Couldn't calculate GPS-based attitude statistics\n")
-				}
+				logDbg("Couldn't calculate GPS-based attitude statistics\n")
 			} else {
 				mySituation.muGPSPerformance.Lock()
 				index := len(myGPSPerfStats) - 1
