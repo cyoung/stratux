@@ -6,6 +6,7 @@
 
 	gps.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
 */
+// make gen_gdl90 && mv gen_gdl90 /opt/stratux/bin/ && stxrestart
 
 package main
 
@@ -209,6 +210,7 @@ func makeNMEACmd(cmd string) []byte {
 
 func initGPSSerial() bool {
 	var device string
+	var targetBaudRate int = 115200
 	if (globalStatus.GPS_detected_type & 0x0f) == GPS_TYPE_NETWORK {
 		return true
 	}
@@ -218,7 +220,40 @@ func initGPSSerial() bool {
 	ognTrackerConfigured = false;
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
-	if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
+	
+	
+	if globalSettings.GpsManualConfig {
+		logDbg("GPS - using manual config for gps:")
+
+		var chip string = globalSettings.GpsManualChip
+		switch chip {
+			case "ublox6":
+			case "ublox7":
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX7
+				logDbg("GPS - configuring chip as ublox6 or ublox7")
+				break;
+			case "ublox8":
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX8
+				logDbg("GPS - configuring chip as ublox8")
+				break;
+			case "ublox9":
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX9
+				logDbg("GPS - configuring  chip as ublox9")
+				break;
+			case "ublox":
+				globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN
+				logDbg("GPS - configuring chip as generic ublox chip")
+				break;
+			default:
+				globalStatus.GPS_detected_type = GPS_TYPE_UNKNOWN
+				logDbg("GPS - configuring gps chip as unknown -> no further configuration, use gps as it is")
+		}
+		device = globalSettings.GpsManualDevice
+		targetBaudRate = globalSettings.GpsManualTargetBaud
+		logDbg("GPS - target baud rate: %d", targetBaudRate)
+		baudrates = []int{115200, 38400, 9600, 230400, 500000, 1000000, 2000000}
+
+	} else if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
 		device = "/dev/ublox9"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX9
 	} else if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
@@ -258,9 +293,11 @@ func initGPSSerial() bool {
 		}
 		return false
 	}
-	if globalSettings.DEBUG {
-		log.Printf("Using %s for GPS\n", device)
-	}
+
+	logDbg("GPS - using device: %s", device)
+	//if globalSettings.DEBUG {
+	//	log.Printf("Using %s for GPS\n", device)
+	//}
 
 	// try to open port with previously defined baud rate
 	// port remains opend if detectOpenSerialPort finds matching baurate parameter
@@ -268,7 +305,7 @@ func initGPSSerial() bool {
 
 	p, err := detectOpenSerialPort(device, baudrates)
 	if err != nil {
-		log.Printf("serial port/baudrate detection err: %s\n", err.Error())
+		log.Printf("GPS - serial port/baudrate detection err: %s\n", err.Error())
 		return false
 	}
 
@@ -295,7 +332,7 @@ func initGPSSerial() bool {
 		}
 	} else if globalStatus.GPS_detected_type == GPS_TYPE_UBX6 || globalStatus.GPS_detected_type == GPS_TYPE_UBX7 ||
 	          globalStatus.GPS_detected_type == GPS_TYPE_UBX8 || globalStatus.GPS_detected_type == GPS_TYPE_UBX9 ||
-		  globalStatus.GPS_detected_type == GPS_TYPE_UART {
+		  	  globalStatus.GPS_detected_type == GPS_TYPE_UART || globalStatus.GPS_detected_type == GPS_TYPE_UBX_GEN {
 
 		// Byte order for UBX configuration is little endian.
 
@@ -313,21 +350,15 @@ func initGPSSerial() bool {
 		//time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
-			if globalSettings.DEBUG {
-				log.Printf("ublox 9 detected\n")
-			}
+			logDbg("GPS - ublox 9 detected\n")
 			// ublox 9
 			writeUblox9ConfigCommands(p)		
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
-			if globalSettings.DEBUG {
-				log.Printf("ublox 8 detected\n")
-			}
+			logDbg("GPS - ublox 8 detected\n")
 			// ublox 8
 			writeUblox8ConfigCommands(p)
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX7) || (globalStatus.GPS_detected_type == GPS_TYPE_UBX6) {
-			if globalSettings.DEBUG {
-				log.Printf("ublox 6 or 7 detected\n")
-			}
+			logDbg("GPS - ublox 6 or 7 detected\n")
 			// ublox 6,7
 			cfgGnss := []byte{0x00, 0x00, 0xFF, 0x04} // numTrkChUse=0xFF: number of tracking channels to use will be set to number of tracking channels available in hardware
 			gps     := []byte{0x00, 0x04, 0xFF, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 4-255 channels (ublox default)
@@ -360,7 +391,7 @@ func initGPSSerial() bool {
 		cfg[7] = 0x00
 
 		// Baud rate. Little endian order.
-		bdrt := uint32(115200)
+		bdrt := uint32(targetBaudRate)
 		cfg[11] = byte((bdrt >> 24) & 0xFF)
 		cfg[10] = byte((bdrt >> 16) & 0xFF)
 		cfg[9] = byte((bdrt >> 8) & 0xFF)
@@ -385,10 +416,10 @@ func initGPSSerial() bool {
 
 
 		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
-		baudrates[0] = int(bdrt)
-
+		//baudrates[0] = int(bdrt)
+		baudrates = append([]int{targetBaudRate}, baudrates...)
 		if globalSettings.DEBUG {
-			log.Printf("Finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
+			log.Printf("GPS - finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else if globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE {
 		p.Write([]byte("@GNS 0x7\r\n")) // enable SBAS
@@ -407,7 +438,7 @@ func initGPSSerial() bool {
 	
 	p, err = detectOpenSerialPort(device, baudrates)
 	if err != nil {
-		log.Printf("serial port err: %s\n", err.Error())
+		log.Printf("GPS - serial port err: %s\n", err.Error())
 		return false
 	}
 
@@ -422,6 +453,7 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 		return serial.OpenPort(serialConfig)
 	} else {
 		for _, baud := range baudrates {
+			logDbg("GPS - trying to open serial with %d baud ...", baud)
 			serialConfig := &serial.Config{Name: device, Baud: baud, ReadTimeout: time.Millisecond * 2500}
 			p, err := serial.OpenPort(serialConfig)
 			if err != nil {
@@ -436,17 +468,19 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 				_, validNMEAcs := validateNMEAChecksum(line)
 				if validNMEAcs {
 					// looks a lot like NMEA.. use it
-					log.Printf("Detected serial port %s with baud %d", device, baud)
+					log.Printf("GPS - successfully opened serial port %s with baud %d   (Valid NMEA msg received)", device, baud)
 					// Make sure the NMEA is immediately parsed once, so updateStatus() doesn't see the GPS as disconnected before
 					// first msg arrives
 					processNMEALine(line)
 					return p, nil
 				}
 			}
+			logDbg("GPS - could not open serial port with %d baud, no valid NMea received ...", baud)
 			p.Close()
 			time.Sleep(250 * time.Millisecond)
 		}
-		return nil, errors.New("Failed to detect GPS serial baud rate")
+		logDbg("GPS - none of the baud rates worked ...")
+		return nil, errors.New("GPS - Failed to detect gps serial baud rate")
 	}
 }
 
@@ -1032,15 +1066,11 @@ func calculateNavRate() float64 {
  	var halfwidth float64
  	dt_avg, valid := common.Mean(tempSpeedTime)
  	if valid && dt_avg > 0 {
- 		if globalSettings.DEBUG {
- 			log.Printf("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
- 		}
+ 		logDbg("GPS attitude: Average delta time is %.2f s (%.1f Hz)\n", dt_avg, 1/dt_avg)
  		halfwidth = 9 * dt_avg
  		mySituation.GPSPositionSampleRate = 1 / dt_avg
  	} else {
- 		if globalSettings.DEBUG {
- 			log.Printf("GPS attitude: Couldn't determine sample rate\n")
- 		}
+ 		// logDbg("GPS attitude: Couldn't determine sample rate\n")
  		halfwidth = 3.5
  		mySituation.GPSPositionSampleRate = 0
  	}
@@ -1556,7 +1586,8 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 		lenGSV := len(x)
 		satsThisMsg := (lenGSV - 4) / 4
 
-		if globalSettings.DEBUG {
+		if false {
+		//if globalSettings.DEBUG {
 			log.Printf("%s message [%d of %d] is %v fields long and describes %v satellites\n", x[0], msgIndex, msgNum, lenGSV, satsThisMsg)
 		}
 
@@ -1653,8 +1684,9 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 				}
 			}
 
-			if globalSettings.DEBUG {
-				inSolnStr := " "
+			if false {
+			//if globalSettings.DEBUG {
+					inSolnStr := " "
 				if thisSatellite.InSolution {
 					inSolnStr = "+"
 				}
@@ -2183,7 +2215,7 @@ func gpsAttitudeSender() {
 
 			if !isGPSValid() || !calcGPSAttitude() {
 				if globalSettings.DEBUG {
-					log.Printf("Couldn't calculate GPS-based attitude statistics\n")
+					//log.Printf("Couldn't calculate GPS-based attitude statistics\n")
 				}
 			} else {
 				mySituation.muGPSPerformance.Lock()
@@ -2307,5 +2339,15 @@ func initGPS(isReplayMode bool) {
 
 	if !isReplayMode {
 		go pollGPS()
+	}
+}
+
+
+
+
+
+func logDbg(msg string, args ... any) {
+	if globalSettings.DEBUG {
+		log.Printf(msg, args...)
 	}
 }
