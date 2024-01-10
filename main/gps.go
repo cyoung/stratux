@@ -4,8 +4,11 @@
 	that can be found in the LICENSE file, herein included
 	as part of this header.
 
+	---
 	gps.go: GPS functions, GPS init, AHRS status messages, other external sensor monitoring.
+	compile and install: clear && make www && make gen_gdl90 && mv gen_gdl90 /opt/stratux/bin/ && stxrestart
 */
+
 
 package main
 
@@ -206,6 +209,17 @@ func makeNMEACmd(cmd string) []byte {
 	return []byte(fmt.Sprintf("$%s*%02x\x0d\x0a", cmd, chk_sum))
 }
 
+func logChipConfig(line1 string, chip string, device string, baudrate int, append string) {
+	if line1 == "auto" {
+		logInf("Gps - autodected gps, using following parameters:")
+	} else if line1 == "man" {
+		logInf("GPS - manual configuration with following parameters from /boot/stratux.conf:")
+	}
+	msg := "GPS - chip: %s, device: %s, baudrate: %d"
+	if(append != "") { msg += ", " + append}
+	logInf(msg, chip, device, baudrate)
+}
+
 
 func initGPSSerial() bool {
 	var device string
@@ -220,55 +234,63 @@ func initGPSSerial() bool {
 	globalStatus.GPS_detected_type = 0 // reset detected type on each initialization
 
 	
-	
 	if globalSettings.GpsManualConfig {
-		logDbg("GPS - using manual config for gps:")
+		//logInf("GPS - manual configuration with parameters from /boot/stratux.conf:")
 
 		var chip string = globalSettings.GpsManualChip
+		device = globalSettings.GpsManualDevice
+		targetBaudRate = globalSettings.GpsManualTargetBaud
+		baudrates = []int{115200, 38400, 9600, 230400, 500000, 1000000, 2000000}
+
 		switch chip {
 			case "ublox6":
 			case "ublox7":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
-				logDbg("GPS - configuring chip as ublox6 or ublox7")
+				logChipConfig("man", "ublox 6 or 7", device, targetBaudRate, "")
 				break;
 			case "ublox8":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX8
-				logDbg("GPS - configuring chip as ublox8")
+				logChipConfig("man", "ublox 8", device, targetBaudRate, "")
 				break;
 			case "ublox9":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX9
-				logDbg("GPS - configuring  chip as ublox9")
+				logChipConfig("man", "ublox 9", device, targetBaudRate, "")
 				break;
 			case "ublox10":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX10
-				logDbg("GPS - configuring  chip as ublox10 - no special setup code yet - treated as ublox generic")
+				logChipConfig("man", "ublox 10", device, targetBaudRate, "")
 				break;
 			case "ublox":
 				globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN
-				logDbg("GPS - configuring chip as generic ublox chip")
+				logChipConfig("man", "generic ublox", device, targetBaudRate, "")
 				break;
 			default:
 				globalStatus.GPS_detected_type = GPS_TYPE_ANY
-				logDbg("GPS - configuring gps chip as other -> no further configuration, use gps as it is")
+				logInf("GPS - configuring gps chip as other -> no further configuration will be done, use gps as it is")
 		}
-		device = globalSettings.GpsManualDevice
-		targetBaudRate = globalSettings.GpsManualTargetBaud
-		logDbg("GPS - target baud rate: %d", targetBaudRate)
-		baudrates = []int{115200, 38400, 9600, 230400, 500000, 1000000, 2000000}
+		
 
-	} else if _, err := os.Stat("/dev/ublox9"); err == nil { // u-blox 8 (RY83xAI over USB).
+	} else if _, err := os.Stat("/dev/ublox9"); err == nil { 
 		device = "/dev/ublox9"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX9
-	} else if _, err := os.Stat("/dev/ublox8"); err == nil { // u-blox 8 (RY83xAI or GPYes 2.0).
+		logChipConfig("auto", "ublox 9", device, targetBaudRate, "")
+
+	} else if _, err := os.Stat("/dev/ublox8"); err == nil { 	// u-blox 8 (RY83xAI or GPYes 2.0).
 		device = "/dev/ublox8"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX8
-		gpsTimeOffsetPpsMs = 80 * time.Millisecond // Ublox 8 seems to have higher delay
-	} else if _, err := os.Stat("/dev/ublox7"); err == nil { // u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
+		gpsTimeOffsetPpsMs = 80 * time.Millisecond 				// Ublox 8 seems to have higher delay
+		logChipConfig("auto", "ublox 8", device, targetBaudRate, "")
+
+	} else if _, err := os.Stat("/dev/ublox7"); err == nil { 	// u-blox 7 (VK-172, VK-162 Rev 2, GPYes, RY725AI over USB).
 		device = "/dev/ublox7"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
-	} else if _, err := os.Stat("/dev/ublox6"); err == nil { // u-blox 6 (VK-162 Rev 1).
+		logChipConfig("auto", "ublox 7", device, targetBaudRate, "")
+
+	} else if _, err := os.Stat("/dev/ublox6"); err == nil { 	// u-blox 6 (VK-162 Rev 1).
 		device = "/dev/ublox6"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX6or7
+		logChipConfig("auto", "ublox 6", device, targetBaudRate, "")
+
 	} else if _, err := os.Stat("/dev/prolific0"); err == nil { // Assume it's a BU-353-S4 SIRF IV.
 		//TODO: Check a "serialout" flag and/or deal with multiple prolific devices.
 		isSirfIV = true
@@ -288,13 +310,13 @@ func initGPSSerial() bool {
 		baudrates[0] = 115200
  	} else if _, err := os.Stat("/dev/ttyAMA0"); err == nil { 
 		// ttyAMA0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
-		// assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+		// assume that any GPS connected to serial GPIO is ublox
 		device = "/dev/ttyAMA0"
-		logDbg("GPS WARN - found a serial device at: %s", device)
-		logDbg("GPS WARN - assuming this an generic u-blox device: %s", device)
-		logDbg("GPS WARN - it is recommended to configure this device in /boot/stratux.conf")
-		globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN	
+		globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN
 		baudrates = []int{115200, 38400, 9600}
+		logInf("GPS - device detected at serial port /dev/ttyAMA0, assuming this is an ublox device, configuring as generic ublox:")
+		logChipConfig("", "generic ublox", device, targetBaudRate, "")
+		logInf("GPS - consider to configure this device manually in /boot/stratux.conf for optimal performance")
 	} else {
 		logDbg("GPS - no gps device found.\n")
 		return false
@@ -357,15 +379,15 @@ func initGPSSerial() bool {
 		//time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
-			logDbg("GPS - ublox 9 detected\n")
+			logDbg("GPS - configuring as ublox 9\n")
 			// ublox 9
 			writeUblox9ConfigCommands(p)		
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) { 
-			logDbg("GPS - ublox 8 detected\n")
+			logDbg("GPS - configuring as ublox 8\n")
 			// ublox 8
 			writeUblox8ConfigCommands(p)
 		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX6or7) {
-			logDbg("GPS - ublox 6 or 7 detected\n")
+			logDbg("GPS - configuring as ublox 6 or 7\n")
 			// ublox 6,7
 			cfgGnss := []byte{0x00, 0x00, 0xFF, 0x04} // numTrkChUse=0xFF: number of tracking channels to use will be set to number of tracking channels available in hardware
 			gps     := []byte{0x00, 0x04, 0xFF, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 4-255 channels (ublox default)
@@ -422,12 +444,9 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x00, 20, cfg))
 
 
-		//	time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
-		//baudrates[0] = int(bdrt)
+		//baudrates[0] = int(bdrt)   // replaced by line below -> insert at pos 0 instead of overwriting ...
 		baudrates = append([]int{targetBaudRate}, baudrates...)
-		if globalSettings.DEBUG {
-			log.Printf("GPS - finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
-		}
+		logDbg("GPS - finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 	} else if globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE {
 		p.Write([]byte("@GNS 0x7\r\n")) // enable SBAS
 		p.Flush()
@@ -445,7 +464,7 @@ func initGPSSerial() bool {
 	
 	p, err = detectOpenSerialPort(device, baudrates)
 	if err != nil {
-		log.Printf("GPS - serial port err: %s\n", err.Error())
+		logErr("GPS - serial port err: %s\n", err.Error())
 		return false
 	}
 
@@ -475,7 +494,7 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 				_, validNMEAcs := validateNMEAChecksum(line)
 				if validNMEAcs {
 					// looks a lot like NMEA.. use it
-					log.Printf("GPS - successfully opened serial port %s with baud %d   (Valid NMEA msg received)", device, baud)
+					logInf("GPS - successfully opened serial port %s with baud %d   (Valid NMEA msg received)", device, baud)
 					// Make sure the NMEA is immediately parsed once, so updateStatus() doesn't see the GPS as disconnected before
 					// first msg arrives
 					processNMEALine(line)
@@ -486,7 +505,7 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 			p.Close()
 			time.Sleep(250 * time.Millisecond)
 		}
-		logDbg("GPS - none of the baud rates worked ...")
+		logErr("GPS - none of the baud rates worked, gps not connected ...")
 		return nil, errors.New("GPS - Failed to detect gps serial baud rate")
 	}
 }
@@ -591,7 +610,7 @@ func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 		p.Write(makeUBXCFG(0x06, 0x08, 6, []byte{0xE8, 0x03, 0x01, 0x00, 0x01, 0x00})) // 1000ms & 1 cycle -> 1Hz (UBX-CFG-RATE payload bytes: little endian!)
 	}
 
-
+	logDbg("GPS - applying generic ublox settings (refresh rate: %d)" , navrate)
 }
 
 
