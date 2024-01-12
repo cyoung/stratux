@@ -9,7 +9,6 @@
 	compile and install: clear && make www && make gen_gdl90 && mv gen_gdl90 /opt/stratux/bin/ && stxrestart
 */
 
-
 package main
 
 import (
@@ -1549,13 +1548,13 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 			return false
 		}
 		if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {			
+			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {			
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
 			}
 		} else { // Rough 95% confidence estimate non-SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
+			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
