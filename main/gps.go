@@ -212,7 +212,7 @@ func logChipConfig(line1 string, chip string, device string, baudrate int, appen
 	if line1 == "auto" {
 		logInf("Gps - autodected gps, using following parameters:")
 	} else if line1 == "man" {
-		logInf("GPS - manual configuration with following parameters from /boot/stratux.conf:")
+		logInf("GPS - manual configuration with following parameters from /boot/firmware/stratux.conf:")
 	}
 	msg := "GPS - chip: %s, device: %s, baudrate: %d"
 	if(append != "") { msg += ", " + append}
@@ -234,7 +234,7 @@ func initGPSSerial() bool {
 
 	
 	if globalSettings.GpsManualConfig {
-		//logInf("GPS - manual configuration with parameters from /boot/stratux.conf:")
+		//logInf("GPS - manual configuration with parameters from /boot/firmware/stratux.conf:")
 
 		var chip string = globalSettings.GpsManualChip
 		device = globalSettings.GpsManualDevice
@@ -315,7 +315,7 @@ func initGPSSerial() bool {
 		baudrates = []int{115200, 38400, 9600}
 		logInf("GPS - device detected at serial port /dev/ttyAMA0, assuming this is an ublox device, configuring as generic ublox:")
 		logChipConfig("", "generic ublox", device, targetBaudRate, "")
-		logInf("GPS - consider to configure this device manually in /boot/stratux.conf for optimal performance")
+		logInf("GPS - consider to configure this device manually in /boot/firmware/stratux.conf for optimal performance")
 	} else {
 		logDbg("GPS - no gps device found.\n")
 		return false

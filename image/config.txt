@@ -1,4 +1,4 @@
-# RPi /boot/config.txt
+# RPi /boot/firmware/config.txt
 
 dtparam=audio=on
 max_usb_current=1

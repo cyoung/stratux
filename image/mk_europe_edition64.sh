@@ -6,8 +6,8 @@
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 set -x
-BASE_IMAGE_URL="https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-04-07/2022-04-04-raspios-bullseye-arm64-lite.img.xz"
-ZIPNAME="2022-04-04-raspios-bullseye-arm64-lite.img.xz"
+BASE_IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz"
+ZIPNAME="2023-12-11-raspios-bookworm-arm64-lite.img.xz"
 IMGNAME="$(basename $ZIPNAME .xz)"
 TMPDIR="$HOME/stratux-tmp"
 REMOTE_ORIGIN=$(git config --get remote.origin.url)
@@ -44,7 +44,7 @@ bootoffset=$(( 512*bootoffset ))
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
-truncate -s 3000M $IMGNAME || die "Image resize failed"
+truncate -s 3500M $IMGNAME || die "Image resize failed"
 lo=$(losetup -f)
 losetup $lo $IMGNAME
 partprobe $lo
@@ -58,12 +58,12 @@ resize2fs -p ${lo}p2 || die "FS resize failed"
 # Mount image locally, clone our repo, install packages..
 mkdir -p mnt
 mount -t ext4 ${lo}p2 mnt/ || die "root-mount failed"
-mount -t vfat ${lo}p1 mnt/boot || die "boot-mount failed"
+mount -t vfat ${lo}p1 mnt/boot/firmware || die "boot-mount failed"
 
 
 cd mnt/root/
 if [ "$1" == "dev" ]; then
-    rsync -av --progress --exclude=ogn/esp-idf $SRCDIR ./
+    rsync -av --progress --exclude=ogn/esp-idf --exclude="**/*.mbtiles" --exclude=esp32-ogn-tracker $SRCDIR ./
     cd stratux && git checkout $2 && cd ..
 else
     git clone --recursive -b $2 $REMOTE_ORIGIN
@@ -83,7 +83,7 @@ mkdir -p out
 # Move the selfupdate file out of there..
 mv mnt/root/update-*.sh out
 
-umount mnt/boot
+umount mnt/boot/firmware
 umount mnt
 
 # Shrink the image to minimum size.. it's still larger than it really needs to be, but whatever

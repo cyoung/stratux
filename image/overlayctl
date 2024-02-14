@@ -19,32 +19,32 @@
 
 modify_boot_cmdline()
 {
-    if [ ! -e /boot/cmdline.txt ] ; then
+    if [ ! -e /boot/firmware/cmdline.txt ] ; then
         umount_boot=yes
-        mount /boot || exit 1
+        mount /boot/firmware || exit 1
     fi
-    if [ ! -e /boot/cmdline.txt ] ; then
-        echo "/boot/cmdline.txt missing"
+    if [ ! -e /boot/firmware/cmdline.txt ] ; then
+        echo "/boot/firmware/cmdline.txt missing"
         exit 1
     fi
-    if [ ! -w /boot ] ; then
+    if [ ! -w /boot/firmware ] ; then
         remount_boot_ro=yes
-        mount -o remount,rw /boot || exit 1
+        mount -o remount,rw /boot/firmware || exit 1
     fi
-    if ! grep -q '/sbin/init-overlay' /boot/cmdline.txt ; then
-        cp /boot/cmdline.txt /boot/cmdline.bak
+    if ! grep -q '/sbin/init-overlay' /boot/firmware/cmdline.txt ; then
+        cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.bak
     fi
-    rm -f /boot/cmdline.new
+    rm -f /boot/firmware/cmdline.new
     sed -e 's/\( \|^\)\(ro\|rw\)\( \|$\)/ /g' \
         -e 's/\( \|^\)\(init=[^ ]*\)\( \|$\)/ /g' \
-        -e 's/^ //' -e 's/ $//' /boot/cmdline.txt \
+        -e 's/^ //' -e 's/ $//' /boot/firmware/cmdline.txt \
         -e 's#^\(.*root=.*\)$#\1'"$1"'#'\
-        >/boot/cmdline.new
-    mv /boot/cmdline.new /boot/cmdline.txt
+        >/boot/firmware/cmdline.new
+    mv /boot/firmware/cmdline.new /boot/firmware/cmdline.txt
     if [ -n "$umount_boot" ] ; then
-        umount /boot
+        umount /boot/firmware
     elif [ -n "$remount_boot_ro" ] ; then
-        mount -o remount,ro /boot
+        mount -o remount,ro /boot/firmware
     fi
 }
 

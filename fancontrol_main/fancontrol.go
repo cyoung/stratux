@@ -52,7 +52,7 @@ var (
 )
 
 const (
-	configLocation = "/boot/stratux.conf"
+	configLocation = "/boot/firmware/stratux.conf"
 
 	// CPU temperature target, degrees C
 	defaultTempTarget = 50.
