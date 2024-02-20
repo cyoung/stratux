@@ -40,8 +40,8 @@ order: 4
 
 * [Slim Battery Packs](https://amzn.to/44I9Mvo). ([Alternate](https://amzn.to/3Ofy3ni))
 * [High Capacity Battery Pack](https://amzn.to/2Js2KHl). ([Alternate](https://amzn.to/46TJtEE))
-* [Braided MicroUSB Cable](https://amzn.to/3K3aETE). ([Alternate](https://amzn.to/3JZ27AQ))
 * [USB Cable with On-Off Switch and 90 Degree Connection](https://amzn.to/3J0kZxv).
+* [Braided MicroUSB Cable](https://amzn.to/49J9mHR). ([Alternate](https://amzn.to/3JZ27AQ))
 * [USB Car/Plane Charger](https://amzn.to/30JuVKk). ([Alternate](https://amzn.to/3rygx4R))
 * [Power Supply](https://amzn.to/3Kf75Ke). ([Alternate](https://amzn.to/3Qe220d))
 
@@ -49,4 +49,4 @@ order: 4
 
 * [Serial Adapter](https://amzn.to/3nY3L8S).
 * [Splitter and Saw Filter](https://amzn.to/3XSaBzD).
-* [Red LED Pen with Stylus](https://amzn.to/3hBv6M1). 
+* [Red LED Pen with Stylus](https://amzn.to/3hBv6M1).
