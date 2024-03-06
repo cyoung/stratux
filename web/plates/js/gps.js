@@ -113,11 +113,15 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.Quality = situation.GPSFixQuality;
         $scope.GPS_PositionSampleRate = situation.GPSPositionSampleRate.toFixed(1);
 
-        var solutionText = "No Fix";
-        if (situation.GPSFixQuality === 2) {
-            solutionText = "3D GPS + SBAS";
+        var solutionText = "Unknown";
+        if (situation.GPSFixQuality === 0) {
+            solutionText = "No Fix"
         } else if (situation.GPSFixQuality === 1) {
-            solutionText = "3D GPS"
+            solutionText = "3D GPS";
+        } else if (situation.GPSFixQuality === 2) {
+            solutionText = "3D GPS + SBAS";
+        } else if (situation.GPSFixQuality === 6) {
+            solutionText = "Dead Reckoning";
         }
         $scope.SolutionText = solutionText;
 
