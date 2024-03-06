@@ -90,6 +90,7 @@ type SituationData struct {
 	GPSLastGPSTimeStratuxTime   time.Time // stratuxClock time since last GPS time received.
 	GPSLastValidNMEAMessageTime time.Time // time valid NMEA message last seen
 	GPSLastValidNMEAMessage     string    // last NMEA message processed.
+	GPSLastAccuracyTime         time.Time // time of last GNGST
 	GPSPositionSampleRate       float64   // calculated sample rate of GPS positions
 
 	// From pressure sensor.
@@ -583,7 +584,7 @@ func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x04, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // RMC - Recommended Minimum data
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x05, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00})) // VGT - Course over ground and Ground speed
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GRS - GNSS Range Residuals
-	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
+	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x07, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00})) // GST - GNSS Pseudo Range Error Statistics
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // ZDA - Time and Date<
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // GBS - GNSS Satellite Fault Detection
 	p.Write(makeUBXCFG(0x06, 0x01, 8, []byte{0xF0, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // DTM - Datum Reference
@@ -1541,38 +1542,77 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 		mySituation.muSatellite.Unlock()
 		// END OF PROTECTED BLOCK
 
-		// field 16: HDOP
-		// Accuracy estimate
-		hdop, err1 := strconv.ParseFloat(x[16], 32)
-		if err1 != nil {
-			return false
-		}
-		if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {			
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9
-			} else {
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
+		// Prefer accuracy from G?GST. Only if not received, estimate from hdop/vdop
+		if stratuxClock.Since(tmpSituation.GPSLastAccuracyTime) > 10 * time.Second {
+			// field 16: HDOP
+			// Accuracy estimate
+			hdop, err1 := strconv.ParseFloat(x[16], 32)
+			if err1 != nil {
+				return false
 			}
-		} else { // Rough 95% confidence estimate non-SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9
-			} else {
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
+			if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
+				if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {			
+					tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9
+				} else {
+					tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
+				}
+			} else { // Rough 95% confidence estimate non-SBAS solution
+				if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 || globalStatus.GPS_detected_type == GPS_TYPE_UBX10 {
+					tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9
+				} else {
+					tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
+				}
 			}
-		}
 
-		// NACp estimate.
-		tmpSituation.GPSNACp = calculateNACp(tmpSituation.GPSHorizontalAccuracy)
+			// NACp estimate.
+			tmpSituation.GPSNACp = calculateNACp(tmpSituation.GPSHorizontalAccuracy)
 
-		// field 17: VDOP
-		// accuracy estimate
-		vdop, err1 := strconv.ParseFloat(x[17], 32)
-		if err1 != nil {
-			return false
+			// field 17: VDOP
+			// accuracy estimate
+			vdop, err1 := strconv.ParseFloat(x[17], 32)
+			if err1 != nil {
+				return false
+			}
+			tmpSituation.GPSVerticalAccuracy = float32(vdop * 5) // rough estimate for 95% confidence
+
+			//fmt.Println("hdop hacc: ", tmpSituation.GPSHorizontalAccuracy, ", vacc: ", tmpSituation.GPSVerticalAccuracy)
 		}
-		tmpSituation.GPSVerticalAccuracy = float32(vdop * 5) // rough estimate for 95% confidence
 
 		// We've made it this far, so that means we've processed "everything" and can now make the change to mySituation.
+		mySituation = tmpSituation
+		return true
+
+	}
+
+	if x[0] == "GNGST" || x[0] == "GPGST" {
+		if len(x) < 9 {
+			return false
+		}
+
+		// $GNGST,205246.00,1.19,0.02,0.01,-2.4501,0.02,0.01,0.03*5B
+		// Care: GNGST uses 1-sigma (68%) deviation. We use 2-sigma (~95%)
+		stdDevLat, err := strconv.ParseFloat(x[6], 32)
+		if err != nil {
+			return false
+		}
+		stdDevLon, err := strconv.ParseFloat(x[7], 32)
+		if err != nil {
+			return false
+		}
+		stdDevAlt, err := strconv.ParseFloat(x[8], 32)
+		if err != nil {
+			return false
+		}
+		hacc := 2 * math.Sqrt(stdDevLat * stdDevLat + stdDevLon * stdDevLon)
+		vacc := 2 * stdDevAlt
+
+		//fmt.Println("gst hacc: ", hacc, ", vacc: ", vacc)
+
+		tmpSituation := mySituation
+		tmpSituation.GPSLastAccuracyTime = stratuxClock.Time
+		tmpSituation.GPSHorizontalAccuracy = float32(hacc)
+		tmpSituation.GPSVerticalAccuracy = float32(vacc)
+		tmpSituation.GPSNACp = calculateNACp(tmpSituation.GPSHorizontalAccuracy)
 		mySituation = tmpSituation
 		return true
 
