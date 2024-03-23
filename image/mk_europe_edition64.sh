@@ -10,7 +10,8 @@ BASE_IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64/images/rasp
 ZIPNAME="2024-03-15-raspios-bookworm-arm64-lite.img.xz"
 IMGNAME="$(basename $ZIPNAME .xz)"
 TMPDIR="$HOME/stratux-tmp"
-REMOTE_ORIGIN=$(git config --get remote.origin.url)
+# REMOTE_ORIGIN=$(git config --get remote.origin.url) # would be nicer, but doesn't work with ssh clone..
+REMOTE_ORIGIN="https://github.com/b3nn0/stratux.git"
 
 die() {
     echo $1
