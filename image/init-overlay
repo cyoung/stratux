@@ -33,19 +33,21 @@ if [ -f /var/grow_root_part ]; then
     mount -n -t sysfs sys /sys
     sleep 1 # otherwise proc/sys not yet ready?
 
-    ROOT_PART_DEV=$(findmnt / -o source -n)
-    ROOT_PART_NAME=$(echo "$ROOT_PART_DEV" | cut -d "/" -f 3)
-    ROOT_DEV_NAME=$(echo /sys/block/*/"${ROOT_PART_NAME}" | cut -d "/" -f 4)
+    ROOT_PART_DEV=$(findmnt / -no source)
+    ROOT_DEV_NAME=$(lsblk -no pkname  "$ROOT_PART_DEV")
+    ROOT_DEV="/dev/${ROOT_DEV_NAME}"
     
-    parted /dev/$ROOT_DEV_NAME resizepart 2 100%
-    partprobe /dev/$ROOT_DEV_NAME
+    echo "Growing root partition..."
+    parted $ROOT_DEV resizepart 2 100%
+    partprobe $ROOT_DEV
 
+    echo "Growing root fs..."
     mount -o remount,rw /
     resize2fs $ROOT_PART_DEV
 
     rm /var/grow_root_part
 
-    mount -o remount,ro /
+    #mount -o remount,ro /
     umount /sys
     umount /proc
     sync
