@@ -6,8 +6,8 @@
 # Run this script as root.
 # Run with argument "dev" to not clone the stratux repository from remote, but instead copy this current local checkout onto the image
 set -x
-BASE_IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz"
-ZIPNAME="2023-12-11-raspios-bookworm-arm64-lite.img.xz"
+BASE_IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2024-03-15/2024-03-15-raspios-bookworm-arm64-lite.img.xz"
+ZIPNAME="2024-03-15-raspios-bookworm-arm64-lite.img.xz"
 IMGNAME="$(basename $ZIPNAME .xz)"
 TMPDIR="$HOME/stratux-tmp"
 REMOTE_ORIGIN=$(git config --get remote.origin.url)
