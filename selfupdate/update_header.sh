@@ -76,7 +76,7 @@ cd /
 rm -rf /root/stratux-update
 
 # re-enable overlay if it is configured. TODO: switch to jq for json parsing in the future once it's available in all installations
-if [ "$(cat /boot/firmware/stratux.conf | grep 'PersistentLogging.:true')" != "" ]; then
+if [ "$(cat /boot/firmware/stratux.conf | grep 'PersistentLogging.:\s*true')" != "" ]; then
     /sbin/overlayctl disable
 else
     /sbin/overlayctl enable
