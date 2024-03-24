@@ -95,7 +95,7 @@ resize2fs -p ${lo}p2 $minsize
 
 zerofree ${lo}p2 # for smaller zip
 
-bytesEnd=$((partoffset + $minsizeBytes))
+bytesEnd=$(($partoffset + $minsizeBytes))
 echo "Yes" | parted  ${lo} resizepart 2 ${bytesEnd}B yes
 partprobe $lo
 
