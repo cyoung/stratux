@@ -47,7 +47,6 @@ var dataLogFilef string // Set according to OS config.
 
 const (
 	STRATUX_HOME  = "/opt/stratux/"
-	configLocation = "/boot/firmware/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
 	dataLogFile    = "stratux.sqlite"
@@ -120,6 +119,8 @@ const (
 )
 
 var STRATUX_WWW_DIR = STRATUX_HOME + "www/"
+var configLocation = "/boot/firmware/stratux.conf"
+
 var maxSignalStrength int
 
 var stratuxBuild string
@@ -1624,6 +1625,7 @@ func main() {
 			ex = filepath.Dir(ex)
 			STRATUX_WWW_DIR = ex + "/web/"
 		}
+		configLocation = os.Getenv("HOME") + "/.stratux.conf"
 	}
 
 	// Set up mySituation, do it here so logging JSON doesn't panic
