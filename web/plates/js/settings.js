@@ -420,7 +420,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.updategain = function () {
 		settings["Dump1090Gain"] = 0;
-		if (($scope.Dump1090Gain !== undefined) && ($scope.Dump1090Gain !== null)) {
+		if ($scope.Dump1090Gain !== undefined && $scope.Dump1090Gain !== null) {
 			settings["Dump1090Gain"] = parseFloat($scope.Dump1090Gain);
 			var newsettings = {
 				"Dump1090Gain": settings["Dump1090Gain"]
@@ -443,7 +443,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 
 	$scope.updateBaud = function () {
 		settings["Baud"] = 0;
-		if (($scope.Baud !== undefined) && ($scope.Baud !== null)) {
+		if ($scope.Baud !== undefined && $scope.Baud !== null) {
 			settings["Baud"] = parseInt($scope.Baud);
 			var newsettings = {
 				"Baud": settings["Baud"]
