@@ -130,7 +130,7 @@ function SDRInfo {
 
   		case $choice in
     		'Yes')
-    	    	echo "Please enter your PPM value for your 978mhz SDR:"
+    	    	echo "Please enter your PPM value for your ${WhichSDR}mhz SDR:"
 				read PPMValue
     	    ;;
     		'No')
@@ -192,7 +192,7 @@ function PICKFREQ {
     echo " "
     echo "${BOLD}Which SDR are you setting up?${NORM}"
     echo "${DIM}If you have tuned antennas make sure you have the correct SDR and antenna combination hooked up at this time and remember which antenna connection is for which antenna.${NORM}"
-    choices=( '978mhz' '1090mhz' 'exit' )
+    choices=( '868mhz' '978mhz' '1090mhz' 'exit' )
 	# Present the choices.
 	# The user chooses by entering the *number* before the desired choice.
 	select choice in "${choices[@]}"; do
@@ -202,6 +202,10 @@ function PICKFREQ {
 		[[ -n $choice ]] || { echo "Invalid choice." >&2; continue; }	
 
   		case $choice in
+			'868mhz')
+				WhichSDR=868
+				SDRInfo
+			;;
     		'978mhz')
             	WhichSDR=978
     	    	SDRInfo

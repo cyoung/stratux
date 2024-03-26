@@ -40,6 +40,9 @@
 	<script src="js/svg.min.js"></script>
 	<script src="js/NoSleep.min.js"></script>
 	<script src="js/addtohomescreen.min.js"></script>
+	<script src="js/ol.js"></script>
+	<script src="js/olms.js"></script>
+	<script src="js/ol-layerswitcher.js"></script>
 	<script>
 		addToHomescreen({ displayPace: 480 });
 	</script>
@@ -50,6 +53,10 @@
 
 	<link rel="stylesheet" href="css/main.css" />
 	<link rel="stylesheet" href="css/ahrs.css" />
+	<link rel="stylesheet" href="css/radar.css" />
+	<link rel="stylesheet" href="css/ol.css" />
+	<link rel="stylesheet" href="css/ol-layerswitcher.css" />
+	<link rel="stylesheet" href="css/map.css" />
 	<link rel="stylesheet" id="themeStylesheet" href="" />
 
 	<script src="maui/js/angular.min.js"></script>
@@ -66,6 +73,8 @@
 	<script src="plates/js/traffic.js"></script>
 	<script src="plates/js/weather.js"></script>
 	<script src="plates/js/ahrs.js"></script>
+	<script src="plates/js/radar.js"></script>
+	<script src="plates/js/map.js"></script>
 	<script src="plates/js/gps.js"></script>
 	<script src="plates/js/developer.js"></script>
 </head>
@@ -81,12 +90,18 @@
 				<div class="list-group" ui-turn-off='uiSidebarLeft'>
 					<!-- hrefs are redirected by the state engine in main.js -->
 					<a class="list-group-item" href="#/"><i class="fa fa-home"></i>            Status   <i class="fa fa-chevron-right pull-right"></i></a>
-					<a class="list-group-item" href="#/weather"><i class="fa fa-cloud"></i>    Weather  <i class="fa fa-chevron-right pull-right"></i></a>
+					<div ng-show="UAT_Enabled">
+						<a class="list-group-item" href="#/weather"><i class="fa fa-cloud"></i>    Weather  <i class="fa fa-chevron-right pull-right"></i></a>
+					</div>
 					<a class="list-group-item" href="#/traffic"><i class="fa fa-plane"></i>    Traffic  <i class="fa fa-chevron-right pull-right"></i></a>
 					<a class="list-group-item" href="#/gps"><i class="fa fa-globe"></i>        GPS/AHRS <i class="fa fa-chevron-right pull-right"></i></a>
-					<a class="list-group-item" href="#/towers"><i class="fa fa-signal"></i>    Towers   <i class="fa fa-chevron-right pull-right"></i></a>
+					<div ng-show="UAT_Enabled">
+						<a class="list-group-item" href="#/towers"><i class="fa fa-signal"></i>    Towers   <i class="fa fa-chevron-right pull-right"></i></a>
+					</div>
 					<a class="list-group-item" href="#/logs"><i class="fa fa-file-text-o"></i> Logs     <i class="fa fa-chevron-right pull-right"></i></a>
 					<a class="list-group-item" href="#/settings"><i class="fa fa-gear"></i>    Settings <i class="fa fa-chevron-right pull-right"></i></a>
+					<a class="list-group-item" href="#/radar"><i class="fa fa-street-view"></i>    Radar <i class="fa fa-chevron-right pull-right"></i></a>
+					<a class="list-group-item" href="#/map"><i class="fa fa-map"></i>    Map <i class="fa fa-chevron-right pull-right"></i></a>
 					<div ng-show="DeveloperMode">
 					<a class="list-group-item" href="#/developer"><i class="fa fa-tasks"></i>    Developer <i class="fa fa-chevron-right pull-right"></i></a>
 					</div>

@@ -81,8 +81,8 @@ class StratuxScreen():
                     t = "CPU: %0.1fC, Towers: %d" % (CPUTemp, NumTowers)
                 if seq == 1:
                     t = "GPS Sat: %d/%d/%d" % (getStatusData["GPS_satellites_locked"], getStatusData["GPS_satellites_seen"], getStatusData["GPS_satellites_tracked"])
-                    if getStatusData["GPS_solution"] == "GPS + SBAS (WAAS / EGNOS)":
-                        t = t + " (WAAS)"
+                    if getStatusData["GPS_solution"] == "3D GPS + SBAS":
+                        t = t + " SBAS"
                 #print t
                 draw.text((pad, 45), t, font=font2, fill=255)
 

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width="30" height="30" fill-rule="evenodd" stroke-linejoin="round" stroke-width="28.222" preserveAspectRatio="xMidYMid" version="1.2" viewBox="0 0 16471 16471" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export">
+ <defs class="ClipPathGroup">
+  <clipPath id="a">
+   <rect width="16471" height="16471"/>
+  </clipPath>
+  
+ </defs>
+ <defs class="TextShapeIndex">
+  
+ </defs>
+ <defs class="EmbeddedBulletChars">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ </defs>
+ 
+ 
+  <g class="Master_Slide">
+   
+   
+  </g>
+ 
+ <g class="SlideGroup">
+  
+   
+    <g class="Slide" clip-path="url(#a)">
+     <g class="Page">
+      <g class="Group">
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="5459" y="13382" width="5449" height="653" fill="none"/>
+         <path d="m8184 13382c1543 0 2723 142 2723 326 0 183-1179 325-2723 325s-2725-142-2725-325c0-184 1180-326 2725-326z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="627" y="3930" width="3517" height="1216" fill="none"/>
+         <path d="m2385 3930c996 0 1757 261 1757 606s-761 608-1757 608-1757-263-1757-608 761-606 1757-606z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="7601" y="1829" width="1166" height="2497" fill="none"/>
+         <path d="m8184 1830c327 0 582 540 582 1247s-254 1248-582 1248c-329 0-583-541-583-1248s252-1247 583-1247z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.PolyPolygonShape">
+        <g>
+         <rect class="BoundingBox" x="7610" y="2768" width="1148" height="11875" fill="none"/>
+         <path d="m8185 14641h-574v-11872h1145v11872h-571z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.CustomShape">
+        
+         <rect class="BoundingBox" x="2291" y="3917" width="11447" height="1207" fill="none"/>
+         <path d="m8014 5122h-5722v-1204h11444v1204h-5722z" fill="#fff"/>
+         <path d="m8014 5122h-5722v-1204h11444v1204h-5722z" fill="none" stroke="#fff"/>
+        
+       </g>
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="12327" y="3931" width="3517" height="1216" fill="none"/>
+         <path d="m14085 3931c996 0 1757 261 1757 606s-761 608-1757 608-1757-263-1757-608 761-606 1757-606z" fill="#fff"/>
+        </g>
+       </g>
+      </g>
+     </g>
+    </g>
+   
+  
+ </g>
+</svg>

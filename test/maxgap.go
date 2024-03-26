@@ -3,17 +3,18 @@ package main
 import (
 	"fmt"
 	//	"time"
-	"../uatparse"
 	"bufio"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/plotutil"
-	"gonum.org/v1/plot/vg"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/b3nn0/stratux/uatparse"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
 )
 
 const (

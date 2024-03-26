@@ -24,9 +24,6 @@ alias kalChan1='function _kalChan1 () { kal -d 1 -g 47 -c $1; unset -f _kalChan1
 alias setSerial0='function _setSerial0 () { rtl_eeprom -d 0 -s stx:0:$1; unset -f _setSerial0; }; _setSerial0'
 alias setSerial1='function _setSerial1 () { rtl_eeprom -d 1 -s stx:0:$1; unset -f _setSerial1; }; _setSerial1'
 
-alias secure='hostapd_manager.sh -e'
-alias open='hostapd_manager.sh -o'
-
 alias stratux-help='_stxhelp'
 
 function _stxhelp() {
@@ -44,7 +41,6 @@ echo ""
 echo "secure                    Turns on WiFi Security"
 echo "open                      Turns off WiFi Security"
 echo "stratux-off               Shutdown Stratux"
-echo "hostapd_manager.sh        Sets the Change SSID, Channel, or Encryption for your Stratux"
 echo "sdr-tool.sh               Tool to walk you though setting your SDRs Serials"
 echo ""
 echo " Developer Tools "

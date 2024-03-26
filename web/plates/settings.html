@@ -1,7 +1,7 @@
 <div class="col-sm-12">
-<!-- Begin Left Col -->
+    <!-- Begin Left Col -->
     <div class="col-sm-6">
-<!-- AHRS Options -->
+        <!-- AHRS Options -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">AHRS</div>
@@ -9,38 +9,46 @@
                     <div class="col-xs-12">
                         <span style="position:relative; overflow: hidden;">
                             <button class="btn btn-primary btn-block" ui-turn-on="modalCalibrateForward"
-                                    ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
+                                ng-disabled="!IMU_Sensor_Enabled">Set AHRS Sensor Orientation</button>
                         </span>
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-3">G Limits</label>
                         <form name="GLimitForm" ng-submit="updateGLimits()" novalidate>
                             <input class="col-xs-9" type="text" g-limits-input ng-model="GLimits"
-                                   ng-blur="updateGLimits()" ng-disabled="!IMU_Sensor_Enabled"
-                                   ng-class="{grayout: !IMU_Sensor_Enabled}"
-                                   placeholder="Space-separated negative and positive G meter limits"/>
+                                ng-blur="updateGLimits()" ng-disabled="!IMU_Sensor_Enabled"
+                                ng-class="{grayout: !IMU_Sensor_Enabled}"
+                                placeholder="Space-separated negative and positive G meter limits" />
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-<!-- App Commands -->
+        <!-- App Commands -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">Commands</div>
                 <div class="panel-body">
                     <!-- Upload. Temporary. -->
                     <div class="col-xs-12">
-                        <span ng-show="update_files == ''">
+                        <span ng-show="update_files == '' && !uploading_update">
+                            <!-- default: offer file selection -->
                             <span style="position:relative; overflow: hidden;">
                                 <span class="fake-btn fake-btn-block">Click to select System Update file</span>
-                                <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12" type="file" name="update_file"
-                                       onchange="angular.element(this).scope().setUploadFile(this.files)"/>
+                                <input style="opacity:0.0; position: absolute; top: 0; right: 0;" class="col-xs-12"
+                                    type="file" name="update_file"
+                                    onchange="angular.element(this).scope().setUploadFile(this.files)" />
                             </span>
                         </span>
-                        <span ng-hide="update_files == ''">
+                        <span ng-show="update_files != '' && !uploading_update">
+                            <!-- once selected, btn to upload -->
                             <button class="btn btn-block" onclick="angular.element(this).scope().uploadFile()">
                                 Install {{update_files[0].name}}</button>
+                        </span>
+                        <span ng-show="update_files != '' && uploading_update">
+                            <!-- "uploading.." -->
+                            <button class="btn btn-block">
+                                Uploading {{update_files[0].name}}. Please wait...</button>
                         </span>
                     </div>
                     <div class="form-group reset-flow">
@@ -50,13 +58,13 @@
                     </div>
                     <div class="form-group reset-flow">
                         <div class="col-xs-12">
-                            <button class="btn btn-primary btn-block"ui-turn-on="modalShutdown">Shutdown</button>
+                            <button class="btn btn-primary btn-block" ui-turn-on="modalShutdown">Shutdown</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-<!-- App Theme -->
+        <!-- App Theme -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">Theme</div>
@@ -71,27 +79,151 @@
                 </div>
             </div>
         </div>
+        <!-- OGN Tracker config -->
+        <div class="panel-group col-sm-12" ng-show="hasOgnTracker">
+            <!-- TODO -->
+            <div class="panel panel-default">
+                <div class="panel-heading">OGN Tracker</div>
+                <div class="panel-body">
+                    <form name="OGNTrackerSettings" novalidate>
+                        <!-- Address Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address Type</label>
+                            <select class="col-xs-7 custom-select" ng-model="OGNAddrType">
+                                <option value="0" ng-selected="OGNAddrType=='0'">Random</option>
+                                <option value="1" ng-selected="OGNAddrType=='1'">ICAO</option>
+                                <option value="2" ng-selected="OGNAddrType=='2'">Flarm</option>
+                                <option value="3" ng-selected="OGNAddrType=='3'">OGN</option>
+                            </select>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address (Hex)</label>
+                            <input class="col-xs-7" type="text" maxlength="6" hex-input ng-model="OGNAddr" />
+                        </div>
+
+                        <!-- Aircraft Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Aircraft Type</label>
+                            <select class="col-xs-7 custom-select" ng-model="OGNAcftType">
+                                <option value="1" ng-selected="OGNAcftType=='1'">Glider/Motorglider</option>
+                                <option value="2" ng-selected="OGNAcftType=='2'">Tow plane</option>
+                                <option value="3" ng-selected="OGNAcftType=='3'">Helicopter</option>
+                                <option value="4" ng-selected="OGNAcftType=='4'">Parachute</option>
+                                <option value="5" ng-selected="OGNAcftType=='5'">Drop plane</option>
+                                <option value="6" ng-selected="OGNAcftType=='6'">Hang glider</option>
+                                <option value="7" ng-selected="OGNAcftType=='7'">Para glider</option>
+                                <option value="8" ng-selected="OGNAcftType=='8'">Powered Aircraft</option>
+                                <option value="9" ng-selected="OGNAcftType=='9'">Jet Aircraft</option>
+                                <option value="10" ng-selected="OGNAcftType=='10'">UFO</option>
+                                <option value="11" ng-selected="OGNAcftType=='11'">Balloon</option>
+                                <option value="12" ng-selected="OGNAcftType=='12'">Airship</option>
+                                <option value="13" ng-selected="OGNAcftType=='13'">UAV</option>
+                                <option value="14" ng-selected="OGNAcftType=='14'">Ground support</option>
+                                <option value="15" ng-selected="OGNAcftType=='15'">Static object</option>
+                            </select>
+                        </div>
+
+                        <!-- Pilot name -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Pilot Name</label>
+                            <input class="col-xs-7" type="text" maxlength="15" pilotname-input ng-model="OGNPilot" />
+                        </div>
+                        <!-- Registration -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Registration</label>
+                            <input class="col-xs-7" type="text" maxlength="15" ognreg-input ng-model="OGNReg" />
+                        </div>
+                        <!-- TX Power -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Transmit Power (dBm)<br/><small>-32 = no transmission, actual power depends on hardware</small></label>
+                            <input class="col-xs-7" type="number" min="-32" max="31" ng-model="OGNTxPower" />
+                        </div>
+
+                        <div class="form-group reset-flow">
+                            <button class="btn btn-primary btn-block" ng-click="updateOgnTrackerConfig()">Configure OGN Tracker</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+         <!-- GxAirCOm Tracker config -->
+         <div class="panel-group col-sm-12" ng-show="hasGXTracker">
+            <!-- TODO -->
+            <div class="panel panel-default">
+                <div class="panel-heading">GxAirCom Tracker (FLARM)</div>
+                <div class="panel-body">
+                    <form name="OGNTrackerSettings" novalidate>
+                      
+                        <!-- Address -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address (Hex)</label>
+                            <input class="col-xs-7" type="text" maxlength="6" hex-input ng-model="GXAddr" />
+                        </div>
+
+                        <!-- Address Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Tracker Address Type</label>
+                            <select class="col-xs-7 custom-select" ng-model="GXAddrType">
+                                <option value="1" ng-selected="GXAddrType=='1'">ICAO</option>
+                                <option value="2" ng-selected="GXAddrType=='2'">Flarm</option>
+                            </select>
+                        </div>
+                                                
+                        <!-- Aircraft Type -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Aircraft Type</label>
+                            <select class="col-xs-7 custom-select" ng-model="GXAcftType">
+                                <option value="0" ng-selected="GXAcftType=='0'">Other Aircraft</option>
+                                <option value="1" ng-selected="GXAcftType=='1'">Para glider</option>
+                                <option value="2" ng-selected="GXAcftType=='2'">Hang glider</option>
+                                <option value="3" ng-selected="GXAcftType=='3'">Balloon</option>
+                                <option value="4" ng-selected="GXAcftType=='4'">Glider/Motorglider</option>
+                                <option value="5" ng-selected="GXAcftType=='5'">Powered Aircraft</option>
+                                <option value="6" ng-selected="GXAcftType=='6'">Helicopter</option>
+                                <option value="7" ng-selected="GXAcftType=='7'">UAV</option>
+                            </select>
+                        </div>
+
+                        <!-- Pilot name -->
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">Pilot Name</label>
+                            <input class="col-xs-7" type="text" maxlength="15" pilotname-input ng-model="GXPilot" />
+                        </div>
+
+                        <div class="form-group reset-flow">
+                            <button class="btn btn-primary btn-block" ng-click="updateGXTrackerConfig()">Configure GxAirCom Tracker</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
     </div>
-<!-- End Left Col -->
-<!-- Begin Right Col -->
+    <!-- End Left Col -->
+    <!-- Begin Right Col -->
     <div class="col-sm-6">
-<!-- System Configuration -->
+        <!-- System Configuration -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">Configuration</div>
                 <div class="panel-body">
                     <div class="form-group reset-flow">
-                        <label class="control-label col-xs-5">Mode S Code (Hex)</label>
+                        <label class="control-label col-xs-5">Ownship Mode S/OGN Codes<br /><small>(Hex, comma separated
+                                for multiple codes)</small></label>
                         <form name="modeForm" ng-submit="updatemodes()" novalidate>
                             <input class="col-xs-7" type="text" hex-input ng-model="OwnshipModeS"
-                                   placeholder="FAA HEX code" ng-blur="updatemodes()" />
+                                placeholder="FAA HEX code" ng-blur="updatemodes()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-5">Watch List</label>
                         <form name="watchForm" ng-submit="updatewatchlist()" novalidate>
                             <input class="col-xs-7" type="text" watchlist-input ng-model="WatchList"
-                                   placeholder="space-delimited 4-letter identifiers" ng-blur="updatewatchlist()" />
+                                placeholder="space-delimited 4-letter identifiers" ng-blur="updatewatchlist()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow">
@@ -99,7 +231,7 @@
                         <form name="ppmForm" ng-submit="updateppm()" novalidate>
                             <!-- type="number" not supported except on mobile -->
                             <input class="col-xs-7" type="number" ng-model="PPM" placeholder="integer"
-                                   ng-blur="updateppm()" />
+                                ng-blur="updateppm()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow" ng-class="{ 'section_invisible': (!visible_serialout)}">
@@ -107,33 +239,62 @@
                         <form name="ppmForm" ng-submit="updateBaud()" novalidate>
                             <!-- type="number" not supported except on mobile -->
                             <input class="col-xs-7" type="number" ng-model="Baud" placeholder="integer"
-                                   ng-blur="updateBaud()" />
+                                ng-blur="updateBaud()" />
                         </form>
                     </div>
                     <div class="form-group reset-flow">
                         <label class="control-label col-xs-5">Static IPs</label>
                         <form name="staticipForm" ng-submit="updatestaticips()" novalidate>
                             <input class="col-xs-7" type="text" ip-list-input ng-model="StaticIps" ng-list=" "
-                                   ng-trim="false" placeholder="space-delimited ip's to send network data"
-                                   ng-blur="updatestaticips()" />
+                                ng-trim="false" placeholder="space-delimited ip's to send network data"
+                                ng-blur="updatestaticips()" />
                         </form>
+                    </div>
+                    <div class="form-group reset-flow" ng-show="BMP_Sensor_Enabled">
+                        <label class="control-label col-xs-5">Pressure altitude Offset</label>
+                        <form name="altForm" ng-submit="updatealtitudeoffset()" novalidate>
+                            <!-- type="number" not supported except on mobile -->
+                            <input class="col-xs-7" type="number" ng-model="AltitudeOffset" placeholder="integer"
+                                ng-blur="updatealtitudeoffset()" />
+                        </form>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">GDL90 bearingless target circle emulation</label>
+                        <div class="col-xs-5">
+                            <ui-switch ng-model='EstimateBearinglessDist' settings-change></ui-switch>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-<!-- WiFi Settings -->
+        <!-- WiFi Settings -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">WiFi Settings</div>
                 <div class="panel-body">
                     <form name="WiFiSettings">
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-5">WiFi SSID</label>
-                            <input class="col-xs-7" type="text" ssid-input ng-model="WiFiSSID"
-                                   placeholder="WiFi Network Name" />
+                            <label class="control-label col-xs-5">WiFi Mode</label>
+                            <select class="custom-select" ng-model="WiFiMode"
+                                ng-change="WiFiSecurityEnabled=(WiFiSecurityEnabled || WiFiMode=='1')">
+                                <option value="0" ng-selected="WiFiMode=='0'">AccessPoint</option>
+                                <option value="1" ng-selected="WiFiMode=='1'">WiFi-Direct</option>
+                                <option value="2" ng-selected="WiFiMode=='2'">AP+Client</option>
+                            </select>
                         </div>
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-7">Network Security</label>
+                            <label class="control-label col-xs-5">WiFi Country</label>
+                            <select class="custom-select" ng-model="WiFiCountry">
+                                <option ng-repeat="(key, value) in countryCodes" value="{{key}}" ng-selected="WiFiCountry=='{{key}}'">{{value}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group reset-flow">
+                            <label class="control-label col-xs-5">WiFi SSID</label>
+                            <input class="col-xs-7" type="text" ssid-input ng-model="WiFiSSID"
+                                placeholder="WiFi Network Name" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="(WiFiMode=='0' || WiFiMode=='2')">
+                            <label class="control-label col-xs-5">Network Security</label>
                             <div class="col-xs-5">
                                 <ui-switch ng-model="WiFiSecurityEnabled" settings-change></ui-switch>
                             </div>
@@ -141,81 +302,154 @@
                         <div class="form-group reset-flow">
                             <label class="control-label col-xs-5">WiFi Passphrase</label>
                             <input class="col-xs-7" type="text" wpa-input ng-model="WiFiPassphrase"
-                                   ng-disabled="!WiFiSecurityEnabled" ng-class="{grayout: !WiFiSecurityEnabled}"
-                                   ng-required="WiFiSecurityEnabled" placeholder="WiFi Passphrase" />
+                                ng-disabled="!WiFiSecurityEnabled" ng-class="{grayout: !WiFiSecurityEnabled}"
+                                ng-required="WiFiSecurityEnabled" placeholder="WiFi Passphrase" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='1'">
+                            <label class="control-label col-xs-5">WiFi-Direct Pin</label>
+                            <input class="col-xs-7" type="text" pin-input ng-model="WiFiDirectPin"
+                                placeholder="WiFi-Direct PIN" ng-required="WiFiMode=='1'" />
+                        </div>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='0'">
+                            <label class="control-label col-xs-5">WiFi Channel</label>
+                            <select id="WiFiChannel" class="input-small col-sm-2 form-control-sm" ng-model="WiFiChannel"
+                                ng-options="x for x in Channels"></select>
                         </div>
                         <div class="form-group reset-flow">
-                            <label class="control-label col-xs-7">WiFi Channel</label>
-                            <select id="WiFiChannel" class="input-small col-sm-2 form-control-sm"
-                                    ng-model="WiFiChannel" ng-options="x for x in Channels"></select>
+                            <label class="control-label col-xs-5">Stratux IP Address</label>
+                            <input class="col-xs-7" type="text" ip-addr-input ng-model="WiFiIPAddress"
+                                placeholder="192.168.10.1" />
                         </div>
-                        <div class="form-group reset-flow">
-                            <label class="control-label col-xs-7">Smart WiFi</label>
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <label class="control-label col-xs-5">Internet Passthrough</label>
                             <div class="col-xs-5">
-                                <ui-switch ng-model="WiFiSmartEnabled" settings-change></ui-switch>
+                                <ui-switch ng-model="WiFiInternetPassThroughEnabled" settings-change></ui-switch>
                             </div>
                         </div>
+
+                        <div class="form-group reset-flow" ng-show="WiFiMode=='2'">
+                            <button class="btn btn-info btn-block" ng-click="addWiFiClientNetwork()">Add
+                                WiFi Client Network</button>
+                        </div>
+
+                        <hr>
+
+                        <div ng-show="WiFiMode=='2'" ng-repeat="Network in WiFiClientNetworks">
+                            <div class="form-group reset-flow">
+                                <label class="control-label col-xs-5">WiFi Client SSID</label>
+                                <input class="col-xs-7" type="text" ssid-input ng-model="Network.SSID" />
+                            </div>
+                            <div class="form-group reset-flow">
+                                <label class="control-label col-xs-5">WiFi Client Passphrase</label>
+                                <input class="col-xs-7" type="text" wpa-input ng-model="Network.Password" />
+                            </div>
+                            <div class="form-group reset-flow">
+                                <button class="btn btn-info btn-block" ng-click="removeWiFiClientNetwork(Network)">Remove
+                                    WiFi Client Network</button>
+                            </div>
+                            <hr>
+                        </div>
+
                         <div class="form-group reset-flow">
-                            <button class="btn btn-primary btn-block" ng-click="updateWiFi()">Submit WiFi Changes</button>
+                            <button class="btn btn-primary btn-block" ng-click="updateWiFi()">Submit WiFi
+                                Changes</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-<!-- End Right Col -->
+    <!-- End Right Col -->
 </div>
 <!-- Developer mode area -->
 <div ng-show="DeveloperMode" class="col-sm-12">
-<!-- Begin Left Col -->
+    <!-- Begin Left Col -->
     <div class="col-sm-6">
-<!-- Hardware Settings -->
+        <!-- Hardware Settings -->
         <div class="panel-group col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">Hardware</div>
                 <div class="panel-body">
-                    <div class="form-group">
-                        <label class="control-label col-xs-7">978 MHz</label>
-                        <div class="col-xs-5">
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">GPS</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                        </div>
+                    </div>
+
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">978 Mhz (UAT)</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='UAT_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">1090 MHz</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">1090 Mhz (ADS-B/Mode-S ES)</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='ES_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">Ping ADS-B</label>
-                        <div class="col-xs-5">
-                            <ui-switch ng-model='Ping_Enabled' settings-change></ui-switch>
+                        <label class="control-label col-xs-5">868 Mhz (OGN, ADS-L)</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='OGN_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">GPS</label>
-                        <div class="col-xs-5">
-                            <ui-switch ng-model='GPS_Enabled' settings-change></ui-switch>
+                        <label class="control-label col-xs-5">162 MHz (AIS)</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='AIS_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">AHRS Sensor</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">Internet (OGN APRS)</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='APRS_Enabled' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">AHRS Sensor</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='IMU_Sensor_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">Baro Sensor</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">Baro Sensor</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='BMP_Sensor_Enabled' settings-change></ui-switch>
                         </div>
                     </div>
+                    <div class="form-group" ng-show="IMU_Sensor_Enabled">
+                        <label class="control-label col-xs-5">Minimum fan duty cycle %</label>
+                        <div class="col-xs-7">
+                            <form name="PWMDutyMinForm" ng-submit="updatePWMDutyMin()" novalidate>
+                                <!-- type="number" not supported except on mobile -->
+                                <input class="col-xs-7" type="number" ng-model="PWMDutyMin" placeholder="0-100" min="0"
+                                    max="100" ng-change="updatePWMDutyMin()" />
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">Ping ADS-B</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='Ping_Enabled' settings-change></ui-switch>
+                        </div>
+                    </div>
+
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">OGN Transmission via I&#178;C/GPIO HAT</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='OGNI2CTXEnabled' settings-change></ui-switch>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
-<!-- End Left Col -->
-<!-- Begin Right Col -->
+    <!-- End Left Col -->
+    <!-- Begin Right Col -->
     <div class="col-sm-6">
         <!-- Diagnostics Values -->
         <div ng-show="DeveloperMode" class="panel-group col-sm-12">
@@ -223,58 +457,76 @@
                 <div class="panel-heading">Diagnostics</div>
                 <div class="panel-body">
                     <div class="form-group">
-                        <label class="control-label col-xs-7">Show Traffic Source in Callsign</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">Show Traffic Source in Callsign</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='DisplayTrafficSource' settings-change></ui-switch>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="control-label col-xs-7">Verbose Message Log</label>
-                        <div class="col-xs-5">
+                    <div class="form-group reset-flow">
+                        <label class="control-label col-xs-5">Verbose Message Log</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='DEBUG' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">Record Replay Logs</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">Record Replay Logs</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='ReplayLog' settings-change></ui-switch>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-xs-7">Record AHRS Logs</label>
-                        <div class="col-xs-5">
+                        <label class="control-label col-xs-5">Record Trace Logs</label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='TraceLog' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-xs-5">Record AHRS Logs</label>
+                        <div class="col-xs-7">
                             <ui-switch ng-model='AHRSLog' settings-change></ui-switch>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-xs-5">Persistent logging<br />
+                            <small>Write logs to micro SD instead of RAM</small></label>
+                        <div class="col-xs-7">
+                            <ui-switch ng-model='PersistentLogging' ui-turn-on="modalRebootRequired" settings-change>
+                            </ui-switch>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- End Right Col -->
+    <!-- End Right Col -->
     <div class="col-sm-12">
-        <div class="panel panel-default">
-            <div class="panel-heading">Raw Configuration</div>
-            <div class="panel-body">
-                <p>stratux.conf:</p>
-                <pre>{{rawSettings}}</pre>
+        <div class="panel-group col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Raw Configuration</div>
+                <div class="panel-body">
+                    <p>stratux.conf:</p>
+                    <pre>{{rawSettings}}</pre>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- ############################################## -->
 <!--                    Modal popups                -->
 <!-- ############################################## -->
 <!-- Messages Modal -->
 <div class="col-sm-12">
-    <h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting.  You may need to reconnect WiFi once it reboots.</h3>
-    <h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down.  You may disconnect power.</h3>
-    <h3 ui-if="WiFiRestart" ui-state="WiFiRestart">Stratux WiFi is Restarting Services.  You may need to reconnect WiFi
+    <h3 ui-if="rebooting" ui-state="rebooting">Stratux is rebooting. You may need to reconnect WiFi once it reboots.
+    </h3>
+    <h3 ui-if="shuttingdown" ui-state="shuttingdown">Stratux is shutting down. You may disconnect power.</h3>
+    <h3 ui-if="WiFiRestart" ui-state="WiFiRestart">Stratux WiFi is Restarting Services. You may need to reconnect WiFi
         once services are restored.</h3>
 </div>
 
 <div ui-content-for="modals">
-<!-- Reboot Config Modal -->
+    <!-- Reboot Config Modal -->
     <div class="modal" ui-if="modalReboot" ui-state="modalReboot">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -286,18 +538,42 @@
                     </div>
                     <div class="modal-body">
                         <p>Do you wish to reboot the Stratux?</p>
-                        <p>Note that the system will reboot immediately and it will stop responding during the reboot</p>
+                        <p>Note that the system will reboot immediately and it will stop responding during the
+                            reboot</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalReboot" class="btn btn-default">Cancel</a>
                         <a ng-click="postReboot()" ui-turn-off="modalReboot" ui-turn-on="rebooting"
-                           class="btn btn-primary">Reboot</a>
+                            class="btn btn-primary">Reboot</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- Shutdown Modal -->
+    <!-- Reboot required due to settings change Modal -->
+    <div class="modal" ui-if="modalRebootRequired" ui-state="modalRebootRequired">
+        <div class="modal-overlay "></div>
+        <div class="vertical-alignment-helper center-block">
+            <div class="modal-dialog vertical-align-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" ui-turn-off="modalRebootRequired"></button>
+                        <h4 class="modal-title">Reboot required</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>For this change to take effect, a reboot of the Stratux is required.</p>
+                        <p>Do you want to reboot now? You can also reboot manually later.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <a ui-turn-off="modalRebootRequired" class="btn btn-default">Cancel</a>
+                        <a ng-click="postReboot()" ui-turn-off="modalRebootRequired" ui-turn-on="rebooting"
+                            class="btn btn-primary">Reboot</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Shutdown Modal -->
     <div class="modal" ui-if="modalShutdown" ui-state="modalShutdown">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -309,18 +585,19 @@
                     </div>
                     <div class="modal-body">
                         <p>Do you wish to shutdown the Stratux?</p>
-                        <p>Note that the system will shutdown immediately. Please disconnect the power after the shutdown.</p>
+                        <p>Note that the system will shutdown immediately. Please disconnect the power after the
+                            shutdown.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalShutdown" class="btn btn-default">Cancel</a>
                         <a ng-click="postShutdown()" ui-turn-off="modalShutdown" ui-turn-on="shuttingdown"
-                           class="btn btn-primary">Shutdown</a>
+                            class="btn btn-primary">Shutdown</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- Calibrate Forward Modal -->
+    <!-- Calibrate Forward Modal -->
     <div class="modal" ui-if="modalCalibrateForward" ui-state="modalCalibrateForward">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -333,18 +610,20 @@
                     <div class="modal-body">
                         <p>Point the Stratux so that the end that will be pointing toward the
                             <strong>nose</strong> of the airplane is pointing toward the sky and press the
-                            <strong>Set Forward Direction</strong> button.</p>
+                            <strong>Set Forward Direction</strong> button.
+                        </p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalCalibrateForward" class="btn btn-default">Cancel</a>
                         <a ng-click="setOrientation('forward')" ui-turn-off="modalCalibrateForward"
-                           ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Forward Direction</a>
+                            ui-turn-on="modalCalibrateDone" class="btn btn-default btn-primary">Set Forward
+                            Direction</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- Calibration Success Modal -->
+    <!-- Calibration Success Modal -->
     <div class="modal" ui-if="modalCalibrateDone" ui-state="modalCalibrateDone">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -355,19 +634,19 @@
                         <h4 class="modal-title">Set AHRS Sensor Orientation: Finished</h4>
                     </div>
                     <div class="modal-body">
-                        <p>The sensor orientation is set.  These settings will be saved for future flights.
-                        Place the Stratux in its in-flight orientation and keep it stationary for 5 seconds
-                        after you press the <strong>Done</strong> button.</p>
+                        <p>The sensor orientation is set. These settings will be saved for future flights.
+                            Place the Stratux in its in-flight orientation and keep it stationary for 5 seconds
+                            after you press the <strong>Done</strong> button.</p>
                     </div>
                     <div class="modal-footer">
                         <a ng-click="setOrientation('done')" ui-turn-off="modalCalibrateDone"
-                           class="btn btn-default btn-primary">Done</a>
+                            class="btn btn-default btn-primary">Done</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<!-- Calibration Failed Modal -->
+    <!-- Calibration Failed Modal -->
     <div class="modal" ui-if="modalCalibrateFailed" ui-state="modalCalibrateFailed">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -379,8 +658,10 @@
                     </div>
                     <div class="modal-body">
                         <p>There was an error: {{Orientation_Failure_Message}}</p>
-                        <p><div id="orientationFailureMessage"></div></p>
-                        <p>The orientation failed.  Please try again.</p>
+                        <p>
+                        <div id="orientationFailureMessage"></div>
+                        </p>
+                        <p>The orientation failed. Please try again.</p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalCalibrateFailed" class="btn btn-default btn-primary">OK</a>
@@ -389,7 +670,7 @@
             </div>
         </div>
     </div>
-<!-- WiFi Success Modal -->
+    <!-- WiFi Success Modal -->
     <div class="modal" ui-if="modalSuccessWiFi" ui-state="modalSuccessWiFi" id="WiFiSuccessModal">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -400,13 +681,16 @@
                         <h4 class="modal-title">Your WiFi settings were successfully changed.</h4>
                     </div>
                     <div class="modal-body">
+                        <p>WiFi Mode: <b>{{wifiModeStr()}}</b></p>
                         <p>WiFi SSID: <b>{{WiFiSSID}}</b></p>
                         <p>WiFi Security: <b>{{WiFiSecurityEnabled}}</b></p>
                         <p>WiFi Passphrase: <b>{{WiFiPassphrase}}</b></p>
+                        <p ng-if="WiFiMode==1">WiFi-Direct PIN: <b>{{WiFiDirectPin}}</b></p>
                         <p>WiFi Channel: <b>{{WiFiChannel}}</b></p>
-                        <p>Smart mode: <b>{{WiFiSmartEnabled}}</b></p>
-                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. This could take up to 30 seconds.<br/>
-                           You might have to reconnect to your new WiFi SSID. </p>
+                        <p>Stratux IP: <b>{{WiFiIPAddress}}</b></p>
+                        <p>Your Stratux's WiFi services are now restarting to apply the new settings. This could
+                            take up to 30 seconds.<br />
+                            You might have to reconnect to your new WiFi SSID. </p>
                     </div>
                     <div class="modal-footer">
                         <a ui-turn-off="modalSuccessWiFi" class="btn btn-primary btn-default">Close</a>
@@ -415,7 +699,7 @@
             </div>
         </div>
     </div>
-<!-- WiFi Error Modal -->
+    <!-- WiFi Error Modal -->
     <div class="modal" ui-if="modalErrorWiFi" ui-state="modalErrorWiFi">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -436,7 +720,7 @@
             </div>
         </div>
     </div>
-<!-- WiFi Canceled Modal -->
+    <!-- WiFi Canceled Modal -->
     <div class="modal" ui-if="modalCancelWiFi" ui-state="modalCancelWiFi">
         <div class="modal-overlay "></div>
         <div class="vertical-alignment-helper center-block">
@@ -450,7 +734,8 @@
                         <p>WiFi Settings Canceled.</p>
                     </div>
                     <div class="modal-footer">
-                        <a ui-turn-off="modalCancelWiFi" ng-click="resetSettings()" class="btn btn-default btn-primary">OK</a>
+                        <a ui-turn-off="modalCancelWiFi" ng-click="resetSettings()"
+                            class="btn btn-default btn-primary">OK</a>
                     </div>
                 </div>
             </div>

@@ -16,9 +16,10 @@
 # alias rm='rm -i'
 # alias cp='cp -i'
 # alias mv='mv -i'
-export PATH=/root/go/bin:${PATH}
+export PATH=/root/go/bin:/opt/stratux/bin:${PATH}
 export GOROOT=/root/go
 export GOPATH=/root/go_path
+
 
 # This will allow users to keep an alias file after this file is added
 if [ -f /root/.aliases ]; then

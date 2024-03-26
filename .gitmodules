@@ -1,6 +1,11 @@
 [submodule "dump1090"]
-	path = dump1090
-	url = https://github.com/stratux/dump1090
-[submodule "goflying"]
-	path = goflying
-	url = https://github.com/cyoung/goflying
+        path = dump1090
+	url = https://github.com/flightaware/dump1090.git
+	branch = dev
+[submodule "ogn/esp32-ogn-tracker"]
+	path = ogn/esp32-ogn-tracker
+	url = https://github.com/pjalocha/esp32-ogn-tracker.git
+[submodule "rtl-ais"]
+	path = rtl-ais
+	url = https://github.com/mik3y/rtl-ais
+	ignore = dirty

@@ -111,12 +111,17 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.GPS_satellites_tracked = situation.GPSSatellitesTracked;
         $scope.GPS_satellites_seen = situation.GPSSatellitesSeen;
         $scope.Quality = situation.GPSFixQuality;
+        $scope.GPS_PositionSampleRate = situation.GPSPositionSampleRate.toFixed(1);
 
-        var solutionText = "No Fix";
-        if (situation.GPSFixQuality === 2) {
-            solutionText = "GPS + SBAS (WAAS / EGNOS)";
+        var solutionText = "Unknown";
+        if (situation.GPSFixQuality === 0) {
+            solutionText = "No Fix"
         } else if (situation.GPSFixQuality === 1) {
-            solutionText = "3D GPS"
+            solutionText = "3D GPS";
+        } else if (situation.GPSFixQuality === 2) {
+            solutionText = "3D GPS + SBAS";
+        } else if (situation.GPSFixQuality === 6) {
+            solutionText = "Dead Reckoning";
         }
         $scope.SolutionText = solutionText;
 
@@ -259,10 +264,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         if (situation.AHRSStatus & 0x04) {
             statusBMP.classList.remove("off");
-            statusBMP.classList.add("on");
-        } else {
-            statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
+            statusBMP.classList.remove("warn");
+            if (situation.BaroSourceType == 4)
+                statusBMP.classList.add("warn");
+            else
+                statusBMP.classList.add("on");
+        } else {
+            statusBMP.classList.remove("warn")
+            statusBMP.classList.remove("on");
+            statusBMP.classList.add("off");
         }
         if (situation.AHRSStatus & 0x08) {
             statusCal.classList.add("blink");
@@ -318,6 +329,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         statusIMU.classList.remove("on");
         statusBMP.classList.add("off");
         statusBMP.classList.remove("on");
+        statusBMP.classList.remove("warn");
         statusLog.classList.add("off");
         statusLog.classList.remove("on");
         statusCal.classList.add("off");

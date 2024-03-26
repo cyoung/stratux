@@ -198,6 +198,7 @@ Stratux makes available a webserver to retrieve statistics which may be useful t
     -1.890621662038
   ],
   "PPM": 0,
+  "AltitudeOffset": 0,
   "OwnshipModeS": "F00000",
   "WatchList": "",
   "DeveloperMode": false,
