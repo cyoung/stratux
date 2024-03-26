@@ -142,32 +142,49 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		if (($scope.socket === undefined) || ($scope.socket === null)) {
 			socket = new WebSocket(URL_TRAFFIC_WS);
 			$scope.socket = socket;                  // store socket in scope for enter/exit usage
-		}
 		
-		$scope.ConnectState = 'Disconnected';
-
-		socket.onopen = function(msg) {
-			$scope.ConnectState = 'Connected';
-			$scope.$apply();
-		};
-
-		socket.onclose = function(msg) {
+		
 			$scope.ConnectState = 'Disconnected';
-			$scope.$apply();
-			if ($scope.socket !== null ) {
-				setTimeout(connect, 1000);   // do not set timeout after exit
-			}
-		};
 
-		socket.onerror = function(msg) {
-			// $scope.ConnectStyle = "label-danger";
-			$scope.ConnectState = 'Problem';
-			$scope.$apply();
-		};
+			socket.onopen = function(msg) {
+				$scope.ConnectState = 'Connected';
+				$scope.$apply();
+			};
 
-		socket.onmessage = function(msg) {
-			$scope.onMessage(msg);
-		};
+			socket.onclose = function(msg) {
+				$scope.ConnectState = 'Disconnected';
+				$scope.$apply();
+				if ($scope.socket !== null ) {
+					setTimeout(connect, 1000);   // do not set timeout after exit
+				}
+			};
+
+			socket.onerror = function(msg) {
+				// $scope.ConnectStyle = "label-danger";
+				$scope.ConnectState = 'Problem';
+				$scope.$apply();
+			};
+
+			socket.onmessage = function(msg) {
+				$scope.onMessage(msg);
+			};
+		}
+
+
+		if (($scope.socketgps === undefined) || ($scope.socketgps === null)) {
+            var socketgps = new WebSocket(URL_GPS_WS);
+            $scope.socketgps = socketgps; // store socket in scope for enter/exit usage
+        
+
+			socketgps.onclose = function (msg) {
+				delete $scope.socketgps;
+				setTimeout(function() {connect($scope);}, 1000);
+			};
+
+  			socketgps.onmessage = function (msg) {
+				updateMyLocation(JSON.parse(msg.data));
+			};
+		}
 	}
 
 	/** 
@@ -448,40 +465,53 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		$scope.removeStaleTraffic();
 	}
 
+	function updateMyLocation(msg) {
+		const lat = msg.GPSLatitude;
+		const lon = msg.GPSLongitude;
+		const fix = msg.GPSFixQuality
+		if (fix <= 0)
+			return;
 
-	function getLocationForInitialPosition() {
-		$http.get(URL_GET_SITUATION).then(function(response) {
-			situation = angular.fromJson(response.data);
-			if (situation.GPSFixQuality > 0) {
-				pos = ol.proj.fromLonLat([situation.GPSLongitude, situation.GPSLatitude])
-				$scope.map.setView(new ol.View({
-					center: pos,
-					zoom: 10,
-					enableRotation: false
-				}));
+		const layer = getOrCreateGpsLayer(lat, lon);
+		const source = layer.getSource();
+
+		const geom = new ol.geom.Point(ol.proj.fromLonLat([lon, lat]));
+		source.getFeatures()[0].setGeometry(geom);
+	}
 
 
-				let gpsLayer = new ol.layer.Vector({
-					source: new ol.source.Vector({
-						features: [
-							new ol.Feature({
-								geometry: new ol.geom.Point(pos),
-								name: 'Your GPS position'
-							})
-						]
-					}),
-					style: new ol.style.Style({
-						text: new ol.style.Text({
-							text: '\uf041',
-							font: 'normal 35px FontAwesome',
-							textBaseline: 'bottom'
-						})
+	function getOrCreateGpsLayer(lat, lon) {
+		if ($scope.gpsLayer)
+			return $scope.gpsLayer;
+
+		pos = ol.proj.fromLonLat([lon, lat])
+		$scope.map.setView(new ol.View({
+			center: pos,
+			zoom: 10,
+			enableRotation: false
+		}));
+
+
+		$scope.gpsLayer = new ol.layer.Vector({
+			source: new ol.source.Vector({
+				features: [
+					new ol.Feature({
+						geometry: new ol.geom.Point(pos),
+						name: 'Your GPS position'
 					})
-				});
-				$scope.map.addLayer(gpsLayer);
-			}
+				]
+			}),
+			style: new ol.style.Style({
+				text: new ol.style.Text({
+					text: '\uf041',
+					font: 'normal 35px FontAwesome',
+					textBaseline: 'bottom'
+				})
+			})
 		});
-	};
+		$scope.map.addLayer($scope.gpsLayer);
+		return $scope.gpsLayer;
+	}
 
 	$state.get('map').onExit = function () {
 		// disconnect from the socket
@@ -489,13 +519,16 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			$scope.socket.close();
 			$scope.socket = null;
 		}
+		if ($scope.socketgps) {
+			$scope.socketgps.close();
+			$scope.socketgps = null;
+		}
 		// stop stale traffic cleanup
 		$interval.cancel($scope.update);
 	}
 
 
 	connect($scope);
-	getLocationForInitialPosition();
 
 	$interval($scope.update, 1000);
 
