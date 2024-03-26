@@ -211,8 +211,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) 
 
 	function getTowers() {
 		// Homepage status polling towers only if they are active
-		if($scope.visible_uat===undefined || $scope.visible_uat==false)
-		{
+		if ($scope.visible_uat===undefined || $scope.visible_uat==false) {
 			return;
 		}
 		// Simple GET request example (note: responce is asynchronous)

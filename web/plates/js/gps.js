@@ -45,9 +45,9 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         };
 
         socket.onmessage = function (msg) {
-            if (($scope === undefined) || ($scope === null)) {
+            if ($scope === undefined || $scope === null) {
                 socket.close();
-               return; 
+                return; 
             }
 
             loadSituation(msg.data);
@@ -67,7 +67,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     function sizeMap() {
         var width = 0;
         var div = document.getElementById("map_display");
-        if(div==null){
+        if (div==null) {
             return width;
         }
         var el = div.parentElement;
