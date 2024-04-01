@@ -182,6 +182,7 @@ echo -e "\n/dev/sda1             /var/log        auto    defaults,nofail,noatime
 
 #disable serial console, disable rfkill state restore, enable wifi on boot
 sed -i /boot/firmware/cmdline.txt -e "s/console=serial0,[0-9]\+ /systemd.restore_state=0 rfkill.default_state=1 /"
+sed -i 's/quiet//g' /boot/firmware/cmdline.txt
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
