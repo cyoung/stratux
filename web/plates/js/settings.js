@@ -309,7 +309,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.PersistentLogging = settings.PersistentLogging;
 
 		$scope.PPM = settings.PPM;
-		$scope.Gain = settings.Gain;
+		$scope.Dump1090Gain = settings.Dump1090Gain;
 		$scope.AltitudeOffset = settings.AltitudeOffset;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
@@ -419,11 +419,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	};
 
 	$scope.updategain = function () {
-		settings["Gain"] = 0;
-		if (($scope.Gain !== undefined) && ($scope.Gain !== null)) {
-			settings["Gain"] = parseFloat($scope.Gain);
+		settings["Dump1090Gain"] = 0;
+		if (($scope.Dump1090Gain !== undefined) && ($scope.Dump1090Gain !== null)) {
+			settings["Dump1090Gain"] = parseFloat($scope.Dump1090Gain);
 			var newsettings = {
-				"Gain": settings["Gain"]
+				"Dump1090Gain": settings["Dump1090Gain"]
 			};
 			// console.log(angular.toJson(newsettings));
 			setSettings(angular.toJson(newsettings));

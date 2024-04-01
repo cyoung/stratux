@@ -419,7 +419,7 @@ func getPPM(serial string) int {
 
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
-	e.gain = globalSettings.Gain
+	e.gain = globalSettings.Dump1090Gain
 	log.Printf("===== ES Device Serial: %s PPM %d Gain %.1f =====\n", e.serial, e.ppm,e.gain)
 	return
 }
