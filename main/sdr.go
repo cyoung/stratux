@@ -32,6 +32,7 @@ type Device struct {
 	closeCh chan int
 	indexID int
 	ppm     int
+	gain     float64
 	serial  string
 	idSet   bool
 }
@@ -73,7 +74,14 @@ type AISTermMessage struct {
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--fix", "--gain", "37.2", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	// RTL SDR Standard Gains: 0.0 0.9 1.4 2.7 3.7 7.7 8.7 12.5 14.4 15.7 16.6 19.7 20.7 22.9 25.4 28.0 29.7 32.8 33.8 36.4 37.2 38.6 40.2 42.1 43.4 43.9 44.5 48.0 49.6
+	if(e.gain<0.9){
+		e.gain = 37.2
+	}
+	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--fix", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID),
+		"--ppm", strconv.Itoa(e.ppm),
+		"--gain",strconv.FormatFloat(e.gain,'f',-1,32),
+		"--mlat") // display raw messages in Beast ascii mode
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
@@ -411,7 +419,8 @@ func getPPM(serial string) int {
 
 func (e *ES) sdrConfig() (err error) {
 	e.ppm = getPPM(e.serial)
-	log.Printf("===== ES Device Serial: %s PPM %d =====\n", e.serial, e.ppm)
+	e.gain = globalSettings.Gain
+	log.Printf("===== ES Device Serial: %s PPM %d Gain %.1f =====\n", e.serial, e.ppm,e.gain)
 	return
 }
 

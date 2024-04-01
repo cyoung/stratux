@@ -309,6 +309,7 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.PersistentLogging = settings.PersistentLogging;
 
 		$scope.PPM = settings.PPM;
+		$scope.Gain = settings.Gain;
 		$scope.AltitudeOffset = settings.AltitudeOffset;
 		$scope.WatchList = settings.WatchList;
 		$scope.OwnshipModeS = settings.OwnshipModeS;
