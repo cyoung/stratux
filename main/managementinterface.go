@@ -395,6 +395,8 @@ func handleSettingsSetRequest(w http.ResponseWriter, r *http.Request) {
 							myIMUReader.Close()
 							globalStatus.IMUConnected = false // Force a restart of the IMU reader
 						}
+					case "Dump1090Gain":
+						globalSettings.Dump1090Gain = (val.(float64))
 					case "PPM":
 						globalSettings.PPM = int(val.(float64))
 					case "AltitudeOffset":
