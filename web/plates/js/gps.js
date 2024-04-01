@@ -45,6 +45,11 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         };
 
         socket.onmessage = function (msg) {
+            if (($scope === undefined) || ($scope === null)) {
+                socket.close();
+               return; 
+            }
+
             loadSituation(msg.data);
             $scope.$apply(); // trigger any needed refreshing of data
         };
@@ -61,7 +66,11 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
 
     function sizeMap() {
         var width = 0;
-        var el = document.getElementById("map_display").parentElement;
+        var div = document.getElementById("map_display");
+        if(div==null){
+            return width;
+        }
+        var el = div.parentElement;
         width = el.offsetWidth; // was  (- (2 * el.offsetLeft))
         if (width !== display_area_size) {
             display_area_size = width;

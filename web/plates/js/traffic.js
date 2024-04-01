@@ -258,6 +258,7 @@ function TrafficCtrl($rootScope, $scope, $state, $http, $interval, craftService)
 		}
 		// stop stale traffic cleanup
 		$interval.cancel(clearStaleTraffic);
+		$interval.cancel(getClock);
 	};
 
 	// Traffic Controller tasks
