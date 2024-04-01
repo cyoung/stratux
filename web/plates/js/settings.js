@@ -418,6 +418,18 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		}
 	};
 
+	$scope.updategain = function () {
+		settings["Gain"] = 0;
+		if (($scope.Gain !== undefined) && ($scope.Gain !== null)) {
+			settings["Gain"] = parseFloat($scope.Gain);
+			var newsettings = {
+				"Gain": settings["Gain"]
+			};
+			// console.log(angular.toJson(newsettings));
+			setSettings(angular.toJson(newsettings));
+		}
+	};
+
 	$scope.updatePWMDutyMin = function() {
 		settings['PWMDutyMin'] = 0;
 		if ($scope.PWMDutyMin !== undefined && $scope.PWMDutyMin !== null) {
