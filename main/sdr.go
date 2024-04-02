@@ -814,6 +814,7 @@ func sdrWatcher() {
 	prevOGNEnabled := false
 	prevAISEnabled := false
 	prevOGNTXEnabled := false
+	prevdump1090Gain := globalSettings.Dump1090Gain
 
 	// Get the system (RPi) uptime.
 	info := syscall.Sysinfo_t{}
@@ -892,6 +893,7 @@ func sdrWatcher() {
 		ognEnabled := globalSettings.OGN_Enabled
 		aisEnabled := globalSettings.AIS_Enabled
 		ognTXEnabled := globalSettings.OGNI2CTXEnabled
+		dump1090Gain := globalSettings.Dump1090Gain
 		count := rtl.GetDeviceCount()
 		interfaceCount := count
 		if globalStatus.UATRadio_connected {
@@ -904,7 +906,8 @@ func sdrWatcher() {
 			count = 3
 		}
 
-		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled && prevAISEnabled == aisEnabled && prevOGNTXEnabled == ognTXEnabled {
+		if interfaceCount == prevCount && prevESEnabled == esEnabled && prevUATEnabled == uatEnabled && prevOGNEnabled == ognEnabled && prevAISEnabled == aisEnabled &&
+			prevOGNTXEnabled == ognTXEnabled  && prevdump1090Gain == dump1090Gain {
 			continue
 		}
 
@@ -933,6 +936,7 @@ func sdrWatcher() {
 		prevOGNEnabled = ognEnabled
 		prevAISEnabled = aisEnabled
 		prevOGNTXEnabled = ognTXEnabled
+		prevdump1090Gain = dump1090Gain
 
 		countEnabled := 0
 
