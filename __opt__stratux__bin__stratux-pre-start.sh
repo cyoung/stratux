@@ -42,11 +42,27 @@ fi
 
 if [ -f /boot/firmware/.stratux-first-boot ]; then
 	rm /boot/firmware/.stratux-first-boot
-	if [ -f /boot/firmware/stratux.conf ] && grep -q WiFi /boot/firmware/stratux.conf ; then
-		# Import old stratux.conf.. apply network settings
-		/opt/stratux/bin/gen_gdl90 -write-network-config
-		wLog "re-wrote network configuration for first-boot config import. Rebooting... Bye"
-		reboot
+	if [ -f /boot/firmware/stratux.conf ]; then
+		# In case of US build, a stratux.conf file will always be imported, only containing UAT/OGN options.
+		# We don't want to force-reboot for that.. Only for network/overlay changes
+		do_reboot=false
+
+		# re-apply overlay
+		if [ "$(jq -r .PersistentLogging /boot/firmware/stratux.conf)" = "true" ]; then
+			/sbin/overlayctl disable
+			do_reboot=true
+			wLog "overlayctl disabled due to stratux.conf settings"
+		fi
+
+		# write network config
+		if grep -q WiFi /boot/firmware/stratux.conf ; then
+			/opt/stratux/bin/gen_gdl90 -write-network-config
+			do_reboot=true
+			wLog "re-wrote network configuration for first-boot config import. Rebooting... Bye"
+		fi
+		if $do_reboot; then
+			reboot
+		fi
 	fi
 fi
 

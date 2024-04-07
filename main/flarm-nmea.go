@@ -111,7 +111,7 @@ func computeRelativeVertical(ti TrafficInfo) (relativeVertical int32) {
 func gdl90EmitterCatToNMEA(emitterCat uint8) string {
 	acType := "0"
 	switch emitterCat {
-		case 1, 6: acType = "8" // light/"highly maneuverable > 56" = piston
+		case 1, 6: acType = "8" // light/"highly maneuverable > 5g" = piston
 		case 2, 3, 4, 5: acType = "9" // small/large/heavy = jet
 		case 7: acType = "3" // helicopter = helicopter
 		case 9: acType = "1" // glider = glider

@@ -68,15 +68,15 @@ systemctl disable apt-daily-upgrade.timer
 /opt/stratux/bin/gen_gdl90 -write-network-config
 
 # Add optional usb stick mount if it's not already there
-if [ "$(grep /dev/sda1 /etc/fstab)" == "" ]; then
+if [ "$(grep /dev/sda1 /etc/fstab)" = "" ]; then
     echo -e "\n/dev/sda1             /var/log        auto    defaults,nofail,noatime,x-systemd.device-timeout=1ms  0       2" >> /etc/fstab
 fi
 
 cd /
 rm -rf /root/stratux-update
 
-# re-enable overlay if it is configured. TODO: switch to jq for json parsing in the future once it's available in all installations
-if [ "$(jq -r .PersistentLogging /boot/firmware/stratux.conf)" == "true" ]; then
+# re-enable overlay if it is configured.
+if [ "$(jq -r .PersistentLogging /boot/firmware/stratux.conf)" = "true" ]; then
     /sbin/overlayctl disable
 else
     /sbin/overlayctl enable
