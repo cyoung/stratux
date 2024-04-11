@@ -354,6 +354,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		}
 		aircraft.receivedTs = Date.now();
 		let prevColor = undefined;
+		let prevEmitterCat = undefined;
 
 		// It is only a 'real' update, if the traffic's Age actually changes.
 		// If it doesn't, don't restart animation (only interpolated position).
@@ -362,6 +363,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			if (isSameAircraft($scope.aircraft[i].Icao_addr, $scope.aircraft[i].Addr_type, aircraft.Icao_addr, aircraft.Addr_type)) {
 				let oldAircraft = $scope.aircraft[i];
 				prevColor = craftService.getTransportColor(oldAircraft);
+				prevEmitterCat = oldAircraft.Emitter_category
 				aircraft.marker = oldAircraft.marker;
 				aircraft.trail = oldAircraft.trail;
 				aircraft.posHistory = oldAircraft.posHistory;
@@ -417,7 +419,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 		}
 
 		updateVehicleText(aircraft);
-		if (!prevColor || prevColor != craftService.getTransportColor(aircraft)) {
+		if (!prevColor || prevColor != craftService.getTransportColor(aircraft) || prevEmitterCat != aircraft.Emitter_category) {
 			const [icon, rotatable] = createPlaneSvg(aircraft);
 			let imageStyle = new ol.style.Icon({
 				opacity: 1.0,
