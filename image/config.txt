@@ -2,6 +2,7 @@
 
 dtparam=audio=on
 max_usb_current=1
+usb_max_current_enable=1
 dtparam=i2c_arm=on
 dtparam=i2c1=on
 dtparam=i2c1_baudrate=400000
