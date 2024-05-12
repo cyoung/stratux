@@ -16,7 +16,7 @@ dtoverlay=disable-bt
 dtoverlay=sc16is752-i2c,int_pin=4,addr=0x4d,xtal=1843900
 
 # Otherwise TTGO T-Motion will cause kernel panic on bookworm
-dtoverlay=dwc2
+dtoverlay=dwc2,dr_mode=host
 
 # disable default (mmc0) behavior on the ACT LED.
 dtparam=act_led_trigger=none
