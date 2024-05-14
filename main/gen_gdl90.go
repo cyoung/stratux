@@ -307,6 +307,7 @@ func makeOwnshipReport() bool {
 		return false
 	}
 	curOwnship := OwnshipTrafficInfo
+	useReceivedOwnshipInfo := !gpsValid && selfOwnshipValid
 
 	msg := make([]byte, 28)
 	// See p.16.
@@ -334,7 +335,7 @@ func makeOwnshipReport() bool {
 
 	var tmp []byte
 	var lat, lon float32
-	if selfOwnshipValid {
+	if useReceivedOwnshipInfo {
 		lat = curOwnship.Lat
 		lon = curOwnship.Lng
 	} else {
@@ -357,7 +358,7 @@ func makeOwnshipReport() bool {
 
 	var altf float64
 
-	if selfOwnshipValid {
+	if useReceivedOwnshipInfo {
 		altf = float64(curOwnship.Alt)
 		validAltf = true
 	} else if isTempPressValid() {
@@ -382,7 +383,7 @@ func makeOwnshipReport() bool {
 	msg[13] = byte(0x80 | (mySituation.GPSNACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
-	if selfOwnshipValid && curOwnship.Speed_valid {
+	if useReceivedOwnshipInfo && curOwnship.Speed_valid {
 		gdSpeed = curOwnship.Speed
 	} else if isGPSGroundTrackValid() {
 		gdSpeed = uint16(mySituation.GPSGroundSpeed + 0.5)
@@ -400,7 +401,7 @@ func makeOwnshipReport() bool {
 
 	// Track is degrees true, set from GPS true course.
 	groundTrack := float32(0)
-	if selfOwnshipValid {
+	if useReceivedOwnshipInfo {
 		groundTrack = float32(curOwnship.Track)
 	} else if isGPSGroundTrackValid() {
 		groundTrack = mySituation.GPSTrueCourse
