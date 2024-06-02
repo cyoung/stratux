@@ -85,7 +85,7 @@ func initPressureSensor() (ok bool) {
 	v, err := i2cbus.ReadByteFromReg(0x76, PRESSURE_WHO_AM_I)
 
 	if err != nil {
-		log.Printf("Error identifying IMU: %s\n", err.Error())
+		log.Printf("Error identifying BMP: %s\n", err.Error())
 		return false
 	}
 	if v == bmp388.ChipId || v == bmp388.ChipId390 {
