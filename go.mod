@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/BertoldVdb/go-ais v0.1.0
-	github.com/b3nn0/goflying v0.0.0-20210424141101-d83dac8fdc36
+	github.com/b3nn0/goflying v0.0.0-20240610064310-ce0f56b2d656
 	github.com/bradfitz/gomemcache v0.0.0-20230124162541-5f7a7d875746
 	github.com/dustin/go-humanize v1.0.0
 	github.com/felixge/pidctrl v0.0.0-20160307080219-7b13bcae7243
