@@ -1763,6 +1763,7 @@ func main() {
 
 	// Guesses barometric altitude if we don't have our own baro source by using GnssBaroDiff from other traffic at similar altitude
 	go baroAltGuesser()
+	go cotListen()
 
 	// Monitor RPi CPU temp.
 	globalStatus.CPUTempMin = common.InvalidCpuTemp
