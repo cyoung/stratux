@@ -29,6 +29,7 @@ type CotEvent struct {
 	Start   string  `xml:"start,attr"`
 	Stale   string  `xml:"stale,attr"`
 	Point   CotPoint `xml:"point"`
+	Detail  CotDetail `xml:"detail"`
 }
 
 type CotPoint struct {
@@ -37,6 +38,15 @@ type CotPoint struct {
 	Hae float32 `xml:"hae,attr"`
 	//ce float32  `xml:"ce,attr"`
 	//ce float32  `xml:"le,attr"`
+}
+
+type CotDetail struct {
+	Track CotTrack `xml:"track"`
+}
+
+type CotTrack struct {
+	Speed float32 `xml:"speed,attr"`
+	Course float32 `xml:"course,attr"`
 }
 
 
@@ -105,7 +115,9 @@ func processCotMessage(msg string) {
 	ti.Age = 0
 	ti.AgeLastAlt = 0
 	ti.Last_seen = stratuxClock.Time
-	
+	ti.Speed = uint16(event.Detail.Track.Speed * 1.94384449) // m/s to kts
+	ti.Speed_valid = ti.Speed != 0
+	ti.Track = event.Detail.Track.Course
 
 	// convert altitudes..
 	alt := event.Point.Hae * 3.28084 // to feet
