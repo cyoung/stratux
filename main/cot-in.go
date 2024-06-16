@@ -138,8 +138,8 @@ func processCotMessage(msg string) {
 	registerTrafficUpdate(ti)
 	seenTraffic[key] = true
 
-	//if globalSettings.DEBUG {
+	if globalSettings.DEBUG {
 		txt, _ := json.Marshal(ti)
 		log.Printf("COT traffic imported: " + string(txt))
-	//}
+	}
 }
