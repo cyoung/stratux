@@ -2,10 +2,10 @@
         path = dump1090
 	url = https://github.com/flightaware/dump1090.git
 	branch = dev
-[submodule "ogn/esp32-ogn-tracker"]
-	path = ogn/esp32-ogn-tracker
-	url = https://github.com/pjalocha/esp32-ogn-tracker.git
 [submodule "rtl-ais"]
 	path = rtl-ais
 	url = https://github.com/mik3y/rtl-ais
 	ignore = dirty
+[submodule "ogn/ogn-tracker"]
+	path = ogn/ogn-tracker
+	url = https://github.com/pjalocha/ogn-tracker.git
