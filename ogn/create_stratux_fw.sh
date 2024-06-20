@@ -93,18 +93,18 @@ create_fw ogn-tracker-bin-tbeam10-sx1262 ttgo-lora32-v1 '
     -DWITH_GPS_UBX_PASS'
 
 # Build SX1262-tbeam-s3-mtk
-#create_fw ogn-tracker-bin-tbeams3-sx1262-mtk esp32-s3-devkitc-1 '
-#    -DWITH_TBEAMS3
-#    -DWITH_SX1262
-#    -DWITH_GPS_MTK
-#    -DWITH_GPS_ENABLE'
+create_fw ogn-tracker-bin-tbeams3-sx1262-mtk esp32-s3-devkitc-1 '
+    -DWITH_TBEAMS3
+    -DWITH_SX1262
+    -DWITH_GPS_MTK
+    -DWITH_GPS_ENABLE'
 
 # Build SX1262-tbeam-s3-ubx
-#create_fw ogn-tracker-bin-tbeams3-sx1262-ubx esp32-s3-devkitc-1 '
-#    -DWITH_TBEAMS3
-#    -DWITH_SX1262
-#    -DWITH_GPS_UBX
-#    -DWITH_GPS_UBX_PASS'
+create_fw ogn-tracker-bin-tbeams3-sx1262-ubx esp32-s3-devkitc-1 '
+    -DWITH_TBEAMS3
+    -DWITH_SX1262
+    -DWITH_GPS_UBX
+    -DWITH_GPS_UBX_PASS'
 
 exit 0
 
