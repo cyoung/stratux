@@ -79,7 +79,7 @@ optinstall: www ogn/ddb.json
 	cp -ru mapdata/* $(STRATUX_HOME)/mapdata/
 
 	# OGN stuff
-	cp -f ogn/ddb.json ogn/esp32-ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn
+	cp -f ogn/ddb.json ogn/*ogn-tracker-bin-*.zip ogn/install-ogntracker-firmware-pi.sh ogn/fetch_ddb.sh $(STRATUX_HOME)/ogn
 
 	# GxAirCom stuff
 	# Wget -N doesn't work with -O.. need to change directory temporarily
