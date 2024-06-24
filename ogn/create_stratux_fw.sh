@@ -23,6 +23,7 @@ function append_defaultconfig {
     -DWITH_OGN
     -DWITH_ADSL
     -DWITH_FANET
+    -DWITH_PAW
     -DWITH_CONFIG     ; allow to change parameters via serial console
     -DWITH_GPS_NMEA_PASS
     -DWITH_OLED
@@ -32,6 +33,9 @@ function append_defaultconfig {
     ;-DWITH_BT_SPP     ; BT Standard Serial Port => connection to XCsoar, takes big resources in Flash and RAM
     -DWITH_LOOKOUT
     -DWITH_PFLAA
+    ;-DWITH_AP         ; enable these 3 once AP_BUTTON is properly implemented
+    ;-DWITH_AP_BUTTON
+    ;-DWITH_HTTP
     -DRADIOLIB_GODMODE' >> platformio.ini
 }
 
