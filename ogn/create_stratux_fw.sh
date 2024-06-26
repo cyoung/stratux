@@ -78,6 +78,15 @@ create_fw ogn-tracker-bin-tbeam07-sx1276 ttgo-lora32-v1 '
 create_fw ogn-tracker-bin-tbeam10-sx1276 ttgo-lora32-v1 '
     -DWITH_TBEAM10
     -DWITH_SX1276
+    -DWITH_AXP
+    -DWITH_GPS_UBX
+    -DWITH_GPS_UBX_PASS'
+
+# Build SX1262-tbeam-10
+create_fw ogn-tracker-bin-tbeam10-sx1262 ttgo-lora32-v1 '
+    -DWITH_TBEAM10
+    -DWITH_SX1262
+    -DWITH_AXP
     -DWITH_GPS_UBX
     -DWITH_GPS_UBX_PASS'
 
@@ -86,20 +95,19 @@ create_fw ogn-tracker-bin-tbeam10-sx1276 ttgo-lora32-v1 '
 create_fw ogn-tracker-bin-tbeam12-sx1276 ttgo-lora32-v1 '
     -DWITH_TBEAM20
     -DWITH_SX1276
+    -DWITH_XPOWERS
     -DWITH_GPS_UBX
     -DWITH_GPS_UBX_PASS'
 
-# Build SX1262-tbeam-10
-create_fw ogn-tracker-bin-tbeam10-sx1262 ttgo-lora32-v1 '
-    -DWITH_TBEAM10
-    -DWITH_SX1262
-    -DWITH_GPS_UBX
-    -DWITH_GPS_UBX_PASS'
 
 # Build SX1262-tbeam-s3-mtk
+# TODO: should we add these?
+#              -DARDUINO_USB_MODE=1           ; direct-USB mode: not an UART bridge
+#              -DARDUINO_USB_CDC_ON_BOOT=1 
 create_fw ogn-tracker-bin-tbeams3-sx1262-mtk esp32-s3-devkitc-1 '
     -DWITH_TBEAMS3
     -DWITH_SX1262
+    -DWITH_XPOWERS
     -DWITH_GPS_MTK
     -DWITH_GPS_ENABLE'
 
@@ -107,6 +115,7 @@ create_fw ogn-tracker-bin-tbeams3-sx1262-mtk esp32-s3-devkitc-1 '
 create_fw ogn-tracker-bin-tbeams3-sx1262-ubx esp32-s3-devkitc-1 '
     -DWITH_TBEAMS3
     -DWITH_SX1262
+    -DWITH_XPOWERS
     -DWITH_GPS_UBX
     -DWITH_GPS_UBX_PASS'
 
