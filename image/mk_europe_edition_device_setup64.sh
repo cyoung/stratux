@@ -26,7 +26,7 @@ mkdir -p /proc/sys/vm/
 apt update
 apt clean
 
-PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq git cmake \
+PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq git cmake bluez bluez-firmware \
     libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd iptables libttspico-utils
 
 # Downgrade to older brcm wifi firmware - the new one seems to be buggy in AP+Client mode
@@ -201,7 +201,7 @@ rm -r /root/stratux
 # Uninstall packages we don't need, clean up temp stuff
 rm -rf /root/go /root/go_path /root/.cache
 
-PATH=/root/fake:$PATH apt autoremove --purge --yes alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
+PATH=/root/fake:$PATH apt autoremove --purge --yes alsa-ucm-conf alsa-topology-conf cifs-utils cmake cmake-data \
     v4l-utils rsync pigz pi-bluetooth cpp zlib1g-dev network-manager apparmor autotools-dev automake autoconf build-essential gcc-12 \
     git mkvtoolnix gdb
 

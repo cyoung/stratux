@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/tarm/serial"
+	"tinygo.org/x/bluetooth"
 )
 
 // Connection interface where we will write data - no matter if UDP, Serial or TCP
@@ -221,3 +222,53 @@ func (conn *tcpConnection) GetConnectionKey() string {
 }
 
 
+
+type bleConnection struct {
+	Capability   uint8
+	UUIDService  string // SoftRF: 0xFFE0
+	UUIDGatt     string
+	Characteristic bluetooth.Characteristic
+	Queue        *MessageQueue `json:"-"` // don't store in settings
+}
+
+func (conn *bleConnection) MessageQueue() *MessageQueue {
+	if conn.Queue == nil {
+		conn.Queue = NewMessageQueue(1024)
+	}
+	return conn.Queue
+}
+
+func (conn *bleConnection) Writer() io.Writer {
+	return conn
+}
+
+func (conn *bleConnection) Write(p []byte) (n int, err error) {
+	return conn.Characteristic.Write(p)
+}
+
+func (conn *bleConnection) IsThrottled() bool {
+	return false
+}
+func (conn *bleConnection) IsSleeping() bool {
+	return false
+}
+
+func (conn *bleConnection) Capabilities() uint8 {
+	return conn.Capability
+}
+
+func (conn *bleConnection) GetDesiredPacketSize() int {
+	return 20 // TODO
+}
+
+func (conn *bleConnection) OnError(err error) {
+	// Close connection and queue
+	log.Printf("BLE Error %s", err.Error())
+}
+
+func (conn *bleConnection) Close() {
+}
+
+func (conn *bleConnection) GetConnectionKey() string {
+	return conn.UUIDService
+}

@@ -10,7 +10,7 @@ dtparam=i2c_arm_baudrate=400000
 dtparam=spi=on
 
 # move RPi3 Bluetooth off of hardware UART to free up connection for GPS
-dtoverlay=disable-bt
+#dtoverlay=disable-bt
 
 # i2c serial support
 dtoverlay=sc16is752-i2c,int_pin=4,addr=0x4d,xtal=1843900

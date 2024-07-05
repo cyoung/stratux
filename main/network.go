@@ -24,6 +24,7 @@ import (
 	"github.com/tarm/serial"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+	"tinygo.org/x/bluetooth"
 )
 
 
@@ -230,6 +231,7 @@ func tcpNMEAOutListener() {
 }
 
 
+
 /* Server that can be used to feed NMEA data to, e.g. to connect OGN Tracker wirelessly */
 func tcpNMEAInListener() {
 	ln, err := net.Listen("tcp", ":30011")
@@ -360,6 +362,68 @@ func refreshConnectedClients() {
 				delete(clientConnections, ipAndPort)
 			}
 		}
+	}
+}
+
+func parseBleUuid(uuidStr string) (uuid bluetooth.UUID) {
+	if len(uuid) == 4 {
+		// Assume hex 16 bit
+		var val uint64
+		val, _ = strconv.ParseUint(uuidStr, 16, 16)
+		uuid = bluetooth.New16BitUUID(uint16(val))
+	} else {
+		uuid, _ = bluetooth.ParseUUID(uuidStr)
+	}
+	return
+}
+
+var bleAdapter = bluetooth.DefaultAdapter
+func initBluetooth() {
+	if len(globalSettings.BleOutputs) == 0 {
+		return
+	}
+	if err := bleAdapter.Enable(); err != nil {
+		addSingleSystemErrorf("BLE", "Failed to init BLE adapter: %s", err.Error())
+		return
+	}
+	services := []bluetooth.UUID{}
+	for _, conn := range globalSettings.BleOutputs {
+		services = append(services, parseBleUuid(conn.UUIDService))
+	}
+
+	adv := bleAdapter.DefaultAdvertisement()
+	adv.Configure(bluetooth.AdvertisementOptions{
+		LocalName: globalSettings.WiFiSSID,
+		ServiceUUIDs: services,
+	})
+	if err := adv.Start(); err != nil {
+		addSingleSystemErrorf("BLE", "BLE Advertising failed to start: %s", err.Error())
+	}
+	// TODO: not working if we have multiple GATTs in one service
+	for _, conn := range globalSettings.BleOutputs {
+		err := bleAdapter.AddService(&bluetooth.Service{
+			UUID: parseBleUuid(conn.UUIDService),
+			Characteristics: []bluetooth.CharacteristicConfig {
+				{
+					Handle: &conn.Characteristic,
+					UUID:   parseBleUuid(conn.UUIDGatt),
+					Value:  []byte{},
+					Flags:  bluetooth.CharacteristicNotifyPermission | bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+					//WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					//	log.Printf("client %d: received %s", client, string(value))
+					//},
+				},
+			},
+
+		})
+		if err != nil {
+			log.Printf("Failed to bring up BLE Gatt Service %s: %s", conn.UUIDService, err.Error())
+			continue
+		}
+		netMutex.Lock()
+		clientConnections[conn.GetConnectionKey()] = &conn
+		go connectionWriter(&conn)
+		netMutex.Unlock()
 	}
 }
 
@@ -652,4 +716,5 @@ func initNetwork() {
 	go tcpNMEAOutListener()
 	go tcpNMEAInListener()
 	go getNetworkStats()
+	go initBluetooth()
 }

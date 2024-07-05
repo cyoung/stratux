@@ -1178,6 +1178,7 @@ type settings struct {
 	IMU_Sensor_Enabled   bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
+	BleOutputs           []bleConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
@@ -1313,6 +1314,13 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
 		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
 		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_POSITION_FFSIM | NETWORK_AHRS_FFSIM},
+	}
+	globalSettings.BleOutputs = []bleConnection{
+		{
+			Capability: NETWORK_FLARM_NMEA,
+			UUIDService: "FFE0", // SoftRF style service,
+			UUIDGatt:    "FFE1",
+		},
 	}
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
