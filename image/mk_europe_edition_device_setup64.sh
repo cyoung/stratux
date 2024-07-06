@@ -27,20 +27,20 @@ apt update
 apt clean
 
 PATH=/root/fake:$PATH RUNLEVEL=1 apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq git cmake  \
-    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd iptables libttspico-utils \
+    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd iptables libttspico-utils bluez bluez-firmware
 
 # Compile latest bluez.. version shipping with current RPiOS is buggy in peripheral mode..
+# Note we only install it additionally, so new bluetoothd will be used, but config files from debian archive.
 PATH=/root/fake:$PATH RUNLEVEL=1 apt install --yes libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev python3-pygments # needed to compile bluez
-PATH=/root/fake:$PATH RUNLEVEL=1 apt autoremove --purge --yes bluez bluez-firmware
 cd ~
-wget https://github.com/bluez/bluez/archive/refs/tags/5.76.tar.gz
-tar xzf 5.76.tar.gz
+wget -O- https://github.com/bluez/bluez/archive/refs/tags/5.76.tar.gz | tar xz
 cd bluez-5.76
 ./bootstrap && ./configure --disable-manpages && make -j4 && make install
 cd ..
-rm -r 5.76.tar.gz bluez-5.76
+rm -r bluez-5.76
 PATH=/root/fake:$PATH RUNLEVEL=1 apt autoremove --purge --yes libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev python3-pygments
-
+systemctl daemon-reload
+systemctl enable bluetooth
 
 # try to reduce writing to SD card as much as possible, so they don't get bricked when yanking the power cable
 # Disable swap...
@@ -53,7 +53,7 @@ apt clean
 
 systemctl enable ssh
 systemctl disable dnsmasq # we start it manually on respective interfaces
-systemctl disable hciuart
+#systemctl disable hciuart
 systemctl disable triggerhappy
 systemctl disable wpa_supplicant
 systemctl disable systemd-timesyncd # We sync time with GPS. Make sure there is no conflict if we have internet connection
