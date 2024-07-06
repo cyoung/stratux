@@ -1316,10 +1316,15 @@ func defaultSettings() {
 		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_POSITION_FFSIM | NETWORK_AHRS_FFSIM},
 	}
 	globalSettings.BleOutputs = []bleConnection{
-		{
+		{ // SoftRF style service
 			Capability: NETWORK_FLARM_NMEA,
-			UUIDService: "FFE0", // SoftRF style service,
+			UUIDService: "FFE0",
 			UUIDGatt:    "FFE1",
+		},
+		{ // "standard" nRF UART/Serial emulation
+			Capability: NETWORK_FLARM_NMEA,
+			UUIDService: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
+			UUIDGatt:    "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
 		},
 	}
 	globalSettings.DEBUG = false

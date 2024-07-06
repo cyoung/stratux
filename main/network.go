@@ -366,7 +366,7 @@ func refreshConnectedClients() {
 }
 
 func parseBleUuid(uuidStr string) (uuid bluetooth.UUID) {
-	if len(uuid) == 4 {
+	if len(uuidStr) == 4 {
 		// Assume hex 16 bit
 		var val uint64
 		val, _ = strconv.ParseUint(uuidStr, 16, 16)
@@ -400,7 +400,8 @@ func initBluetooth() {
 		addSingleSystemErrorf("BLE", "BLE Advertising failed to start: %s", err.Error())
 	}
 	// TODO: not working if we have multiple GATTs in one service
-	for _, conn := range globalSettings.BleOutputs {
+	for i := range globalSettings.BleOutputs {
+		conn := &globalSettings.BleOutputs[i]
 		err := bleAdapter.AddService(&bluetooth.Service{
 			UUID: parseBleUuid(conn.UUIDService),
 			Characteristics: []bluetooth.CharacteristicConfig {
@@ -421,8 +422,8 @@ func initBluetooth() {
 			continue
 		}
 		netMutex.Lock()
-		clientConnections[conn.GetConnectionKey()] = &conn
-		go connectionWriter(&conn)
+		clientConnections[conn.GetConnectionKey()] = conn
+		go connectionWriter(conn)
 		netMutex.Unlock()
 	}
 }

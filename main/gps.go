@@ -308,13 +308,13 @@ func initGPSSerial() bool {
 		device = "/dev/softrf_dongle"
 		globalStatus.GPS_detected_type = GPS_TYPE_SOFTRF_DONGLE
 		baudrates[0] = 115200
- 	} else if _, err := os.Stat("/dev/ttyS0"); err == nil { 
+ 	} else if _, err := os.Stat("/dev/serial0"); err == nil { 
 		// ttyS0 is PL011 UART (GPIO pins 8 and 10) on all RPi.
 		// assume that any GPS connected to serial GPIO is ublox
-		device = "/dev/ttyS0"
+		device = "/dev/serial0"
 		globalStatus.GPS_detected_type = GPS_TYPE_UBX_GEN
 		baudrates = []int{115200, 38400, 9600}
-		logInf("GPS - device detected at serial port /dev/ttyS0, assuming this is an ublox device, configuring as generic ublox:")
+		logInf("GPS - device detected at serial port /dev/serial0, assuming this is an ublox device, configuring as generic ublox:")
 		logChipConfig("", "generic ublox", device, targetBaudRate, "")
 		logInf("GPS - consider to configure this device manually in /boot/firmware/stratux.conf for optimal performance")
 	} else {
