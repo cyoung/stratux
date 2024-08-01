@@ -333,6 +333,7 @@ func initGPSSerial() bool {
 		log.Printf("GPS - serial port/baudrate detection err: %s\n", err.Error())
 		return false
 	}
+	baudChanged := false
 
 	if isSirfIV {
 		log.Printf("Using SiRFIV config.\n")
@@ -351,6 +352,7 @@ func initGPSSerial() bool {
 		p.Write(makeNMEACmd("PSRF103,03,00,05,01"))
 		// Enable 38400 baud.
 		p.Write(makeNMEACmd("PSRF100,1,38400,8,1,0"))
+		baudChanged = true
 
 		if globalSettings.DEBUG {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
@@ -446,24 +448,25 @@ func initGPSSerial() bool {
 
 		//baudrates[0] = int(bdrt)   // replaced by line below -> insert at pos 0 instead of overwriting ...
 		baudrates = append([]int{targetBaudRate}, baudrates...)
+		baudChanged = true
 		logDbg("GPS - finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 	} else if globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE {
 		p.Write([]byte("@GNS 0x7\r\n")) // enable SBAS
 		time.Sleep(250* time.Millisecond) // Otherwise second command doesn't seem to work?
 		p.Write([]byte("@BSSL 0x2D\r\n")) // enable GNGSV
 	}
-	p.Close()
 
-	time.Sleep(250 * time.Millisecond)
+	if baudChanged {
+		p.Close()
 
-	// Re-open port at newly configured baud so we can read messages. ReadTimeout is set to keep from blocking the gpsSerialReader() on misconfigures or ttyAMA disconnects
-	// serialConfig = &serial.Config{Name: device, Baud: baudrate, ReadTimeout: time.Millisecond * 2500}
-	// serial.OpenPort(serialConfig)
-	
-	p, err = detectOpenSerialPort(device, baudrates)
-	if err != nil {
-		logErr("GPS - serial port err: %s\n", err.Error())
-		return false
+		time.Sleep(250 * time.Millisecond)
+
+		// Re-open port at newly configured baud so we can read messages. ReadTimeout is set to keep from blocking the gpsSerialReader() on misconfigures or ttyAMA disconnects
+		p, err = detectOpenSerialPort(device, baudrates)
+		if err != nil {
+			logErr("GPS - serial port err: %s\n", err.Error())
+			return false
+		}
 	}
 
 	serialPort = p
@@ -483,6 +486,8 @@ func detectOpenSerialPort(device string, baudrates []int) (*(serial.Port), error
 			if err != nil {
 				return p, err
 			}
+			p.Flush() // make sure input buffer is clean..
+
 			// Check if we get any data...
 			time.Sleep(3 * time.Second)
 			buffer := make([]byte, 10000)
