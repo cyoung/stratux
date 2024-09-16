@@ -49,4 +49,4 @@ order: 4
 
 * [Serial Adapter](https://amzn.to/3nY3L8S).
 * [Splitter and Saw Filter](https://amzn.to/3XSaBzD).
-* [Tool kit - screwdriver and wrenches](https://amzn.to/4enRWTs).
+* [Tool Kit - Screwdriver and Wrenches](https://amzn.to/4enRWTs).
