@@ -37,7 +37,9 @@ unxz -k $ZIPNAME || die "Extracting image failed"
 # Check where in the image the root partition begins:
 ptable=$(parted $IMGNAME unit B p)
 bootoffset=$(echo $ptable | grep fat32 | awk -F ' ' '{print $2}')
+bootoffset=${bootoffset::-1}
 partoffset=$(echo $ptable | grep ext4 | awk -F ' ' '{print $2}')
+partoffset=${partoffset::-1}
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
@@ -97,7 +99,7 @@ losetup -d ${lo}
 
 # parted --script $IMGNAME resizepart 2 ${bytesEnd}B Yes doesn't seem tow rok any more... echo yes | parted .. neither. So we re-create partition with proper size
 parted --script $IMGNAME rm 2
-parted --script $IMGNAME unit B mkpart primary ext4 $partoffset $bytesEnd
+parted --script $IMGNAME unit B mkpart primary ext4 ${partoffset}B ${bytesEnd}B
 truncate -s $(($bytesEnd + 4096)) $IMGNAME
 
 
