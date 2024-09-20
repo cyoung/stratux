@@ -61,7 +61,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     var statusGPS = document.getElementById("status-gps"),
         statusIMU = document.getElementById("status-imu"),
         statusBMP = document.getElementById("status-bmp"),
-        statusLog = document.getElementById("status-logging"),
         statusCal = document.getElementById("status-calibrating");
 
     function sizeMap() {
@@ -295,13 +294,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusCal.innerText = "Ready";
             $scope.IsCaging = false;
         }
-        if (situation.AHRSStatus & 0x10) {
-            statusLog.classList.remove("off");
-            statusLog.classList.add("on");
-        } else {
-            statusLog.classList.add("off");
-            statusLog.classList.remove("on");
-        }
 
         msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
         if (msg_ix < 0 && $scope.IsCaging) {
@@ -339,8 +331,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         statusBMP.classList.add("off");
         statusBMP.classList.remove("on");
         statusBMP.classList.remove("warn");
-        statusLog.classList.add("off");
-        statusLog.classList.remove("on");
         statusCal.classList.add("off");
         statusCal.classList.remove("on");
         statusCal.innerText = "Error";
