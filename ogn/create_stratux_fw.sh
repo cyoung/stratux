@@ -58,8 +58,9 @@ function create_fw {
     echo "
 [env:$name]
 board = $board
-build_flags = $flags" >> platformio.ini
+build_flags = " >> platformio.ini
     append_defaultconfig
+    echo "$flags" >> platformio.ini
     platformio run -e $name
     package $name
 
@@ -101,15 +102,15 @@ create_fw ogn-tracker-bin-tbeam12-sx1276 ttgo-lora32-v1 '
 
 
 # Build SX1262-tbeam-s3-mtk
-# TODO: should we add these?
-#              -DARDUINO_USB_MODE=1           ; direct-USB mode: not an UART bridge
-#              -DARDUINO_USB_CDC_ON_BOOT=1 
 create_fw ogn-tracker-bin-tbeams3-sx1262-mtk esp32-s3-devkitc-1 '
     -DWITH_TBEAMS3
     -DWITH_SX1262
     -DWITH_XPOWERS
     -DWITH_GPS_MTK
-    -DWITH_GPS_ENABLE'
+    -DWITH_GPS_ENABLE
+    -DARDUINO_USB_MODE=1        
+    -DARDUINO_USB_CDC_ON_BOOT=1
+board_build.mcu = esp32s3'
 
 # Build SX1262-tbeam-s3-ubx
 create_fw ogn-tracker-bin-tbeams3-sx1262-ubx esp32-s3-devkitc-1 '
@@ -117,104 +118,8 @@ create_fw ogn-tracker-bin-tbeams3-sx1262-ubx esp32-s3-devkitc-1 '
     -DWITH_SX1262
     -DWITH_XPOWERS
     -DWITH_GPS_UBX
-    -DWITH_GPS_UBX_PASS'
-
-exit 0
-
-### TODO: This was our legacy build for old esp32-ogn-tracker. Keeping this here to show which options we used in the past
-
-function disable {
-    opt=$1
-    sed -i "s~^\s*#define\s*$opt\$~// #define $opt~g" main/config.h
-}
-function enable {
-    opt=$1
-    sed -i "s~^\s*//\s*#define\s*$opt\$~#define $opt~g" main/config.h
-
-    grep $opt -q main/config.h || echo "#define $opt" >> main/config.h # add option if it doesn't exist yet
-}
-
-git checkout main/config.h
-# to simplify our regexes, remove all the comments..
-sed -i "s~\s\s\s*//.*~~g" main/config.h
-
-## Initial basic configuration
-disable WITH_FollowMe
-disable WITH_U8G2_OLED
-disable WITH_U8G2_SH1106
-disable WITH_U8G2_FLIP
-disable WITH_GPS_ENABLE
-disable WITH_GPS_MTK
-disable WITH_SD
-disable WITH_SDLOG
-
-
-
-enable WITH_WIFI
-enable WITH_AP
-enable WITH_AP_BUTTON
-enable WITH_HTTP
-
-enable WITH_GPS_UBX
-enable WITH_GPS_UBX_PASS
-enable WITH_GPS_NMEA_PASS
-
-enable WITH_BME280
-enable WITH_PAW
-enable WITH_LORAWAN
-enable WITH_ADSL
-enable WITH_FANET
-
-rm -rf stratux # cleanup of old build
-
-
-# First build for old T-Beams
-disable WITH_TBEAM_V10
-disable WITH_AXP
-disable WITH_GPS_PPS
-enable WITH_TBEAM
-make -B -j16 > /dev/null
-source bin-arch.sh
-mkdir stratux
-cd stratux
-tar xzf ../esp32-ogn-tracker-bin.tgz && zip -r esp32-ogn-tracker-bin-07.zip *
-mv esp32-ogn-tracker-bin-07.zip ../../
-cd ..
-rm -r stratux
-
-
-# Second build for new T-Beams
-disable WITH_TBEAM
-enable WITH_TBEAM_V10
-#enable WITH_AXP
-enable WITH_GPS_PPS
-
-make -B -j16 > /dev/null
-source bin-arch.sh
-mkdir stratux
-cd stratux
-tar xzf ../esp32-ogn-tracker-bin.tgz && zip -r esp32-ogn-tracker-bin-10+.zip *
-mv esp32-ogn-tracker-bin-10+.zip ../../
-cd ..
-rm -r stratux
-
-
-# Third build SX1262 variant
-enable WITH_SX1262
-disable WITH_LORAWAN
-disable WITH_RFM95
-
-make -B -j16 > /dev/null
-source bin-arch.sh
-mkdir stratux
-cd stratux
-tar xzf ../esp32-ogn-tracker-bin.tgz && zip -r esp32-ogn-tracker-bin-10+-sx1262.zip *
-mv esp32-ogn-tracker-bin-10+-sx1262.zip ../../
-cd ..
-rm -r stratux
-
-# Clean up
-git checkout .
-rm -r esp32-ogn-tracker-bin.* utils/read_log utils/serial_dump build
-
+    -DWITH_GPS_UBX_PASS
+    -DARDUINO_USB_MODE=1        
+    -DARDUINO_USB_CDC_ON_BOOT=1
+board_build.mcu = esp32s3'
 
