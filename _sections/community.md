@@ -8,7 +8,7 @@ order: 7
 ### User forums/chat
 
 Ask for help or suggest/contribute improvements.
-* [Stratux Discord](https://discord.gg/ev2SwNSS).
+* [Stratux Discord](https://discord.gg/D9NQ6xe4nF).
 * [Stratux on Reddit](http://www.reddit.com/r/stratux).
 * [3D-printable cases/accessories](http://www.thingiverse.com/groups/stratux/things).
 * [Buy the Stratux devs a coffee](https://www.paypal.com/paypalme/stratuxeu).
