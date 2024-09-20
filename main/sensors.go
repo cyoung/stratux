@@ -85,6 +85,9 @@ func initPressureSensor() (ok bool) {
 	v, err := i2cbus.ReadByteFromReg(0x76, PRESSURE_WHO_AM_I)
 
 	if err != nil {
+		v, err = i2cbus.ReadByteFromReg(0x77, PRESSURE_WHO_AM_I)
+	}
+	if err != nil {
 		log.Printf("Error identifying BMP: %s\n", err.Error())
 		return false
 	}
