@@ -35,13 +35,9 @@ wget -c $BASE_IMAGE_URL || die "Download failed"
 unxz -k $ZIPNAME || die "Extracting image failed"
 
 # Check where in the image the root partition begins:
-sector=$(fdisk -l $IMGNAME | grep Linux | awk -F ' ' '{print $2}')
-partoffset=$(( 512*sector ))
-bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $2}')
-if [[ $bootoffset == "*" ]]; then
-    bootoffset=$(fdisk -l $IMGNAME | grep W95 | awk -F ' ' '{print $3}') # if boot flag is set...
-fi
-bootoffset=$(( 512*bootoffset ))
+ptable=$(parted $IMGNAME unit B p)
+bootoffset=$(echo $ptable | grep fat32 | awk -F ' ' '{print $2}')
+partoffset=$(echo $ptable | grep ext4 | awk -F ' ' '{print $2}')
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
 # Append one GB and truncate to size
@@ -75,9 +71,9 @@ cd ../../
 if [ "$(arch)" != "aarch64" ]; then
     wget -P mnt/usr/bin/ https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static
     chmod +x mnt/usr/bin/qemu-aarch64-static
-    unshare -mpfu chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+    unshare -mpfu chroot mnt qemu-aarch64-static -cpu cortex-a72 /bin/bash -l -c /root/stratux/image/mk_europe_edition_device_setup64.sh
 else
-    unshare -mpfu chroot mnt /bin/bash -c /root/stratux/image/mk_europe_edition_device_setup64.sh
+    unshare -mpfu chroot mnt /bin/bash -l -c /root/stratux/image/mk_europe_edition_device_setup64.sh
 fi
 mkdir -p out
 
@@ -101,7 +97,7 @@ losetup -d ${lo}
 
 # parted --script $IMGNAME resizepart 2 ${bytesEnd}B Yes doesn't seem tow rok any more... echo yes | parted .. neither. So we re-create partition with proper size
 parted --script $IMGNAME rm 2
-parted --script $IMGNAME unit B mkpart primary $partoffset $bytesEnd
+parted --script $IMGNAME unit B mkpart primary ext4 $partoffset $bytesEnd
 truncate -s $(($bytesEnd + 4096)) $IMGNAME
 
 
