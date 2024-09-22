@@ -382,9 +382,13 @@ func initBluetooth() {
 	if len(globalSettings.BleOutputs) == 0 {
 		return
 	}
-	if err := bleAdapter.Enable(); err != nil {
-		addSingleSystemErrorf("BLE", "Failed to init BLE adapter: %s", err.Error())
-		return
+	for {
+		if err := bleAdapter.Enable(); err != nil {
+			log.Printf("Failed to init BLE adapter: %s", err.Error())
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
 	}
 	services := []bluetooth.UUID{}
 	for _, conn := range globalSettings.BleOutputs {

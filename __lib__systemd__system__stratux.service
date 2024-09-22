@@ -1,6 +1,6 @@
 [Unit]
 Description=Stratux
-After=network.target
+After=network.target bluetooth.target
 
 [Service]
 ExecStartPre=/opt/stratux/bin/stratux-pre-start.sh
