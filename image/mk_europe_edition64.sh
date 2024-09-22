@@ -35,10 +35,9 @@ wget -c $BASE_IMAGE_URL || die "Download failed"
 unxz -k $ZIPNAME || die "Extracting image failed"
 
 # Check where in the image the root partition begins:
-ptable=$(parted $IMGNAME unit B p)
-bootoffset=$(echo $ptable | grep fat32 | awk -F ' ' '{print $2}')
+bootoffset=$(parted $IMGNAME unit B p | grep fat32 | awk -F ' ' '{print $2}')
 bootoffset=${bootoffset::-1}
-partoffset=$(echo $ptable | grep ext4 | awk -F ' ' '{print $2}')
+partoffset=$(parted $IMGNAME unit B p | grep ext4 | awk -F ' ' '{print $2}')
 partoffset=${partoffset::-1}
 
 # Original image partition is too small to hold our stuff.. resize it to 2.5gb
