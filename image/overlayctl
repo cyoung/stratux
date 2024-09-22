@@ -1,0 +1,137 @@
+#!/bin/sh
+#
+# Root filesystem overlay control and install stript
+#
+# Copyright (C) 2014 Pavel Pisa <ppisa@pikron.com>
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+modify_boot_cmdline()
+{
+    if [ ! -e /boot/firmware/cmdline.txt ] ; then
+        umount_boot=yes
+        mount /boot/firmware || exit 1
+    fi
+    if [ ! -e /boot/firmware/cmdline.txt ] ; then
+        echo "/boot/firmware/cmdline.txt missing"
+        exit 1
+    fi
+    if [ ! -w /boot/firmware ] ; then
+        remount_boot_ro=yes
+        mount -o remount,rw /boot/firmware || exit 1
+    fi
+    if ! grep -q '/sbin/init-overlay' /boot/firmware/cmdline.txt ; then
+        cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.bak
+    fi
+    rm -f /boot/firmware/cmdline.new
+    sed -e 's/\( \|^\)\(ro\|rw\)\( \|$\)/ /g' \
+        -e 's/\( \|^\)\(init=[^ ]*\)\( \|$\)/ /g' \
+        -e 's/^ //' -e 's/ $//' /boot/firmware/cmdline.txt \
+        -e 's#^\(.*root=.*\)$#\1'"$1"'#'\
+        >/boot/firmware/cmdline.new
+    mv /boot/firmware/cmdline.new /boot/firmware/cmdline.txt
+    if [ -n "$umount_boot" ] ; then
+        umount /boot/firmware
+    elif [ -n "$remount_boot_ro" ] ; then
+        mount -o remount,ro /boot/firmware
+    fi
+}
+
+overlay_is_active()
+{
+    if [ -e /overlay/robase/overlay ] ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+if [ $# -eq 0 ] ; then
+    echo "overlayctl [status|enable|disable|lock|unlock]"
+    exit 0
+fi
+
+if overlay_is_active ; then
+    overlay_active="yes"
+    overlay_base="/overlay/robase/"
+else
+    overlay_active="no"
+    overlay_base="/"
+fi
+
+overlay_disable_file="$overlay_base""overlay/disable"
+
+case "$1" in
+    status)
+        echo -n "overlay is "
+        if [ "$overlay_active" = "yes" ] ; then
+            echo "active"
+        else
+            echo "inactive"
+        fi
+        echo -n "overlay "
+        if [ -e "$overlay_disable_file" ] ; then
+            echo -n "disabled"
+        else
+            echo -n "enabled"
+        fi
+        echo " for next boot"
+        ;;
+
+    enable)
+        if [ -e "$overlay_disable_file" ] ; then
+            if [ -w "$overlay_base/overlay" ] ; then
+               rm "$overlay_disable_file"
+            else
+               mount -o remount,rw "$overlay_base"
+               rm "$overlay_disable_file"
+               mount -o remount,ro "$overlay_base"
+            fi
+        fi
+        ;;
+
+    disable)
+        if [ ! -e "$overlay_disable_file" ] ; then
+            if [ -w "$overlay_base/overlay" ] ; then
+               echo 1 >"$overlay_disable_file"
+            else
+               mount -o remount,rw "$overlay_base"
+               echo 1 >"$overlay_disable_file"
+               mount -o remount,ro "$overlay_base"
+            fi
+        fi
+        ;;
+
+    lock)
+        mount -o remount,ro "$overlay_base"
+        ;;
+
+    unlock)
+        mount -o remount,rw "$overlay_base"
+        ;;
+
+    install)
+        modify_boot_cmdline " ro init=/sbin/init-overlay"
+        mkdir -p /overlay
+        ;;
+
+    uninstall)
+        modify_boot_cmdline " ro"
+        ;;
+
+    *)
+        echo "overlayctl: unknown option"
+        exit 1
+        ;;
+esac

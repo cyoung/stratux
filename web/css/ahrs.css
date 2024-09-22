@@ -2,7 +2,7 @@
 
 .indicator {
     margin: 0 1%;
-    width: 18%;
+    width: 23%;
     height: 100%;
     background-color: #ABFF00;
     border-radius: 10%;
@@ -16,6 +16,11 @@
 .indicator.on {
     background-color: #ABFF00;
     box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #89FF00 0 2px 12px;
+}
+
+.indicator.warn {
+    background-color: #FFBB00;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, #FFBB66 0 2px 12px;
 }
 
 .indicator.blink {

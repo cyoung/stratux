@@ -45,6 +45,11 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         };
 
         socket.onmessage = function (msg) {
+            if ($scope === undefined || $scope === null) {
+                socket.close();
+                return; 
+            }
+
             loadSituation(msg.data);
             $scope.$apply(); // trigger any needed refreshing of data
         };
@@ -56,12 +61,15 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
     var statusGPS = document.getElementById("status-gps"),
         statusIMU = document.getElementById("status-imu"),
         statusBMP = document.getElementById("status-bmp"),
-        statusLog = document.getElementById("status-logging"),
         statusCal = document.getElementById("status-calibrating");
 
     function sizeMap() {
         var width = 0;
-        var el = document.getElementById("map_display").parentElement;
+        var div = document.getElementById("map_display");
+        if (div==null) {
+            return width;
+        }
+        var el = div.parentElement;
         width = el.offsetWidth; // was  (- (2 * el.offsetLeft))
         if (width !== display_area_size) {
             display_area_size = width;
@@ -111,12 +119,17 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         $scope.GPS_satellites_tracked = situation.GPSSatellitesTracked;
         $scope.GPS_satellites_seen = situation.GPSSatellitesSeen;
         $scope.Quality = situation.GPSFixQuality;
+        $scope.GPS_PositionSampleRate = situation.GPSPositionSampleRate.toFixed(1);
 
-        var solutionText = "No Fix";
-        if (situation.GPSFixQuality === 2) {
-            solutionText = "GPS + SBAS (WAAS / EGNOS)";
+        var solutionText = "Unknown";
+        if (situation.GPSFixQuality === 0) {
+            solutionText = "No Fix"
         } else if (situation.GPSFixQuality === 1) {
-            solutionText = "3D GPS"
+            solutionText = "3D GPS";
+        } else if (situation.GPSFixQuality === 2) {
+            solutionText = "3D GPS + SBAS";
+        } else if (situation.GPSFixQuality === 6) {
+            solutionText = "Dead Reckoning";
         }
         $scope.SolutionText = solutionText;
 
@@ -259,10 +272,16 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         }
         if (situation.AHRSStatus & 0x04) {
             statusBMP.classList.remove("off");
-            statusBMP.classList.add("on");
-        } else {
-            statusBMP.classList.add("off");
             statusBMP.classList.remove("on");
+            statusBMP.classList.remove("warn");
+            if (situation.BaroSourceType == 4)
+                statusBMP.classList.add("warn");
+            else
+                statusBMP.classList.add("on");
+        } else {
+            statusBMP.classList.remove("warn")
+            statusBMP.classList.remove("on");
+            statusBMP.classList.add("off");
         }
         if (situation.AHRSStatus & 0x08) {
             statusCal.classList.add("blink");
@@ -274,13 +293,6 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
             statusCal.classList.add("on");
             statusCal.innerText = "Ready";
             $scope.IsCaging = false;
-        }
-        if (situation.AHRSStatus & 0x10) {
-            statusLog.classList.remove("off");
-            statusLog.classList.add("on");
-        } else {
-            statusLog.classList.add("off");
-            statusLog.classList.remove("on");
         }
 
         msg_ix = ahrs.messages.indexOf(MSG_LEVELING[0]);
@@ -318,8 +330,7 @@ function GPSCtrl($rootScope, $scope, $state, $http, $interval) {
         statusIMU.classList.remove("on");
         statusBMP.classList.add("off");
         statusBMP.classList.remove("on");
-        statusLog.classList.add("off");
-        statusLog.classList.remove("on");
+        statusBMP.classList.remove("warn");
         statusCal.classList.add("off");
         statusCal.classList.remove("on");
         statusCal.innerText = "Error";

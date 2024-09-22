@@ -7,17 +7,17 @@
 #   ublox7: VK-172, RY725AI, GPYes
 #   ublox6: VK-162
 
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a9", SYMLINK+="ublox9"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a8", SYMLINK+="ublox8"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="ublox7"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="ublox6"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a9", SYMLINK+="ublox9"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a8", SYMLINK+="ublox8"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="ublox7"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="ublox6"
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="vk172"
 #SUBSYSTEMS=="usb", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a6", SYMLINK+="vk162"
 
 # Stratux uatradio.
 #  0403:7028 (Stratux UATRadio)
-ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="uatradio"
-
+SUBSYSTEMS=="usb", ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 7028 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'"
+SUBSYSTEM=="tty", ATTRS{idProduct}=="7028", ATTRS{idVendor}=="0403", OWNER="root", MODE="0666", SYMLINK+="uatradio"
 
 
 # pl2303 devices are indistinguishable using idVendor and idProduct.
@@ -34,15 +34,30 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="
 #                 --set-max-power=100 \
 #                 --set-bus-powered=no
 
-SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout%n"
+SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout", SYMLINK+="serialout0"
+SUBSYSTEMS=="usb", ATTRS{interface}=="Stratux Serialout NMEA", SYMLINK+="serialout_nmea0"
+
+# i2c based serial converters for additional ports
+SUBSYSTEM=="tty",SUBSYSTEMS=="i2c",ATTRS{name}=="sc16is752",ATTR{port}=="0x0", SYMLINK+="serialout_nmea1"
+SUBSYSTEM=="tty",SUBSYSTEMS=="i2c",ATTRS{name}=="sc16is752",ATTR{port}=="0x1", SYMLINK+="serialout_nmea2"
 
 
 # SoftRF.
 
 # SoftRF Standalone (NodeMCU or DoIt ESP32 devkit with CP2102 chip)
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="DIY SoftRF", SYMLINK+="softrf"
-# TTGO T-Beam (ESP32 with OTP CP2104 chip)
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="CP2104 USB to UART Bridge Controller", SYMLINK+="softrf"
-# Dongle Edition (LilyGO & SoftRF T-Motion. USB CDC ACM output)
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="softrf"
-# end of SoftRF section
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="DIY SoftRF", SYMLINK+="serialin"
+
+# TTGO T-Beam (ESP32 with OTP CP2104 or QinHeng Electronics chip)
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{product}=="CP2104 USB to UART Bridge Controller", SYMLINK+="serialin"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", SYMLINK+="serialin"
+
+# TTGO T-Beam S3 supreme (with native esp32 USB). Expecting SoftRF/OGN Tracker. OTG and normal mode
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="serialin"
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="8133", SYMLINK+="serialin"
+
+# TTGO T-Echo
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="8029", SYMLINK+="serialin"
+
+
+# TTGO dongle edition (0483:5740 STMicroelectronics Virtual COM Port)
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="softrf_dongle"

@@ -1,0 +1,13 @@
+<div class="col-sm-12">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<span class="panel_label">Traffic Map</span> 
+			<span ng-show="ConnectState == 'Connected'" class="label label-success">{{ConnectState}}</span>
+			<span ng-hide="ConnectState == 'Connected'" class="label label-danger">{{ConnectState}}</span>
+		</div>
+
+		<div class="panel-body-fullsize">
+			<div id="map_display" style="width: 100%; height: 100%"></div>
+		</div>
+	</div>
+</div>

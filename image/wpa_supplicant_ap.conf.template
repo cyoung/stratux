@@ -1,0 +1,55 @@
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+{{if .WiFiCountry}}
+country={{.WiFiCountry}}
+{{end}}
+
+p2p_disabled=1
+ap_scan=1
+
+network={
+	wps_disabled=1
+{{if .WiFiSSID}}
+	ssid="{{.WiFiSSID}}"
+{{else}}
+	ssid="stratux"
+{{end}}
+
+{{if .WiFiPassPhrase}}
+	psk="{{.WiFiPassPhrase}}"
+	key_mgmt=WPA-PSK
+{{else}}
+	key_mgmt=NONE
+{{end}}
+	mode=2
+
+{{if eq .WiFiMode 0}}
+	# Set channel in AP mode
+	{{if eq .WiFiChannel 1}}
+	frequency=2412
+	{{else if eq .WiFiChannel 2}}
+	frequency=2417
+	{{else if eq .WiFiChannel 3}}
+	frequency=2422
+	{{else if eq .WiFiChannel 4}}
+	frequency=2427
+	{{else if eq .WiFiChannel 5}}
+	frequency=2432
+	{{else if eq .WiFiChannel 6}}
+	frequency=2437
+	{{else if eq .WiFiChannel 7}}
+	frequency=2442
+	{{else if eq .WiFiChannel 8}}
+	frequency=2447
+	{{else if eq .WiFiChannel 9}}
+	frequency=2452
+	{{else if eq .WiFiChannel 10}}
+	frequency=2457	
+	{{else if eq .WiFiChannel 11}}
+	frequency=2462
+	{{else}}
+	frequency=2412
+	{{end}}
+{{end}}
+
+}

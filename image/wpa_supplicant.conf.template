@@ -1,0 +1,41 @@
+ctrl_interface=DIR=/var/run/wpa_supplicant
+
+{{if .WiFiCountry}}
+country={{.WiFiCountry}}
+{{end}}
+
+{{if eq .WiFiMode 1}}
+# WiFi Direct config
+driver_param=use_p2p_group_interface=1
+device_name={{.WiFiSSID}}
+device_type=6-0050F204-1
+p2p_go_intent=15
+p2p_ssid_postfix=-{{.WiFiSSID}}
+persistent_reconnect=1
+p2p_go_ht40=1
+config_methods=keypad
+
+network={
+	ssid="DIRECT-{{.WiFiSSID}}"
+	psk="{{.WiFiPassPhrase}}"
+	proto=RSN
+	key_mgmt=WPA-PSK
+	pairwise=CCMP
+	auth_alg=OPEN
+	mode=3
+	disabled=2
+}
+{{end}}
+
+{{if eq .WiFiMode 2}}
+# AP+Client config
+ap_scan=1
+
+{{range .WiFiClientNetworks}}
+network={
+	ssid="{{.SSID}}"
+	psk="{{.Password}}"
+}
+{{end}}
+
+{{end}}

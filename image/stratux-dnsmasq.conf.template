@@ -1,0 +1,9 @@
+dhcp-range={{.DhcpRangeStart}},{{.DhcpRangeEnd}},24h
+{{if and .WiFiInternetPassThroughEnabled (eq .WiFiMode 2)}}
+dhcp-option=3,{{.IpAddr}}
+dhcp-option=6,{{.IpAddr}}
+{{else}}
+# Don't set DNS and gateway (by default, dnsmasq will set itself)
+dhcp-option=3
+dhcp-option=6
+{{end}}

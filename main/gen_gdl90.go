@@ -22,6 +22,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -32,7 +33,8 @@ import (
 	"syscall"
 	"time"
 
-	"../uatparse"
+	"github.com/b3nn0/stratux/common"
+	"github.com/b3nn0/stratux/uatparse"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ricochet2200/go-disk-usage/du"
 )
@@ -41,18 +43,15 @@ import (
 // https://www.faa.gov/nextgen/programs/adsb/Archival/media/GDL90_Public_ICD_RevA.PDF
 
 var logDirf string      // Directory for all logging
-var debugLogf string    // Set according to OS config.
 var dataLogFilef string // Set according to OS config.
 
 const (
-	configLocation = "/etc/stratux.conf"
+	STRATUX_HOME  = "/opt/stratux/"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
-	debugLogFile   = "stratux.log"
 	dataLogFile    = "stratux.sqlite"
 	//FlightBox: log to /root.
 	logDir_FB           = "/root/"
-	wifiConfigLocation  = "/etc/hostapd/hostapd.user"
 	maxDatagramSize     = 8192
 	maxUserMsgQueueSize = 25000 // About 10MB per port per connected client.
 
@@ -75,8 +74,10 @@ const (
 	MSGTYPE_BASIC_REPORT = 0x1E
 	MSGTYPE_LONG_REPORT  = 0x1F
 
-	MSGCLASS_UAT = 0
-	MSGCLASS_ES  = 1
+	MSGCLASS_UAT   = 0
+	MSGCLASS_ES    = 1
+	MSGCLASS_OGN   = 2
+	MSGCLASS_AIS   = 3
 
 	LON_LAT_RESOLUTION = float32(180.0 / 8388608.0)
 	TRACK_RESOLUTION   = float32(360.0 / 256.0)
@@ -90,20 +91,35 @@ const (
 		GPS_TYPE_GARMIN   = 0x06
 	*/
 
-	GPS_TYPE_UBX9     = 0x09
-	GPS_TYPE_UBX8     = 0x08
-	GPS_TYPE_UBX7     = 0x07
-	GPS_TYPE_UBX6     = 0x06
-	GPS_TYPE_PROLIFIC = 0x02
-	GPS_TYPE_UART     = 0x01
-	GPS_PROTOCOL_NMEA = 0x10
-	GPS_PROTOCOL_UBX  = 0x30
-	// other GPS types to be defined as needed
+	// for historical reasons lower nibbe contains gps type, upper nibble containsprotocol type. 
+	// Additionally this enumeration has a javascript duplicte in web/plates/js/status.js, they have to be kept in sync manually
+	// This is somewhat ugly but difficult to change without breaking backward compatibility
 
+	// lower nibble gps type   (dont forget to use only numbers form 0 to 15)
+	
+	GPS_TYPE_ANY     	= 1		// Any generic GPS - no reconfiguring applied
+	GPS_TYPE_PROLIFIC 	= 2
+	GPS_TYPE_OGNTRACKER = 3
+	GPS_TYPE_UBX_GEN  	= 4
+	GPS_TYPE_UBX10    	= 5	
+	//GPS_TYPE_UBX6     	= 6
+	GPS_TYPE_UBX6or7    = 7
+	GPS_TYPE_UBX8     	= 8
+	GPS_TYPE_UBX9     	= 9
+	GPS_TYPE_SERIAL   	= 10 		// 0x0A
+	GPS_TYPE_SOFTRF_DONGLE 	= 11	// 0x0B
+	GPS_TYPE_NETWORK  	= 12		// 0x0C
+	GPS_TYPE_GXAIRCOM 	= 15		// 0x0F
+	
+
+	// upper nibble is used for the protocol
+	GPS_PROTOCOL_NMEA = 0x10
+	
+	
 )
 
-var logFileHandle *os.File
-var usage *du.DiskUsage
+var STRATUX_WWW_DIR = STRATUX_HOME + "www/"
+var configLocation = "/boot/firmware/stratux.conf"
 
 var maxSignalStrength int
 
@@ -197,7 +213,8 @@ type msg struct {
 }
 
 // Raw inputs.
-var MsgLog []msg
+var msgLog []msg
+var msgLogMutex sync.Mutex
 
 // Time gen_gdl90 was started.
 var timeStarted time.Time
@@ -280,7 +297,7 @@ func makeLatLng(v float32) []byte {
 }
 
 func isDetectedOwnshipValid() bool {
-	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen) < 10*time.Second
+	return stratuxClock.Since(OwnshipTrafficInfo.Last_seen).Seconds() < 10
 }
 
 func makeOwnshipReport() bool {
@@ -290,6 +307,7 @@ func makeOwnshipReport() bool {
 		return false
 	}
 	curOwnship := OwnshipTrafficInfo
+	useReceivedOwnshipInfo := !gpsValid && selfOwnshipValid
 
 	msg := make([]byte, 28)
 	// See p.16.
@@ -316,25 +334,23 @@ func makeOwnshipReport() bool {
 	}
 
 	var tmp []byte
-	if selfOwnshipValid {
-		tmp = makeLatLng(curOwnship.Lat)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(curOwnship.Lng)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
+	var lat, lon float32
+	if useReceivedOwnshipInfo {
+		lat = curOwnship.Lat
+		lon = curOwnship.Lng
 	} else {
-		tmp = makeLatLng(mySituation.GPSLatitude)
-		msg[5] = tmp[0] // Latitude.
-		msg[6] = tmp[1] // Latitude.
-		msg[7] = tmp[2] // Latitude.
-		tmp = makeLatLng(mySituation.GPSLongitude)
-		msg[8] = tmp[0]  // Longitude.
-		msg[9] = tmp[1]  // Longitude.
-		msg[10] = tmp[2] // Longitude.
+		lat = mySituation.GPSLatitude
+		lon = mySituation.GPSLongitude
 	}
+
+	tmp = makeLatLng(lat)
+	msg[5] = tmp[0] // Latitude.
+	msg[6] = tmp[1] // Latitude.
+	msg[7] = tmp[2] // Latitude.
+	tmp = makeLatLng(lon)
+	msg[8] = tmp[0]  // Longitude.
+	msg[9] = tmp[1]  // Longitude.
+	msg[10] = tmp[2] // Longitude.
 
 	// This is **PRESSURE ALTITUDE**
 	alt := uint16(0xFFF) // 0xFFF "invalid altitude."
@@ -342,11 +358,14 @@ func makeOwnshipReport() bool {
 
 	var altf float64
 
-	if selfOwnshipValid {
+	if useReceivedOwnshipInfo {
 		altf = float64(curOwnship.Alt)
 		validAltf = true
 	} else if isTempPressValid() {
 		altf = float64(mySituation.BaroPressureAltitude)
+		validAltf = true
+	} else if isGPSValid() {
+		altf = float64(mySituation.GPSAltitudeMSL)
 		validAltf = true
 	}
 
@@ -364,7 +383,7 @@ func makeOwnshipReport() bool {
 	msg[13] = byte(0x80 | (mySituation.GPSNACp & 0x0F)) //Set NIC = 8 and use NACp from gps.go.
 
 	gdSpeed := uint16(0) // 1kt resolution.
-	if selfOwnshipValid && curOwnship.Speed_valid {
+	if useReceivedOwnshipInfo && curOwnship.Speed_valid {
 		gdSpeed = curOwnship.Speed
 	} else if isGPSGroundTrackValid() {
 		gdSpeed = uint16(mySituation.GPSGroundSpeed + 0.5)
@@ -382,7 +401,7 @@ func makeOwnshipReport() bool {
 
 	// Track is degrees true, set from GPS true course.
 	groundTrack := float32(0)
-	if selfOwnshipValid {
+	if useReceivedOwnshipInfo {
 		groundTrack = float32(curOwnship.Track)
 	} else if isGPSGroundTrackValid() {
 		groundTrack = mySituation.GPSTrueCourse
@@ -438,7 +457,9 @@ func makeOwnshipReport() bool {
 		msg[19+i] = myReg[i]
 	}
 
-	sendGDL90(prepareMessage(msg), false)
+	sendGDL90(prepareMessage(msg), time.Second, -1)
+	sendXPlane(createXPlaneGpsMsg(lat, lon, mySituation.GPSAltitudeMSL, groundTrack, float32(gdSpeed)), time.Second, -1)
+
 	return true
 }
 
@@ -448,16 +469,19 @@ func makeOwnshipGeometricAltitudeReport() bool {
 	}
 	msg := make([]byte, 5)
 	// See p.28.
-	msg[0] = 0x0B                                // Message type "Ownship Geo Alt".
-	alt := int16(mySituation.GPSAltitudeMSL / 5) // GPS Altitude, encoded to 16-bit int using 5-foot resolution
-	msg[1] = byte(alt >> 8)                      // Altitude.
-	msg[2] = byte(alt & 0x00FF)                  // Altitude.
+	msg[0] = 0x0B // Message type "Ownship Geo Alt".
+
+	var GPSalt float32
+	GPSalt = mySituation.GPSHeightAboveEllipsoid
+	encodedAlt := int16(GPSalt / 5)    // GPS Altitude, encoded to 16-bit int using 5-foot resolution
+	msg[1] = byte(encodedAlt >> 8)     // Altitude.
+	msg[2] = byte(encodedAlt & 0x00FF) // Altitude.
 
 	//TODO: "Figure of Merit". 0x7FFF "Not available".
 	msg[3] = 0x00
 	msg[4] = 0x0A
 
-	sendGDL90(prepareMessage(msg), false)
+	sendGDL90(prepareMessage(msg), time.Second, -1)
 	return true
 }
 
@@ -537,7 +561,7 @@ func makeStratuxStatus() []byte {
 	}
 
 	// Valid/Enabled: CPU temperature portion.
-	if isCPUTempValid(globalStatus.CPUTemp) {
+	if common.IsCPUTempValid(globalStatus.CPUTemp) {
 		msg[13] = msg[13] | (1 << 4)
 	}
 
@@ -679,7 +703,9 @@ func makeFFIDMessage() []byte {
 	}
 	copy(msg[19:], devLongName)
 
-	msg[38] = 0x01 // Capabilities mask. MSL altitude for Ownship Geometric report.
+	//if globalSettings.GDL90MSLAlt_Enabled {
+		msg[38] = 0x00 // Capabilities mask. MSL altitude for Ownship Geometric report. We only support HAE as in spec.
+	//}
 
 	return prepareMessage(msg)
 }
@@ -727,7 +753,11 @@ func relayMessage(msgtype uint16, msg []byte) {
 		ret[i+4] = msg[i]
 	}
 
-	sendGDL90(prepareMessage(ret), true)
+	durability := 1 * time.Second
+	if msgtype == MSGTYPE_UPLINK {
+		durability = 15 * time.Minute // queue weather messages
+	}
+	sendGDL90(prepareMessage(ret), durability, 4)
 }
 
 func blinkStatusLED() {
@@ -735,13 +765,24 @@ func blinkStatusLED() {
 	ledON := false
 	for {
 		<-timer.C
-		if ledON {
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
-		} else {
-			ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
-		}
 		ledON = !ledON
+		setActLed(ledON)
+		
+		if ledON != globalStatus.NightMode && len(globalStatus.Errors) == 0 { // System error was cleared - leave it on again
+			return
+		}
+
 	}
+}
+
+func sendAllOwnshipInfo() {
+	//log.Printf("Sending ownship info")
+	sendGDL90(makeHeartbeat(), time.Second, -20) // Highest priority, always needs to be send because we use it to detect when a client becomes available
+	sendGDL90(makeStratuxHeartbeat(), time.Second, 0)
+	sendGDL90(makeStratuxStatus(), time.Second, 0)
+	sendGDL90(makeFFIDMessage(), time.Second, 0)
+	makeOwnshipReport()
+	makeOwnshipGeometricAltitudeReport()
 }
 
 func heartBeatSender() {
@@ -757,7 +798,7 @@ func heartBeatSender() {
 			if len(globalStatus.Errors) == 0 { // Any system errors?
 				if !globalStatus.NightMode { // LED is off by default (/boot/config.txt.)
 					// Turn on green ACT LED on the Pi.
-					ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("1\n"), 0644)
+					setActLed(true)
 				}
 			} else if !ledBlinking {
 				// This assumes that system errors do not disappear until restart.
@@ -765,12 +806,14 @@ func heartBeatSender() {
 				ledBlinking = true
 			}
 
-			sendGDL90(makeHeartbeat(), false)
-			sendGDL90(makeStratuxHeartbeat(), false)
-			sendGDL90(makeStratuxStatus(), false)
-			sendGDL90(makeFFIDMessage(), false)
-			makeOwnshipReport()
-			makeOwnshipGeometricAltitudeReport()
+			sendAllOwnshipInfo()
+
+			sendNetFLARM(makeGPRMCString(), time.Second, -1)
+			sendNetFLARM(makeGPGGAString(), time.Second, 0)
+			if isTempPressValid() && mySituation.BaroSourceType != BARO_TYPE_NONE && mySituation.BaroSourceType != BARO_TYPE_ADSBESTIMATE {
+				sendNetFLARM(makePGRMZString(), time.Second, 0)
+			}
+			sendNetFLARM("$GPGSA,A,3,,,,,,,,,,,,,1.0,1.0,1.0*33\r\n", time.Second, 1)
 
 			// --- debug code: traffic demo ---
 			// Uncomment and compile to display large number of artificial traffic targets
@@ -799,14 +842,25 @@ func heartBeatSender() {
 	}
 }
 
-func updateMessageStats() {
-	t := make([]msg, 0)
-	m := len(MsgLog)
-	UAT_messages_last_minute := uint(0)
-	ES_messages_last_minute := uint(0)
+func msgLogAppend(m msg) {
+	msgLogMutex.Lock()
+	defer msgLogMutex.Unlock()
+	msgLog = append(msgLog, m)
+}
 
+func updateMessageStats() {
 	ADSBTowerMutex.Lock()
 	defer ADSBTowerMutex.Unlock()
+
+	msgLogMutex.Lock()
+	defer msgLogMutex.Unlock()
+
+	m := len(msgLog)
+	t := make([]msg, 0)
+	UAT_messages_last_minute := uint(0)
+	ES_messages_last_minute := uint(0)
+	OGN_messages_last_minute := uint(0)
+	AIS_messages_last_minute := uint(0)
 
 	// Clear out ADSBTowers stats.
 	for t, tinf := range ADSBTowers {
@@ -816,39 +870,45 @@ func updateMessageStats() {
 	}
 
 	for i := 0; i < m; i++ {
-		if stratuxClock.Since(MsgLog[i].TimeReceived) < 1*time.Minute {
-			t = append(t, MsgLog[i])
-			if MsgLog[i].MessageClass == MSGCLASS_UAT {
+		if stratuxClock.Since(msgLog[i].TimeReceived).Minutes() < 1 {
+			t = append(t, msgLog[i])
+			if msgLog[i].MessageClass == MSGCLASS_UAT {
 				UAT_messages_last_minute++
-				if len(MsgLog[i].ADSBTowerID) > 0 { // Update tower stats.
-					tid := MsgLog[i].ADSBTowerID
+				if len(msgLog[i].ADSBTowerID) > 0 { // Update tower stats.
+					tid := msgLog[i].ADSBTowerID
 
 					if _, ok := ADSBTowers[tid]; !ok { // First time we've seen the tower? Start tracking.
 						var newTower ADSBTower
-						newTower.Lat = MsgLog[i].uatMsg.Lat
-						newTower.Lng = MsgLog[i].uatMsg.Lon
+						newTower.Lat = msgLog[i].uatMsg.Lat
+						newTower.Lng = msgLog[i].uatMsg.Lon
 						newTower.Signal_strength_max = -999 // dBmax = 0, so this needs to initialize below scale ( << -48 dB)
 						ADSBTowers[tid] = newTower
 					}
 
 					twr := ADSBTowers[tid]
-					twr.Signal_strength_now = MsgLog[i].Signal_strength
+					twr.Signal_strength_now = msgLog[i].Signal_strength
 
-					twr.Energy_last_minute += uint64((MsgLog[i].Signal_amplitude) * (MsgLog[i].Signal_amplitude))
+					twr.Energy_last_minute += uint64((msgLog[i].Signal_amplitude) * (msgLog[i].Signal_amplitude))
 					twr.Messages_last_minute++
-					if MsgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
-						twr.Signal_strength_max = MsgLog[i].Signal_strength
+					if msgLog[i].Signal_strength > twr.Signal_strength_max { // Update alltime max signal strength.
+						twr.Signal_strength_max = msgLog[i].Signal_strength
 					}
 					ADSBTowers[tid] = twr
 				}
-			} else if MsgLog[i].MessageClass == MSGCLASS_ES {
+			} else if msgLog[i].MessageClass == MSGCLASS_ES {
 				ES_messages_last_minute++
+			} else if msgLog[i].MessageClass == MSGCLASS_OGN {
+				OGN_messages_last_minute++
+			} else if msgLog[i].MessageClass == MSGCLASS_AIS {
+				AIS_messages_last_minute++
 			}
 		}
 	}
-	MsgLog = t
+	msgLog = t
 	globalStatus.UAT_messages_last_minute = UAT_messages_last_minute
 	globalStatus.ES_messages_last_minute = ES_messages_last_minute
+	globalStatus.OGN_messages_last_minute = OGN_messages_last_minute
+	globalStatus.AIS_messages_last_minute = AIS_messages_last_minute
 
 	// Update "max messages/min" counters.
 	if globalStatus.UAT_messages_max < UAT_messages_last_minute {
@@ -856,6 +916,12 @@ func updateMessageStats() {
 	}
 	if globalStatus.ES_messages_max < ES_messages_last_minute {
 		globalStatus.ES_messages_max = ES_messages_last_minute
+	}
+	if globalStatus.OGN_messages_max < OGN_messages_last_minute {
+		globalStatus.OGN_messages_max = OGN_messages_last_minute
+	}
+	if globalStatus.AIS_messages_max < AIS_messages_last_minute {
+		globalStatus.AIS_messages_max = AIS_messages_last_minute
 	}
 
 	// Update average signal strength over last minute for all ADSB towers.
@@ -872,7 +938,7 @@ func updateMessageStats() {
 
 func updateStatus() {
 	if mySituation.GPSFixQuality == 2 {
-		globalStatus.GPS_solution = "GPS + SBAS (WAAS)"
+		globalStatus.GPS_solution = "3D GPS + SBAS"
 	} else if mySituation.GPSFixQuality == 1 {
 		globalStatus.GPS_solution = "3D GPS"
 	} else if mySituation.GPSFixQuality == 6 {
@@ -906,12 +972,9 @@ func updateStatus() {
 	globalStatus.Uptime = int64(stratuxClock.Milliseconds)
 	globalStatus.UptimeClock = stratuxClock.Time
 
-	usage = du.NewDiskUsage("/")
+	usage := du.NewDiskUsage("/")
 	globalStatus.DiskBytesFree = usage.Free()
-	fileInfo, err := logFileHandle.Stat()
-	if err == nil {
-		globalStatus.Logfile_Size = fileInfo.Size()
-	}
+	globalStatus.Logfile_Size = logFileSize()
 
 	var ahrsLogSize int64
 	ahrsLogFiles, _ := ioutil.ReadDir("/var/log")
@@ -1083,7 +1146,7 @@ func parseInput(buf string) ([]byte, uint16) {
 		}
 	}
 
-	MsgLog = append(MsgLog, thisMsg)
+	msgLogAppend(thisMsg)
 	logMsg(thisMsg)
 
 	return frame, msgtype
@@ -1106,31 +1169,72 @@ type settings struct {
 	DarkMode             bool
 	UAT_Enabled          bool
 	ES_Enabled           bool
+	OGN_Enabled          bool
+	APRS_Enabled         bool
+	AIS_Enabled          bool
 	Ping_Enabled         bool
 	GPS_Enabled          bool
 	BMP_Sensor_Enabled   bool
 	IMU_Sensor_Enabled   bool
 	NetworkOutputs       []networkConnection
 	SerialOutputs        map[string]serialConnection
+	BleOutputs           []bleConnection
 	DisplayTrafficSource bool
 	DEBUG                bool
 	ReplayLog            bool
+	TraceLog             bool
 	AHRSLog              bool
+	PersistentLogging    bool
+	ClearLogOnStart      bool
 	IMUMapping           [2]int     // Map from aircraft axis to sensor axis: accelerometer
 	SensorQuaternion     [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	C, D                 [3]float64 // IMU Accel, Gyro zero bias
 	PPM                  int
+	Dump1090Gain         float64 // SDR RTL ES Gain
+	AltitudeOffset       int
 	OwnshipModeS         string
 	WatchList            string
 	DeveloperMode        bool
 	GLimits              string
 	StaticIps            []string
+	WiFiCountry          string
 	WiFiSSID             string
 	WiFiChannel          int
 	WiFiSecurityEnabled  bool
 	WiFiPassphrase       string
-	WiFiSmartEnabled     bool // "Smart WiFi" - disables the default gateway for iOS.
 	NoSleep              bool
+
+	WiFiMode             int
+	WiFiDirectPin        string
+	WiFiIPAddress        string
+	WiFiClientNetworks   []wifiClientNetwork
+	WiFiInternetPassThroughEnabled bool
+
+	EstimateBearinglessDist bool
+	RadarLimits          int
+	RadarRange           int
+
+	OGNI2CTXEnabled      bool
+	OGNAddr              string
+	OGNAddrType          int            // 0=random, 1=ICAO, 2=Flarm, 3=OGN
+	OGNAcftType          int
+	OGNPilot             string
+	OGNReg               string
+	OGNTxPower           int
+
+	// GxAirCom
+	GXAddr               int
+	GXAddrType           int            // 1=ICAO, 2=Flarm
+	GXAcftType           int
+	GXPilot              string
+
+	PWMDutyMin           int
+
+	// manual GPS config  (versus autodetect)
+	GpsManualConfig      bool
+	GpsManualDevice	     string         // default: /dev/ttyAMA0
+    GpsManualChip        string         // ublox8, ublox9, ublox
+	GpsManualTargetBaud  int            // default: 115200
 }
 
 type status struct {
@@ -1144,6 +1248,13 @@ type status struct {
 	UAT_messages_max                           uint
 	ES_messages_last_minute                    uint
 	ES_messages_max                            uint
+	OGN_messages_last_minute                   uint
+	OGN_messages_max                           uint
+	OGN_connected                              bool
+	APRS_connected                              bool
+	AIS_messages_last_minute                   uint
+	AIS_messages_max                           uint
+	AIS_connected                              bool
 	UAT_traffic_targets_tracking               uint16
 	ES_traffic_targets_tracking                uint16
 	Ping_connected                             bool
@@ -1155,19 +1266,16 @@ type status struct {
 	GPS_connected                              bool
 	GPS_solution                               string
 	GPS_detected_type                          uint
+	GPS_NetworkRemoteIp                        string // for NMEA via TCP from OGN tracker: display remote IP to configure the OGN tracker
 	Uptime                                     int64
 	UptimeClock                                time.Time
 	CPUTemp                                    float32
 	CPUTempMin                                 float32
 	CPUTempMax                                 float32
 	NetworkDataMessagesSent                    uint64
-	NetworkDataMessagesSentNonqueueable        uint64
 	NetworkDataBytesSent                       uint64
-	NetworkDataBytesSentNonqueueable           uint64
 	NetworkDataMessagesSentLastSec             uint64
-	NetworkDataMessagesSentNonqueueableLastSec uint64
 	NetworkDataBytesSentLastSec                uint64
-	NetworkDataBytesSentNonqueueableLastSec    uint64
 	UAT_METAR_total                            uint32
 	UAT_TAF_total                              uint32
 	UAT_NEXRAD_total                           uint32
@@ -1181,6 +1289,11 @@ type status struct {
 	BMPConnected                               bool
 	IMUConnected                               bool
 	NightMode                                  bool // For turning off LEDs.
+	OGN_noise_db                               float32
+	OGN_gain_db                                float32
+	OGN_tx_enabled                             bool // If ogn-rx-eu uses a local tx module for transmission
+
+	OGNPrevRandomAddr                          string    // when OGN is in random stealth mode, it's ID changes randomly - keep the previous one so we can filter properly
 }
 
 var globalSettings settings
@@ -1188,15 +1301,31 @@ var globalStatus status
 
 func defaultSettings() {
 	globalSettings.DarkMode = false
-	globalSettings.UAT_Enabled = true
+	globalSettings.UAT_Enabled = false
 	globalSettings.ES_Enabled = true
+	globalSettings.OGN_Enabled = true
+	globalSettings.Dump1090Gain = 37.2
+	globalSettings.APRS_Enabled = true
 	globalSettings.GPS_Enabled = true
 	globalSettings.IMU_Sensor_Enabled = true
 	globalSettings.BMP_Sensor_Enabled = true
 	//FIXME: Need to change format below.
 	globalSettings.NetworkOutputs = []networkConnection{
 		{Conn: nil, Ip: "", Port: 4000, Capability: NETWORK_GDL90_STANDARD | NETWORK_AHRS_GDL90},
-		//		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_AHRS_FFSIM},
+		{Conn: nil, Ip: "", Port: 2000, Capability: NETWORK_FLARM_NMEA},
+		{Conn: nil, Ip: "", Port: 49002, Capability: NETWORK_POSITION_FFSIM | NETWORK_AHRS_FFSIM},
+	}
+	globalSettings.BleOutputs = []bleConnection{
+		{ // SoftRF style service
+			Capability: NETWORK_FLARM_NMEA,
+			UUIDService: "FFE0",
+			UUIDGatt:    "FFE1",
+		},
+		{ // "standard" nRF UART/Serial emulation
+			Capability: NETWORK_FLARM_NMEA,
+			UUIDService: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E",
+			UUIDGatt:    "6E400003-B5A3-F393-E0A9-E50E24DCCA9E",
+		},
 	}
 	globalSettings.DEBUG = false
 	globalSettings.DisplayTrafficSource = false
@@ -1204,36 +1333,55 @@ func defaultSettings() {
 	globalSettings.AHRSLog = false
 	globalSettings.IMUMapping = [2]int{-1, 0}
 	globalSettings.OwnshipModeS = "F00000"
-	globalSettings.DeveloperMode = false
+	globalSettings.DeveloperMode = true
 	globalSettings.StaticIps = make([]string, 0)
 	globalSettings.NoSleep = false
+	globalSettings.EstimateBearinglessDist = false
+
+	globalSettings.WiFiChannel = 1
+	globalSettings.WiFiIPAddress = "192.168.10.1"
+	globalSettings.WiFiPassphrase = ""
+	globalSettings.WiFiSSID = "stratux"
+	globalSettings.WiFiSecurityEnabled = false
+	globalSettings.WiFiClientNetworks = make([]wifiClientNetwork, 0)
+
+	globalSettings.RadarLimits = 2000
+	globalSettings.RadarRange = 10
+	globalSettings.AltitudeOffset = 0
+
+	globalSettings.PWMDutyMin = 0
+
+	globalSettings.OGNI2CTXEnabled = true
+
+	globalSettings.ClearLogOnStart = false
+
+	globalSettings.GpsManualConfig = false
+	globalSettings.GpsManualDevice = "/dev/ttyAMA0"
+	globalSettings.GpsManualTargetBaud = 115200
+	globalSettings.GpsManualChip = "ublox"
 }
 
 func readSettings() {
+	defaultSettings()
+
 	fd, err := os.Open(configLocation)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
 	defer fd.Close()
-	buf := make([]byte, 1024)
+	buf := make([]byte, 10000)
 	count, err := fd.Read(buf)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
-	var newSettings settings
-	err = json.Unmarshal(buf[0:count], &newSettings)
+	err = json.Unmarshal(buf[0:count], &globalSettings)
 	if err != nil {
 		log.Printf("can't read settings %s: %s\n", configLocation, err.Error())
-		defaultSettings()
 		return
 	}
-	globalSettings = newSettings
 	log.Printf("read in settings.\n")
-	readWiFiUserSettings()
 }
 
 func addSystemError(err error) {
@@ -1242,6 +1390,20 @@ func addSystemError(err error) {
 
 var systemErrsMutex *sync.Mutex
 var systemErrs map[string]string
+
+func removeSingleSystemError(ident string) {
+	systemErrsMutex.Lock()
+	if oldMsg, ok := systemErrs[ident]; ok {
+		for i, v := range globalStatus.Errors {
+			if v == oldMsg {
+				globalStatus.Errors = append(globalStatus.Errors[:i], globalStatus.Errors[i+1:]...)
+				break
+			}
+		}
+	}
+	delete(systemErrs, ident)
+	systemErrsMutex.Unlock()
+}
 
 func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
 	systemErrsMutex.Lock()
@@ -1255,6 +1417,15 @@ func addSingleSystemErrorf(ident string, format string, a ...interface{}) {
 	systemErrsMutex.Unlock()
 }
 
+func overlayctl(cmd string) {
+	out, err := exec.Command("/bin/sh", "/sbin/overlayctl", cmd).Output()
+	if err != nil {
+		log.Printf("overlayctl error: %s\n%s", err.Error(), out)
+	} else {
+		log.Printf("overlayctl: %s\n", out)
+	}
+}
+
 func saveSettings() {
 	fd, err := os.OpenFile(configLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 	if err != nil {
@@ -1262,69 +1433,10 @@ func saveSettings() {
 		return
 	}
 	defer fd.Close()
-	jsonSettings, _ := json.Marshal(&globalSettings)
+	jsonSettings, _ := json.MarshalIndent(&globalSettings, "", "  ")
 	fd.Write(jsonSettings)
+	fd.Sync()
 	log.Printf("wrote settings.\n")
-}
-
-func readWiFiUserSettings() {
-	fd, err := os.Open(wifiConfigLocation)
-	if err != nil {
-		log.Printf("can't read wifi settings %s: %s\n", wifiConfigLocation, err.Error())
-		return
-	}
-	defer fd.Close()
-
-	// Default values
-	globalSettings.WiFiSSID = "stratux"
-	globalSettings.WiFiChannel = 8
-	globalSettings.WiFiSecurityEnabled = false
-
-	scanner := bufio.NewScanner(fd)
-	var line []string
-	for scanner.Scan() {
-		line = strings.SplitN(scanner.Text(), "=", 2)
-		switch line[0] {
-		case "ssid":
-			globalSettings.WiFiSSID = line[1]
-		case "channel":
-			globalSettings.WiFiChannel, _ = strconv.Atoi(line[1])
-		case "wpa_passphrase":
-			globalSettings.WiFiPassphrase = line[1]
-			globalSettings.WiFiSecurityEnabled = true
-		default:
-		}
-	}
-	return
-}
-
-func saveWiFiUserSettings() {
-	fd, err := os.OpenFile(wifiConfigLocation, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
-	if err != nil {
-		err_ret := fmt.Errorf("can't save settings %s: %s", wifiConfigLocation, err.Error())
-		addSystemError(err_ret)
-		log.Printf("%s\n", err_ret.Error())
-		return
-	}
-	defer fd.Close()
-
-	writer := bufio.NewWriter(fd)
-	fmt.Fprintf(writer, "ssid=%s\n", globalSettings.WiFiSSID)
-	fmt.Fprintf(writer, "channel=%d\n", globalSettings.WiFiChannel)
-	fmt.Fprint(writer, "\n")
-	if globalSettings.WiFiSecurityEnabled {
-		fmt.Fprint(writer, "auth_algs=1\nwpa=3\nwpa_key_mgmt=WPA-PSK\nwpa_pairwise=TKIP\nrsn_pairwise=CCMP\n")
-		fmt.Fprintf(writer, "wpa_passphrase=%s\n", globalSettings.WiFiPassphrase)
-	}
-	writer.Flush()
-
-	// "Smart WiFi". Just use one of two pre-made dhcpd config files.
-	dhcpd_config := "/etc/dhcp/dhcpd-not_smart.conf"
-	if globalSettings.WiFiSmartEnabled {
-		dhcpd_config = "/etc/dhcp/dhcpd-smart.conf"
-	}
-	os.Remove("/etc/dhcp/dhcpd.conf")
-	os.Symlink(dhcpd_config, "/etc/dhcp/dhcpd.conf")
 }
 
 func openReplay(fn string, compressed bool) (WriteCloser, error) {
@@ -1370,15 +1482,18 @@ func printStats() {
 		<-statTimer.C
 		var memstats runtime.MemStats
 		runtime.ReadMemStats(&memstats)
+		usage := du.NewDiskUsage("/")
+
 		log.Printf("stats [started: %s]\n", humanize.RelTime(time.Time{}, stratuxClock.Time, "ago", "from now"))
 		log.Printf(" - Disk bytes used = %s (%.1f %%), Disk bytes free = %s (%.1f %%)\n", humanize.Bytes(usage.Used()), 100*usage.Usage(), humanize.Bytes(usage.Free()), 100*(1-usage.Usage()))
 		log.Printf(" - CPUTemp=%.02f [%.02f - %.02f] deg C, MemStats.Alloc=%s, MemStats.Sys=%s, totalNetworkMessagesSent=%s\n", globalStatus.CPUTemp, globalStatus.CPUTempMin, globalStatus.CPUTempMax, humanize.Bytes(uint64(memstats.Alloc)), humanize.Bytes(uint64(memstats.Sys)), humanize.Comma(int64(totalNetworkMessagesSent)))
 		log.Printf(" - UAT/min %s/%s [maxSS=%.02f%%], ES/min %s/%s, Total traffic targets tracked=%s", humanize.Comma(int64(globalStatus.UAT_messages_last_minute)), humanize.Comma(int64(globalStatus.UAT_messages_max)), float64(maxSignalStrength)/10.0, humanize.Comma(int64(globalStatus.ES_messages_last_minute)), humanize.Comma(int64(globalStatus.ES_messages_max)), humanize.Comma(int64(len(seenTraffic))))
-		log.Printf(" - Network data messages sent: %d total, %d nonqueueable.  Network data bytes sent: %d total, %d nonqueueable.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataMessagesSentNonqueueable, globalStatus.NetworkDataBytesSent, globalStatus.NetworkDataBytesSentNonqueueable)
+		log.Printf(" - Network data messages sent: %d total.  Network data bytes sent: %d total.\n", globalStatus.NetworkDataMessagesSent, globalStatus.NetworkDataBytesSent)
 		if globalSettings.GPS_Enabled {
 			log.Printf(" - Last GPS fix: %s, GPS solution type: %d using %d satellites (%d/%d seen/tracked), NACp: %d, est accuracy %.02f m\n", stratuxClock.HumanizeTime(mySituation.GPSLastFixLocalTime), mySituation.GPSFixQuality, mySituation.GPSSatellites, mySituation.GPSSatellitesSeen, mySituation.GPSSatellitesTracked, mySituation.GPSNACp, mySituation.GPSHorizontalAccuracy)
 			log.Printf(" - GPS vertical velocity: %.02f ft/sec; GPS vertical accuracy: %v m\n", mySituation.GPSVerticalSpeed, mySituation.GPSVerticalAccuracy)
 		}
+		log.Printf(" - Mode-S Distance factors (<5000, <10000, >10000): %f, %f, %f", estimatedDistFactors[0], estimatedDistFactors[1], estimatedDistFactors[2])
 		sensorsOutput := make([]string, 0)
 		if globalSettings.IMU_Sensor_Enabled {
 			sensorsOutput = append(sensorsOutput, fmt.Sprintf("Last IMU read: %s", stratuxClock.HumanizeTime(mySituation.AHRSLastAttitudeTime)))
@@ -1481,61 +1596,53 @@ func gracefulShutdown() {
 
 	//TODO: Any other graceful shutdown functions.
 
-	// Turn off green ACT LED on the Pi.
-	ioutil.WriteFile("/sys/class/leds/led0/brightness", []byte("0\n"), 0644)
+	// Turn off green ACT LED on the Pi. Path changed around kernel 6.1.21-v8
+	setActLed(false)
 }
 
-// Close log file handle, open new one.
-func handleSIGHUP() {
-	logFileHandle.Close()
-	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
-	} else {
-		// Keep the logfile handle for later use
-		logFileHandle = fp
-		mfp := io.MultiWriter(fp, os.Stdout)
-		log.SetOutput(mfp)
-	}
-	log.Printf("signal caught: SIGHUP, handled.\n")
+// Turn off green ACT LED on the Pi. Path changed to leds/ACT/brighgtness around kernel 6.1.21-v8
+func setActLed(state bool) {
+		ledPath := "/sys/class/leds/led0/brightness"
+		if _, err := os.Stat(ledPath); err != nil {
+			ledPath = "/sys/class/leds/ACT/brightness"
+		}
+		data := []byte("0\n")
+		if state {
+			data = []byte("1\n")
+		}
+		ioutil.WriteFile(ledPath, data, 0644)
 }
 
 func signalWatcher() {
 	for {
 		sig := <-sigs
-		if sig == syscall.SIGHUP {
-			handleSIGHUP()
-		} else {
-			log.Printf("signal caught: %s - shutting down.\n", sig.String())
-			gracefulShutdown()
-			os.Exit(1)
-		}
+
+		log.Printf("signal caught: %s - shutting down.\n", sig.String())
+		gracefulShutdown()
+		os.Exit(1)
 	}
 }
 
-func clearDebugLogFile() {
-	if logFileHandle != nil {
-		_, err := logFileHandle.Seek(0, 0)
-		if err != nil {
-			log.Printf("Could not seek to the beginning of the logfile\n")
-			return
-		} else {
-			err2 := logFileHandle.Truncate(0)
-			if err2 != nil {
-				log.Printf("Could not truncate the logfile\n")
-				return
-			}
-			log.Printf("Logfile truncated\n")
-		}
-	}
+func isX86DebugMode() bool {
+	return runtime.GOARCH == "i386" || runtime.GOARCH == "amd64"
 }
 
 func main() {
 	// Catch signals for graceful shutdown.
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
+
+	if !common.IsRunningAsRoot() {
+		// mount web server to dev directory..
+		ex, err := os.Executable()
+		if err == nil {
+			ex = filepath.Dir(ex)
+			STRATUX_WWW_DIR = ex + "/web/"
+		}
+		configLocation = os.Getenv("HOME") + "/.stratux.conf"
+	}
 
 	// Set up mySituation, do it here so logging JSON doesn't panic
 	mySituation.muGPS = &sync.Mutex{}
@@ -1549,7 +1656,11 @@ func main() {
 	systemErrs = make(map[string]string)
 
 	// Set up status.
+	if stratuxVersion == "" {
+		stratuxVersion = "v0.0"
+	}
 	globalStatus.Version = stratuxVersion
+
 	globalStatus.Build = stratuxBuild
 	globalStatus.Errors = make([]string, 0)
 	//FlightBox: detect via presence of /etc/FlightBox file.
@@ -1563,40 +1674,25 @@ func main() {
 	if _, err := os.Stat("/etc/Merlin"); !os.IsNotExist(err) {
 		globalStatus.HardwareBuild = "Merlin"
 	}
-	debugLogf = filepath.Join(logDirf, debugLogFile)
 	dataLogFilef = filepath.Join(logDirf, dataLogFile)
-	//FIXME: All of this should be removed by 08/01/2016.
-	// Check if Raspbian version is <8.0. Throw a warning if so.
-	vt, err := ioutil.ReadFile("/etc/debian_version")
-	if err == nil {
-		vtS := strings.Trim(string(vt), "\n")
-		vtF, err := strconv.ParseFloat(vtS, 32)
-		if err == nil {
-			if vtF < 8.0 {
-				if globalStatus.HardwareBuild == "FlightBox" {
-					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit https://www.openflightsolutions.com/flightbox/image-update-required for further information.")
-				} else {
-					addSingleSystemErrorf("deprecated-image", "You are running an old Stratux image that can't be updated fully and is now deprecated. Visit http://stratux.me/ to update using the latest release image.")
-				}
-			} else {
-				// Running Jessie or better. Remove some old init.d files.
-				//  This made its way in here because /etc/init.d/stratux invokes the update script, which can't delete the init.d file.
-				os.Remove("/etc/init.d/stratux")
-				os.Remove("/etc/rc2.d/S01stratux")
-				os.Remove("/etc/rc6.d/K01stratux")
-			}
-		}
-	}
 
 	//	replayESFilename := flag.String("eslog", "none", "ES Log filename")
 	replayUATFilename := flag.String("uatlog", "none", "UAT Log filename")
 	replayFlag := flag.Bool("replay", false, "Replay file flag")
 	replaySpeed := flag.Int("speed", 1, "Replay speed multiplier")
 	stdinFlag := flag.Bool("uatin", false, "Process UAT messages piped to stdin")
+	writeNetworkConfig := flag.Bool("write-network-config", false, "Only write network configuration files as configured in stratux.conf and exit")
+
+	traceReplay := flag.String("trace", "", "Replay previously recorded trace file and exit")
+	traceReplaySpeed := flag.Float64("traceSpeed", 1.0, "Trace replay speed multiplier")
+	traceReplayFilter := flag.String("traceFilter", "", "Filter trace data by context. Comma separated list of: ais,nmea,aprs,ogn-rx,dump1090,godump978,lowpower_uat")
+	traceSkip := flag.Int64("traceSkip", 0, "Minutes to skip forward in recorded trace")
+	
 
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to file")
 
 	flag.Parse()
+	isTraceReplayMode := *traceReplay != ""
 
 	timeStarted = time.Now()
 	runtime.GOMAXPROCS(runtime.NumCPU()) // redundant with Go v1.5+ compiler
@@ -1611,35 +1707,38 @@ func main() {
 		pprof.StartCPUProfile(f)
 	}
 
-	// Duplicate log.* output to debugLog.
-	fp, err := os.OpenFile(debugLogf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		addSingleSystemErrorf(debugLogf, "Failed to open '%s': %s", debugLogf, err.Error())
-	} else {
-		defer fp.Close()
-		// Keep the logfile handle for later use
-		logFileHandle = fp
-		mfp := io.MultiWriter(fp, os.Stdout)
-		log.SetOutput(mfp)
-	}
-
-	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
-
-	ADSBTowers = make(map[string]ADSBTower)
-	ADSBTowerMutex = &sync.Mutex{}
-	MsgLog = make([]msg, 0)
-
-	// Start the management interface.
-	go managementInterface()
-
-	crcInit() // Initialize CRC16 table.
-
-	sdrInit()
-	pingInit()
-	initTraffic()
+	initLogging()
+	
 
 	// Read settings.
 	readSettings()
+
+	// Clear the logfile on startup
+	if globalSettings.ClearLogOnStart { clearDebugLogFile() }
+
+	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
+	if *writeNetworkConfig {
+		log.Printf("Only writing network settings...")
+		applyNetworkSettings(true, true)
+		return
+	}
+
+	ADSBTowers = make(map[string]ADSBTower)
+	ADSBTowerMutex = &sync.Mutex{}
+	msgLog = make([]msg, 0)
+
+	// Start the management interface.
+	go managementInterface()
+	go traceLoggerWatchdog()
+
+	crcInit() // Initialize CRC16 table.
+
+	if !isTraceReplayMode {
+		sdrInit()
+		pingInit()
+	}
+	initTraffic(isTraceReplayMode)
+
 
 	// Disable replay logs when replaying - so that messages replay data isn't copied into the logs.
 	// Override after reading in the settings.
@@ -1652,14 +1751,16 @@ func main() {
 		log.Printf("Developer mode set\n")
 	}
 
-	//FIXME: Only do this if data logging is enabled.
-	initDataLog()
+	if !isTraceReplayMode {
+		//FIXME: Only do this if data logging is enabled.
+		initDataLog()
 
-	// Start the AHRS sensor monitoring.
-	initI2CSensors()
+		// Start the AHRS sensor monitoring.
+		initI2CSensors()
+	}
 
 	// Start the GPS external sensor monitoring.
-	initGPS()
+	initGPS(isTraceReplayMode)
 
 	// Start the heartbeat message loop in the background, once per second.
 	go heartBeatSender()
@@ -1670,21 +1771,37 @@ func main() {
 	// Start printing stats periodically to the logfiles.
 	go printStats()
 
+	// Extrapolate traffic when no signal is received.
+	go trafficInfoExtrapolator()
+
+	// Guesses barometric altitude if we don't have our own baro source by using GnssBaroDiff from other traffic at similar altitude
+	go baroAltGuesser()
+	go cotListen()
+
 	// Monitor RPi CPU temp.
-	globalStatus.CPUTempMin = invalidCpuTemp
-	globalStatus.CPUTempMax = invalidCpuTemp
-	go cpuTempMonitor(func(cpuTemp float32) {
+	globalStatus.CPUTempMin = common.InvalidCpuTemp
+	globalStatus.CPUTempMax = common.InvalidCpuTemp
+	go common.CpuTempMonitor(func(cpuTemp float32) {
 		globalStatus.CPUTemp = cpuTemp
-		if isCPUTempValid(cpuTemp) && ((cpuTemp < globalStatus.CPUTempMin) || !isCPUTempValid(globalStatus.CPUTempMin)) {
+		if common.IsCPUTempValid(cpuTemp) && ((cpuTemp < globalStatus.CPUTempMin) || !common.IsCPUTempValid(globalStatus.CPUTempMin)) {
 			globalStatus.CPUTempMin = cpuTemp
 		}
-		if isCPUTempValid(cpuTemp) && ((cpuTemp > globalStatus.CPUTempMax) || !isCPUTempValid(globalStatus.CPUTempMax)) {
+		if common.IsCPUTempValid(cpuTemp) && ((cpuTemp > globalStatus.CPUTempMax) || !common.IsCPUTempValid(globalStatus.CPUTempMax)) {
 			globalStatus.CPUTempMax = cpuTemp
 		}
 	})
 
 	// Start reading from serial UAT radio.
-	initUATRadioSerial()
+	initUATRadioSerial(isTraceReplayMode)
+
+	if isTraceReplayMode {
+		msgTypes := []string{}
+		if len(*traceReplayFilter) > 0 {
+			msgTypes = strings.Split(*traceReplayFilter, ",")
+		}
+		TraceLog.Replay(*traceReplay, *traceReplaySpeed, *traceSkip, msgTypes)
+		return
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -1720,3 +1837,4 @@ func main() {
 		select {}
 	}
 }
+

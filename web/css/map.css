@@ -1,0 +1,7 @@
+.panel-body-fullsize {
+	padding: 8px 4px 4px 4px;
+    width: 100%;
+    height: calc(100vh - 160px);
+    
+}
+

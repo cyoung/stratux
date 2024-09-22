@@ -9,12 +9,12 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg"><strong>Callsign</strong></span>
-					<span class="col-xs-3" ng-show="showReg"><strong>Tail Num</strong></span>
+					<span class="col-xs-3"><strong>{{showReg ? "Tail Num" : "Callsign"}}</strong></span>
 					<span class="col-xs-2" ng-hide="showSquawk"><strong>Code</strong></span>
 					<span class="col-xs-2" ng-show="showSquawk"><strong>Squawk</strong></span>
-					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
-					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist"><strong>Dist</strong></span>
+					<span class="col-xs-2" ng-show="showCategory"><strong>Categ</strong></span>
+					<span class="col-xs-4 text-right" ng-hide="GPS_connected && RelDist"><strong>Location</strong></span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Distan</strong></span>
 					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist"><strong>Bearing</strong></span>
 				</div>
 				
@@ -30,26 +30,26 @@
 			<div class="row" ng-repeat="aircraft in data_list | orderBy: 'dist'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-3" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
-					</span>					
-					<span class="col-xs-3" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3">
+						<span class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">
+							<img src="img/logo-transparent.png" style="height:1em" ng-show="aircraft.isStratux" />
+							<span ng-hide="aircraft.isStratux">{{aircraft.addr_symb}}</span>
+							<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
 					</span>
-
 					<span class="col-xs-2">
 						<span style="font-size:80%" ng-hide="showSquawk">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
 						<span ng-show="showSquawk"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
 					</span>
-					<span class="col-xs-5 text-right" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
-					<span class="col-xs-3 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}<span style="font-size:50%">NM</span></span>
+					<span class="col-xs-2" ng-show="showCategory">
+						<span style="font-size:80%">{{aircraft.category}}</span>
+					</span>
+					<span class="col-xs-4 text-right" ng-hide="GPS_connected && RelDist">{{aircraft.lat}} {{aircraft.lon}}</span>
+					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.dist.toFixed(1)}}<span style="font-size:50%">NM</span></span>
 					<span class="col-xs-2 text-right" ng-show="GPS_connected && RelDist">{{aircraft.bearing}}&deg;</span>
 
 				</div>
 				<div class="col-sm-6">
-					<span class="col-xs-3 text-right">{{aircraft.alt}}</span>
+					<span class="col-xs-3 text-right">{{aircraft.alt}}'</span>
 					<span class="col-xs-1 small col-padding-shift-right text-muted">
 						<span ng-show="aircraft.vspeed > 0"><span class="fa fa-ascent"></span>{{aircraft.vspeed}}</span>
 						<span ng-show="aircraft.vspeed < 0"><span class="fa fa-descent"></span>{{0-aircraft.vspeed}}</span>
@@ -57,7 +57,7 @@
 					<span class="col-xs-2 text-right">{{aircraft.speed}}<span style="font-size:50%">KTS</span></span>
 					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>				
 					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}<span style="font-size:50%">dB</span></span>
-					<span class="col-xs-2 text-right">{{aircraft.age.toFixed(1)}}<span style="font-size:50%">s</span></span>
+					<span class="col-xs-2 text-right">{{aircraft.Age.toFixed(1)}}<span style="font-size:50%">s</span></span>
 				</div>
 			</div>
 		</div>
@@ -65,21 +65,25 @@
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
 			<div class="row">
-				<div class="col-sm-4">
+				<div class="col-sm-3">
 					<label class="control-label col-xs-6">Show Tail Number</label>
 					<span class="col-xs-3"><ui-switch ng-model='showReg' settings-change></ui-switch></span>
 				</div>
-				<div class="col-sm-4">
+				<div class="col-sm-3">
 					<label class="control-label col-xs-6">Show Squawk</label>
 					<span class="col-xs-3"><ui-switch ng-model='showSquawk' settings-change></ui-switch></span>
 				</div>
-				<div class="col-sm-4">
+				<div class="col-sm-3">
+					<label class="control-label col-xs-6">Show Category</label>
+					<span class="col-xs-3"><ui-switch ng-model='showCategory' settings-change></ui-switch></span>
+				</div>
+				<div class="col-sm-3">
 					<label class="control-label col-xs-6" ng-show="GPS_connected">Show Distance</label>
 					<label class="control-label text-muted col-xs-6" ng-hide="GPS_connected">Show Distance N/A</label>
 					<span class="col-xs-3"><ui-switch ng-model='RelDist' settings-change></ui-switch></span>
 				</div>
 				<!--
-				<div class="col-sm-4">
+				<div class="col-sm-3">
 					<label class="control-label col-xs-6">GPS Status</label>
 					<span ng-show="GPS_connected" class="label label-success col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">Valid</span>
 					<span ng-hide="GPS_connected" class="label label-danger col-xs-3" style="font-size:100%; display:block; height: 34px; line-height: 34px">No Fix</span>
@@ -97,10 +101,11 @@
 		<div class="panel-body traffic-page">
 			<div class="row">
 				<div class="col-sm-6">
-					<span class="col-xs-4" ng-hide="showReg"><strong>Callsign</strong></span>
-					<span class="col-xs-4" ng-show="showReg"><strong>Tail Num</strong></span>
-					<span class="col-xs-3"><strong>Code</strong></span>
-					<span class="col-xs-3"><strong>Squawk</strong></span>
+					<span class="col-xs-3"><strong>{{showReg ? "Tail Num" : "Callsign"}}</strong></span>
+					<span class="col-xs-2"><strong>Code</strong></span>
+					<span class="col-xs-2" ng-show="showCategory"><strong>Categ</strong></span>
+					<span class="col-xs-2 text-right"><strong>DistEst</strong></span>
+					<span class="col-xs-2"><strong>Squawk</strong></span>
 				</div>
 				
 				<div class="col-sm-6">
@@ -115,16 +120,15 @@
 			<div class="row" ng-repeat="aircraft in data_list_invalid | orderBy: 'icao'">
 				<div class="separator"></div>
 				<div class="col-sm-6">
-					<span class="col-xs-4" ng-hide="showReg">
-						<span ng-show="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.tail}}</strong></span>
-						<span ng-hide="aircraft.tail" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
-					</span>					
-					<span class="col-xs-4" ng-show="showReg">
-						<span ng-show="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;{{aircraft.reg}}</strong></span>
-						<span ng-hide="aircraft.reg" ng-class="'label traffic-style'+aircraft.src+aircraft.targettype">{{aircraft.addr_symb}}<strong>&nbsp;[--N/A--]</strong></span>
+					<span class="col-xs-3">
+						<span class="label traffic-style" ng-style="{'background-color': aircraft.trafficColor}">{{aircraft.addr_symb}}<strong>&nbsp;{{showReg ? aircraft.reg : aircraft.tail}}</strong></span>
 					</span>
-					<span class="col-xs-3" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
-					<span class="col-xs-3"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
+					<span class="col-xs-2" style="font-size:80%">{{aircraft.icao}}<span style="font-size:50%">{{aircraft.addr_type == 3 ? "&nbsp;(TFID)" : ""}}</span></span>
+					<span class="col-xs-2" ng-show="showCategory">
+						<span style="font-size:80%">{{aircraft.category}}</span>
+					</span>
+					<span class="col-xs-2 text-right">{{aircraft.distEst.toFixed(1)}}<span style="font-size:50%">NM</span></span>
+					<span class="col-xs-2"><span ng-show="aircraft.squawk < 1000">0</span><span ng-show="aircraft.squawk < 100">0</span><span ng-show="aircraft.squawk < 10">0</span>{{aircraft.squawk}}</span>
 				</div>
 
 				<div class="col-sm-6">
@@ -136,14 +140,14 @@
 					<span class="col-xs-2 text-right">{{aircraft.speed}}<span style="font-size:50%">KTS</span></span>
 					<span class="col-xs-2 text-right"><span ng-show="aircraft.heading < 10">0</span><span ng-show="aircraft.heading < 100">0</span>{{aircraft.heading}}&deg;</span>				
 					<span class="col-xs-2 text-right">{{aircraft.signal.toFixed(2)}}<span style="font-size:50%">dB</span></span>
-					<span class="col-xs-2 text-right">{{aircraft.ageLastAlt.toFixed(1)}}<span style="font-size:50%">s</span></span>
+					<span class="col-xs-2 text-right">{{aircraft.Age.toFixed(1)}}<span style="font-size:50%">s</span></span>
 				</div>
 			</div>
 		</div>
 		
 		<div class="panel-body traffic-footer">
 			<div class="separator"></div>
-			<span class ="col-sm-12 small">Stratux has not received valid ADS-B position transmissions from the aircraft in this section. They will not appear on your EFB map. See help page for details.</span>
+			<span class ="col-sm-12 small">Stratux has not received valid ADS-B position transmissions from the aircraft in this section. They will only appear estimated on the Radar or if your EFB is able to display bearingless targets. See help page for details.</span>
 		</div>
 	</div>
 </div>

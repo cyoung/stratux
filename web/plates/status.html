@@ -37,17 +37,70 @@
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">UAT:</label>
-					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style2" ng-attr-style="width:{{UAT_messages_max ? 100*UAT_messages_last_minute / UAT_messages_max : 0}}%">{{UAT_messages_last_minute}}</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display" ng-attr-style="background-color: {{uatStyleColor}}; width:{{UAT_messages_max ? 100*UAT_messages_last_minute / UAT_messages_max : 0}}%"></div>
+						<div class="bar_text">{{UAT_messages_last_minute}}</div>
+					</div></span>
 					<span class="col-xs-2 text-right">{{UAT_messages_max}}</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_es}">
 					<span class="col-xs-1"></span>
 					<label class="col-xs-3">1090ES:</label>
-					<span class="col-xs-6"><div class="bar_container"><div class="bar_display traffic-style1" ng-attr-style="width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;">{{ES_messages_last_minute}}</div></div></span>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display" ng-attr-style="background-color: {{esStyleColor}}; width:{{ES_messages_max ? 100*ES_messages_last_minute / ES_messages_max : 0}}%;"></div>
+						<div class="bar_text">{{ES_messages_last_minute}}</div>
+					</div></span>
 					<span class="col-xs-2 text-right">{{ES_messages_max}}</span>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ais}">
+					<span class="col-xs-1"></span>
+					<label class="col-xs-3">AIS{{AIS_connected ? "" : " (disconnected)"}}:</label>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display" ng-attr-style="background-color: {{aisStyleColor}}; width:{{AIS_messages_max ? 100*AIS_messages_last_minute / AIS_messages_max : 0}}%;"></div>
+						<div class="bar_text">{{AIS_messages_last_minute}}</div>
+					</div></span>
+					<span class="col-xs-2 text-right">{{AIS_messages_max}}</span>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<span class="col-xs-1"></span>
+					<label class="col-xs-3">OGN{{OGN_connected ? "" : " (disconnected)"}}:</label>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display" ng-attr-style="background-color: {{ognStyleColor}}; width:{{OGN_messages_max ? 100*OGN_messages_last_minute / OGN_messages_max : 0}}%;"></div>
+						<div class="bar_text">{{OGN_messages_last_minute}}</div>
+					</div></span>
+					<span class="col-xs-2 text-right">{{OGN_messages_max}}</span>
+				</div>
+				
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<span class="col-xs-1"></span>
+					<label class="col-xs-3">OGN Noise@Gain 50:<br/><sup>Half range for each 6 dB noise</sup></label>
+					<span class="col-xs-6"><div class="bar_container">
+						<div class="bar_display" ng-attr-style="background-color: {{ognStyleColor}}; width:{{(Clamp(OGN_noise_db, 0, 25) / 25.0) * 100}}%; background-color: {{OGN_noise_color}}"></div>
+						<div class="bar_text">{{OGN_noise_db}} dB, range loss: {{OGN_range_loss_factor}}x</div>
+					</div></span>
+					<span class="col-xs-2 text-right">25 dB</span>
 				</div>
 				<div class="row" ng-class="{ 'section_invisible': (!visible_gps && !visible_ahrs && !visible_uat)}">
 					<span class="col-xs-1">&nbsp;</span>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-6">
+						<span><strong>OGN Statistics</strong></span>
+					</div>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-12">
+						<span align="center" class="col-xs-4 row-header">Background Noise@Gain 50</span>
+						<span align="center" class="col-xs-4 row-header">Receiver Gain</span>
+						<span align="center" class="col-xs-4 row-header">RF Spectrogram</span>
+					</div>
+				</div>
+				<div class="row" ng-class="{'section_invisible': !visible_ogn}">
+					<div class="col-sm-12">
+						<span align="center" class="col-xs-4">{{OGN_noise_db}} dB</span>
+						<span align="center" class="col-xs-4">{{OGN_gain_db}} dB</span>
+						<span align="center" class="col-xs-4"><a ng-href="{{OGN_Status_url}}">Download</a></span>
+					</div>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_uat}">
 					<div class="col-sm-6">
@@ -89,7 +142,7 @@
 				<div class="separator"></div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS hardware:</label>
-					<span class="col-xs-6">{{GPS_hardware}} ({{GPS_protocol}})</span>
+					<span class="col-xs-6">{{GPS_hardware}} <a href="http://{{GPS_NetworkRemoteIp}}" ng-show="GPS_hardware=='Network'">{{GPS_NetworkRemoteIp}}</a> ({{GPS_protocol}})</span>
 				</div>
 				<div class="row" ng-class="{'section_invisible': !visible_gps}">
 					<label class="col-xs-6">GPS solution:</label>

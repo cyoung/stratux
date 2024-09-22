@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width="30" height="30" fill-rule="evenodd" stroke-linejoin="round" stroke-width="28.222" preserveAspectRatio="xMidYMid" version="1.2" viewBox="0 0 16471 16471" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export">
+ <defs class="ClipPathGroup">
+  <clipPath id="a">
+   <rect width="16471" height="16471"/>
+  </clipPath>
+  
+ </defs>
+ <defs class="TextShapeIndex">
+  
+ </defs>
+ <defs class="EmbeddedBulletChars">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ </defs>
+ 
+ 
+  <g class="Master_Slide">
+   
+   
+  </g>
+ 
+ <g class="SlideGroup">
+  
+   
+    <g class="Slide" clip-path="url(#a)">
+     <g class="Page">
+      <g class="Group">
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="6399" y="2134" width="3674" height="7892" fill="none"/>
+         <path d="m8236 2135c1039 0 1836 1710 1836 3945 0 2236-796 3944-1836 3944-1041 0-1837-1708-1837-3944 0-2235 795-3945 1837-3945z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.LineShape">
+        <g fill="none">
+         <rect class="BoundingBox" x="368" y="6242" width="15736" height="602"/>
+         <path d="m669 6542 15133 1" stroke="#fff" stroke-linejoin="round" stroke-width="600"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.ClosedBezierShape">
+        <g>
+         <rect class="BoundingBox" x="5725" y="13729" width="5021" height="1031" fill="none"/>
+         <path d="m8235 13729c1421 0 2510 223 2510 514s-1088 515-2510 515-2510-224-2510-515 1088-514 2510-514z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.PolyPolygonShape">
+        <g>
+         <rect class="BoundingBox" x="7670" y="9746" width="1132" height="5534" fill="none"/>
+         <path d="m8238 15278h-567v-5531h1129v5531h-562z" fill="#fff"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.LineShape">
+        <g fill="none">
+         <rect class="BoundingBox" x="2586" y="892" width="11303" height="11303"/>
+         <path d="m2886 11893 10701-10700" stroke="#fff" stroke-linejoin="round" stroke-width="600"/>
+        </g>
+       </g>
+       <g class="com.sun.star.drawing.LineShape">
+        <g fill="none">
+         <rect class="BoundingBox" x="2585" y="893" width="11303" height="11303"/>
+         <path d="m2886 1193 10700 10701" stroke="#fff" stroke-linejoin="round" stroke-width="600"/>
+        </g>
+       </g>
+      </g>
+     </g>
+    </g>
+   
+  
+ </g>
+</svg>

@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch rPI/x86",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/gen_gdl90",
+            "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
+            "args": ["-log_dir", "/tmp/", "-logtostderr"],//, "-trace", "/var/log/stratux/2023-05-17T13:17:29Z_trace.txt.gz", "-traceSpeed", "1", "-traceSkip", "20"],
+            //"args": ["-log_dir", "/tmp/", "-logtostderr", "-replay", "-uatlog",  "test-data/cyoung-09062015-noproblem-stratux-uat.log"],
+            "preLaunchTask": "Build",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Launch Fancontrol",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "cwd": "${workspaceRoot}",
+            "program": "${workspaceRoot}/fancontrol",
+            "env": {"CGO_CFLAGS_ALLOW": "-L${workspaceRoot}"},
+            //"args": ["-log_dir", "/tmp/", "-logtostderr", "-replay", "-uatlog",  "test-data/cyoung-09062015-noproblem-stratux-uat.log"],
+            "preLaunchTask": "Build Fancontrol",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ]
+}

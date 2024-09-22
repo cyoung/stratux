@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -5,11 +6,12 @@ package main
 import (
 	"errors"
 	//	"fmt"
-	"../godump978"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/b3nn0/stratux/godump978"
 
 	rtl "github.com/jpoirier/gortlsdr"
 	// "unsafe"

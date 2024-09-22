@@ -3,16 +3,17 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/stratux/serial"
 	"log"
 	"os"
 	"time"
 	"unsafe"
+
+	"github.com/stratux/serial"
 )
 
 /*
 
-#cgo LDFLAGS: -ldump978 -lm
+#cgo LDFLAGS: -Wl,-rpath=${SRCDIR}/.. -Wl,-rpath=/opt/stratux/lib -L${SRCDIR}/.. -ldump978 -lm
 
 #include <stdint.h>
 #include "../dump978/fec.h"
@@ -23,9 +24,12 @@ import "C"
 var radioSerialConfig *serial.Config
 var radioSerialPort *serial.Port
 
-func initUATRadioSerial() error {
+func initUATRadioSerial(isTraceReplayMode bool) error {
 	// Init for FEC routines.
 	C.init_fec()
+	if isTraceReplayMode {
+		return nil
+	}
 	go func() {
 		watchTicker := time.NewTicker(1 * time.Second)
 		for {
@@ -112,6 +116,7 @@ func radioSerialPortReader(serialPort *serial.Port) {
 */
 
 func processRadioMessage(msg []byte) {
+	TraceLog.Record(CONTEXT_LOWPOWERUAT, msg)
 	// RSSI and message timestamp are prepended to the actual packet.
 
 	// RSSI

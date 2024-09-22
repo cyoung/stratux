@@ -8,23 +8,32 @@ import (
 	"strings"
 	"time"
 
-	"../goflying/ahrs"
-	"../goflying/ahrsweb"
-	"../sensors"
+	"github.com/b3nn0/stratux/sensors/bmp388"
+
+	"github.com/b3nn0/goflying/ahrs"
+	"github.com/b3nn0/goflying/ahrsweb"
+	"github.com/b3nn0/stratux/common"
+	"github.com/b3nn0/stratux/sensors"
 	"github.com/kidoman/embd"
 	_ "github.com/kidoman/embd/host/all"
+	"github.com/ricochet2200/go-disk-usage/du"
 )
 
 const (
-	numRetries uint8 = 5
+	numRetries uint8 = 50
 	calCLimit        = 0.15
 	calDLimit        = 10.0
 
 	// WHO_AM_I values to differentiate between the different IMUs.
-	MPUREG_WHO_AM_I     = 0x75
-	MPUREG_WHO_AM_I_VAL = 0x71 // Expected value.
-	ICMREG_WHO_AM_I     = 0x00
-	ICMREG_WHO_AM_I_VAL = 0xEA // Expected value.
+	MPUREG_WHO_AM_I             = 0x75
+	MPUREG_WHO_AM_I_VAL         = 0x71 // Expected value.
+	MPUREG_WHO_AM_I_VAL_9255    = 0x73 // Expected value for MPU9255, seems to be compatible to 9250
+	MPUREG_WHO_AM_I_VAL_6500    = 0x70 // Expected value for MPU6500, seems to be same as 9250 but without magnetometer
+	MPUREG_WHO_AM_I_VAL_60X0    = 0x68 // Expected value for MPU6000 and MPU6050 (and MPU9150)
+	MPUREG_WHO_AM_I_VAL_UNKNOWN = 0x75 // Unknown MPU found on recent batch of gy91 boards see discussion 182
+	ICMREG_WHO_AM_I             = 0x00
+	ICMREG_WHO_AM_I_VAL         = 0xEA             // Expected value.
+	PRESSURE_WHO_AM_I           = bmp388.RegChipId // Expected address for bosch pressure sensors bmpXXX.
 )
 
 var (
@@ -38,8 +47,16 @@ var (
 )
 
 func initI2CSensors() {
+	defer func() {
+		if err := recover(); err != nil {
+			// still want to update status in case external GPS delivers pressure data (OGN Tracker, SoftRF with BMP)
+			// This usually happens on X86, where there is no embd supported I2C
+			fmt.Println("Panic during i2c initialization!")
+			go updateAHRSStatus()
+		}
+	}()
+	embd.SetHost(embd.HostRPi, 3)
 	i2cbus = embd.NewI2CBus(1)
-
 	go pollSensors()
 	go sensorAttitudeSender()
 	go updateAHRSStatus()
@@ -64,13 +81,31 @@ func pollSensors() {
 }
 
 func initPressureSensor() (ok bool) {
-	bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
-	if err == nil {
-		myPressureReader = bmp
-		return true
-	}
 
-	//TODO westphae: make bmp180.go to fit bmp interface
+	v, err := i2cbus.ReadByteFromReg(0x76, PRESSURE_WHO_AM_I)
+
+	if err != nil {
+		v, err = i2cbus.ReadByteFromReg(0x77, PRESSURE_WHO_AM_I)
+	}
+	if err != nil {
+		log.Printf("Error identifying BMP: %s\n", err.Error())
+		return false
+	}
+	if v == bmp388.ChipId || v == bmp388.ChipId390 {
+		log.Printf("BMP-388 detected")
+		bmp, err := sensors.NewBMP388(&i2cbus)
+		if err == nil {
+			myPressureReader = bmp
+			return true
+		}
+	} else {
+		log.Printf("using BMP-280")
+		bmp, err := sensors.NewBMP280(&i2cbus, 100*time.Millisecond)
+		if err == nil {
+			myPressureReader = bmp
+			return true
+		}
+	}
 
 	return false
 }
@@ -99,33 +134,47 @@ func tempAndPressureSender() {
 			addSingleSystemErrorf("pressure-sensor-temp-read", "AHRS Error: Couldn't read temperature from sensor: %s", err)
 		}
 		press, err = myPressureReader.Pressure()
-		if err != nil {
-			addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
+		if press == 0 || err != nil {
+			if err != nil {
+				addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", err)
+			}
 			failNum++
 			if failNum > numRetries {
 				//				log.Printf("AHRS Error: Couldn't read pressure from sensor %d times, closing BMP: %s", failNum, err)
 				myPressureReader.Close()
 				globalStatus.BMPConnected = false // Try reconnecting a little later
+				errStr := "Pressure is 0"
+				if err != nil {
+					errStr = err.Error()
+				}
+				addSingleSystemErrorf("pressure-sensor-pressure-read", "AHRS Error: Couldn't read pressure from sensor: %s", errStr)
 				break
 			}
+			continue
+		}
+
+		altitude = common.CalcAltitude(press, globalSettings.AltitudeOffset)
+		if altitude > 70000 || (isGPSValid() && mySituation.GPSAltitudeMSL != 0 && math.Abs(float64(mySituation.GPSAltitudeMSL)-altitude) > 5000) {
+			addSingleSystemErrorf("BaroBroken", "Barometric altitude %d' out of expected range. Ignoring. Pressure sensor potentially broken.", int32(altitude))
+			continue
 		}
 
 		// Update the Situation data.
 		mySituation.muBaro.Lock()
 		mySituation.BaroLastMeasurementTime = stratuxClock.Time
 		mySituation.BaroTemperature = float32(temp)
-		altitude = CalcAltitude(press)
 		mySituation.BaroPressureAltitude = float32(altitude)
 		if altLast < -2000 {
 			altLast = altitude // Initialize
 		}
 		// Assuming timer is reasonably accurate, use a regular ewma
 		mySituation.BaroVerticalSpeed = u*mySituation.BaroVerticalSpeed + (1-u)*float32(altitude-altLast)/(float32(dt)/60)
+		mySituation.BaroSourceType = BARO_TYPE_BMP280
 		mySituation.muBaro.Unlock()
 		altLast = altitude
 	}
-	mySituation.BaroPressureAltitude = 99999
-	mySituation.BaroVerticalSpeed = 99999
+	//mySituation.BaroPressureAltitude = 99999
+	//mySituation.BaroVerticalSpeed = 99999
 }
 
 func initIMU() (ok bool) {
@@ -148,8 +197,10 @@ func initIMU() (ok bool) {
 			myIMUReader = imu
 			return true
 		}
-	} else if v2 == MPUREG_WHO_AM_I_VAL {
-		log.Println("MPU-9250 detected.")
+	} else if v2 == MPUREG_WHO_AM_I_VAL || v2 == MPUREG_WHO_AM_I_VAL_9255 || v2 == MPUREG_WHO_AM_I_VAL_6500 ||
+		v2 == MPUREG_WHO_AM_I_VAL_60X0 || v2 == MPUREG_WHO_AM_I_VAL_UNKNOWN {
+
+		log.Printf("MPU detected (%02x).\n", v2)
 		imu, err := sensors.NewMPU9250(&i2cbus)
 		if err == nil {
 			myIMUReader = imu
@@ -191,8 +242,8 @@ func sensorAttitudeSender() {
 		// Set sensor gyro calibrations
 		if c, d := &globalSettings.C, &globalSettings.D; d[0]*d[0]+d[1]*d[1]+d[2]*d[2] > 0 {
 			s.SetCalibrations(c, d)
-			log.Printf("AHRS Info: IMU Calibrations read from settings: accel %6f %6f %6f; gyro %6f %6f %6f\n",
-				c[0], c[1], c[2], d[0], d[1], d[2])
+			// log.Printf("AHRS Info: IMU Calibrations read from settings: accel %6f %6f %6f; gyro %6f %6f %6f\n",
+			//	c[0], c[1], c[2], d[0], d[1], d[2])
 		} else {
 			// Do an initial calibration
 			select { // Don't block if cal isn't receiving: only need one calibration in the queue at a time.
@@ -340,6 +391,8 @@ func sensorAttitudeSender() {
 			mySituation.muAttitude.Unlock()
 
 			makeAHRSGDL90Report() // Send whether or not valid - the function will invalidate the values as appropriate
+			makeAHRSSimReport()
+			makeAHRSLevilReport()
 
 			// Send to AHRS debugging server.
 			if ahrswebListener != nil {
@@ -350,7 +403,7 @@ func sensorAttitudeSender() {
 			}
 
 			// Log it to csv for later analysis.
-			if globalSettings.AHRSLog && usage.Usage() < 0.95 {
+			if globalSettings.AHRSLog && du.NewDiskUsage("/").Usage() < 0.95 {
 				if analysisLogger == nil {
 					analysisFilename := fmt.Sprintf("sensors_%s.csv", time.Now().Format("20060102_150405"))
 					logMap = s.GetLogMap()
@@ -474,7 +527,7 @@ func updateAHRSStatus() {
 			msg += 1 << 1
 		}
 		// BMP is being used
-		if globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected {
+		if (globalSettings.BMP_Sensor_Enabled && globalStatus.BMPConnected) || isTempPressValid() {
 			msg += 1 << 2
 		}
 		// IMU is doing a calibration

@@ -1,15 +1,16 @@
 package main
 
 import (
-	"../uatparse"
 	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/gansidui/geohash"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/b3nn0/stratux/uatparse"
+	"github.com/gansidui/geohash"
 )
 
 type UATFrame struct {

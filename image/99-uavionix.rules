@@ -4,3 +4,5 @@ ATTRS{idProduct}=="74f0", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_
 # uAvionix Ping Raw
 ATTRS{idProduct}=="74f1", ATTRS{idVendor}=="0403", RUN+="/sbin/modprobe -q ftdi_sio" RUN+="/bin/sh -c 'echo 0403 74f1 > /sys/bus/usb-serial/drivers/ftdi_sio/new_id'", OWNER="root", MODE="0666", SYMLINK+="ping"
 
+# uAvionix PingUSB MavLink Device (ID 0403:6015 Future Technology Devices International, Ltd Bridge(I2C/SPI/UART/FIFO))
+SUBSYSTEM=="tty", SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="pingusb"

@@ -1,14 +1,23 @@
-# RPi /boot/config.txt
+# RPi /boot/firmware/config.txt
 
 dtparam=audio=on
 max_usb_current=1
+usb_max_current_enable=1
 dtparam=i2c_arm=on
 dtparam=i2c1=on
 dtparam=i2c1_baudrate=400000
 dtparam=i2c_arm_baudrate=400000
+dtparam=spi=on
 
 # move RPi3 Bluetooth off of hardware UART to free up connection for GPS
-dtoverlay=pi3-miniuart-bt
+#dtoverlay=disable-bt
+enable_uart=1
+
+# i2c serial support
+dtoverlay=sc16is752-i2c,int_pin=4,addr=0x4d,xtal=1843900
+
+# Otherwise TTGO T-Motion will cause kernel panic on bookworm
+dtoverlay=dwc2,dr_mode=host
 
 # disable default (mmc0) behavior on the ACT LED.
 dtparam=act_led_trigger=none
@@ -18,3 +27,5 @@ dtparam=act_led_activelow=off
 sdram_freq=450
 core_freq=450
 arm_freq=900
+
+arm_64bit=1

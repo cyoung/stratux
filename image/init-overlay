@@ -1,0 +1,242 @@
+#!/bin/sh
+
+# Try more ways how to activate filesystem support
+#  i.e. check for compiled in option or if modprobe or insmod suceed
+insmodule()
+{
+    if ! /bin/grep -q $1 /proc/filesystems ; then
+        /sbin/modprobe $1 >/dev/null 2>/dev/null
+        if ! /bin/grep -q $1 /proc/filesystems ; then
+            if [ -d "${rootmnt}/lib/modules/$(uname -r)/extra/$1" ] ; then
+                /sbin/insmod "${rootmnt}/lib/modules/$(uname -r)/extra/$1/$1.ko"
+                if [ $? -eq 0 ]  ; then
+                    echo $1
+                fi
+            fi
+            if [ -d "${rootmnt}/lib/modules/$(uname -r)/kernel/fs/$1" ] ; then
+                /sbin/insmod "${rootmnt}/lib/modules/$(uname -r)/kernel/fs/$1/$1.ko"
+                if [ $? -eq 0 ]  ; then
+                    echo $1
+                fi
+            fi
+        else
+            echo $1
+        fi
+    else
+        echo $1
+    fi
+}
+
+# Make sure partition is expanded on first boot..
+if [ -f /var/grow_root_part ]; then
+    mount -n -t proc proc /proc
+    mount -n -t sysfs sys /sys
+    sleep 1 # otherwise proc/sys not yet ready?
+
+    ROOT_PART_DEV=$(findmnt / -no source)
+    ROOT_DEV_NAME=$(lsblk -no pkname  "$ROOT_PART_DEV")
+    ROOT_DEV="/dev/${ROOT_DEV_NAME}"
+    
+    echo "Growing root partition..."
+    parted $ROOT_DEV resizepart 2 100%
+    partprobe $ROOT_DEV
+
+    echo "Growing root fs..."
+    mount -o remount,rw /
+    resize2fs $ROOT_PART_DEV
+
+    rm /var/grow_root_part
+
+    #mount -o remount,ro /
+    umount /sys
+    umount /proc
+    sync
+    reboot -f
+    sleep 5
+    exit 0
+fi
+
+
+if [ -e "/overlay/disable" ] ; then
+    echo "Overlay disabled"
+    # Stratux: make sure we always have something usable in /overlay/robase, so we can upload update .sh files there
+    mkdir -p /overlay/robase
+    mount -n -o bind / /overlay/robase
+    exec /sbin/init
+fi
+
+if [ -e /sbin/init-overlay-get-mode ] ; then
+    . /sbin/init-overlay-get-mode
+fi
+
+if [ "$OVERLAY" = disabled ] ; then
+    echo "Overlay disabled"
+    exec /sbin/init
+fi
+
+# If no specific overlay support is selected, try all known options
+if [ -z "$OVERLAY" ] ; then
+    OVERLAY="overlay overlayfs aufs unionfs"
+fi
+
+if [ -z "$OVERLAY_RW_LAYER_DIR" ] ; then
+    OVERLAY_RW_LAYER_DIR=/overlay-rw-layer
+fi
+
+# Select specific kind of overlay RW layer
+# [tmpfs, persistent, persistent-clear, persistent-rename]
+if [ -z "$OVERLAY_RW_LAYER" ] ; then
+    if [ -d "$OVERLAY_RW_LAYER_DIR" ] ; then
+        OVERLAY_RW_LAYER="persistent"
+    else
+        OVERLAY_RW_LAYER="tmpfs"
+    fi
+fi
+
+if [ "$OVERLAY_RW_LAYER" = persistent-clear ] ; then
+    OVERLAY_RW_LAYER="persistent"
+    OVERLAY_RW_LAYER_CLEAR=yes
+fi
+
+if [ "$OVERLAY_RW_LAYER" = persistent-move ] ; then
+    OVERLAY_RW_LAYER="persistent"
+    OVERLAY_RW_LAYER_MOVE=yes
+fi
+
+if [ ! -e /proc/filesystems ] ; then
+    /bin/mount -n -t proc -o "nodev,noexec,nosuid" proc /proc
+    proc_local_mount=y
+fi
+
+if grep -q '\( \|^\)overlay=disable\( \|$\)' /proc/cmdline ; then
+    echo "Overlay disabled by command line argument"
+    if [ -n "$proc_local_mount" ] ; then
+        /bin/umount -n /proc
+    fi
+    exec /sbin/init
+fi
+
+for i in $OVERLAY
+do
+    OVERLAY=$(insmodule $i)
+    [ "$OVERLAY" = "$i" ] && break
+done
+
+# For initrd for NFS diskless RO root
+#ovr_rwdata=/tmp/unirw
+#ovr_robase=${rootmnt}
+#ovr_combined=${rootmnt}
+#ovr_for_nfs=nfs
+
+# Remeber list of mountpoints to move under new root
+mounts_to_move="$( \
+  /bin/sed -n -e 's/^[^ ]* \([^ ]*\) .*$/\1/p' /proc/mounts |
+  /bin/sed -n -e '/^\/$/d' -e '/^\/overlay/d' \
+              -e '/^\/dev\/pts/d' -e 's/^\/\(.*\)$/\1/p' )"
+
+# For local system rearranged from init
+/bin/mount -n -t tmpfs none /overlay
+/bin/mkdir -p /overlay/rwdata
+/bin/mkdir -p /overlay/robase
+/bin/mkdir -p /overlay/combined
+if [ "$OVERLAY_RW_LAYER" = "persistent" ] ; then
+  echo "Remounting root rw due to "$OVERLAY_RW_LAYER_DIR""
+  mount -n -o remount,rw,noatime /
+fi
+/bin/mount --bind / /overlay/robase
+
+ovr_rwdata=/overlay/rwdata
+ovr_robase=/overlay/robase
+ovr_combined=/overlay/combined
+
+# Prepare filesystem for local data storage...
+/bin/mkdir -p ${ovr_rwdata}
+
+if [ "$OVERLAY_RW_LAYER" = "persistent" ] ; then
+    if [ "$OVERLAY_RW_LAYER_MOVE" = yes ] ; then
+        rm -rf "$OVERLAY_RW_LAYER_DIR"-bak
+        mv "$OVERLAY_RW_LAYER_DIR" "$OVERLAY_RW_LAYER_DIR"-bak
+    fi
+    if [ "$OVERLAY_RW_LAYER_CLEAR" = yes ] ; then
+        rm -rf "$OVERLAY_RW_LAYER_DIR"-bak
+        rm -rf "$OVERLAY_RW_LAYER_DIR"
+    fi
+    mkdir -p "$OVERLAY_RW_LAYER_DIR"
+    echo "Attempt to use bind mount "$OVERLAY_RW_LAYER_DIR" for overlay rwdata"
+    mount -n --bind /overlay/robase/"$OVERLAY_RW_LAYER_DIR" ${ovr_rwdata}
+    echo "After bind mount "$OVERLAY_RW_LAYER_DIR" for overlay rwdata"
+else
+    # Stratux: max overlay size=250m
+    /bin/mount -o size=250m -n -t tmpfs none ${ovr_rwdata}
+fi
+
+case "$OVERLAY" in
+    overlay) echo "Remounting root as overlay ..."
+        mkdir -p ${ovr_rwdata}/data
+        mkdir -p ${ovr_rwdata}/work
+        /bin/mount -n -t overlay -o upperdir=${ovr_rwdata}/data,workdir=${ovr_rwdata}/work,lowerdir=${ovr_robase} overlay ${ovr_combined}
+        ;;
+    overlayfs) echo "Remounting root as overlayfs ..."
+        /bin/mount -n -t overlayfs -o upperdir=${ovr_rwdata},lowerdir=${ovr_robase} overlayfs ${ovr_combined}
+        ;;
+    aufs) echo "Remounting root as aufs ..."
+        /bin/mount -n -t aufs -o dirs=${ovr_rwdata}=rw:${ovr_robase}=${ovr_for_nfs}ro aufs ${ovr_combined}
+        ;;
+    unionfs) echo "Remounting root as unionfs ..."
+        /bin/mount -n -t unionfs -o dirs=${ovr_rwdata}=rw:${ovr_robase}=ro unionfs ${ovr_combined}
+        ;;
+    *) panic "Actual initrd.img or system has not a module for overlay filesystem"
+        ;;
+esac
+
+# Move rwdata mount under new prepared filesystem to allow access
+# to local rwdata in case of tmpsfs
+/bin/mkdir -p ${ovr_combined}/overlay/rwdata
+/bin/mount -n --move ${ovr_rwdata} ${ovr_combined}/overlay/rwdata
+/bin/mkdir -p ${ovr_combined}/overlay/robase
+/bin/mount -n --move ${ovr_robase} ${ovr_combined}/overlay/robase
+/bin/mkdir -p ${ovr_combined}/overlay/pivot
+chmod 755 ${ovr_combined} # Disable rw access for non-root users
+
+/bin/touch ${ovr_combined}/fastboot
+
+# Move already mounted filesystems to target location
+for mtm in ${mounts_to_move} ; do
+    if [ -e "/${mtm}" ] ; then
+        if [ -n "$proc_local_mount" -a "${mtm}" = "proc" ] ; then
+            echo "skipping temporarily mounted /proc"
+        else
+            /bin/mkdir -p "${ovr_combined}/${mtm}"
+            /bin/mount -n --move "/${mtm}" "${ovr_combined}/${mtm}"
+        fi
+    fi
+done
+
+# Create standard mount points for virtual filesystems
+/bin/mkdir -p ${ovr_combined}/dev
+/bin/mkdir -p ${ovr_combined}/proc
+/bin/mkdir -p ${ovr_combined}/sys
+/bin/mkdir -p ${ovr_combined}/tmp
+/bin/mkdir -p ${ovr_combined}/run
+if [ ! -L ${ovr_combined}/var/lock ] ; then
+    /bin/mkdir -p ${ovr_combined}/var/lock
+fi
+
+if [ -n "$proc_local_mount" ] ; then
+    /bin/umount -n /proc
+fi
+
+unset mounts_to_move mtm proc_local_mount
+
+cd ${ovr_combined}
+
+echo "Ready to proceed by pivot_root"
+#sleep 5
+#/bin/sh
+
+/sbin/pivot_root . overlay/pivot
+
+# Stratux: remove old logs from the overlay so that logrotate doesn't start to rotate and fill up the overlay
+rm -r /var/log/*
+
+exec /usr/sbin/chroot . sbin/init

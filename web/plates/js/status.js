@@ -1,8 +1,8 @@
 angular.module('appControllers').controller('StatusCtrl', StatusCtrl); // get the main module contollers set
-StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval']; // Inject my dependencies
+StatusCtrl.$inject = ['$rootScope', '$scope', '$state', '$http', '$interval', 'craftService']; // Inject my dependencies
 
 // create our controller function with all necessary logic
-function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
+function StatusCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 
 	$scope.$parent.helppage = 'plates/status-help.html';
 
@@ -37,7 +37,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		};
 
 		socket.onmessage = function (msg) {
-			console.log('Received status update.')
+			//console.log('Received status update.')
 
 			var status = JSON.parse(msg.data)
 			// Update Status
@@ -50,10 +50,29 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.UAT_messages_max = status.UAT_messages_max;
 			$scope.ES_messages_last_minute = status.ES_messages_last_minute;
 			$scope.ES_messages_max = status.ES_messages_max;
+			$scope.OGN_messages_last_minute = status.OGN_messages_last_minute;
+			$scope.OGN_messages_max = status.OGN_messages_max;
+			$scope.OGN_connected = status.OGN_connected;
+			$scope.AIS_messages_last_minute = status.AIS_messages_last_minute;
+			$scope.AIS_messages_max = status.AIS_messages_max;
+			$scope.AIS_connected = status.AIS_connected;
 			$scope.GPS_satellites_locked = status.GPS_satellites_locked;
 			$scope.GPS_satellites_tracked = status.GPS_satellites_tracked;
 			$scope.GPS_satellites_seen = status.GPS_satellites_seen;
 			$scope.GPS_solution = status.GPS_solution;
+			$scope.OGN_noise_db = status.OGN_noise_db;
+			$scope.OGN_gain_db = status.OGN_gain_db;
+			$scope.OGN_Status_url = "http://" + window.location.hostname + ":8082/rf-spectro.jpg";
+
+			$scope.OGN_range_loss_factor = Math.pow(10, 0.05 * $scope.OGN_noise_db).toFixed(2)
+
+			$scope.OGN_noise_color = "red";
+			if ($scope.OGN_noise_db <= 6)
+				$scope.OGN_noise_color = "green";
+			else if ($scope.OGN_noise_db < 12)
+				$scope.OGN_noise_color = "#fc0";
+			else if ($scope.OGN_noise_db < 18)
+				$scope.OGN_noise_color = "orange";
 
 			switch(status.GPS_solution) {
 				case "Disconnected":
@@ -67,42 +86,62 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
 			var tempGpsHardwareString = "Not installed";
 			switch(gpsHardwareCode) {
+				// Keep in mind that this must be in sync with the enumeration in gen_gdl90.go
 				case 1:
-					tempGpsHardwareString = "Serial port";
+					tempGpsHardwareString = "Generic GPS device";
 					break;
 				case 2:
 					tempGpsHardwareString = "Prolific USB-serial bridge";
 					break;
-				case 6:
-					tempGpsHardwareString = "USB u-blox 6 GPS receiver";
+				case 3:
+					tempGpsHardwareString = "OGN Tracker";
+					break;
+				case 4:
+					tempGpsHardwareString = "generic u-blox device";
+					break;
+				case 5:
+					tempGpsHardwareString = "u-blox 10 GNSS receiver";
 					break;
 				case 7:
-					tempGpsHardwareString = "USB u-blox 7 GNSS receiver";
+					tempGpsHardwareString = "u-blox 6 or 7 GNSS receiver";
 					break;
 				case 8:
-					tempGpsHardwareString = "USB u-blox 8 GNSS receiver";
+					tempGpsHardwareString = "u-blox 8 GNSS receiver";
+					break;
+				case 9:
+					tempGpsHardwareString = "u-blox 9 GNSS receiver";
+					break;
+				case 10:
+					tempGpsHardwareString = "USB/Serial IN";
+					break;
+				case 11:
+					tempGpsHardwareString = "SoftRF Dongle";
+					break;
+				case 12:
+					tempGpsHardwareString = "Network";
+					break;
+				case 15:
+					tempGpsHardwareString = "GxAirCom";
 					break;
 				default:
 					tempGpsHardwareString = "Not installed";
 			}
 			$scope.GPS_hardware = tempGpsHardwareString;
+			$scope.GPS_NetworkRemoteIp = status.GPS_NetworkRemoteIp;
 			var gpsProtocol = (status.GPS_detected_type >> 4);
 			var tempGpsProtocolString = "Not communicating";
 			switch(gpsProtocol) {
 				case 1:
 					tempGpsProtocolString = "NMEA protocol";
 					break;
-				case 3:
-					tempGpsProtocolString = "NMEA-UBX protocol";
-					break;
 				default:
 					tempGpsProtocolString = "Not communicating";
 			}
 			$scope.GPS_protocol = tempGpsProtocolString;
-			
+
 			var MiBFree = status.DiskBytesFree/1048576;
 			$scope.DiskSpace = MiBFree.toFixed(1);
-			
+
 			$scope.UAT_METAR_total = status.UAT_METAR_total;
 			$scope.UAT_TAF_total = status.UAT_TAF_total;
 			$scope.UAT_NEXRAD_total = status.UAT_NEXRAD_total;
@@ -131,7 +170,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 				/* boardtemp is celcius to tenths */
 				$scope.CPUTemp = String(boardtemp.toFixed(1) + '°C / ' + ((boardtemp * 9 / 5) + 32.0).toFixed(1) + '°F');
 				$scope.CPUTempMin = String(status.CPUTempMin.toFixed(1)) + '°C';
-				$scope.CPUTempMax = String(status.CPUTempMax.toFixed(1)) + '°C';				
+				$scope.CPUTempMax = String(status.CPUTempMax.toFixed(1)) + '°C';
 			} else {
 				// $('#CPUTemp').text('unavailable');
 			}
@@ -145,6 +184,11 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		$scope.visible_es = true;
 		$scope.visible_gps = true;
 
+		$scope.esStyleColor = craftService.getTrafficSourceColor(1);
+		$scope.uatStyleColor = craftService.getTrafficSourceColor(2);
+		$scope.ognStyleColor = craftService.getTrafficSourceColor(4);
+		$scope.aisStyleColor = craftService.getTrafficSourceColor(5);
+
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_SETTINGS_GET).
 		then(function (response) {
@@ -152,6 +196,8 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 			$scope.DeveloperMode = settings.DeveloperMode;
 			$scope.visible_uat = settings.UAT_Enabled;
 			$scope.visible_es = settings.ES_Enabled;
+			$scope.visible_ogn = settings.OGN_Enabled;
+			$scope.visible_ais = settings.AIS_Enabled;
 			$scope.visible_ping = settings.Ping_Enabled;
 			if (settings.Ping_Enabled) {
 				$scope.visible_uat = true;
@@ -164,6 +210,10 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 	};
 
 	function getTowers() {
+		// Homepage status polling towers only if they are active
+		if ($scope.visible_uat===undefined || $scope.visible_uat==false) {
+			return;
+		}
 		// Simple GET request example (note: responce is asynchronous)
 		$http.get(URL_TOWERS_GET).
 		then(function (response) {
@@ -190,13 +240,13 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
     var clicks = 0;
     var clickSeconds = 0;
     var DeveloperModeClick = 0;
-    
+
     var clickInterval = $interval(function () {
         if ((clickSeconds >= 3))
             clicks=0;
         clickSeconds++;
     }, 1000);
-    
+
 	$state.get('home').onEnter = function () {
 		// everything gets handled correctly by the controller
 	};
@@ -207,7 +257,7 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
 		}
 		$interval.cancel(updateTowers);
 	};
-    
+
     $scope.VersionClick = function() {
         if (clicks==0)
         {
@@ -223,7 +273,13 @@ function StatusCtrl($rootScope, $scope, $state, $http, $interval) {
             location.reload();
         }
     }
-    
+
+	$scope.Clamp = function(num, min, max) {
+		if (num < min) return min;
+		if (num > max) return max;
+		return num;
+	}
+
     $scope.GetDeveloperModeClick = function() {
         return DeveloperModeClick;
     }

@@ -180,32 +180,8 @@
 	color: white;
 }
 
-.traffic-style1,
-.traffic-style10,
-.traffic-style11 {
+.traffic-style {
 	color: #000000;
-	background-color: cornflowerblue;
-}
-
-.traffic-style12,
-.traffic-style13,
-.traffic-style14 {
-	color: #000000;
-	background-color: skyblue;
-}
-
-.traffic-style2,
-.traffic-style20,
-.traffic-style21 {
-	color: #000000;
-	background-color: darkkhaki
-}
-
-.traffic-style22,
-.traffic-style23,
-.traffic-style24 {
-	color: #000000;
-	background-color: khaki
 }
 
 .icon-red {
@@ -233,21 +209,34 @@
 }
 
 .bar_container {
-	display: inline-block;
+	display: grid;
 	border: 1px solid #cccccc;
 	width: 100%;
-	border-radius: 2px;
-	font-size: 0.75em;
+	border-radius: 3px;
+	overflow: hidden;
+}
+
+.bar_container > * {
+    grid-row: 1;
+    grid-column: 1;
 }
 
 .bar_display {
-	padding: 1px 2px 1px 3px;
+	white-space: nowrap;
+	z-index: 1;
+}
+
+.bar_text {
+	font-size: 1em;
+	color: white;
+	mix-blend-mode: difference;
+	z-index: 2;
 }
 
 .fake-btn {
 	background-color:#ccc;
 	margin-bottom:0;
-	font-weight:400; 
+	font-weight:400;
 	text-align:center;
 	vertical-align:middle;
 	cursor:pointer;
@@ -386,8 +375,11 @@ input[type="number_format"] {
 }
 
 .control-label {
-	line-height: 28px;
-	margin-bottom: 4px;
+	line-height: 1;
+	height: 28px;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
 }
 
 .switch {

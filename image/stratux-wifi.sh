@@ -7,100 +7,89 @@
 #####	This script is called from /etc/network/interfaces by the line "post-up /usr/sbin/stratux-wifi.sh" under the wlan0 configuration
 #####
 
-# common variables
-DAEMON_USER_PREF=/etc/hostapd/hostapd.user
 
 #Logging Function
 SCRIPT=`basename ${BASH_SOURCE[0]}`
 STX_LOG="/var/log/stratux.log"
 function wLog () {
-       echo "$(date +"%Y/%m/%d %H:%m:%S")  - $SCRIPT - $1" >> ${STX_LOG}
+       echo "$(date +"%Y/%m/%d %H:%M:%S")  - $SCRIPT - $1" >> ${STX_LOG}
 }
 wLog "Running Stratux WiFI Script."
 
-##### Function for setting up new file structure for hostapd settings
-##### Look for hostapd.user and if found do nothing.
-##### If not assume because of previous version and convert to new file structure
+interface=$1 # for dhcp and wpa_supplicant
+mode=$2 # 0=ap, 1=wifi-direct, 2=ap+client
+pin=$3 # wifi-direct pin
 
-function hostapd-upgrade {
-	DAEMON_CONF=/etc/hostapd/hostapd.conf
-	DAEMON_CONF_EDIMAX=/etc/hostapd/hostapd-edimax.conf
-	HOSTAPD_VALUES=('ssid=' 'channel=' 'auth_algs=' 'wpa=' 'wpa_passphrase=' 'wpa_key_mgmt=' 'wpa_pairwise=' 'rsn_pairwise=')
+if [ "$1" == "0" ] || [ "$1" == "1" ] || [ "$1" == "2" ]; then
+	# compatibility to old /etc/network/interfaces before eu027
+        echo "COMPAT MODE"
+	interface="wlan0"
+	mode=$1
+	pin=$2
+fi
 
-    wLog "Moving existing values from $DAEMON_CONF to $DAEMON_USER_PREF if found"
-	for i in "${HOSTAPD_VALUES[@]}"
-	do
-		if grep -q "^$i" $DAEMON_CONF
-        then
-			grep "^$i" $DAEMON_CONF >> $DAEMON_USER_PREF
-			sed -i '/^'"$i"'/d' $DAEMON_CONF
-			sed -i '/^'"$i"'/d' $DAEMON_CONF_EDIMAX
-		fi
-	done
-	sleep 1     #make sure there is time to get the file written before checking for it again
-	# If once the code above runs and there is still no hostapd.user file then something is wrong and we will just create the file with basic settings. 
-	# Any more then this they somebody was messing with things and its not our fault things are this bad
-	wLog "Rechecking if $DAEMON_USER_PREF exists after moving files."
-	if [ ! -f $DAEMON_USER_PREF ]; then
-	    wLog "File not found. Creating default file. "
-		echo "ssid=stratux" > $DAEMON_USER_PREF
-		echo "channel=1" >> $DAEMON_USER_PREF
+echo "interface=${interface},mode=${mode}"
+
+function terminate {
+	# Given a PID file, terminate the process specified
+	if [[ -f $1 ]]; then
+		pid="$(cat $1)"
+		rm $1
+		echo "killing $pid"
+		kill $pid
+		for i in $(seq 10); do
+			# If process exits successfully, we are done
+			echo "checking..."
+			if ! ps -p $pid; then
+				echo "terminated $pid"
+				return
+			fi
+			sleep 0.5
+		done
+		# Didn't exit in 5 secs.. kill it
+		echo "could not kill $pid. Hard kill"
+		kill -9 $pid
+		sleep 1
 	fi
+
 }
-##### End hostapd settings structure function
 
-##### Hostapd Driver check function #####
-function ap-start {
-
+function prepare-start {
 	# Preliminaries. Kill off old services.
-	wLog "Killing Hostapd services "
-    /usr/bin/killall -9 hostapd hostapd-edimax
-    wLog "Stopping DHCP services "
-	/usr/sbin/service isc-dhcp-server stop
+	wLog "Killing wpa_supplicant AP services "
+	terminate /run/wpa_supplicant_ap.pid
+	terminate /run/wpa_supplicant_p2p.pid
 
-	#EDIMAX Mac Addresses from http://www.adminsub.net/mac-address-finder/edimax
-	#for logic check all addresses must be lowercase
-	# 74:da:38 is my MAC on my NANO
-	edimaxMac=(80:1f:02 74:da:38 00:50:fc 00:1f:1f 00:0e:2e 00:00:b4)
+	wLog "Stopping DHCP services "
+	/bin/systemctl stop dnsmasq
+	/usr/bin/killall dnsmasq
+}
 
-	#Assume PI3 settings
-	DAEMON_CONF=/etc/hostapd/hostapd.conf
-	DAEMON_SBIN=/usr/sbin/hostapd
+function ap-start {
+	echo "Starting AP mode on $interface"
 
-	# Location of temporary hostapd.conf built by combining
-	# non-editable /etc/hostapd/hostapd.conf or hostapd-edimax.conf
-	# and the user configurable /etc/hostapd/hostapd.conf
-	DAEMON_TMP=/tmp/hostapd.conf
-
-	#get the first 3 octets of the MAC(XX:XX:XX) at wlan0
-	wlan0mac=$(head -c 8 /sys/class/net/wlan0/address)
-
-	# Is there an Edimax Mac Address at wlan0
-	if [[ ${edimaxMac[*]} =~ "$wlan0mac" ]]; then
-        DAEMON_CONF=/etc/hostapd/hostapd-edimax.conf
-        DAEMON_SBIN=/usr/sbin/hostapd-edimax
-        wLog "Edimax Dongle found at WLAN0. Using Edimad conf files $DAEMON_SBIN : $DAEMON_CONF"
-	fi
-
-	#Make a new hostapd or hostapd-edimax conf file based on logic above
-	cat ${DAEMON_USER_PREF} <(echo) ${DAEMON_CONF} > ${DAEMON_TMP}
-
-	${DAEMON_SBIN} -B ${DAEMON_TMP}
-
+	/sbin/wpa_supplicant -P/run/wpa_supplicant_ap.pid -B -i $interface -c /etc/wpa_supplicant/wpa_supplicant_ap.conf
 	sleep 2
 
 	wLog "Restarting DHCP services"
-
-	/usr/sbin/service isc-dhcp-server start
+	dnsmasq -u dnsmasq --conf-dir=/etc/dnsmasq.d -i $interface
 }
-##### End Hostapd driver check function #####
 
-#Do we need to upgrade the hostapd configuration files
-wLog "Checking if $DAEMON_USER_PREF file exists"
-if [ ! -f $DAEMON_USER_PREF ]; then
-    wLog "File not found. Upgrading to new file structure."
-	hostapd-upgrade
+function wifi-direct-start {
+	echo "Starting wifi direct mode on $interface"
+
+	/sbin/wpa_supplicant -P/run/wpa_supplicant_p2p.pid -B -i $interface -c /etc/wpa_supplicant/wpa_supplicant.conf
+
+	wpa_cli -i $interface p2p_group_add persistent=0 freq=2
+	(while wpa_cli -i p2p-wlan0-0 wps_pin any $pin > /dev/null; do sleep 1; done) & disown
+	ifup p2p-wlan0-0
+
+	dnsmasq -u dnsmasq --conf-dir=/etc/dnsmasq.d -i p2p-wlan0-0
+}
+
+prepare-start
+if [ "$mode" == "1" ]; then
+	wifi-direct-start
+else
+	ap-start
 fi
-
-# function to build /tmp/hostapd.conf and start AP
-ap-start

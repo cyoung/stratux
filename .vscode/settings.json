@@ -1,0 +1,23 @@
+{
+    "go.useLanguageServer": true,
+    "go.lintFlags": [ "--disable-all" ],
+    "go.toolsEnvVars": {
+        "CGO_CFLAGS_ALLOW": "-L${workspaceRoot}",
+    },
+    "go.buildOnSave": "off",
+    
+    "terminal.integrated.env.linux": {
+        "CGO_CFLAGS_ALLOW": "-L${workspaceRoot}",
+    },
+
+    "[go]": {
+        "editor.formatOnSave": false
+    },
+
+    // Use this to make it possible to hide the gen_gdl90 vs fancontrol redeclaration errors..
+    "files.exclude": {
+        "**/.git": true,
+        "ogn/esp-idf/**": true,
+        "test/**": true
+    }
+}

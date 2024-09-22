@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width="30" height="30" fill-rule="evenodd" stroke-linejoin="round" stroke-width="28.222" preserveAspectRatio="xMidYMid" version="1.2" viewBox="0 0 16419 16419" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export">
+ <defs class="ClipPathGroup">
+  <clipPath id="a">
+   <rect width="16419" height="16419"/>
+  </clipPath>
+  
+ </defs>
+ <defs class="TextShapeIndex">
+  
+ </defs>
+ <defs class="EmbeddedBulletChars">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ </defs>
+ 
+ 
+  <g class="Master_Slide">
+   
+   
+  </g>
+ 
+ <g class="SlideGroup">
+  
+   
+    <g class="Slide" clip-path="url(#a)">
+     <g class="Page">
+      <g class="com.sun.star.drawing.PolyPolygonShape">
+       
+        <rect class="BoundingBox" x="666" y="666" width="15088" height="15088" fill="none"/>
+        <path d="m667 15752 7543-15085 7542 15085-7542-5361-7543 5361z" fill="#fff"/>
+        <path d="m667 15752 7543-15085 7542 15085-7542-5361-7543 5361z" fill="none" stroke="#3465a4"/>
+       
+      </g>
+     </g>
+    </g>
+   
+  
+ </g>
+</svg>

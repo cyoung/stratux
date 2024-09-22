@@ -1,12 +1,13 @@
 package main
 
 import (
-	"../uatparse"
 	"bufio"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/b3nn0/stratux/uatparse"
 )
 
 func main() {
