@@ -7,6 +7,8 @@ This branch is no longer maintained. Do not report issues here! Active developme
 
 Current branch: https://github.com/b3nn0/stratux
 
+Current release: https://github.com/b3nn0/stratux/releases
+
 Stratux developer Discord: https://discord.gg/D9NQ6xe4nF
 
 ## History
