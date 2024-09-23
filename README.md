@@ -3,7 +3,7 @@
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/D9NQ6xe4nF)](https://discord.gg/D9NQ6xe4nF)
 
 # Stratux - depreciated branch (as of 2020)
-This branch is no longer maintained. Do not report issues here! Active development is taking place on the [current branch](https://github.com/b3nn0/stratux).
+This branch is no longer maintained. Do not report issues here! Active development is taking place on the [@b3nn0 branch](https://github.com/b3nn0/stratux).
 
 **[Current branch](https://github.com/b3nn0/stratux)**
 
