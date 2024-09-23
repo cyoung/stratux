@@ -1,4 +1,4 @@
-[![stratux version](https://img.shields.io/github/tag/cyoung/stratux.svg?style=flat&label=stratux)](https://github.com/cyoung/stratux/releases)
+[![stratux version](https://img.shields.io/github/tag/cyoung/stratux.svg?style=flat&label=stratux)](https://github.com/b3nn0/stratux/releases)
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)](https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/D9NQ6xe4nF)](https://discord.gg/D9NQ6xe4nF)
 
@@ -10,7 +10,7 @@ Current branch: https://github.com/b3nn0/stratux
 Stratux developer Discord: https://discord.gg/D9NQ6xe4nF
 
 ## History
-Stratux was founded in 2015 by [@cyoung](https://github.com/cyoung) and other developers with the mission of creating an open-source, modular, ADS-B solution using affordable microchips and a Raspberry Pi board. After building the project to include a dual band receiver, GPS, and AHRS [@cyoung](https://github.com/cyoung) moved on to other projects. [Adrian](https://github.com/b3nn0) took the reins as the main developer building out many features for the OpenGliderNetwork (OGN) and other Europe specific enhancements while maintaining the Stratux code base for users around the world.
+Stratux was founded in 2015 by [@cyoung](https://github.com/cyoung) and other developers with the mission of creating an open-source, modular, ADS-B solution using affordable microchips and a Raspberry Pi board. After building the project to include a dual band receiver, GPS, and AHRS [@cyoung](https://github.com/cyoung) moved on to other projects. [@b3nn0](https://github.com/b3nn0) took the reins as the main developer building out many features for the OpenGliderNetwork (OGN) and other Europe specific enhancements while maintaining the Stratux code base for users around the world.
 
 Stratux is still under active development with hardward upgrades, new features, [Reddit](https://www.reddit.com/r/stratux) and [Discord](https://discord.gg/D9NQ6xe4nF) communities. You can find parts, pre-built units, and build guides on the [Stratux website](http://stratux.me). You can also [support the developers](https://www.paypal.com/paypalme/stratuxeu) or reach out to the community with new ideas.
 
