@@ -5,11 +5,11 @@
 # Stratux - depreciated branch (as of 2020)
 This branch is no longer maintained. Do not report issues here! Active development is taking place on the [current branch](https://github.com/b3nn0/stratux).
 
-Current branch: https://github.com/b3nn0/stratux
+**[Current branch](https://github.com/b3nn0/stratux)**
 
-Current release: https://github.com/b3nn0/stratux/releases
+[Current release](https://github.com/b3nn0/stratux/releases)
 
-Stratux developer Discord: https://discord.gg/D9NQ6xe4nF
+[Stratux developer Discord](https://discord.gg/D9NQ6xe4nF)
 
 ## History
 Stratux was founded in 2015 by [@cyoung](https://github.com/cyoung) and other developers with the mission of creating an open-source, modular, ADS-B solution using affordable microchips and a Raspberry Pi board. After building the project to include a dual band receiver, GPS, and AHRS [@cyoung](https://github.com/cyoung) moved on to other projects. [@b3nn0](https://github.com/b3nn0) took the reins as the main developer building out many features for the OpenGliderNetwork (OGN) and other Europe specific enhancements while maintaining the Stratux code base for users around the world.
