@@ -2,7 +2,7 @@
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)](https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/D9NQ6xe4nF)](https://discord.gg/D9NQ6xe4nF)
 
-# Stratux - depreciated branch (as of 2020)
+# Stratux - deprecated branch (as of 2020)
 This branch is no longer maintained. Do not report issues here! Active development is taking place on the [@b3nn0 branch](https://github.com/b3nn0/stratux).
 
 **[Current branch](https://github.com/b3nn0/stratux)**
