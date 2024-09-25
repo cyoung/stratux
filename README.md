@@ -1,4 +1,5 @@
-# Stratux - European edition ![](https://dcbadge.limes.pink/api/server/https://discord.gg/D9NQ6xe4nF)
+# Stratux - European edition [![](https://dcbadge.limes.pink/api/server/D9NQ6xe4nF)](https://discord.gg/D9NQ6xe4nF)
+
 **Users from the US, see here: https://github.com/b3nn0/stratux/wiki/US-configuration**
 
 This is a fork of the original cyoung/Stratux version, incorperating many contributions by the community to create a
