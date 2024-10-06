@@ -15,6 +15,7 @@ order: 4
 * [UAT Radio](https://amzn.to/3ryTn9Z).
 * [AHRS 2.0 and Fan Controller](https://amzn.to/39Kemxs).
 * [Pre-programmed SD Card](https://amzn.to/2FsorkV).
+* [Blank SD Card](https://amzn.to/3ZRqKrY).
 * [White ABS Case for Pi 3B, 3B+](https://amzn.to/43BvArR).
 * [Fan and Heat Sinks](https://amzn.to/46SZevf).
 
@@ -38,7 +39,7 @@ order: 4
 
 ## Batteries, Cables, and Chargers
 
-* [Slim Battery Packs](https://amzn.to/44I9Mvo). ([Alternate](https://amzn.to/3Ofy3ni))
+* [Slim Battery Packs](https://amzn.to/4dD8q9t). ([Alternate](https://amzn.to/3Ofy3ni))
 * [High Capacity Battery Pack](https://amzn.to/2Js2KHl). ([Alternate](https://amzn.to/46TJtEE))
 * [USB Cable with On-Off Switch and 90 Degree Connection](https://amzn.to/3J0kZxv).
 * [Braided MicroUSB Cable](https://amzn.to/49J9mHR). ([Alternate](https://amzn.to/3JZ27AQ))
@@ -48,5 +49,5 @@ order: 4
 ## Accessories
 
 * [Serial Adapter](https://amzn.to/3nY3L8S).
-* [Splitter and Saw Filter](https://amzn.to/3XSaBzD).
+* [Splitter and Saw Filter](https://amzn.to/3XQK9a5).
 * [Tool Kit - Screwdriver and Wrenches](https://amzn.to/4enRWTs).

@@ -9,4 +9,4 @@ It's easy to build an <a href="https://en.wikipedia.org/wiki/Automatic_Dependent
 
 Stratux-based ADS-B receivers are the **only** full-featured receivers on the market that are compatible with <a href="#efb-compatibility">every major EFB</a> and the <a href="http://wiki.glidernet.org">Open Glider Network</a>.
 
-You can support Stratux by <a href="https://www.paypal.com/paypalme/stratuxeu">buying the devs a coffee</a> or contributing to ongoing coding efforts in our <a href="http://slack.stratux.me/"> Slack channel</a>.
+You can support Stratux by <a href="https://www.paypal.com/paypalme/stratuxeu">buying the devs a coffee</a> or contributing to ongoing development efforts in our <a href="https://discord.gg/D9NQ6xe4nF"> Discord chat</a>.
