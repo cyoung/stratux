@@ -14,7 +14,7 @@ import (
 )
  
 /*
-#cgo CFLAGS: -L../
+#cgo CFLAGS: -I../
 
 #include <stdint.h>
 #include "../dump978/dump978.h"
