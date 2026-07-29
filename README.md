@@ -37,6 +37,7 @@ Apps with stratux recognition/support:
 * DroidEFB 2.1.1+.
 * kwikEFIS
 * Pilots Atlas
+* DroneScan Pro: Drone Detector (Android) - ADS-B traffic. Also displays Remote ID drone broadcasts on the same map
 
 Tested weather/traffic displays:
 * Avare
